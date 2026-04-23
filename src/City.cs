@@ -37,6 +37,12 @@ namespace CivOne
 			}
 			set
 			{
+				if (Game.Started && _owner != value)
+				{
+					foreach (City other in Game.GetCities().Where(c => c != this))
+						other.RemoveTradeRoutesTo(this);
+					_tradeRoutes.Clear();
+				}
 				_owner = value;
 				ResetResourceTiles();
 			}
@@ -71,6 +77,29 @@ namespace CivOne
 		private List<ITile> _resourceTiles = new List<ITile>();
 		private List<IBuilding> _buildings = new List<IBuilding>();
 		private List<IWonder> _wonders = new List<IWonder>();
+
+		internal class TradeRoute
+		{
+			internal City Partner { get; }
+			internal string Commodity { get; }
+			internal TradeRoute(City partner, string commodity) { Partner = partner; Commodity = commodity; }
+		}
+
+		private readonly List<TradeRoute> _tradeRoutes = new List<TradeRoute>();
+		internal IEnumerable<TradeRoute> TradeRoutes => _tradeRoutes;
+		internal int TradeRouteCount => _tradeRoutes.Count;
+
+		internal void AddTradeRoute(City partner, string commodity)
+		{
+			if (partner == null) return;
+			if (_tradeRoutes.Count >= 3) _tradeRoutes.RemoveAt(0);
+			_tradeRoutes.Add(new TradeRoute(partner, commodity));
+		}
+
+		internal void RemoveTradeRoutesTo(City city)
+		{
+			_tradeRoutes.RemoveAll(r => r.Partner == city);
+		}
 
 		public IBuilding[] Buildings => _buildings.OrderBy(b => b.Id).ToArray();
 		public IWonder[] Wonders => _wonders.OrderBy(b => b.Id).ToArray();
@@ -211,7 +240,21 @@ namespace CivOne
 			return output;
 		}
 
-		internal int TradeTotal => ResourceTiles.Sum(t => TradeValue(t)) - Corruption;
+		private int BaseTrade => ResourceTiles.Sum(t => TradeValue(t)) - Corruption;
+
+		private int RouteBonus(City partner)
+		{
+			if (partner.X == 255) return 0;
+			int distance = Common.DistanceToTile(X, Y, partner.X, partner.Y);
+			float multiplier = 1.0f;
+			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
+			if (Owner == partner.Owner) multiplier *= 0.5f;
+			return (int)(multiplier * (float)(distance + 10) * partner.BaseTrade / 24);
+		}
+
+		private int TradeRouteBonus => _tradeRoutes.Sum(r => RouteBonus(r.Partner));
+
+		internal int TradeTotal => BaseTrade + TradeRouteBonus;
 		private short TradeScience => (short)(TradeTotal - TradeLuxuries - TradeTaxes);
 		private short TradeLuxuries => (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero);
 		private short TradeTaxes => (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero);
@@ -863,8 +906,7 @@ namespace CivOne
 				}
 			}
 
-			// TODO: Handle luxuries
-			Player.Gold +=  IsInDisorder ? (short)0 : Taxes;
+			Player.Gold += IsInDisorder ? (short)0 : Taxes;
 			Player.Gold -= TotalMaintenance;
 			Player.Science += Science;
 			BuildingSold = false;

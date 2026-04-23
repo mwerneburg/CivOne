@@ -52,7 +52,10 @@ namespace CivOne.Units
 			string homeName = Home?.Name ?? "NONE";
 			string ware = WARES[Common.Random.Next(8)];
 			int revenue = TradeGoldBonus(city);
-			if (revenue <= 0) revenue = 1; // revenue should at least be 1, I think (needs to be checked)
+			if (revenue <= 0) revenue = 1;
+
+			Home?.AddTradeRoute(city, ware);
+			city.AddTradeRoute(Home, ware);
 
 			GameTask.Insert(Message.General(
 				$"{ware} caravan from {homeName}",
