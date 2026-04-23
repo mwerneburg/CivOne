@@ -591,6 +591,12 @@ namespace CivOne
 				if (Player.HasWonder<CureForCancer>()) happyCount++;
 
 				int unhappyCount = Size - (6 - Game.Difficulty) - happyCount;
+				if (Player.RepublicDemocratic)
+				{
+					int penalty = Player.Government is Governments.Democracy ? 2 : 1;
+					int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
+					unhappyCount += militaryAway * penalty;
+				}
 				if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
 				{
 					unhappyCount = 0;
