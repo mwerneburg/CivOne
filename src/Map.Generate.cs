@@ -99,7 +99,7 @@ namespace CivOne
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
-				int l = (int)(((float)y / HEIGHT) * 50) - 29;
+				int l = (int)((float)Math.Abs(y * 2 - (HEIGHT - 1)) / HEIGHT * 29);
 				l += Common.Random.Next(7);
 				if (l < 0) l = -l;
 				l += 1 - _temperature;
@@ -213,7 +213,7 @@ namespace CivOne
 						switch (_tiles[x, y].Type)
 						{
 							case Terrain.Swamp: _tiles[x, y] = new Forest(x, y, special); break;
-							case Terrain.Plains: new Grassland(x, y); break;
+							case Terrain.Plains: _tiles[x, y] = new Grassland(x, y); break;
 							case Terrain.Grassland1:
 							case Terrain.Grassland2: _tiles[x, y] = new Jungle(x, y, special); break;
 							case Terrain.Hills: _tiles[x, y] = new Forest(x, y, special); break;
@@ -350,101 +350,62 @@ namespace CivOne
 		
 		private void CalculateContinentSize()
 		{
-			// TODO: This function needs to be been checked against the original function. It does not yet work as intended.
 			Log("Map: Calculate continent and ocean sizes");
-			
-			// Initial continents
-			byte continentId = 0;
+
+			// BFS flood-fill: find all connected regions of same land/ocean type.
+			// The map wraps horizontally but not vertically.
+			var regions = new List<List<ITile>>();
+			var visited = new bool[WIDTH, HEIGHT];
+
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
-				ITile tile = this[x, y], north = this[x, y - 1], west = this[x - 1, y];
-				
-				if (north != null && (north.IsOcean == tile.IsOcean) && north.ContinentId > 0)
+				if (visited[x, y]) continue;
+
+				var region = new List<ITile>();
+				var queue = new Queue<(int x, int y)>();
+				bool isOcean = _tiles[x, y].IsOcean;
+
+				queue.Enqueue((x, y));
+				visited[x, y] = true;
+
+				while (queue.Count > 0)
 				{
-					tile.ContinentId = north.ContinentId;
-				}
-				else if (west != null && (west.IsOcean == tile.IsOcean) && west.ContinentId > 0)
-				{
-					tile.ContinentId = west.ContinentId;
-				}
-				else
-				{
-					tile.ContinentId = ++continentId;
-				}
-				
-				if (north == null || west == null) continue;
-				if (north.IsOcean != west.IsOcean) continue;
-				
-				// Merge continents
-				if (north.ContinentId != west.ContinentId && north.ContinentId > 0 && west.ContinentId > 0)
-				{
-					int northCount = AllTiles().Count(t => t.ContinentId == north.ContinentId);
-					int westCount = AllTiles().Count(t => t.ContinentId == west.ContinentId);
-					if (northCount > westCount)
+					var (cx, cy) = queue.Dequeue();
+					region.Add(_tiles[cx, cy]);
+
+					// 4-connected neighbours; X wraps, Y clamps
+					(int dx, int dy)[] neighbours = { (0,-1), (0,1), (-1,0), (1,0) };
+					foreach (var (dx, dy) in neighbours)
 					{
-						foreach (ITile westTile in AllTiles().Where(t => t.ContinentId == west.ContinentId))
-						{
-							westTile.ContinentId = north.ContinentId;
-						}
-						continue;
-					}
-					foreach (ITile northTile in AllTiles().Where(t => t.ContinentId == north.ContinentId))
-					{
-						northTile.ContinentId = west.ContinentId;
+						int nx = (cx + dx + WIDTH) % WIDTH;
+						int ny = cy + dy;
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (visited[nx, ny]) continue;
+						if (_tiles[nx, ny].IsOcean != isOcean) continue;
+						visited[nx, ny] = true;
+						queue.Enqueue((nx, ny));
 					}
 				}
+
+				regions.Add(region);
 			}
-			
-			for (int x = 0; x < WIDTH; x++)
-			for (int y = 0; y < HEIGHT; y++)
-			{
-				ITile tile = this[x, y], north = this[x, y - 1], west = this[x - 1, y];
-				
-				if (north == null || west == null) continue;
-				if (north.IsOcean != west.IsOcean) continue;
-				
-				// Merge continents
-				if (north.ContinentId != west.ContinentId && north.ContinentId > 0 && west.ContinentId > 0)
-				{
-					int northCount = AllTiles().Count(t => t.ContinentId == north.ContinentId);
-					int westCount = AllTiles().Count(t => t.ContinentId == west.ContinentId);
-					if (northCount > westCount)
-					{
-						foreach (ITile westTile in AllTiles().Where(t => t.ContinentId == west.ContinentId))
-						{
-							westTile.ContinentId = north.ContinentId;
-						}
-						continue;
-					}
-					foreach (ITile northTile in AllTiles().Where(t => t.ContinentId == north.ContinentId))
-					{
-						northTile.ContinentId = west.ContinentId;
-					}
-				}
-			}
-			
-			List<ITile[]> continents = new List<ITile[]>();
-			for (int i = 0; i <= 255; i++)
-			{
-				if (!AllTiles().Any(x => x.ContinentId == i)) continue;
-				continents.Add(AllTiles().Where(x => x.ContinentId == i).ToArray());
-			}
-			for (byte i = 1; i < 15; i++)
-			{
-				ITile[] continent = continents.OrderByDescending(x => x.Length).FirstOrDefault();
-				if (continent == null) break;
-				
-				continents.Remove(continent);
-				foreach (ITile tile in continent)
-				{
-					tile.ContinentId = i;
-				}
-			}
-			foreach (ITile[] continent in continents)
-			foreach (ITile tile in continent)
-			{
+
+			// Clear all IDs first
+			foreach (ITile tile in AllTiles())
 				tile.ContinentId = 15;
+
+			// Assign IDs 1–14 to the 14 largest land regions; everything else stays 15
+			var landRegions = regions
+				.Where(r => !r[0].IsOcean)
+				.OrderByDescending(r => r.Count)
+				.ToList();
+
+			for (int i = 0; i < Math.Min(14, landRegions.Count); i++)
+			{
+				byte id = (byte)(i + 1);
+				foreach (ITile tile in landRegions[i])
+					tile.ContinentId = id;
 			}
 		}
 		
