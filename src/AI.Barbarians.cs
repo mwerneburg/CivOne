@@ -79,25 +79,13 @@ namespace CivOne
 
 				if (!unit.Goto.IsEmpty)
 				{
-					int distance = unit.Tile.DistanceTo(unit.Goto);
-					ITile[] tiles = unit.MoveTargets.OrderBy(x => x.DistanceTo(unit.Goto)).ThenBy(x => x.Movement).ToArray();
-					if (tiles.Length == 0 || tiles[0].DistanceTo(unit.Goto) > distance)
+					ITile next = Common.GotoStep(unit);
+					if (next == null)
 					{
-						// No valid tile to move to, cancel goto
 						unit.Goto = Point.Empty;
 						continue;
 					}
-					else if (tiles[0].DistanceTo(unit.Goto) == distance)
-					{
-						// Distance is unchanged, 50% chance to cancel goto
-						if (Common.Random.Next(0, 100) < 50)
-						{
-							unit.Goto = Point.Empty;
-							continue;
-						}
-					}
-
-					if (!unit.MoveTo(tiles[0].X - unit.X, tiles[0].Y - unit.Y))
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
 					{
 						unit.Goto = Point.Empty;
 						unit.SkipTurn();

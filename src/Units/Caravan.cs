@@ -97,7 +97,7 @@ namespace CivOne.Units
 			return true;
 		}
 
-		public Caravan() : base(5, 0, 1, 1)
+		public Caravan() : base(5, 0, 1, 2)
 		{
 			Type = UnitType.Caravan;
 			Name = "Caravan";
