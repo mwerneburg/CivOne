@@ -216,6 +216,8 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			_x = x - (_tilesX / 2);
 			_y = y - (_tilesY / 2);
+			while (_x < 0) _x += Map.WIDTH;
+			while (_x >= Map.WIDTH) _x -= Map.WIDTH;
 			while (_y < 0) _y++;
 			while (_y + _tilesY > Map.HEIGHT) _y--;
 			_update = true;
