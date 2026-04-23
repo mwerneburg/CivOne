@@ -91,9 +91,10 @@ namespace CivOne
 			int[,] elevation = new int[WIDTH, HEIGHT];
 			int landMassSize = (int)((WIDTH * HEIGHT) / 12.5) * (_landMass + 2);
 
-			// Plant 3–5 continent seeds at random positions before growing from them.
-			// This controls how many separate land masses the map ends up with.
-			int numSeeds = 3 + Common.Random.Next(3);
+			// Seed count is inversely tied to land mass: less land spreads across more
+			// pieces; more land consolidates into fewer, larger continents.
+			// Small=0 → 4-6 seeds, Normal=1 → 3-5, Large=2 → 2-4.
+			int numSeeds = (4 - _landMass) + Common.Random.Next(3);
 			for (int i = 0; i < numSeeds; i++)
 			{
 				bool[,] seed = GenerateLandChunk(elevation, growFromExisting: false);
