@@ -21,19 +21,50 @@ namespace CivOne
 {
 	public partial class Map
 	{
-		private bool[,] GenerateLandChunk()
+		private bool[,] GenerateLandChunk(int[,] existingElevation, bool growFromExisting)
 		{
 			bool[,] stencil = new bool[WIDTH, HEIGHT];
-			
-			int x = Common.Random.Next(4, WIDTH - 4);
-			int y = Common.Random.Next(8, HEIGHT - 8);
-			int pathLength = Common.Random.Next(1, 64);
-			
+
+			int x, y;
+			if (growFromExisting)
+			{
+				// Find a random existing land tile to grow the continent from.
+				// Random sampling is fast enough: at 10% land coverage the expected
+				// number of tries is ~9; 256 attempts is a safe upper bound.
+				int attempts = 0;
+				do {
+					x = Common.Random.Next(2, WIDTH - 2);
+					y = Common.Random.Next(4, HEIGHT - 4);
+					attempts++;
+				} while (existingElevation[x, y] == 0 && attempts < 256);
+
+				if (existingElevation[x, y] == 0)
+				{
+					// Fallback: no existing land found (shouldn't happen after seeding)
+					x = Common.Random.Next(4, WIDTH - 4);
+					y = Common.Random.Next(8, HEIGHT - 8);
+				}
+			}
+			else
+			{
+				x = Common.Random.Next(4, WIDTH - 4);
+				y = Common.Random.Next(8, HEIGHT - 8);
+			}
+
+			// Scale walk length with map area so continent proportions are consistent
+			// across map sizes. sqrt(WIDTH*HEIGHT)/2 gives ~16 for Tiny, ~32 for Normal,
+			// ~63 for Huge.
+			int baseLen = (int)Math.Sqrt(WIDTH * HEIGHT) / 2;
+			int pathLength = baseLen + Common.Random.Next(baseLen);
+
 			for (int i = 0; i < pathLength; i++)
 			{
-				stencil[x, y] = true;
-				stencil[x + 1, y] = true;
-				stencil[x, y + 1] = true;
+				if (x >= 0 && x < WIDTH - 1 && y >= 0 && y < HEIGHT - 1)
+				{
+					stencil[x, y] = true;
+					stencil[x + 1, y] = true;
+					stencil[x, y + 1] = true;
+				}
 				switch (Common.Random.Next(4))
 				{
 					case 0: y--; break;
@@ -41,8 +72,7 @@ namespace CivOne
 					case 2: y++; break;
 					default: x--; break;
 				}
-
-				if (x < 3 || y < 3 || x > (WIDTH - 4) || y > (HEIGHT - 5)) break;
+				if (x < 2 || y < 2 || x > (WIDTH - 3) || y > (HEIGHT - 4)) break;
 			}
 
 			return stencil;
@@ -57,14 +87,27 @@ namespace CivOne
 		private int[,] GenerateLandMass()
 		{
 			Log("Map: Stage 1 - Generate land mass");
-			
+
 			int[,] elevation = new int[WIDTH, HEIGHT];
 			int landMassSize = (int)((WIDTH * HEIGHT) / 12.5) * (_landMass + 2);
-			
-			// Generate the landmass
+
+			// Plant 3–5 continent seeds at random positions before growing from them.
+			// This controls how many separate land masses the map ends up with.
+			int numSeeds = 3 + Common.Random.Next(3);
+			for (int i = 0; i < numSeeds; i++)
+			{
+				bool[,] seed = GenerateLandChunk(elevation, growFromExisting: false);
+				for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+					if (seed[x, y]) elevation[x, y]++;
+			}
+
+			// Grow from existing land until target coverage is reached.
+			// Starting each walk from an existing land tile causes new land to
+			// accrete onto existing masses rather than spawning isolated islands.
 			while ((from int tile in elevation where tile > 0 select 1).Sum() < landMassSize)
 			{
-				bool[,] chunk = GenerateLandChunk();
+				bool[,] chunk = GenerateLandChunk(elevation, growFromExisting: true);
 				for (int y = 0; y < HEIGHT; y++)
 				for (int x = 0; x < WIDTH; x++)
 				{
