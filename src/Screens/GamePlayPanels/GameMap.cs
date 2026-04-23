@@ -214,10 +214,10 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		internal void CenterOnPoint(int x, int y)
 		{
-			_x = x - 7;
-			_y = y - 6;
+			_x = x - (_tilesX / 2);
+			_y = y - (_tilesY / 2);
 			while (_y < 0) _y++;
-			while (_y + 11 >= Map.HEIGHT) _y--;
+			while (_y + _tilesY > Map.HEIGHT) _y--;
 			_update = true;
 			_fullRedraw = true;
 		}
