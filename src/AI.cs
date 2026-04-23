@@ -88,14 +88,18 @@ namespace CivOne
 					}
 				}
 
-				for (int i = 0; i < 1000; i++)
+				// Navigate toward the best visible city site
+				if (unit.Goto.IsEmpty)
 				{
-					int relX = Common.Random.Next(-1, 2);
-					int relY = Common.Random.Next(-1, 2);
-					if (relX == 0 && relY == 0) continue;
-					if (unit.Tile[relX, relY] is Ocean) continue;
-					if (unit.Tile[relX, relY].Units.Any(x => x.Owner != unit.Owner)) continue;
-					if (!unit.MoveTo(relX, relY)) continue;
+					ITile best = BestSettleSite(unit);
+					if (best != null && (best.X != unit.X || best.Y != unit.Y))
+						unit.Goto = new Point(best.X, best.Y);
+				}
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile next = Common.GotoStep(unit);
+					if (next == null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
 					return;
 				}
 				unit.SkipTurn();
@@ -117,72 +121,54 @@ namespace CivOne
 			}
 			else
 			{
-				if (unit.Class != UnitClass.Land) Game.DisbandUnit(unit);
+				// Assign a mission if the unit is idle (sets unit.Goto)
+				if (unit.Goto.IsEmpty) AssignMission(unit);
 
-				for (int i = 0; i < 1000; i++)
+				if (!unit.Goto.IsEmpty)
 				{
-					if (unit.Goto.IsEmpty)
+					ITile next = Common.GotoStep(unit);
+					if (next == null)
 					{
-						int gotoX = Common.Random.Next(-5, 6);
-						int gotoY = Common.Random.Next(-5, 6);
-						if (gotoX == 0 && gotoY == 0) continue;
-						if (!Player.Visible(unit.X + gotoX, unit.Y + gotoY)) continue;
-
-						unit.Goto = new Point(unit.X + gotoX, unit.Y + gotoY);
-						continue;
-					}
-
-					if (!unit.Goto.IsEmpty)
-					{
-						ITile next = Common.GotoStep(unit);
-						if (next == null)
-						{
-							unit.Goto = Point.Empty;
-							continue;
-						}
-
-						if (next.Units.Any(x => x.Owner != unit.Owner))
-						{
-							if (unit.Role == UnitRole.Civilian || unit.Role == UnitRole.Settler)
-							{
-								unit.Goto = Point.Empty;
-								continue;
-							}
-
-							if (unit.Role == UnitRole.Transport && Common.Random.Next(0, 100) < 67)
-							{
-								unit.Goto = Point.Empty;
-								continue;
-							}
-
-							if (unit.Attack < next.Units.Select(x => x.Defense).Max() && Common.Random.Next(0, 100) < 50)
-							{
-								unit.Goto = Point.Empty;
-								continue;
-							}
-						}
-
-						if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
-						{
-							// Prevent the game from becoming stuck if MoveTo fails
-							if (Common.Random.Next(0, 100) < 67)
-							{
-								unit.Goto = Point.Empty;
-								continue;
-							}
-							else if (Common.Random.Next(0, 100) < 67)
-							{
-								unit.SkipTurn();
-								return;
-							}
-							else
-							{
-								Game.DisbandUnit(unit);
-								return;
-							}
-						}
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
 						return;
 					}
+
+					if (next.Units.Any(x => x.Owner != unit.Owner))
+					{
+						if (unit.Role == UnitRole.Civilian || unit.Role == UnitRole.Settler)
+						{
+							unit.Goto = Point.Empty;
+							unit.SkipTurn();
+							return;
+						}
+
+						if (unit.Role == UnitRole.Transport && Common.Random.Next(0, 100) < 67)
+						{
+							unit.Goto = Point.Empty;
+							unit.SkipTurn();
+							return;
+						}
+
+						if (unit.Attack < next.Units.Select(x => x.Defense).Max() && Common.Random.Next(0, 100) < 50)
+						{
+							unit.Goto = Point.Empty;
+							unit.SkipTurn();
+							return;
+						}
+					}
+
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+					{
+						if (Common.Random.Next(0, 100) < 67)
+							unit.Goto = Point.Empty;
+						else if (Common.Random.Next(0, 100) < 67)
+							unit.SkipTurn();
+						else
+							Game.DisbandUnit(unit);
+						return;
+					}
+					return;
 				}
 				unit.SkipTurn();
 				return;
@@ -207,73 +193,78 @@ namespace CivOne
 		{
 			if (city == null || city.Size == 0 || city.Tile == null || Player != city.Owner) return;
 
+			StrategyStance stance = GetStance();
 			IProduction production = null;
 
-			// Create 2 defensive units per city
-			if (Player.HasAdvance<LaborUnion>())
+			// Barracks: universal first priority — veteran units matter in every stance
+			if (!city.HasBuilding<Barracks>())
 			{
-				if (city.Tile.Units.Count(x => x is MechInf) < 2) production = new MechInf();
-			}
-			else if (Player.HasAdvance<Conscription>())
-			{
-				if (city.Tile.Units.Count(x => x is Riflemen) < 2) production = new Riflemen();
-			}
-			else if (Player.HasAdvance<Gunpowder>())
-			{
-				if (city.Tile.Units.Count(x => x is Musketeers) < 2) production = new Musketeers();
-			}
-			else if (Player.HasAdvance<BronzeWorking>())
-			{
-				if (city.Tile.Units.Count(x => x is Phalanx) < 2) production = new Phalanx();
-			}
-			else
-			{
-				if (city.Tile.Units.Count(x => x is Militia) < 2) production = new Militia();
-			}
-			
-			// Create city improvements
-			if (production == null)
-			{
-				if (!city.HasBuilding<Barracks>()) production = new Barracks();
-				else if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) production = new Granary();
-				else if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) production = new Temple();
-				else if (Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>()) production = new CityWalls();
+				city.SetProduction(new Barracks());
+				return;
 			}
 
-			// Create Settlers
-			if (production == null)
+			// Minimum garrison: at least 1 defender in every city at all times
+			if (city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 1)
+				production = BestDefender();
+
+			// Consolidate: happiness and growth buildings take priority over everything else
+			if (production == null && stance == StrategyStance.Consolidate)
 			{
-				int minCitySize = Leader.Development == Expansionistic ? 2 : Leader.Development == Normal ? 3 : 4;
-				int maxCities = Leader.Development == Expansionistic ? 13 : Leader.Development == Normal ? 10 : 7;
-				if (city.Size >= minCitySize && !city.Units.Any(x => x is Settlers) && Player.Cities.Length < maxCities) production = new Settlers();
+				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())   production = new Temple();
+				else if (Player.HasAdvance<Construction>() && !city.HasBuilding<Colosseum>()) production = new Colosseum();
+				else if (Player.HasAdvance<Religion>()      && !city.HasBuilding<Cathedral>()) production = new Cathedral();
+				else if (Player.HasAdvance<Pottery>()       && !city.HasBuilding<Granary>())   production = new Granary();
 			}
 
-			// Create some other unit
-			if (production == null)
+			// Militarize: build up to 2 defenders, then offensive units
+			if (production == null && stance == StrategyStance.Militarize)
 			{
-				if (city.Units.Length < 4)
-				{
-					if (Player.Government is Republic || Player.Government is Democratic)
-					{
-						if (Player.HasAdvance<Writing>()) production = new Diplomat();
-					}
-					else 
-					{
-						if (Player.HasAdvance<Automobile>()) production = new Armor();
-						else if (Player.HasAdvance<Metallurgy>()) production = new Cannon();
-						else if (Player.HasAdvance<Chivalry>()) production = new Knights();
-						else if (Player.HasAdvance<TheWheel>()) production = new Chariot();
-						else if (Player.HasAdvance<HorsebackRiding>()) production = new Cavalry();
-						else if (Player.HasAdvance<IronWorking>()) production = new Legion();
-					}
-				}
-				else
-				{
-					if (Player.HasAdvance<Trade>()) production = new Caravan();
-				}
+				if (city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 2)
+					production = BestDefender();
+				else if (!Player.RepublicDemocratic)
+					production = BestAttacker();
 			}
 
-			// Set random production
+			// Expand: produce Settlers once the city is big enough
+			if (production == null && stance == StrategyStance.Expand)
+			{
+				int minSize = Leader.Development == Expansionistic ? 2
+				            : Leader.Development == Normal          ? 3 : 4;
+				int maxCities = Leader.Development == Expansionistic ? 13
+				              : Leader.Development == Normal          ? 10 : 7;
+				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers)
+				    && Player.Cities.Length < maxCities)
+					production = new Settlers();
+			}
+
+			// Standard infrastructure chain (all stances)
+			if (production == null)
+			{
+				if (Player.HasAdvance<Pottery>()           && !city.HasBuilding<Granary>())    production = new Granary();
+				else if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    production = new Temple();
+				else if (Player.HasAdvance<Writing>()          && !city.HasBuilding<Library>())   production = new Library();
+				else if (Player.HasAdvance<Currency>()         && !city.HasBuilding<MarketPlace>()) production = new MarketPlace();
+				else if (Player.HasAdvance<Masonry>()          && !city.HasBuilding<CityWalls>())  production = new CityWalls();
+				else if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>())  production = new Colosseum();
+				else if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>())  production = new Cathedral();
+			}
+
+			// Second defender once infrastructure is underway
+			if (production == null && city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 2)
+				production = BestDefender();
+
+			// Soft units based on government and stance
+			if (production == null)
+			{
+				if (stance == StrategyStance.Militarize && !Player.RepublicDemocratic)
+					production = BestAttacker();
+				else if (Player.HasAdvance<Writing>())
+					production = new Diplomat();
+				else if (Player.HasAdvance<Trade>())
+					production = new Caravan();
+			}
+
+			// Fallback: random available production item
 			if (production == null)
 			{
 				IProduction[] items = city.AvailableProduction.ToArray();
