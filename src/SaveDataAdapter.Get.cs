@@ -106,6 +106,8 @@ namespace CivOne
 
 		private ushort[] GetGovernment() => GetArray<ushort>(nameof(SaveData.Government), 8);
 
+		private ushort[] GetDiplomacy() => GetArray<ushort>(nameof(SaveData.Diplomacy), 8 * 8);
+
 		private CityData[] GetCities()
 		{
 			SaveData.City[] cities = GetArray<SaveData.City>(nameof(SaveData.Cities), 128);

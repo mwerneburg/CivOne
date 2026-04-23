@@ -206,6 +206,12 @@ namespace CivOne
 			set => SetGovernment(value);
 		}
 
+		public ushort[] Diplomacy
+		{
+			get => GetDiplomacy();
+			set => SetDiplomacy(value);
+		}
+
 		public CityData[] Cities
 		{
 			get => GetCities();

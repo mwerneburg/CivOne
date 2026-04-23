@@ -240,6 +240,13 @@ namespace CivOne.Units
 			
 			ITile moveTarget = Map[X, Y][relX, relY];
 			if (moveTarget == null) return false;
+
+			// Any hostile act against another civ triggers a state of war
+			if (moveTarget.City != null && moveTarget.City.Owner != Owner)
+				Player.DeclareWar(Game.GetPlayer(moveTarget.City.Owner));
+			else if (moveTarget.Units.Any(u => u.Owner != Owner))
+				Player.DeclareWar(Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner));
+
 			if (!moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City != null && moveTarget.City.Owner != Owner)
 			{
 				if (Class != UnitClass.Land)

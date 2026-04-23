@@ -31,6 +31,7 @@ namespace CivOne
 		ushort[] ScienceRate { get; set; }
 		ushort[] StartingPositionX { get; set; }
 		ushort[] Government { get; set; }
+		ushort[] Diplomacy { get; set; }
 		CityData[] Cities { get; set; }
 		UnitData[][] Units { get; set; }
 		ushort[] Wonders { get; set; }

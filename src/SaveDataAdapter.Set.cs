@@ -113,6 +113,8 @@ namespace CivOne
 
 		private void SetGovernment(ushort[] values) => SetArray(nameof(SaveData.Government), values);
 
+		private void SetDiplomacy(ushort[] values) => SetArray(nameof(SaveData.Diplomacy), values);
+
 		private void SetCityCount(ushort[] values) => SetArray(nameof(SaveData.CityCount), values);
 
 		private void SetSettlerCount(ushort[] values) => SetArray(nameof(SaveData.SettlerCount), values);

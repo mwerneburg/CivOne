@@ -101,6 +101,11 @@ namespace CivOne
 			_tradeRoutes.RemoveAll(r => r.Partner == city);
 		}
 
+		internal void RemoveTradeRoutesTo(Player enemy)
+		{
+			_tradeRoutes.RemoveAll(r => r.Partner.Owner == Game.PlayerNumber(enemy));
+		}
+
 		public IBuilding[] Buildings => _buildings.OrderBy(b => b.Id).ToArray();
 		public IWonder[] Wonders => _wonders.OrderBy(b => b.Id).ToArray();
 
@@ -245,6 +250,7 @@ namespace CivOne
 		private int RouteBonus(City partner)
 		{
 			if (partner.X == 255) return 0;
+			if (Owner != partner.Owner && Game.GetPlayer(Owner).IsAtWar(Game.GetPlayer(partner.Owner))) return 0;
 			int distance = Common.DistanceToTile(X, Y, partner.X, partner.Y);
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;

@@ -109,7 +109,8 @@ namespace CivOne
 		private readonly bool[,] _visible = new bool[Map.WIDTH, Map.HEIGHT];
 		private readonly List<byte> _advances = new List<byte>();
 		private readonly List<byte> _embassies = new List<byte>();
-		
+		private readonly HashSet<byte> _warWith = new HashSet<byte>();
+
 		private short _anarchy = 0;
 		private short _gold;
 		private IAdvance _currentResearch = null;
@@ -255,6 +256,38 @@ namespace CivOne
 			byte playerNumber = Game.PlayerNumber(player);
 			if (_embassies.Contains(playerNumber)) return;
 			_embassies.Add(playerNumber);
+		}
+
+		public bool IsAtWar(Player player) => _warWith.Contains(Game.PlayerNumber(player));
+
+		internal void SetAtWar(byte playerNumber, bool atWar)
+		{
+			if (atWar) _warWith.Add(playerNumber);
+			else _warWith.Remove(playerNumber);
+		}
+
+		public void DeclareWar(Player enemy)
+		{
+			byte enemyNumber = Game.PlayerNumber(enemy);
+			byte ownNumber = Game.PlayerNumber(this);
+			if (_warWith.Contains(enemyNumber)) return;
+
+			_warWith.Add(enemyNumber);
+			enemy._warWith.Add(ownNumber);
+
+			// Break all trade routes between the two civs
+			foreach (City city in Game.GetCities().Where(c => c.Owner == ownNumber))
+				city.RemoveTradeRoutesTo(enemy);
+			foreach (City city in Game.GetCities().Where(c => c.Owner == enemyNumber))
+				city.RemoveTradeRoutesTo(this);
+		}
+
+		public void MakePeace(Player enemy)
+		{
+			byte enemyNumber = Game.PlayerNumber(enemy);
+			byte ownNumber = Game.PlayerNumber(this);
+			_warWith.Remove(enemyNumber);
+			enemy._warWith.Remove(ownNumber);
 		}
 
 		public IAdvance CurrentResearch

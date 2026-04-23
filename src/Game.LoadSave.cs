@@ -67,6 +67,14 @@ namespace CivOne
 				gameData.ScienceRate = _players.Select(p => (ushort)p.ScienceRate).ToArray();
 				gameData.StartingPositionX = _players.Select(x => (ushort)x.StartX).ToArray();
 				gameData.Government = _players.Select(x => (ushort)x.Government.Id).ToArray();
+				ushort[] diplomacyOut = new ushort[8 * 8];
+				for (int i = 0; i < _players.Length; i++)
+				for (int j = 0; j < _players.Length; j++)
+				{
+					if (i == j) continue;
+					diplomacyOut[i * 8 + j] = _players[i].IsAtWar(_players[j]) ? (ushort)0x2 : (ushort)0x0;
+				}
+				gameData.Diplomacy = diplomacyOut;
 				gameData.Cities = _cities.GetCityData().ToArray();
 				gameData.Units = _players.Select(p => _units.Where(u => p == u.Owner).GetUnitData().ToArray()).ToArray();
 				ushort[] wonders = Enumerable.Repeat(ushort.MaxValue, 22).ToArray();
@@ -150,6 +158,16 @@ namespace CivOne
 					if (advanceFirst[x.Id] != player.Civilization.Id) return;
 					SetAdvanceOrigin(x, player);
 				});
+			}
+
+			// Load war/peace state from the Diplomacy matrix (0x2 = at war)
+			ushort[] diplomacy = gameData.Diplomacy;
+			for (int i = 0; i < _players.Length; i++)
+			for (int j = 0; j < _players.Length; j++)
+			{
+				if (i == j) continue;
+				if (diplomacy[i * 8 + j] == 0x2)
+					_players[i].SetAtWar((byte)j, true);
 			}
 
 			GameTurn = gameData.GameTurn;
