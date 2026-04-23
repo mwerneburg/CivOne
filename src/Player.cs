@@ -270,6 +270,10 @@ namespace CivOne
 		{
 			byte enemyNumber = Game.PlayerNumber(enemy);
 			byte ownNumber = Game.PlayerNumber(this);
+
+			// Barbarians (player 0) are always hostile — no formal war state needed
+			if (ownNumber == 0 || enemyNumber == 0) return;
+
 			if (_warWith.Contains(enemyNumber)) return;
 
 			_warWith.Add(enemyNumber);
@@ -280,6 +284,12 @@ namespace CivOne
 				city.RemoveTradeRoutesTo(enemy);
 			foreach (City city in Game.GetCities().Where(c => c.Owner == enemyNumber))
 				city.RemoveTradeRoutesTo(this);
+
+			// Notify the human player
+			if (this == Human)
+				GameTask.Insert(Message.Advisor(Advisor.Foreign, true, $"You have declared", $"war on the {enemy.TribeNamePlural}!"));
+			else if (enemy == Human)
+				GameTask.Insert(Message.Advisor(Advisor.Foreign, true, $"The {TribeNamePlural}", "have declared war on us!"));
 		}
 
 		public void MakePeace(Player enemy)
