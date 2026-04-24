@@ -20,10 +20,13 @@ namespace CivOne.Screens
 {
 	internal class ChooseTech : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private readonly Picture _menuGfx;
 		private readonly IAdvance[] _availableAdvances;
 		private readonly int _menuHeight;
-		
+
 		private bool _update = true;
 
 		private void AdvanceChoice(object sender, MenuItemEventArgs<IAdvance> args)
@@ -47,8 +50,8 @@ namespace CivOne.Screens
 
 				Menu<IAdvance> menu = new Menu<IAdvance>("ChooseTech", Palette, background)
 				{
-					X = 83,
-					Y = 92,
+					X = 83 + OX,
+					Y = 92 + OY,
 					MenuWidth = 156,
 					ActiveColour = 11,
 					TextColour = 5,
@@ -99,8 +102,8 @@ namespace CivOne.Screens
 					.DrawText($"(Help available)", 202, dialogHeight, HelpText)
 					.As<Picture>();
 
-			this.DrawRectangle(38, 56, 204, dialogHeight + 2)
-				.AddLayer(_menuGfx, 39, 57);
+			this.DrawRectangle(38 + OX, 56 + OY, 204, dialogHeight + 2)
+				.AddLayer(_menuGfx, 39 + OX, 57 + OY);
 		}
 
 		public override void Dispose()

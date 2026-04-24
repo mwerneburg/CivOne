@@ -778,11 +778,14 @@ namespace CivOne.Screens
 				int totalGold = Game.GetPlayer(_city.Owner).Gold;
 				int cityLuxuries = _city.Luxuries;
 				if (cityLuxuries == 0) cityLuxuries = 1;
-				int captureGold = (int)Math.Floor(((float)totalGold / totalLuxuries) * cityLuxuries);
+				int captureGold = (totalLuxuries > 0)
+					? (int)Math.Floor(((float)totalGold / totalLuxuries) * cityLuxuries)
+					: totalGold;
 				if (captureGold < 0) captureGold = 0;
+				if (captureGold > totalGold) captureGold = totalGold;
 
-				Game.GetPlayer(_city.Owner).Gold -= (short)captureGold;
-				Game.CurrentPlayer.Gold += (short)captureGold;
+				Game.GetPlayer(_city.Owner).Gold = (short)Math.Max(0, (int)Game.GetPlayer(_city.Owner).Gold - captureGold);
+				Game.CurrentPlayer.Gold = (short)Math.Min(30000, (int)Game.CurrentPlayer.Gold + captureGold);
 				
 				string[] lines =  new [] { $"{Game.CurrentPlayer.TribeNamePlural} capture", $"{city.Name}. {captureGold} gold", "pieces plundered." };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;

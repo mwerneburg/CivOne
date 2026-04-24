@@ -240,9 +240,9 @@ namespace CivOne.Screens
 					}
 					break;
 				case DestroyAnimation.Noise:
-					_noiseMap = new byte[320, 200];
-					for (int x = 0; x < 320; x++)
-					for (int y = 0; y < 200; y++)
+					_noiseMap = new byte[Width, Height];
+					for (int x = 0; x < Width; x++)
+					for (int y = 0; y < Height; y++)
 					{
 						_noiseMap[x, y] = (byte)Common.Random.Next(1, NOISE_COUNT);
 					}

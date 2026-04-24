@@ -44,10 +44,24 @@ namespace CivOne
 			Clear(Color.Black);
 			GetBorders(out int x1, out int y1, out int x2, out int y2);
 			if (_runtime.Layers == null) return;
+			int drawW = x2 - x1, drawH = y2 - y1;
 			foreach (Bytemap bytemap in _runtime.Layers)
 			using (SDL.Texture canvas = CreateTexture(_runtime.Palette, bytemap))
 			{
-				canvas.Draw(x1, y1, (x2 - x1), (y2 - y1));
+				int bx = x1, by = y1, bw = drawW, bh = drawH;
+				if (Settings.AspectRatio == AspectRatio.Expand && CanvasWidth != 0 && CanvasHeight != 0
+				    && (bytemap.Width != CanvasWidth || bytemap.Height != CanvasHeight))
+				{
+					// Non-canvas-sized bitmap (e.g. 320×200 dialog in a 480×300 canvas):
+					// render at its own proportional scale, centred in the draw area.
+					int scaleFactor = drawW / CanvasWidth;
+					if (scaleFactor < 1) scaleFactor = 1;
+					bw = bytemap.Width * scaleFactor;
+					bh = bytemap.Height * scaleFactor;
+					bx = x1 + (drawW - bw) / 2;
+					by = y1 + (drawH - bh) / 2;
+				}
+				canvas.Draw(bx, by, bw, bh);
 				
 				switch (Settings.AspectRatio)
 				{

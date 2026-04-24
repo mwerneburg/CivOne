@@ -142,8 +142,6 @@ namespace CivOne.Units
 					return;
 				case HutResult.Barbarians:
 					TribalHutMessage((s, e) => {
-						//TODO: Find out how the barbarians should be created
-						// This implementation is an approximation
 						int count = 0;
 						for (int i = 0; i < 1000; i++)
 						{
@@ -157,6 +155,7 @@ namespace CivOne.Units
 							}
 							if (count > 0) break;
 						}
+						Common.GamePlay?.RefreshMap();
 					}, "You have unleashed", "a horde of barbarians!");
 					return;
 			}

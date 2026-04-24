@@ -22,6 +22,9 @@ namespace CivOne.Screens
 {
 	internal class CityChooseProduction : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private readonly City _city;
 
 		private readonly IProduction[] _availableProduction;
@@ -68,7 +71,7 @@ namespace CivOne.Screens
 		{
 			if (_update)
 			{
-				this.FillRectangle(0, 0, 320, 200, 0);
+				this.FillRectangle(0, 0, Width, Height, 0);
 
 				List<string> menuItems = new List<string>();
 				string menuHeaderText = $"What shall we build in {_city.Name}?";
@@ -125,17 +128,17 @@ namespace CivOne.Screens
 						.DrawText(menuHeaderText, _fontId, 15, 4, 4)
 						.DrawText($"(Help available)", 1, 10, width, height - Resources.GetFontHeight(1), TextAlign.Right);
 
-					this.FillRectangle(80, 8, width + 2, height + 2, 5)
-						.AddLayer(menuGfx, 81, 9);
-					
+					this.FillRectangle(80 + OX, 8 + OY, width + 2, height + 2, 5)
+						.AddLayer(menuGfx, 81 + OX, 9 + OY);
+
 					using (Picture background = menuGfx[2, 3 + Resources.GetFontHeight(_fontId), itemWidth, Resources.GetFontHeight(_fontId) * menuItems.Count + 4])
 					{
 						background.ColourReplace((7, 11), (22, 3));
 
 						Menu menu = new Menu(Palette, background)
 						{
-							X = 83,
-							Y = 12 + Resources.GetFontHeight(_fontId),
+							X = 83 + OX,
+							Y = 12 + OY + Resources.GetFontHeight(_fontId),
 							MenuWidth = itemWidth,
 							ActiveColour = 11,
 							TextColour = 5,

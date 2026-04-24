@@ -20,8 +20,12 @@ using Gov = CivOne.Governments;
 
 namespace CivOne.Screens
 {
+	[Modal]
 	internal class King : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private const int FONT_ID = 0;
 		private const int PANEL_X = 2;
 		private const int PANEL_Y = 135;
@@ -40,16 +44,16 @@ namespace CivOne.Screens
 
 		private void DrawScene()
 		{
-			this.AddLayer(_background)
-				.AddLayer(_enemy.Civilization.Leader.GetPortrait(_portraitState), 90, 0);
+			this.AddLayer(_background, OX, OY)
+				.AddLayer(_enemy.Civilization.Leader.GetPortrait(_portraitState), 90 + OX, OY);
 
 			if (_speechLines == null) return;
 
 			int fh = Resources.GetFontHeight(FONT_ID);
 			int panelH = _speechLines.Length * fh + 8;
-			DrawPanel(PANEL_X, PANEL_Y, PANEL_W, panelH);
+			DrawPanel(PANEL_X + OX, PANEL_Y + OY, PANEL_W, panelH);
 			for (int i = 0; i < _speechLines.Length; i++)
-				this.DrawText(_speechLines[i], FONT_ID, 15, PANEL_X + 4, PANEL_Y + 4 + i * fh);
+				this.DrawText(_speechLines[i], FONT_ID, 15, PANEL_X + 4 + OX, PANEL_Y + 4 + OY + i * fh);
 		}
 
 		// ── greeting text based on relationship and leader personality ──────────
@@ -218,11 +222,11 @@ namespace CivOne.Screens
 		private Menu BuildMenu(bool atWar)
 		{
 			int fh     = Resources.GetFontHeight(FONT_ID);
-			int menuY  = PANEL_Y + _speechLines.Length * fh + 10;
+			int menuY  = PANEL_Y + OY + _speechLines.Length * fh + 10;
 
 			var menu = new Menu(Palette)
 			{
-				X           = PANEL_X + 2,
+				X           = PANEL_X + OX + 2,
 				Y           = menuY,
 				MenuWidth   = PANEL_W - 4,
 				ActiveColour  = 11,
