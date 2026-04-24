@@ -14,6 +14,7 @@ using System.Linq;
 using CivOne.Advances;
 using CivOne.Buildings;
 using CivOne.Enums;
+using CivOne.Tasks;
 using CivOne.Tiles;
 using CivOne.Units;
 
@@ -127,6 +128,31 @@ namespace CivOne
 			// ~25 % chance per turn → roughly 4-turn lag before acting
 			if (Common.Random.Next(100) < 25)
 				Player.Revolt();
+		}
+
+		// ── proactive diplomacy ───────────────────────────────────────────────────
+
+		internal void ConsiderDiplomacy()
+		{
+			if (Game.PlayerNumber(Player) == 0) return;
+			if (Player.Government is Governments.Anarchy) return;
+
+			Player human = Human;
+			if (human == null || human == Player || human.IsDestroyed()) return;
+
+			// Only approach if we've spotted at least one of their cities
+			if (!Game.GetCities().Any(c => c.Player == human && Player.Visible(c.X, c.Y))) return;
+
+			// Base ~3 % per turn; personality and war status nudge the odds
+			int chance = 3;
+			if (Leader.Aggression == AggressionLevel.Aggressive) chance += 4;
+			if (Leader.Militarism == MilitarismLevel.Militaristic) chance += 2;
+			if (Leader.Aggression == AggressionLevel.Friendly)    chance += 4;
+			if (Player.IsAtWar(human))                             chance += 6;
+
+			if (Common.Random.Next(100) >= chance) return;
+
+			GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true));
 		}
 
 		// ── proactive war declaration ──────────────────────────────────────────

@@ -476,6 +476,7 @@ namespace CivOne
 
 			AI?.ConsiderGovernment();
 			AI?.ConsiderWar();
+			AI?.ConsiderDiplomacy();
 		}
 
 		public override bool Equals (object obj)

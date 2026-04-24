@@ -29,6 +29,7 @@ namespace CivOne.Screens
 
 		private readonly Player _enemy;
 		private readonly Picture _background;
+		private readonly bool _aiInitiated;
 
 		private bool _menuAdded = false;
 		private bool _needsRedraw = true;
@@ -57,6 +58,20 @@ namespace CivOne.Screens
 		{
 			var agg = _enemy.Civilization.Leader.Aggression;
 			bool atWar = Human.IsAtWar(_enemy);
+
+			if (_aiInitiated)
+			{
+				if (atWar)
+					return agg == AggressionLevel.Aggressive
+						? new[] { $"Our patience grows thin, {Human.LeaderName}.", "Surrender or face more war." }
+						: new[] { $"We seek to end this conflict,", $"{Human.LeaderName}. Let us talk terms." };
+
+				return agg == AggressionLevel.Friendly
+					? new[] { $"Well met, {Human.LeaderName}!", $"The {_enemy.TribeNamePlural} bring greetings." }
+					: agg == AggressionLevel.Aggressive
+					? new[] { $"We come with demands, {Human.LeaderName}.", "Choose your next words carefully." }
+					: new[] { $"We come to you, {Human.LeaderName},", "on a matter of mutual interest." };
+			}
 
 			if (atWar)
 				return agg == AggressionLevel.Aggressive
@@ -265,9 +280,10 @@ namespace CivOne.Screens
 
 		// ── constructor ─────────────────────────────────────────────────────────
 
-		public King(Player player)
+		public King(Player player, bool aiInitiated = false)
 		{
 			_enemy = player;
+			_aiInitiated = aiInitiated;
 
 			bool modern = player.HasAdvance<Invention>();
 			int govId = 0;
