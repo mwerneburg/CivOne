@@ -328,7 +328,7 @@ namespace CivOne
 			get
 			{
 				bool any = false;
-				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id)))
+				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id) && !(a is FutureTech)))
 				{
 					if (advance.RequiredTechs.Length > 0 && !advance.RequiredTechs.All(a => _advances.Contains(a.Id))) continue;
 					any = true;
