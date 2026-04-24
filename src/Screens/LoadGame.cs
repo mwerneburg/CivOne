@@ -18,9 +18,12 @@ using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
-	[Modal]
+	[Modal, Expand]
 	internal class LoadGame : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private class SaveGameFile
 		{
 			public bool ValidFile { get; private set; }
@@ -131,14 +134,14 @@ namespace CivOne.Screens
 		
 		private void DrawDriveQuestion()
 		{
-			Bitmap.Clear();
-			this.Clear(15)
-				.DrawText("Which drive contains your", 0, 5, 92, 72, TextAlign.Left)
-				.DrawText("saved game files?", 0, 5, 104, 80, TextAlign.Left)
-				.DrawText($"{_driveLetter}:", 0, 5, 146, 96, TextAlign.Left)
-				.DrawText("Press drive letter and", 0, 5, 104, 112, TextAlign.Left)
-				.DrawText("Return when disk is inserted", 0, 5, 80, 120, TextAlign.Left)
-				.DrawText("Press Escape to cancel", 0, 5, 104, 128, TextAlign.Left);
+			this.Clear(0)
+				.FillRectangle(OX, OY, 320, 200, 15)
+				.DrawText("Which drive contains your", 0, 5, OX + 92, OY + 72, TextAlign.Left)
+				.DrawText("saved game files?", 0, 5, OX + 104, OY + 80, TextAlign.Left)
+				.DrawText($"{_driveLetter}:", 0, 5, OX + 146, OY + 96, TextAlign.Left)
+				.DrawText("Press drive letter and", 0, 5, OX + 104, OY + 112, TextAlign.Left)
+				.DrawText("Return when disk is inserted", 0, 5, OX + 80, OY + 120, TextAlign.Left)
+				.DrawText("Press Escape to cancel", 0, 5, OX + 104, OY + 128, TextAlign.Left);
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
@@ -147,9 +150,9 @@ namespace CivOne.Screens
 			{
 				if (_menu.Update(gameTick))
 				{
-					Bitmap.Clear();
-					this.Clear(15)
-						.AddLayer(_menu);
+					this.Clear(0)
+						.FillRectangle(OX, OY, 320, 200, 15)
+						.AddLayer(_menu, OX, OY);
 					return true;
 				}
 				return Cancel;
@@ -211,24 +214,27 @@ namespace CivOne.Screens
 			return false;
 		}
 		
+		private ScreenEventArgs LocalArgs(ScreenEventArgs args) =>
+			new ScreenEventArgs(args.X - OX, args.Y - OY, args.Buttons);
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseDown(args);
+				return _menu.MouseDown(LocalArgs(args));
 			return false;
 		}
-		
+
 		public override bool MouseUp(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseUp(args);
+				return _menu.MouseUp(LocalArgs(args));
 			return false;
 		}
-		
+
 		public override bool MouseDrag(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseDrag(args);
+				return _menu.MouseDrag(LocalArgs(args));
 			return false;
 		}
 		

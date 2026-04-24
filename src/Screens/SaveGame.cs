@@ -18,9 +18,12 @@ using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
-	[Modal]
+	[Modal, Expand]
 	internal class SaveGame : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private class SaveGameFile
 		{
 			public bool ValidFile { get; private set; }
@@ -115,16 +118,15 @@ namespace CivOne.Screens
 		
 		private void DrawDriveQuestion()
 		{
-			Bitmap.Clear();
-			this.Clear(15);
+			this.Clear(0)
+				.FillRectangle(OX, OY, 320, 200, 15);
 			DrawBorder(_border);
-
-			this.DrawText("Which drive contains your", 0, 5, 92, 72, TextAlign.Left)
-				.DrawText("Save Game disk?", 0, 5, 104, 80, TextAlign.Left)
-				.DrawText(string.Format("{0}:", _driveLetter), 0, 5, 146, 96, TextAlign.Left)
-				.DrawText("Press drive letter and", 0, 5, 104, 112, TextAlign.Left)
-				.DrawText("Return when disk is inserted", 0, 5, 80, 120, TextAlign.Left)
-				.DrawText("Press Escape to cancel", 0, 5, 104, 128, TextAlign.Left);
+			this.DrawText("Which drive contains your", 0, 5, OX + 92, OY + 72, TextAlign.Left)
+				.DrawText("Save Game disk?", 0, 5, OX + 104, OY + 80, TextAlign.Left)
+				.DrawText(string.Format("{0}:", _driveLetter), 0, 5, OX + 146, OY + 96, TextAlign.Left)
+				.DrawText("Press drive letter and", 0, 5, OX + 104, OY + 112, TextAlign.Left)
+				.DrawText("Return when disk is inserted", 0, 5, OX + 80, OY + 120, TextAlign.Left)
+				.DrawText("Press Escape to cancel", 0, 5, OX + 104, OY + 128, TextAlign.Left);
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
@@ -133,34 +135,35 @@ namespace CivOne.Screens
 			{
 				if (!_update) return false;
 				_update = false;
-				Bitmap.Clear();
-				this.Clear(15);
+				this.Clear(0)
+					.FillRectangle(OX, OY, 320, 200, 15);
 				DrawBorder(_border);
 
 				if (_menu != null)
 				{
-					this.AddLayer(_menu);
+					this.AddLayer(_menu, OX, OY);
 					_menu.Close();
 					_menu = null;
 				}
 
-				DrawPanel(64, 86, 124, 41);
-				this.DrawText($"{char.ToLower(_driveLetter)}:CIVIL{_gameId}.SVE", 0, 5, 75, 91)
-					.DrawText($"{Common.DifficultyName(Game.Difficulty)} {Game.HumanPlayer.LeaderName}", 0, 5, 75, 99)
-					.DrawText($"{Game.HumanPlayer.TribeNamePlural}/{Game.GameYear}", 0, 5, 75, 107)
-					.DrawText("... save in progress.", 0, 5, 75, 115);
-				
-				this.DrawText("Game has been saved.", 0, 5, 75, 132)
-					.DrawText("Press key to continue.", 0, 5, 75, 140);
+				DrawPanel(OX + 64, OY + 86, 124, 41);
+				this.DrawText($"{char.ToLower(_driveLetter)}:CIVIL{_gameId}.SVE", 0, 5, OX + 75, OY + 91)
+					.DrawText($"{Common.DifficultyName(Game.Difficulty)} {Game.HumanPlayer.LeaderName}", 0, 5, OX + 75, OY + 99)
+					.DrawText($"{Game.HumanPlayer.TribeNamePlural}/{Game.GameYear}", 0, 5, OX + 75, OY + 107)
+					.DrawText("... save in progress.", 0, 5, OX + 75, OY + 115);
+
+				this.DrawText("Game has been saved.", 0, 5, OX + 75, OY + 132)
+					.DrawText("Press key to continue.", 0, 5, OX + 75, OY + 140);
 				return true;
 			}
 			else if (_menu != null)
 			{
 				if (_menu.Update(gameTick))
 				{
-					this.Clear(15);
+					this.Clear(0)
+						.FillRectangle(OX, OY, 320, 200, 15);
 					DrawBorder(_border);
-					this.AddLayer(_menu);
+					this.AddLayer(_menu, OX, OY);
 					return true;
 				}
 				return false;
@@ -235,24 +238,27 @@ namespace CivOne.Screens
 			return false;
 		}
 		
+		private ScreenEventArgs LocalArgs(ScreenEventArgs args) =>
+			new ScreenEventArgs(args.X - OX, args.Y - OY, args.Buttons);
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseDown(args);
+				return _menu.MouseDown(LocalArgs(args));
 			return false;
 		}
-		
+
 		public override bool MouseUp(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseUp(args);
+				return _menu.MouseUp(LocalArgs(args));
 			return false;
 		}
-		
+
 		public override bool MouseDrag(ScreenEventArgs args)
 		{
 			if (_menu != null)
-				return _menu.MouseDrag(args);
+				return _menu.MouseDrag(LocalArgs(args));
 			return false;
 		}
 

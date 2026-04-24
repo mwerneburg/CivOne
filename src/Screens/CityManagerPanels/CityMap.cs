@@ -13,6 +13,7 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Graphics.Sprites;
+using CivOne.IO;
 using CivOne.Tiles;
 
 namespace CivOne.Screens.CityManagerPanels
@@ -20,9 +21,10 @@ namespace CivOne.Screens.CityManagerPanels
 	internal class CityMap : BaseScreen
 	{
 		private readonly City _city;
-		
+
 		private bool _update = true;
-		
+		private int _tileSize = 16;
+
 		public event EventHandler MapUpdate;
 
 		private void DrawResources(ITile tile, int x, int y)
@@ -63,9 +65,21 @@ namespace CivOne.Screens.CityManagerPanels
 			{
 				this.Tile(Pattern.PanelBlue)
 					.DrawRectangle(colour: 1);
-				
+
 				ITile[,] tiles = _city.CityRadius;
-				this.AddLayer(tiles.ToBitmap(TileSettings.CityManager, Settings.RevealWorld ? null : Game.GetPlayer(_city.Owner)), 1, 1, dispose: true);
+				int scale = _tileSize / 16;
+				using (IBitmap rawMap = tiles.ToBitmap(TileSettings.CityManager, Settings.RevealWorld ? null : Game.GetPlayer(_city.Owner)))
+				{
+					if (scale > 1)
+					{
+						using (Bytemap scaled = rawMap.Bitmap.Scale(scale))
+							this.AddLayer(scaled, 1, 1);
+					}
+					else
+					{
+						this.AddLayer(rawMap, 1, 1, dispose: true);
+					}
+				}
 
 				for (int xx = 0; xx < 5; xx++)
 				for (int yy = 0; yy < 5; yy++)
@@ -73,18 +87,21 @@ namespace CivOne.Screens.CityManagerPanels
 					ITile tile = tiles[xx, yy];
 					if (tile == null) continue;
 
+					int px = (xx * _tileSize) + 1;
+					int py = (yy * _tileSize) + 1;
+
 					if (_city.OccupiedTile(tile))
 					{
-						this.FillRectangle((xx * 16) + 1, (yy * 16) + 1, 16, 1, 12)
-							.FillRectangle((xx * 16) + 1, (yy * 16) + 2, 1, 14, 12)
-							.FillRectangle((xx * 16) + 1, (yy * 16) + 16, 16, 1, 12)
-							.FillRectangle((xx * 16) + 16, (yy * 16) + 2, 1, 14, 12);
+						this.FillRectangle(px, py, _tileSize, 1, 12)
+							.FillRectangle(px, py + 1, 1, _tileSize - 2, 12)
+							.FillRectangle(px, py + _tileSize - 1, _tileSize, 1, 12)
+							.FillRectangle(px + _tileSize - 1, py + 1, 1, _tileSize - 2, 12);
 					}
 
 					if (_city.ResourceTiles.Contains(tile))
-						DrawResources(tile, (xx * 16) + 1, (yy * 16) + 1);
+						DrawResources(tile, px + (_tileSize - 16) / 2, py + (_tileSize - 16) / 2);
 				}
-				
+
 				_update = false;
 			}
 			return true;
@@ -95,11 +112,19 @@ namespace CivOne.Screens.CityManagerPanels
 			_update = true;
 		}
 		
+		public void Resize(int size)
+		{
+			_tileSize = (size - 2) / 5;
+			Bitmap = new Bytemap(size, size);
+			_update = true;
+		}
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (args.X < 1 || args.X > 81 || args.Y < 1 || args.Y > 81) return false;
-			int tileX = (int)Math.Floor(((double)args.X - 1) / 16);
-			int tileY = (int)Math.Floor(((double)args.Y - 1) / 16);
+			int mapEdge = 1 + 5 * _tileSize;
+			if (args.X < 1 || args.X > mapEdge || args.Y < 1 || args.Y > mapEdge) return false;
+			int tileX = (int)Math.Floor(((double)args.X - 1) / _tileSize);
+			int tileY = (int)Math.Floor(((double)args.Y - 1) / _tileSize);
 
 			if (tileX < 0 || tileY < 0 || tileX > 4 || tileY > 4) return false;
 

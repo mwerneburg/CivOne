@@ -38,8 +38,11 @@ namespace CivOne.Screens
 		private bool _mouseDown = false;
 
 		private int ExtraWidth => (Width - 320);
-		private int ExtraLeft => (int)Math.Ceiling((float)ExtraWidth / 2);
-		private int ExtraRight => (int)Math.Floor((float)ExtraWidth / 2);
+		private int ExtraMap => ExtraWidth >= 80 ? 80 : 0;
+		private int ExtraLeft => (int)Math.Ceiling((ExtraWidth - ExtraMap) / 2.0);
+		private int ExtraRight => (int)Math.Floor((ExtraWidth - ExtraMap) / 2.0);
+		private int MapSize => 82 + ExtraMap;
+		private int LowerPanelY => 23 + MapSize + 1;
 
 		private List<IScreen> _subScreens = new List<IScreen>();
 
@@ -73,12 +76,12 @@ namespace CivOne.Screens
 				DrawLayer(_cityResources, gameTick, 2, 23);
 				DrawLayer(_cityUnits, gameTick, 2, 67);
 				DrawLayer(_cityMap, gameTick, 127 + ExtraLeft, 23);
-				DrawLayer(_cityBuildings, gameTick, 211 + ExtraLeft, 1);
-				DrawLayer(_cityFoodStorage, gameTick, 2, 106);
-				DrawLayer(_cityInfo, gameTick, 95 + ExtraLeft, 106);
-				DrawLayer(_cityProduction, gameTick, 230 + ExtraLeft, 99);
+				DrawLayer(_cityBuildings, gameTick, 211 + ExtraLeft + ExtraMap, 1);
+				DrawLayer(_cityFoodStorage, gameTick, 2, LowerPanelY);
+				DrawLayer(_cityInfo, gameTick, 95 + ExtraLeft, LowerPanelY);
+				DrawLayer(_cityProduction, gameTick, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
 
-				DrawButton("Rename", 9, 1, 231 + ExtraLeft, (Height - 10), 42);
+				DrawButton("Rename", 9, 1, 231 + ExtraLeft + ExtraMap, (Height - 10), 42);
 				DrawButton("Exit", 12, 4, (Width - 36), (Height - 10), 33);
 
 				_update = false;
@@ -112,7 +115,7 @@ namespace CivOne.Screens
 			
 			if (!_viewCity)
 			{
-				if (new Rectangle(231 + ExtraLeft, (Height - 10), 42, 10).Contains(args.Location))
+				if (new Rectangle(231 + ExtraLeft + ExtraMap, (Height - 10), 42, 10).Contains(args.Location))
 				{
 					// Rename button
 					CityName name = new CityName(_city.NameId, _city.Name);
@@ -125,25 +128,25 @@ namespace CivOne.Screens
 					MouseArgsOffset(ref args, 2, 1);
 					return _cityHeader.MouseDown(args);
 				}
-				if (new Rectangle(127 + ExtraLeft, 23, 82, 82).Contains(args.Location))
+				if (new Rectangle(127 + ExtraLeft, 23, MapSize, MapSize).Contains(args.Location))
 				{
 					MouseArgsOffset(ref args, 127 + ExtraLeft, 23);
 					return _cityMap.MouseDown(args);
 				}
-				if (new Rectangle(95 + ExtraLeft, 106, 133, 92).Contains(args.Location))
+				if (new Rectangle(95 + ExtraLeft, LowerPanelY, 133, 92).Contains(args.Location))
 				{
-					MouseArgsOffset(ref args, 95 + ExtraLeft, 106);
+					MouseArgsOffset(ref args, 95 + ExtraLeft, LowerPanelY);
 					return _cityInfo.MouseDown(args);
 				}
-				if (new Rectangle(211 + ExtraLeft, 1, 107 + ExtraRight, 97).Contains(args.Location))
+				if (new Rectangle(211 + ExtraLeft + ExtraMap, 1, 107 + ExtraRight, 97).Contains(args.Location))
 				{
-					MouseArgsOffset(ref args, 211 + ExtraLeft, 1);
+					MouseArgsOffset(ref args, 211 + ExtraLeft + ExtraMap, 1);
 					if (_cityBuildings.MouseDown(args))
 						return true;
 				}
-				if (new Rectangle(230 + ExtraLeft, 99, 88, 99).Contains(args.Location))
+				if (new Rectangle(230 + ExtraLeft + ExtraMap, LowerPanelY - 7, 88, 99).Contains(args.Location))
 				{
-					MouseArgsOffset(ref args, 230 + ExtraLeft, 99);
+					MouseArgsOffset(ref args, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
 					if (_cityProduction.MouseDown(args))
 						return true;
 				}
@@ -156,9 +159,9 @@ namespace CivOne.Screens
 		{
 			if (!_mouseDown) return true;
 
-			if (new Rectangle(230 + ExtraLeft, 99, 88, 99).Contains(args.Location))
+			if (new Rectangle(230 + ExtraLeft + ExtraMap, LowerPanelY - 7, 88, 99).Contains(args.Location))
 			{
-				MouseArgsOffset(ref args, 230 + ExtraLeft, 99);
+				MouseArgsOffset(ref args, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
 				return _cityProduction.MouseUp(args);
 			}
 			return false;
@@ -189,11 +192,12 @@ namespace CivOne.Screens
 
 			_update = true;
 
-			_cityHeader.Resize(207 + ExtraLeft);
+			_cityHeader.Resize(207 + ExtraLeft + ExtraMap);
 			_cityResources.Resize(123 + ExtraLeft);
 			_cityUnits.Resize(123 + ExtraLeft);
 			_cityFoodStorage.Resize(91 + ExtraLeft);
 			_cityBuildings.Resize(108 + ExtraRight);
+			_cityMap.Resize(MapSize);
 		}
 
 		public CityManager(City city, bool viewCity = false) : base(MouseCursor.Pointer)

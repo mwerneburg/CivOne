@@ -83,6 +83,21 @@ namespace CivOne.IO
 
 		public new byte[] ToByteArray() => base.ToByteArray();
 
+		internal Bytemap Scale(int factor)
+		{
+			if (factor <= 1) return Copy(this);
+			Bytemap output = new Bytemap(Width * factor, Height * factor);
+			for (int y = 0; y < Height; y++)
+			for (int x = 0; x < Width; x++)
+			{
+				byte val = this[x, y];
+				for (int dy = 0; dy < factor; dy++)
+				for (int dx = 0; dx < factor; dx++)
+					output[x * factor + dx, y * factor + dy] = val;
+			}
+			return output;
+		}
+
 		public static Bytemap Copy(Bytemap source) => new Bytemap(source);
 
 		private Bytemap(Bytemap source) : base(source)
