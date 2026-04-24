@@ -48,8 +48,6 @@ namespace CivOne.Tasks
 
 			if (!_player.AvailableResearch.Any())
 			{
-				// No more research Available
-				//TODO: Implement future techs.
 				EndTask();
 				return;
 			}

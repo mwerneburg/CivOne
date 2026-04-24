@@ -128,7 +128,8 @@ namespace CivOne
 		{
 			var citiesWithQueues = _cities.Where(c => c.ProductionQueue.Count > 0).ToList();
 			bool hasSpaceshipData = SpaceshipLaunchTurn.Any(t => t != 0);
-			if (citiesWithQueues.Count == 0 && !hasSpaceshipData) return;
+			bool hasFutureTechData = _players.Any(p => p.FutureTechs > 0);
+			if (citiesWithQueues.Count == 0 && !hasSpaceshipData && !hasFutureTechData) return;
 
 			using (var bw = new BinaryWriter(File.Create(QueueFilePath(sveFile))))
 			{
@@ -141,10 +142,12 @@ namespace CivOne
 					foreach (IProduction item in city.ProductionQueue)
 						bw.Write(item.GetType().Name);
 				}
-				// 0xFF marker followed by 8×int32 launch turns and 8×int32 arrival turns
+				// 0xFF marker, 8×int32 spaceship turns, 8×int32 future tech counts
 				bw.Write((byte)0xFF);
 				foreach (int t in SpaceshipLaunchTurn)  bw.Write(t);
 				foreach (int t in SpaceshipArrivalTurn) bw.Write(t);
+				for (int i = 0; i < _players.Length; i++) bw.Write(_players[i].FutureTechs);
+				for (int i = _players.Length; i < 8; i++) bw.Write(0);
 			}
 		}
 
@@ -174,11 +177,16 @@ namespace CivOne
 						}
 					}
 
-					// Spaceship state: 0xFF marker followed by 8×int32 launch + 8×int32 arrival
+					// 0xFF marker, spaceship turns, future tech counts
 					if (br.BaseStream.Position < br.BaseStream.Length && br.ReadByte() == 0xFF)
 					{
 						for (int i = 0; i < 8; i++) SpaceshipLaunchTurn[i]  = br.ReadInt32();
 						for (int i = 0; i < 8; i++) SpaceshipArrivalTurn[i] = br.ReadInt32();
+						for (int i = 0; i < 8 && br.BaseStream.Position < br.BaseStream.Length; i++)
+						{
+							int ft = br.ReadInt32();
+							if (i < _players.Length) _players[i].SetFutureTechs(ft);
+						}
 					}
 				}
 			}

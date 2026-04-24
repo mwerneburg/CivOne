@@ -114,6 +114,7 @@ namespace CivOne
 		private short _anarchy = 0;
 		private short _gold;
 		private IAdvance _currentResearch = null;
+		private int _futureTechs = 0;
 
 		public event EventHandler Destroyed;
 
@@ -188,10 +189,14 @@ namespace CivOne
 
 		public int Population => Cities.Sum(c => c.Population);
 
+		public int FutureTechs => _futureTechs;
+		internal void SetFutureTechs(int count) => _futureTechs = count;
+
 		public int Score =>
 			Population / 5000 +           // 2 pts per 10,000 people
 			_advances.Count * 3 +          // 3 pts per advance
-			Cities.Sum(c => c.Wonders.Length) * 4; // 4 pts per wonder
+			Cities.Sum(c => c.Wonders.Length) * 4 + // 4 pts per wonder
+			_futureTechs * 5;              // 5 pts per future tech
 
 		public short Gold
 		{
@@ -229,6 +234,11 @@ namespace CivOne
 
 		public void AddAdvance(IAdvance advance, bool setOrigin = true)
 		{
+			if (advance is FutureTech)
+			{
+				_futureTechs++;
+				return;
+			}
 			if (Game.Started && Game.CurrentPlayer.CurrentResearch?.Id == advance.Id)
 				GameTask.Enqueue(new TechSelect(Game.CurrentPlayer));
 			_advances.Add(advance.Id);
@@ -317,11 +327,15 @@ namespace CivOne
 		{
 			get
 			{
+				bool any = false;
 				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id)))
 				{
 					if (advance.RequiredTechs.Length > 0 && !advance.RequiredTechs.All(a => _advances.Contains(a.Id))) continue;
+					any = true;
 					yield return advance;
 				}
+				if (!any)
+					yield return new FutureTech();
 			}
 		}
 

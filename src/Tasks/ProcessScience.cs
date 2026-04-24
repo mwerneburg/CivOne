@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using CivOne.Advances;
 using CivOne.Screens;
 
 namespace CivOne.Tasks
@@ -59,6 +60,17 @@ namespace CivOne.Tasks
 				_player.CurrentResearch = null;
 				_player.AI.ChooseResearch();
 				EndTask();
+				return;
+			}
+
+			// Future Technology: show a brief notice and skip the Civilopedia
+			if (_player.CurrentResearch is FutureTech)
+			{
+				int n = _player.FutureTechs;
+				_player.CurrentResearch = null;
+				IScreen notice = new Newspaper(null, new[] { $"{_player.TribeName} scientists", $"complete Future Tech #{n}!", "Research continues." }, showGovernment: false);
+				notice.Closed += (s, a) => { GameTask.Insert(new TechSelect(_player)); EndTask(); };
+				Common.AddScreen(notice);
 				return;
 			}
 
