@@ -74,6 +74,8 @@ namespace CivOne
 		internal int Shields { get; set; }
 		internal int Food { get; set; }
 		internal IProduction CurrentProduction { get; private set; }
+		// TODO: persist production queue in save data
+		private readonly List<IProduction> _productionQueue = new List<IProduction>();
 		private List<ITile> _resourceTiles = new List<ITile>();
 		private List<IBuilding> _buildings = new List<IBuilding>();
 		private List<IWonder> _wonders = new List<IWonder>();
@@ -530,6 +532,40 @@ namespace CivOne
 			CurrentProduction = production;
 		}
 
+		// ── production queue ──────────────────────────────────────────────────
+
+		internal IReadOnlyList<IProduction> ProductionQueue => _productionQueue;
+
+		internal void EnqueueProduction(IProduction item) => _productionQueue.Add(item);
+
+		internal void ClearProductionQueue() => _productionQueue.Clear();
+
+		// Advance to the next queued item without a shield penalty. Returns true if
+		// something was dequeued; CurrentProduction is updated but Shields untouched.
+		private bool DequeueProduction()
+		{
+			if (_productionQueue.Count == 0) return false;
+			CurrentProduction = _productionQueue[0];
+			_productionQueue.RemoveAt(0);
+			return true;
+		}
+
+		// Find the next wonder that is not yet globally built and is researchable
+		// by this city's player, skipping the optionally supplied beaten wonder.
+		private IWonder NextAvailableWonder(IWonder beaten = null)
+		{
+			// Prefer a wonder already planned in the queue
+			IWonder queued = _productionQueue.OfType<IWonder>()
+			    .FirstOrDefault(w => !Game.WonderBuilt(w));
+			if (queued != null) return queued;
+
+			return Reflect.GetWonders()
+			    .Where(w => (beaten == null || w.Id != beaten.Id)
+			             && !Game.WonderBuilt(w)
+			             && Player.ProductionAvailable(w))
+			    .FirstOrDefault();
+		}
+
 		internal void SetProduction(byte productionId)
 		{
 			IProduction production = Reflect.GetProduction().FirstOrDefault(p => p.ProductionId == productionId);
@@ -915,11 +951,36 @@ namespace CivOne
 						GameTask.Enqueue(new ImprovementBuilt(this, (CurrentProduction as IBuilding)));
 					}
 				}
-				if (CurrentProduction is IWonder && !Game.Instance.BuiltWonders.Any(w => w.Id == (CurrentProduction as IWonder).Id))
+				if (CurrentProduction is IWonder)
 				{
-					Shields = 0;
-					AddWonder(CurrentProduction as IWonder);
-					GameTask.Enqueue(new ImprovementBuilt(this, (CurrentProduction as IWonder)));
+					IWonder wonder = CurrentProduction as IWonder;
+					if (!Game.WonderBuilt(wonder))
+					{
+						Shields = 0;
+						AddWonder(wonder);
+						GameTask.Enqueue(new ImprovementBuilt(this, wonder));
+					}
+					else
+					{
+						// Another civ got there first — roll over to the next available
+						// wonder, keeping accumulated shields as a head-start.
+						string lostName = (wonder as ICivilopedia).Name;
+						IWonder next = NextAvailableWonder(wonder);
+						if (next != null)
+						{
+							// Remove from queue if it was planned there
+							_productionQueue.Remove(next);
+							CurrentProduction = next;
+							if (Player == Human)
+								GameTask.Enqueue(Message.Newspaper(this,
+								    $"{lostName} was", "built by another civ.",
+								    $"Now building {(next as ICivilopedia).Name}."));
+						}
+						else
+						{
+							Shields = 0; // no more wonders — let production re-evaluate
+						}
+					}
 				}
 			}
 
@@ -929,9 +990,7 @@ namespace CivOne
 			BuildingSold = false;
 			GameTask.Enqueue(new ProcessScience(Player));
 
-			if (Player == Human) return;
-
-			if (Shields == 0)
+			if (Shields == 0 && !DequeueProduction() && Player != Human)
 				Player.AI.CityProduction(this);
 		}
 
