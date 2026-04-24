@@ -326,13 +326,84 @@ namespace CivOne
 			return best;
 		}
 
+		// ── naval transport helpers ───────────────────────────────────────────────
+
+		// Ocean tile adjacent to a city — where a transport can drop troops.
+		private ITile LandingTile(City target)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			for (int dy = -1; dy <= 1; dy++)
+			for (int dx = -1; dx <= 1; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int tx = (target.X + dx + w) % w;
+				int ty = target.Y + dy;
+				if (ty < 0 || ty >= h) continue;
+				ITile t = Map[tx, ty];
+				if (t != null && t.IsOcean) return t;
+			}
+			return null;
+		}
+
+		// Own coastal city that has land attackers waiting for a ride.
+		private City EmbarkationCity()
+		{
+			byte own = Game.PlayerNumber(Player);
+			return Player.Cities
+			             .Where(c => c.Tile.GetBorderTiles().Any(t => t.IsOcean)
+			                      && c.Tile.Units.Any(u => u.Owner == own && u.Role == UnitRole.LandAttack))
+			             .OrderByDescending(c => c.Tile.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack))
+			             .FirstOrDefault();
+		}
+
+		// Ocean tile adjacent to the given city where a transport can wait.
+		private ITile EmbarkationTile(City city)
+		{
+			byte own = Game.PlayerNumber(Player);
+			return city.Tile.GetBorderTiles()
+			           .Where(t => t != null && t.IsOcean)
+			           .OrderByDescending(t => t.Units.Count(u => u.Owner == own && u is IBoardable))
+			           .FirstOrDefault();
+		}
+
 		private void AssignMission(IUnit unit)
 		{
 			StrategyStance stance = GetStance();
 
-			// Naval units: patrol the nearest coastal city
+			// Naval units
 			if (unit.Class == UnitClass.Water)
 			{
+				if (unit is IBoardable)
+				{
+					byte own = Game.PlayerNumber(Player);
+					bool hasPassengers = unit.Tile.Units.Any(u => u.Owner == own && u.Class == UnitClass.Land);
+
+					if (hasPassengers && _attackTarget != null)
+					{
+						ITile landing = LandingTile(_attackTarget);
+						if (landing != null)
+						{
+							// Already at the landing zone — unload so troops can storm the beach
+							if (Common.DistanceToTile(unit.X, unit.Y, _attackTarget.X, _attackTarget.Y) <= 2)
+							{
+								(unit as BaseUnitSea).Unload();
+								return;
+							}
+							unit.Goto = new Point(landing.X, landing.Y);
+							return;
+						}
+					}
+
+					// No passengers (or no target): wait at a coastal city for troops
+					City embark = EmbarkationCity();
+					if (embark != null)
+					{
+						ITile pier = EmbarkationTile(embark);
+						if (pier != null) { unit.Goto = new Point(pier.X, pier.Y); return; }
+					}
+				}
+
+				// Warships and fallback: patrol nearest own city
 				City port = Player.Cities
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .FirstOrDefault();

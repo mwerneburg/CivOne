@@ -124,6 +124,21 @@ namespace CivOne
 			}
 			else
 			{
+				// Land unit just disembarked — still on an ocean tile. Step straight to land.
+				if (unit.Class == UnitClass.Land && unit.Tile.IsOcean)
+				{
+					ITile land = unit.Tile.GetBorderTiles()
+					    .Where(t => t != null && !t.IsOcean && !t.Units.Any(u => u.Owner != unit.Owner))
+					    .OrderBy(t => t.Units.Any() ? 0 : 1) // prefer our own units already there
+					    .FirstOrDefault()
+					    ?? unit.Tile.GetBorderTiles().FirstOrDefault(t => t != null && !t.IsOcean);
+					if (land != null)
+						unit.MoveTo(land.X - unit.X, land.Y - unit.Y);
+					else
+						unit.SkipTurn();
+					return;
+				}
+
 				// Assign a mission if the unit is idle (sets unit.Goto)
 				if (unit.Goto.IsEmpty) AssignMission(unit);
 
@@ -132,6 +147,22 @@ namespace CivOne
 					ITile next = Common.GotoStep(unit);
 					if (next == null)
 					{
+						// No land path — try boarding an adjacent friendly transport
+						if (unit.Role == UnitRole.LandAttack)
+						{
+							byte own = (byte)Game.PlayerNumber(Player);
+							ITile boardTile = unit.Tile.GetBorderTiles()
+							    .FirstOrDefault(t => t != null && t.IsOcean
+							        && t.Units.Any(u => u.Owner == own && u is IBoardable)
+							        && t.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo)
+							           > t.Units.Count(u => u.Class == UnitClass.Land));
+							if (boardTile != null)
+							{
+								if (!unit.MoveTo(boardTile.X - unit.X, boardTile.Y - unit.Y))
+									unit.SkipTurn();
+								return;
+							}
+						}
 						unit.Goto = Point.Empty;
 						unit.SkipTurn();
 						return;
