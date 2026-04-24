@@ -930,8 +930,9 @@ namespace CivOne
 			GameTask.Enqueue(new ProcessScience(Player));
 
 			if (Player == Human) return;
-			
-			Player.AI.CityProduction(this);
+
+			if (Shields == 0)
+				Player.AI.CityProduction(this);
 		}
 
 		public void Disaster()
