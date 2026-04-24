@@ -16,6 +16,8 @@ using CivOne.Enums;
 using CivOne.Tiles;
 using CivOne.Units;
 
+using CivOne.Governments;
+using Gov = CivOne.Governments;
 using static CivOne.Enums.DevelopmentLevel;
 
 namespace CivOne
@@ -71,6 +73,58 @@ namespace CivOne
 			return Game.GetUnits()
 			           .Where(u => u.Owner == num && u.Role == UnitRole.LandAttack)
 			           .Sum(u => u.Attack + u.Defense);
+		}
+
+		// ── government progression ────────────────────────────────────────────
+
+		private static int GovernmentScore(IGovernment gov, StrategyStance stance)
+		{
+			if (gov is Gov.Democracy)
+				return stance == StrategyStance.Develop ? 5 : 2;
+			if (gov is Gov.Republic)
+				return stance == StrategyStance.Develop ? 4 : 3;
+			if (gov is Gov.Communism)
+				return stance == StrategyStance.Militarize ? 4 : 3;
+			if (gov is Gov.Monarchy)
+				return stance == StrategyStance.Militarize || stance == StrategyStance.Expand ? 5 : 3;
+			if (gov is Gov.Despotism)
+				return 1;
+			return 0;
+		}
+
+		private IGovernment BestGovernment()
+		{
+			StrategyStance stance = GetStance();
+			int currentScore = GovernmentScore(Player.Government, stance);
+			return Player.AvailableGovernments
+			             .Where(g => GovernmentScore(g, stance) > currentScore)
+			             .OrderByDescending(g => GovernmentScore(g, stance))
+			             .FirstOrDefault();
+		}
+
+		// Called when anarchy ends: pick the best available government.
+		internal void ChooseGovernment()
+		{
+			Player.Government = BestGovernment() ?? new Gov.Despotism();
+		}
+
+		// Called each turn: consider starting a revolution if conditions are good.
+		internal void ConsiderGovernment()
+		{
+			if (Player.Government is Gov.Anarchy) return;
+
+			// Only revolt from a stable position
+			StrategyStance stance = GetStance();
+			if (stance == StrategyStance.Militarize || stance == StrategyStance.Consolidate) return;
+
+			// Don't revolt while at war
+			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
+
+			if (BestGovernment() == null) return; // already optimal
+
+			// ~25 % chance per turn → roughly 4-turn lag before acting
+			if (Common.Random.Next(100) < 25)
+				Player.Revolt();
 		}
 
 		// ── proactive war declaration ──────────────────────────────────────────
@@ -290,7 +344,7 @@ namespace CivOne
 					if (a is Literacy)            w += 6;
 					if (a is CodeOfLaws)          w += 6;
 					if (a is TheRepublic)         w += 7;
-					if (a is Democracy)           w += 6;
+					if (a is Advances.Democracy)  w += 6;
 					if (a is Pottery)             w += 6;
 					if (a is Trade)               w += 8;
 					if (a is Currency)            w += 7;
