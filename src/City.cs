@@ -398,7 +398,7 @@ namespace CivOne
 
 		internal byte[] GetResourceTiles()
 		{
-			byte[] output = new byte[3];
+			byte[] output = new byte[6]; // bytes 0-2: tile bitmap; bytes 3-5: specialist types
 			foreach (ITile tile in _resourceTiles)
 			{
 				int x = tile.X - X;
@@ -437,6 +437,12 @@ namespace CivOne
 						continue;
 				}
 			}
+			// Encode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist (2 bits each, up to 12)
+			for (int i = 0; i < _specialists.Count && i < 12; i++)
+			{
+				int type = _specialists[i] == Citizen.Taxman ? 1 : _specialists[i] == Citizen.Scientist ? 2 : 0;
+				output[3 + i / 4] |= (byte)(type << (i % 4 * 2));
+			}
 			return output;
 		}
 
@@ -472,7 +478,14 @@ namespace CivOne
 			if (((gameData[2] >> 2) & 1) > 0) _resourceTiles.Add(Tile[-2, 1]);
 			if (((gameData[2] >> 3) & 1) > 0) _resourceTiles.Add(Tile[-2, -1]);
 
-			//TODO: Correctly load specialists
+			// Decode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist (2 bits each, up to 12)
+			_specialists.Clear();
+			int specialistCount = Math.Max(0, Size - _resourceTiles.Count);
+			for (int i = 0; i < specialistCount && i < 12; i++)
+			{
+				int type = (gameData[3 + i / 4] >> (i % 4 * 2)) & 0x3;
+				_specialists.Add(type == 1 ? Citizen.Taxman : type == 2 ? Citizen.Scientist : Citizen.Entertainer);
+			}
 		}
 
 		private void ResetResourceTiles()
