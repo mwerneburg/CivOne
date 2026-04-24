@@ -187,7 +187,12 @@ namespace CivOne
 		public City[] Cities => Game.Instance.GetCities().Where(c => this == c.Owner && c.Size > 0).ToArray();
 
 		public int Population => Cities.Sum(c => c.Population);
-		
+
+		public int Score =>
+			Population / 5000 +           // 2 pts per 10,000 people
+			_advances.Count * 3 +          // 3 pts per advance
+			Cities.Sum(c => c.Wonders.Length) * 4; // 4 pts per wonder
+
 		public short Gold
 		{
 			get

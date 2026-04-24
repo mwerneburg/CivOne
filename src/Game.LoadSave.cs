@@ -127,7 +127,8 @@ namespace CivOne
 		private void SaveProductionQueues(string sveFile)
 		{
 			var citiesWithQueues = _cities.Where(c => c.ProductionQueue.Count > 0).ToList();
-			if (citiesWithQueues.Count == 0) return;
+			bool hasSpaceshipData = SpaceshipLaunchTurn.Any(t => t != 0);
+			if (citiesWithQueues.Count == 0 && !hasSpaceshipData) return;
 
 			using (var bw = new BinaryWriter(File.Create(QueueFilePath(sveFile))))
 			{
@@ -140,6 +141,10 @@ namespace CivOne
 					foreach (IProduction item in city.ProductionQueue)
 						bw.Write(item.GetType().Name);
 				}
+				// 0xFF marker followed by 8×int32 launch turns and 8×int32 arrival turns
+				bw.Write((byte)0xFF);
+				foreach (int t in SpaceshipLaunchTurn)  bw.Write(t);
+				foreach (int t in SpaceshipArrivalTurn) bw.Write(t);
 			}
 		}
 
@@ -167,6 +172,13 @@ namespace CivOne
 							    .FirstOrDefault(p => p.GetType().Name == typeName);
 							if (item != null) city.EnqueueProduction(item);
 						}
+					}
+
+					// Spaceship state: 0xFF marker followed by 8×int32 launch + 8×int32 arrival
+					if (br.BaseStream.Position < br.BaseStream.Length && br.ReadByte() == 0xFF)
+					{
+						for (int i = 0; i < 8; i++) SpaceshipLaunchTurn[i]  = br.ReadInt32();
+						for (int i = 0; i < 8; i++) SpaceshipArrivalTurn[i] = br.ReadInt32();
 					}
 				}
 			}

@@ -17,6 +17,7 @@ using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.IO;
 using CivOne.Screens;
+using CivOne.Screens.Reports;
 using CivOne.Tasks;
 using CivOne.Tiles;
 using CivOne.Units;
@@ -32,6 +33,10 @@ namespace CivOne
 		private readonly List<IUnit> _units;
 		private readonly Dictionary<byte, byte> _advanceOrigin = new Dictionary<byte, byte>();
 		private readonly List<ReplayData> _replayData = new List<ReplayData>();
+
+		// [0]=barbarians, [1-7]=civs; 0 = not yet launched
+		internal readonly int[] SpaceshipLaunchTurn = new int[8];
+		internal readonly int[] SpaceshipArrivalTurn = new int[8];
 		
 		internal readonly string[] CityNames = Common.AllCityNames.ToArray();
 		
@@ -137,6 +142,14 @@ namespace CivOne
 
 		internal IEnumerable<Player> Players => _players;
 
+		private static int SpaceshipTravelTurns(int structural, int component, int module)
+		{
+			int bonus = Math.Max(0, structural - 4)
+			          + Math.Max(0, component - 4) * 2
+			          + Math.Max(0, module - 2) * 4;
+			return Math.Max(1, 20 - bonus);
+		}
+
 		public void EndTurn()
 		{
 			foreach (Player player in _players.Where(x => !(x.Civilization is Barbarian)))
@@ -148,6 +161,87 @@ namespace CivOne
 			{
 				_currentPlayer = 0;
 				GameTurn++;
+				// Check for spaceship launches (any player now has minimum parts)
+				for (int p = 1; p < _players.Length; p++)
+				{
+					if (_players[p].IsDestroyed()) continue;
+					int structural = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSStructural));
+					int component  = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSComponent));
+					int module     = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSModule));
+					if (structural < 4 || component < 4 || module < 2) continue;
+					if (SpaceshipLaunchTurn[p] != 0) continue;
+
+					SpaceshipLaunchTurn[p] = _gameTurn;
+					SpaceshipArrivalTurn[p] = _gameTurn + SpaceshipTravelTurns(structural, component, module);
+					string eta = Common.YearString((ushort)SpaceshipArrivalTurn[p]);
+					if (_players[p] == HumanPlayer)
+					{
+						PlaySound("wintune");
+						GameTask.Enqueue(Message.Newspaper(null, "Our spaceship has", "launched!", $"Arrival: {eta}"));
+					}
+					else
+					{
+						GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,
+							$"The {_players[p].TribeNamePlural}",
+							"have launched a spaceship!",
+							$"Arrival: {eta}"));
+					}
+				}
+
+				// Check for spaceship arrivals
+				int bestArrival = int.MaxValue;
+				for (int p = 1; p < _players.Length; p++)
+					if (SpaceshipArrivalTurn[p] > 0 && SpaceshipArrivalTurn[p] < bestArrival)
+						bestArrival = SpaceshipArrivalTurn[p];
+
+				if (bestArrival <= _gameTurn)
+				{
+					bool humanWins = SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] == bestArrival;
+					if (humanWins)
+					{
+						PlaySound("wintune");
+						GameTask.Enqueue(Message.Newspaper(null, "Our spaceship has", "reached Alpha Centauri!", $"Score: {HumanPlayer.Score}"));
+						GameTask conquest;
+						GameTask.Enqueue(conquest = Show.Screen<CivilizationScore>());
+						conquest.Done += (s, a) => Runtime.Quit();
+					}
+					else
+					{
+						for (int p = 1; p < _players.Length; p++)
+						{
+							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+							GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
+							break;
+						}
+						GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+					}
+					return;
+				}
+
+				// 2100 AD: game ends by score
+				if (Common.TurnToYear(_gameTurn) >= 2100)
+				{
+					Player winner = _players
+						.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
+						.OrderByDescending(p => p.Score)
+						.ThenBy(p => p == HumanPlayer ? 0 : 1)
+						.FirstOrDefault();
+
+					if (winner == HumanPlayer)
+					{
+						PlaySound("wintune");
+						GameTask.Enqueue(Message.Newspaper(null, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
+						GameTask scoreTask;
+						GameTask.Enqueue(scoreTask = Show.Screen<CivilizationScore>());
+						scoreTask.Done += (s, a) => Runtime.Quit();
+					}
+					else
+					{
+						GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+					}
+					return;
+				}
+
 				if (GameTurn % 50 == 0 && AutoSave)
 				{
 					GameTask.Enqueue(Show.AutoSave);
