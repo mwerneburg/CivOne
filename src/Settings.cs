@@ -401,7 +401,7 @@ namespace CivOne
 			GetSetting("Scale", ref _scale, 1, 4);
 			GetSetting<AspectRatio>("AspectRatio", ref _aspectRatio);
 			GetSetting("Sound", ref _sound);
-			if (!GetSetting("ExpandWidth", ref _scale, 320, 512) || !GetSetting("ExpandHeight", ref _scale, 200, 384))
+			if (!GetSetting("ExpandWidth", ref _expandWidth, 320, 512) || !GetSetting("ExpandHeight", ref _expandHeight, 200, 384))
 			{
 				_expandWidth = -1;
 				_expandHeight = -1;
