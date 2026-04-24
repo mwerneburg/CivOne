@@ -151,6 +151,11 @@ namespace CivOne.Units
 		public override void NewTurn()
 		{
 			base.NewTurn();
+			if (Map[X, Y].IsOcean)
+			{
+				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = 0;
+				return;
+			}
 			if (BuildingRoad > 0)
 			{
 				BuildingRoad--;
