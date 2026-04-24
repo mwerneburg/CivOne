@@ -229,7 +229,11 @@ namespace CivOne
 					if (Player.RepublicDemocratic) output += 1;
 					break;
 				case Terrain.Ocean:
+					if (Player.HasAdvance<Trade>()) output += 1;
+					if (Player.RepublicDemocratic) output += 1;
+					break;
 				case Terrain.River:
+					output += 1; // rivers are natural trade corridors regardless of government
 					if (Player.RepublicDemocratic) output += 1;
 					break;
 				case Terrain.Jungle:

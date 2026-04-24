@@ -181,20 +181,27 @@ namespace CivOne
 			int score = 0;
 			int w = Map.WIDTH, h = Map.HEIGHT;
 
-			// Sum resource value of every tile in the city's working diamond
+			// Resource value of every tile in the working diamond.
+			// Ocean tiles get a +2 premium for long-term coastal trade potential.
+			// Special resource tiles get +3 for improvement headroom (mines, irrigation).
 			for (int dy = -2; dy <= 2; dy++)
 			for (int dx = -2; dx <= 2; dx++)
 			{
-				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue; // corners outside diamond
+				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
 				int tx = (center.X + dx + w) % w;
 				int ty = center.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
 				if (t == null) continue;
 				score += t.Food * 2 + t.Shield + t.Trade;
+				if (t.IsOcean) score += 2;
+				if (t.Special)  score += 3;
 			}
 
-			// River adjacency: nearby rivers enable irrigation
+			// Immediate neighbours: river adjacency unlocks irrigation chains.
+			// Track whether we have both coastal and river neighbours for the
+			// river-mouth synergy bonus below.
+			bool hasCoastNeighbor = false, hasRiverNeighbor = false;
 			for (int dy = -1; dy <= 1; dy++)
 			for (int dx = -1; dx <= 1; dx++)
 			{
@@ -202,21 +209,29 @@ namespace CivOne
 				int tx = (center.X + dx + w) % w;
 				int ty = center.Y + dy;
 				if (ty < 0 || ty >= h) continue;
-				if (Map[tx, ty] is River) score += 3;
+				ITile t = Map[tx, ty];
+				if (t is River)             { score += 3; hasRiverNeighbor  = true; }
+				else if (t != null && t.IsOcean) hasCoastNeighbor = true;
 			}
 
-			// Penalise sites whose working radius overlaps existing cities
+			// A river-mouth site combines irrigation, river trade, and ocean trade.
+			if (hasCoastNeighbor && hasRiverNeighbor) score += 6;
+
+			// City proximity penalties
 			foreach (City city in Game.GetCities())
 			{
 				int d = Common.DistanceToTile(center.X, center.Y, city.X, city.Y);
-				if (d < 4) score -= 20;
-				else if (d < 6) score -= 5;
+				if (d < 4) { score -= 20; continue; } // working-radius overlap
+				if (d < 6) { score -= 5;  continue; }
+				// Foreign city in the 6–10 band: contested border risk
+				if (city.Player != Player && d < 10)
+					score -= Player.IsAtWar(city.Player) ? 10 : 4;
 			}
 
-			// Bonus for staying connected to the existing empire
+			// Prefer sites that extend the empire rather than leap into the void.
 			if (Player.Cities.Any(c =>
 			    Common.DistanceToTile(center.X, center.Y, c.X, c.Y) <= 6))
-				score += 5;
+				score += 10;
 
 			return score;
 		}
