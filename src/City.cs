@@ -881,7 +881,15 @@ namespace CivOne
 			}
 			else if (ShieldIncome > 0)
 			{
-				Shields +=  IsInDisorder ? 0 : ShieldIncome;
+				if (!IsInDisorder)
+				{
+					int income = ShieldIncome;
+					// Higher difficulties give AI cities a production bonus (classic Civ 1 "cheat").
+					// +25 % per difficulty step — double speed at Emperor.
+					if (Player != Human && Game.Difficulty > 0)
+						income += income * Game.Difficulty / 4;
+					Shields += income;
+				}
 			}
 
 			if (Shields >= (int)CurrentProduction.Price * 10)

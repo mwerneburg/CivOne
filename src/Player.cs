@@ -211,7 +211,9 @@ namespace CivOne
 		{
 			get
 			{
-				short cost = (short)((Game.Instance.Difficulty + 3) * 2 * (_advances.Count() + 1) * (Common.TurnToYear(Game.Instance.GameTurn) > 0 ? 2 : 1));
+				// Difficulty only slows the human player; AI always pays the Chieftain rate.
+				int diffFactor = IsHuman ? Game.Instance.Difficulty + 3 : 3;
+				short cost = (short)(diffFactor * 2 * (_advances.Count() + 1) * (Common.TurnToYear(Game.Instance.GameTurn) > 0 ? 2 : 1));
 				if (cost < 12)
 					return 12;
 				return cost;
