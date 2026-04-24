@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
@@ -17,6 +18,7 @@ using CivOne.Tiles;
 using CivOne.Units;
 
 using CivOne.Governments;
+using CivOne.Wonders;
 using Gov = CivOne.Governments;
 using static CivOne.Enums.DevelopmentLevel;
 
@@ -411,6 +413,134 @@ namespace CivOne
 			if (Player.HasAdvance<HorsebackRiding>())  return new Cavalry();
 			if (Player.HasAdvance<IronWorking>())      return new Legion();
 			return new Militia();
+		}
+
+		// ── wonder selection ───────────────────────────────────────────────────
+
+		// Only the single highest-production city should chase a wonder.
+		// Ties are broken by map position for stability across turns.
+		private bool IsTopProductionCity(City city)
+		{
+			City[] cities = Player.Cities;
+			if (cities.Length == 0) return false;
+			int maxShields = cities.Max(c => c.ShieldIncome);
+			if (city.ShieldIncome < maxShields) return false;
+			return cities.Where(c => c.ShieldIncome == maxShields)
+			             .OrderBy(c => c.X).ThenBy(c => c.Y)
+			             .First() == city;
+		}
+
+		private IWonder SelectWonder(City city, StrategyStance stance)
+		{
+			if (!IsTopProductionCity(city)) return null;
+
+			IWonder[] preferred;
+			if (stance == StrategyStance.Militarize)
+			{
+				preferred = new IWonder[]
+				{
+					new GreatWall(), new Colossus(), new MichelangelosChapel()
+				};
+			}
+			else if (stance == StrategyStance.Consolidate)
+			{
+				preferred = new IWonder[]
+				{
+					new ShakespearesTheatre(), new JSBachsCathedral(),
+					new HangingGardens(), new MichelangelosChapel(), new Oracle()
+				};
+			}
+			else
+			{
+				preferred = new IWonder[]
+				{
+					new Pyramids(), new ShakespearesTheatre(), new IsaacNewtonsCollege(),
+					new JSBachsCathedral(), new HangingGardens(), new Oracle(),
+					new GreatLibrary(), new DarwinsVoyage(), new CopernicusObservatory(),
+					new Colossus(), new Lighthouse(), new MagellansExpedition()
+				};
+			}
+
+			return preferred.FirstOrDefault(w =>
+				!Game.WonderBuilt(w) && Player.ProductionAvailable(w));
+		}
+
+		// ── full production plan for a city ────────────────────────────────────
+
+		private List<IProduction> PlanProduction(City city, StrategyStance stance)
+		{
+			var plan = new List<IProduction>();
+			void Consider(IProduction p)
+			{
+				if (plan.All(x => x.GetType() != p.GetType())) plan.Add(p);
+			}
+
+			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+
+			// Universal first: barracks and minimum garrison
+			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
+			if (defenders < 1)                Consider(BestDefender());
+
+			// Consolidate: happiness and growth buildings first
+			if (stance == StrategyStance.Consolidate)
+			{
+				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    Consider(new Temple());
+				if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
+				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>()) Consider(new Cathedral());
+				if (Player.HasAdvance<Pottery>()          && !city.HasBuilding<Granary>())   Consider(new Granary());
+			}
+
+			// Militarize: garrison up to 2, then attackers
+			if (stance == StrategyStance.Militarize)
+			{
+				if (defenders < 2) Consider(BestDefender());
+				if (!Player.RepublicDemocratic) Consider(BestAttacker());
+			}
+
+			// Expand: settlers when city is large enough
+			if (stance == StrategyStance.Expand)
+			{
+				int minSize = Leader.Development == Expansionistic ? 2
+				            : Leader.Development == Normal          ? 3 : 4;
+				int maxCities = Leader.Development == Expansionistic ? 13
+				              : Leader.Development == Normal          ? 10 : 7;
+				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers)
+				    && Player.Cities.Length < maxCities)
+					Consider(new Settlers());
+			}
+
+			// Standard infrastructure chain (all stances)
+			if (Player.HasAdvance<Pottery>()           && !city.HasBuilding<Granary>())      Consider(new Granary());
+			if (Player.HasAdvance<CeremonialBurial>()  && !city.HasBuilding<Temple>())        Consider(new Temple());
+			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
+			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
+			if (Player.HasAdvance<Masonry>()           && !city.HasBuilding<CityWalls>())     Consider(new CityWalls());
+			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
+			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
+
+			// Wonder: only for the empire's top production city
+			IWonder wonder = SelectWonder(city, stance);
+			if (wonder != null) Consider(wonder);
+
+			// Second defender once infrastructure is underway
+			if (defenders < 2) Consider(BestDefender());
+
+			// Soft units by government / stance
+			if (stance == StrategyStance.Militarize && !Player.RepublicDemocratic)
+				Consider(BestAttacker());
+			else if (Player.HasAdvance<Writing>())
+				Consider(new Diplomat());
+			else if (Player.HasAdvance<Trade>())
+				Consider(new Caravan());
+
+			// Fallback: first available production item
+			if (plan.Count == 0)
+			{
+				IProduction[] items = city.AvailableProduction.ToArray();
+				Consider(items[Common.Random.Next(items.Length)]);
+			}
+
+			return plan;
 		}
 	}
 }

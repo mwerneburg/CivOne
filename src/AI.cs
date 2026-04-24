@@ -208,85 +208,12 @@ namespace CivOne
 		{
 			if (city == null || city.Size == 0 || city.Tile == null || Player != city.Owner) return;
 
-			StrategyStance stance = GetStance();
-			IProduction production = null;
-
-			// Barracks: universal first priority — veteran units matter in every stance
-			if (!city.HasBuilding<Barracks>())
-			{
-				city.SetProduction(new Barracks());
-				return;
-			}
-
-			// Minimum garrison: at least 1 defender in every city at all times
-			if (city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 1)
-				production = BestDefender();
-
-			// Consolidate: happiness and growth buildings take priority over everything else
-			if (production == null && stance == StrategyStance.Consolidate)
-			{
-				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())   production = new Temple();
-				else if (Player.HasAdvance<Construction>() && !city.HasBuilding<Colosseum>()) production = new Colosseum();
-				else if (Player.HasAdvance<Religion>()      && !city.HasBuilding<Cathedral>()) production = new Cathedral();
-				else if (Player.HasAdvance<Pottery>()       && !city.HasBuilding<Granary>())   production = new Granary();
-			}
-
-			// Militarize: build up to 2 defenders, then offensive units
-			if (production == null && stance == StrategyStance.Militarize)
-			{
-				if (city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 2)
-					production = BestDefender();
-				else if (!Player.RepublicDemocratic)
-					production = BestAttacker();
-			}
-
-			// Expand: produce Settlers once the city is big enough
-			if (production == null && stance == StrategyStance.Expand)
-			{
-				int minSize = Leader.Development == Expansionistic ? 2
-				            : Leader.Development == Normal          ? 3 : 4;
-				int maxCities = Leader.Development == Expansionistic ? 13
-				              : Leader.Development == Normal          ? 10 : 7;
-				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers)
-				    && Player.Cities.Length < maxCities)
-					production = new Settlers();
-			}
-
-			// Standard infrastructure chain (all stances)
-			if (production == null)
-			{
-				if (Player.HasAdvance<Pottery>()           && !city.HasBuilding<Granary>())    production = new Granary();
-				else if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    production = new Temple();
-				else if (Player.HasAdvance<Writing>()          && !city.HasBuilding<Library>())   production = new Library();
-				else if (Player.HasAdvance<Currency>()         && !city.HasBuilding<MarketPlace>()) production = new MarketPlace();
-				else if (Player.HasAdvance<Masonry>()          && !city.HasBuilding<CityWalls>())  production = new CityWalls();
-				else if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>())  production = new Colosseum();
-				else if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>())  production = new Cathedral();
-			}
-
-			// Second defender once infrastructure is underway
-			if (production == null && city.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 2)
-				production = BestDefender();
-
-			// Soft units based on government and stance
-			if (production == null)
-			{
-				if (stance == StrategyStance.Militarize && !Player.RepublicDemocratic)
-					production = BestAttacker();
-				else if (Player.HasAdvance<Writing>())
-					production = new Diplomat();
-				else if (Player.HasAdvance<Trade>())
-					production = new Caravan();
-			}
-
-			// Fallback: random available production item
-			if (production == null)
-			{
-				IProduction[] items = city.AvailableProduction.ToArray();
-				production = items[Common.Random.Next(items.Length)];
-			}
-
-			city.SetProduction(production);
+			city.ClearProductionQueue();
+			var stance = GetStance();
+			var plan = PlanProduction(city, stance);
+			city.SetProduction(plan[0]);
+			for (int i = 1; i < plan.Count; i++)
+				city.EnqueueProduction(plan[i]);
 		}
 
 		private static Dictionary<Player, AI> _instances = new Dictionary<Player, AI>();
