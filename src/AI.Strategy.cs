@@ -255,6 +255,88 @@ namespace CivOne
 			}
 		}
 
+		// ── research weights ──────────────────────────────────────────────────
+
+		private static int AdvanceWeight(IAdvance a, StrategyStance stance)
+		{
+			int w = 1; // baseline: every advance can be chosen
+
+			switch (stance)
+			{
+				case StrategyStance.Militarize:
+					if (a is BronzeWorking)      w += 7;
+					if (a is IronWorking)         w += 7;
+					if (a is TheWheel)            w += 6;
+					if (a is HorsebackRiding)     w += 7;
+					if (a is Feudalism)           w += 5;
+					if (a is Chivalry)            w += 7;
+					if (a is Gunpowder)           w += 8;
+					if (a is Mathematics)         w += 4;
+					if (a is Physics)             w += 5;
+					if (a is Chemistry)           w += 5;
+					if (a is Metallurgy)          w += 7;
+					if (a is Engineering)         w += 5;
+					if (a is SteamEngine)         w += 5;
+					if (a is Industrialization)   w += 6;
+					if (a is Conscription)        w += 8;
+					if (a is Automobile)          w += 8;
+					if (a is LaborUnion)          w += 8;
+					if (a is Masonry)             w += 4; // CityWalls for defence
+					break;
+
+				case StrategyStance.Develop:
+					if (a is Alphabet)            w += 7;
+					if (a is Writing)             w += 8;
+					if (a is Literacy)            w += 6;
+					if (a is CodeOfLaws)          w += 6;
+					if (a is TheRepublic)         w += 7;
+					if (a is Democracy)           w += 6;
+					if (a is Pottery)             w += 6;
+					if (a is Trade)               w += 8;
+					if (a is Currency)            w += 7;
+					if (a is Banking)             w += 7;
+					if (a is TheCorporation)      w += 6;
+					if (a is Philosophy)          w += 5;
+					if (a is Advances.University)  w += 7;
+					if (a is Invention)           w += 6;
+					if (a is TheoryOfGravity)     w += 6;
+					if (a is Masonry)             w += 5;
+					if (a is Construction)        w += 5;
+					if (a is CeremonialBurial)    w += 5;
+					if (a is Mysticism)           w += 4;
+					if (a is Religion)            w += 5;
+					break;
+
+				case StrategyStance.Consolidate:
+					if (a is CeremonialBurial)    w += 9; // Temple
+					if (a is Mysticism)           w += 8; // doubles Temple
+					if (a is Philosophy)          w += 6;
+					if (a is Religion)            w += 8; // Cathedral
+					if (a is Construction)        w += 8; // Colosseum
+					if (a is Pottery)             w += 7; // Granary
+					if (a is Trade)               w += 6;
+					if (a is Currency)            w += 6;
+					if (a is Banking)             w += 5;
+					if (a is Writing)             w += 5;
+					break;
+
+				case StrategyStance.Expand:
+					if (a is Pottery)             w += 8; // Granary feeds growth
+					if (a is BridgeBuilding)      w += 7; // roads cross rivers
+					if (a is RailRoad)            w += 7; // fast movement
+					if (a is Masonry)             w += 6;
+					if (a is MapMaking)           w += 5; // explore coasts
+					if (a is Alphabet)            w += 5;
+					if (a is Writing)             w += 5;
+					if (a is Trade)               w += 5;
+					if (a is TheWheel)            w += 5;
+					if (a is HorsebackRiding)     w += 5;
+					break;
+			}
+
+			return w;
+		}
+
 		// ── production helpers ─────────────────────────────────────────────────
 
 		private IProduction BestDefender()

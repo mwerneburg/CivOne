@@ -178,14 +178,29 @@ namespace CivOne
 		internal void ChooseResearch()
 		{
 			if (Player.CurrentResearch != null) return;
-			
-			IAdvance[] advances = Player.AvailableResearch.ToArray();
-			
-			// No further research possible
-			if (advances.Length == 0) return;
 
-			Player.CurrentResearch = advances[Common.Random.Next(0, advances.Length)];
+			IAdvance[] available = Player.AvailableResearch.ToArray();
+			if (available.Length == 0) return;
 
+			StrategyStance stance = GetStance();
+			int[] weights = available.Select(a => AdvanceWeight(a, stance)).ToArray();
+			int total = weights.Sum();
+
+			int roll = Common.Random.Next(total);
+			int cumulative = 0;
+			for (int i = 0; i < available.Length; i++)
+			{
+				cumulative += weights[i];
+				if (roll < cumulative)
+				{
+					Player.CurrentResearch = available[i];
+					Log($"AI: {Player.LeaderName} of the {Player.TribeNamePlural} starts researching {Player.CurrentResearch.Name}.");
+					return;
+				}
+			}
+
+			// Fallback (weights should always sum > 0, but be safe)
+			Player.CurrentResearch = available[Common.Random.Next(available.Length)];
 			Log($"AI: {Player.LeaderName} of the {Player.TribeNamePlural} starts researching {Player.CurrentResearch.Name}.");
 		}
 
