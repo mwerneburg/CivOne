@@ -475,6 +475,8 @@ namespace CivOne
 				}
 			}
 			if (_anarchy > 0) _anarchy--;
+
+			AI?.ConsiderWar();
 		}
 
 		public override bool Equals (object obj)

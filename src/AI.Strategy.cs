@@ -73,6 +73,51 @@ namespace CivOne
 			           .Sum(u => u.Attack + u.Defense);
 		}
 
+		// ── proactive war declaration ──────────────────────────────────────────
+
+		internal void ConsiderWar()
+		{
+			// Barbarians use their own logic; governments in revolution are distracted
+			if (Game.PlayerNumber(Player) == 0) return;
+			if (Player.Government is Governments.Anarchy) return;
+
+			// Republics and Democracies are blocked by their Senate from starting wars
+			if (Player.RepublicDemocratic) return;
+
+			// Civilised non-aggressive leaders don't pick fights
+			if (Leader.Militarism == MilitarismLevel.Civilized
+			    && Leader.Aggression != AggressionLevel.Aggressive)
+				return;
+
+			int own = MilitaryScore(Player);
+			if (own == 0) return; // no army, no war
+
+			foreach (Player enemy in Game.Players)
+			{
+				if (enemy == Player || enemy.IsDestroyed()) continue;
+				if (Player.IsAtWar(enemy)) continue;
+				if (!IsNeighbor(enemy)) continue;
+
+				int their = MilitaryScore(enemy);
+
+				// Base chance from leader personality
+				int chance = 0;
+				if (Leader.Aggression  == AggressionLevel.Aggressive)    chance += 8;
+				if (Leader.Militarism  == MilitarismLevel.Militaristic)   chance += 7;
+
+				// Modifier for relative strength
+				if (own > their)           chance += 5;
+				if (own > their * 3 / 2)   chance += 5; // notably stronger
+				if (their > own * 3 / 2)   chance -= 20; // notably weaker — don't be reckless
+
+				if (Common.Random.Next(100) < chance)
+				{
+					Player.DeclareWar(enemy);
+					return; // one declaration per turn
+				}
+			}
+		}
+
 		// ── city-site scoring ──────────────────────────────────────────────────
 
 		private int SiteSuitability(ITile center)
