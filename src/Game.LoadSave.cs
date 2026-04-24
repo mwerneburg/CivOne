@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -38,6 +39,7 @@ namespace CivOne
 
 				Map.Instance.LoadMap(mapFile, adapter.RandomSeed);
 				_instance = new Game(adapter);
+				_instance.LoadProductionQueues(sveFile);
 				Log($"Game instance loaded (difficulty: {_instance._difficulty}, competition: {_instance._competition}");
 			}
 		}
@@ -115,6 +117,62 @@ namespace CivOne
 				gameData.OpponentCount = (ushort)(_players.Length - 2);
 				gameData.ReplayData = _replayData.ToArray();
 				File.WriteAllBytes(sveFile, gameData.GetBytes());
+			}
+			SaveProductionQueues(sveFile);
+		}
+
+		private static string QueueFilePath(string sveFile) =>
+			Path.Combine(Path.GetDirectoryName(sveFile), Path.GetFileNameWithoutExtension(sveFile) + ".civ1q");
+
+		private void SaveProductionQueues(string sveFile)
+		{
+			var citiesWithQueues = _cities.Where(c => c.ProductionQueue.Count > 0).ToList();
+			if (citiesWithQueues.Count == 0) return;
+
+			using (var bw = new BinaryWriter(File.Create(QueueFilePath(sveFile))))
+			{
+				bw.Write((byte)citiesWithQueues.Count);
+				foreach (City city in citiesWithQueues)
+				{
+					bw.Write(city.X);
+					bw.Write(city.Y);
+					bw.Write((byte)city.ProductionQueue.Count);
+					foreach (IProduction item in city.ProductionQueue)
+						bw.Write(item.GetType().Name);
+				}
+			}
+		}
+
+		private void LoadProductionQueues(string sveFile)
+		{
+			string path = QueueFilePath(sveFile);
+			if (!File.Exists(path)) return;
+
+			try
+			{
+				using (var br = new BinaryReader(File.OpenRead(path)))
+				{
+					int cityCount = br.ReadByte();
+					for (int i = 0; i < cityCount; i++)
+					{
+						byte x = br.ReadByte();
+						byte y = br.ReadByte();
+						int queueLen = br.ReadByte();
+						City city = _cities.FirstOrDefault(c => c.X == x && c.Y == y);
+						for (int q = 0; q < queueLen; q++)
+						{
+							string typeName = br.ReadString();
+							if (city == null) continue;
+							IProduction item = Reflect.GetProduction()
+							    .FirstOrDefault(p => p.GetType().Name == typeName);
+							if (item != null) city.EnqueueProduction(item);
+						}
+					}
+				}
+			}
+			catch (Exception)
+			{
+				// Silently discard corrupt or version-mismatched queue files.
 			}
 		}
 

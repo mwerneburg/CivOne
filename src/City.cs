@@ -74,7 +74,7 @@ namespace CivOne
 		internal int Shields { get; set; }
 		internal int Food { get; set; }
 		internal IProduction CurrentProduction { get; private set; }
-		// TODO: persist production queue in save data
+		// Persisted to <savename>.civ1q alongside the .sve file (see Game.LoadSave.cs).
 		private readonly List<IProduction> _productionQueue = new List<IProduction>();
 		private List<ITile> _resourceTiles = new List<ITile>();
 		private List<IBuilding> _buildings = new List<IBuilding>();
