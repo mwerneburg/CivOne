@@ -30,6 +30,9 @@ namespace CivOne
 		public Player Player { get; }
 		public ILeader Leader => Player.Civilization.Leader;
 
+		// The city this civ is currently marshalling forces to attack.
+		private City _attackTarget;
+
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;
@@ -150,7 +153,11 @@ namespace CivOne
 							return;
 						}
 
-						if (unit.Attack < next.Units.Select(x => x.Defense).Max() && Common.Random.Next(0, 100) < 50)
+						// Staged assault: units committed to a designated target don't back down.
+						bool stagedAssault = _attackTarget != null && next.City == _attackTarget;
+						if (!stagedAssault
+						    && unit.Attack < next.Units.Select(x => x.Defense).Max()
+						    && Common.Random.Next(0, 100) < 50)
 						{
 							unit.Goto = Point.Empty;
 							unit.SkipTurn();

@@ -246,6 +246,45 @@ namespace CivOne
 		// ── unit mission assignment ────────────────────────────────────────────
 		// Sets unit.Goto; leaves it empty if no useful mission is found.
 
+		// ── attack staging ────────────────────────────────────────────────────────
+
+		private City PickAttackTarget()
+		{
+			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire
+			return Game.GetCities()
+			           .Where(c => c.Player != Player
+			                    && Player.IsAtWar(c.Player)
+			                    && Player.Visible(c.X, c.Y))
+			           .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
+			           .ThenBy(c => Player.Cities.Min(oc =>
+			               Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
+			           .FirstOrDefault();
+		}
+
+		private ITile StagingTile(City target)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			byte own = Game.PlayerNumber(Player);
+			ITile best = null;
+			int bestCount = -1;
+
+			for (int dy = -1; dy <= 1; dy++)
+			for (int dx = -1; dx <= 1; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int tx = (target.X + dx + w) % w;
+				int ty = target.Y + dy;
+				if (ty < 0 || ty >= h) continue;
+				ITile t = Map[tx, ty];
+				if (t == null || t.IsOcean) continue;
+				// Don't stage on a tile already occupied by enemies
+				if (t.Units.Any(u => u.Owner != own)) continue;
+				int count = t.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack);
+				if (best == null || count > bestCount) { best = t; bestCount = count; }
+			}
+			return best;
+		}
+
 		private void AssignMission(IUnit unit)
 		{
 			StrategyStance stance = GetStance();
@@ -285,20 +324,36 @@ namespace CivOne
 				return;
 			}
 
-			// Offensive land units: attack when militarizing, otherwise reinforce
+			// Offensive land units
 			if (unit.Role == UnitRole.LandAttack)
 			{
 				if (stance == StrategyStance.Militarize)
 				{
-					// Find the weakest visible enemy city (fewest defenders)
-					City target = Game.GetCities()
-					    .Where(c => c.Player != Player
-					             && Player.IsAtWar(c.Player)
-					             && Player.Visible(c.X, c.Y))
-					    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
-					    .ThenBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-					    .FirstOrDefault();
-					if (target != null) { unit.Goto = new Point(target.X, target.Y); return; }
+					// Validate or refresh the civ-wide attack target
+					if (_attackTarget == null
+					    || _attackTarget.Player == Player         // we captured it
+					    || !Player.IsAtWar(_attackTarget.Player)) // war ended
+						_attackTarget = PickAttackTarget();
+
+					if (_attackTarget != null)
+					{
+						ITile staging = StagingTile(_attackTarget);
+						byte own = Game.PlayerNumber(Player);
+
+						// How many attackers are already at the staging tile?
+						int staged = staging?.Units.Count(u =>
+						    u.Owner == own && u.Role == UnitRole.LandAttack) ?? 0;
+
+						// Commit when we have enough force; be generous if we outbuilt the defense
+						int defenders = _attackTarget.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+						int threshold = Math.Max(2, defenders + 1);
+
+						Point dest = (staged >= threshold || staging == null)
+						    ? new Point(_attackTarget.X, _attackTarget.Y)
+						    : new Point(staging.X, staging.Y);
+						unit.Goto = dest;
+						return;
+					}
 				}
 
 				// Default: reinforce the most under-defended own city
