@@ -8,18 +8,39 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using CivOne.Enums;
 
 namespace CivOne
 {
 	internal class Program
 	{
+		private static void RegisterNativeResolver()
+		{
+			if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+
+			NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(),
+				(name, asm, searchPath) =>
+				{
+					if (name != "SDL2") return IntPtr.Zero;
+					// Official SDL2 .dmg framework install
+					if (NativeLibrary.TryLoad("/Library/Frameworks/SDL2.framework/Versions/Current/SDL2", out IntPtr h)) return h;
+					// Homebrew on Apple Silicon (/opt/homebrew)
+					if (NativeLibrary.TryLoad("/opt/homebrew/lib/libSDL2.dylib", out h)) return h;
+					// Homebrew on Intel Mac (/usr/local)
+					if (NativeLibrary.TryLoad("/usr/local/lib/libSDL2.dylib", out h)) return h;
+					return IntPtr.Zero;
+				});
+		}
+
 		private static string ErrorText => @"civone-sdl: Invalid options: '{0}'
 Try 'civone-sdl --help' for more information.
 ";
 
 		private static void Main(string[] args)
 		{
+			RegisterNativeResolver();
 			RuntimeSettings settings = new RuntimeSettings();
 			settings["software-render"] = false;
 			settings["profile-name"] = "default";
