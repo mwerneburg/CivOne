@@ -64,17 +64,19 @@ namespace CivOne
 				for (int x = 0; x < WIDTH; x++)
 				for (int y = 0; y < HEIGHT; y++)
 				{
+					if (_tiles[x, y].IsOcean) continue;
 					byte b = bitmap[x, y + (HEIGHT * 2)];
 					// 0x01 = CITY ?
 					_tiles[x, y].Irrigation = (b & 0x02) > 0;
 					_tiles[x, y].Mine = (b & 0x04) > 0;
 					_tiles[x, y].Road = (b & 0x08) > 0;
 				}
-				
+
 				// Load improvement layer 2
 				for (int x = 0; x < WIDTH; x++)
 				for (int y = 0; y < HEIGHT; y++)
 				{
+					if (_tiles[x, y].IsOcean) continue;
 					byte b = bitmap[x, y + (HEIGHT * 3)];
 					_tiles[x, y].RailRoad = (b & 0x01) > 0;
 				}
@@ -128,11 +130,13 @@ namespace CivOne
 				for (int y = 0; y < HEIGHT; y++)
 				{
 					byte b = 0;
-					if (_tiles[x, y].City != null) b |= 0x01;
-					if (_tiles[x, y].Irrigation) b |= 0x02;
-					if (_tiles[x, y].Mine) b |= 0x04;
-					if (_tiles[x, y].Road) b |= 0x08;
-
+					if (!_tiles[x, y].IsOcean)
+					{
+						if (_tiles[x, y].City != null) b |= 0x01;
+						if (_tiles[x, y].Irrigation) b |= 0x02;
+						if (_tiles[x, y].Mine) b |= 0x04;
+						if (_tiles[x, y].Road) b |= 0x08;
+					}
 					bitmap[x, y + (HEIGHT * 2)] = b;
 					bitmap[x + (WIDTH * 1), y + (HEIGHT * 2)] = b; // Visibility layer
 				}
@@ -141,9 +145,7 @@ namespace CivOne
 				for (int x = 0; x < WIDTH; x++)
 				for (int y = 0; y < HEIGHT; y++)
 				{
-					byte b = 0;
-					if (_tiles[x, y].RailRoad) b |= 0x01;
-
+					byte b = (!_tiles[x, y].IsOcean && _tiles[x, y].RailRoad) ? (byte)0x01 : (byte)0x00;
 					bitmap[x, y + (HEIGHT * 3)] = b;
 					bitmap[x + (WIDTH * 1), y + (HEIGHT * 3)] = b; // Visibility layer
 				}
