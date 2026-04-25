@@ -17,6 +17,7 @@ using CivOne.Graphics;
 using CivOne.IO;
 using CivOne.Screens.CityManagerPanels;
 using CivOne.Screens.Dialogs;
+using CivOne.Units;
 using CivOne.Wonders;
 
 namespace CivOne.Screens
@@ -43,9 +44,17 @@ namespace CivOne.Screens
 		private int BodyW   => Width  - 2 * Margin;
 		private int BodyH   => Height - BodyY - Margin;
 
-		// Center column width must be (5k+2) so the map tiles fit exactly
-		private int RawCenterW  => Math.Max(82, (BodyW - 2 * ColGap) * 26 / 100);
-		private int ColCenterW  => ((RawCenterW - 2) / 5) * 5 + 2;
+		// Center column width snapped to 80k+2 so _tileSize is always a multiple of 16
+		// (prevents misalignment between tile bitmap and resource icon positions)
+		private int ColCenterW
+		{
+			get
+			{
+				int raw = Math.Max(82, (BodyW - 2 * ColGap) * 26 / 100);
+				int k   = Math.Max(1, (raw - 2) / 80);
+				return k * 80 + 2;
+			}
+		}
 		private int ColLeftW    => Math.Max(88, (BodyW - ColCenterW - 2 * ColGap) * 45 / 100);
 		private int ColRightW   => BodyW - ColLeftW - ColCenterW - 2 * ColGap;
 		private int ColLeftX    => BodyX;
@@ -54,8 +63,10 @@ namespace CivOne.Screens
 
 		// Panel heights in the right column
 		private int NowBuildingH => 58;
+		private int GarrisonH    => 28;
 		private int BuildingsY   => BodyY + NowBuildingH + ColGap;
-		private int BuildingsH   => BodyH - NowBuildingH - ColGap;
+		private int GarrisonY    => BodyY + BodyH - GarrisonH;
+		private int BuildingsH   => BodyH - NowBuildingH - ColGap - GarrisonH - ColGap;
 
 		// Row height for building list entries (font 0)
 		private int BuildingRowH => 9;
@@ -83,6 +94,7 @@ namespace CivOne.Screens
 			DrawMapColumn();
 			DrawNowBuilding(gameTick);
 			DrawBuildingsList();
+			DrawGarrison();
 
 			_update = false;
 			return true;
@@ -381,6 +393,37 @@ namespace CivOne.Screens
 			}
 		}
 
+		private void DrawGarrison()
+		{
+			int px = ColRightX;
+			int py = GarrisonY;
+			int pw = ColRightW;
+			int ph = GarrisonH;
+			this.DrawCassettePanel(px, py, pw, ph, "GARRISON");
+
+			IUnit[] units = Game.GetUnits()
+				.Where(u => u.X == _city.X && u.Y == _city.Y)
+				.Take((pw - 4) / 16)
+				.ToArray();
+
+			if (units.Length == 0)
+			{
+				this.DrawText("NONE", 0, CassetteTheme.INK_LOW, px + 4, py + 10);
+				return;
+			}
+
+			for (int i = 0; i < units.Length; i++)
+			{
+				int ux = px + 2 + i * 16;
+				if (ux + 16 > px + pw - 2) break;
+				this.AddLayer(units[i].ToBitmap(), ux, py + 7);
+
+				// Dim corner indicator for sentry/fortified units
+				if (units[i].Sentry || units[i].Fortify)
+					this.FillRectangle(ux, py + 7, 4, 4, CassetteTheme.INK_LOW);
+			}
+		}
+
 		// ─── helpers ──────────────────────────────────────────────────────────────
 
 		private bool ProductionInvalid
@@ -453,6 +496,7 @@ namespace CivOne.Screens
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
+		private Rectangle GarrisonRect  => new Rectangle(ColRightX, GarrisonY, ColRightW, GarrisonH);
 
 		// Citizen x positions recomputed for header click tests
 		private int CitizenHeaderX0 => Margin + (BodyW - _city.Size * 8) / 2;
@@ -476,11 +520,10 @@ namespace CivOne.Screens
 		{
 			_mouseDown = true;
 
-			// Citizen click in header: change specialist
+			// Citizen click in header
 			if (!_viewCity && HeaderRect.Contains(args.Location))
 			{
-				int y = args.Y;
-				if (y >= CitizenHeaderY && y < CitizenHeaderY + 14)
+				if (args.Y >= CitizenHeaderY && args.Y < CitizenHeaderY + 14)
 				{
 					Citizen[] citizens = _city.Citizens.ToArray();
 					int cxx = CitizenHeaderX0;
@@ -493,17 +536,31 @@ namespace CivOne.Screens
 							cxx += 2;
 							if (group == 3) cxx += 4;
 						}
-						if ((int)citizens[i] >= 6) specIndex++;
-						if (args.X >= cxx && args.X < cxx + 8 && specIndex >= 0)
+						bool isSpec = (int)citizens[i] >= 6;
+						if (isSpec) specIndex++;
+						if (args.X >= cxx && args.X < cxx + 8)
 						{
-							_city.ChangeSpecialist(specIndex);
+							if (specIndex >= 0)
+							{
+								// Cycle this specialist's role
+								_city.ChangeSpecialist(specIndex);
+							}
+							else
+							{
+								// Worker clicked: de-assign a resource tile to create a specialist
+								var extra = _city.ResourceTiles
+									.Where(t => t.X != _city.X || t.Y != _city.Y)
+									.ToArray();
+								if (extra.Length > 0)
+									_city.SetResourceTile(extra[extra.Length - 1]);
+							}
 							_update = true;
 							return true;
 						}
 						cxx += 8;
 					}
 				}
-				return false;
+				return true;  // consume click anywhere in header (don't close screen)
 			}
 
 			// Map click: handled on MouseUp via sub-panel delegation
@@ -514,6 +571,33 @@ namespace CivOne.Screens
 			{
 				if (ChangeRect.Contains(args.Location)) return true;
 				if (BuyRect.Contains(args.Location))    return true;
+			}
+
+			// Garrison: click wakes the unit; close screen so the player can give orders
+			if (GarrisonRect.Contains(args.Location))
+			{
+				IUnit[] units = Game.GetUnits()
+					.Where(u => u.X == _city.X && u.Y == _city.Y)
+					.Take((ColRightW - 4) / 16)
+					.ToArray();
+				for (int i = 0; i < units.Length; i++)
+				{
+					int ux = ColRightX + 2 + i * 16;
+					if (ux + 16 > ColRightX + ColRightW - 2) break;
+					var unitRect = new Rectangle(ux, GarrisonY + 7, 16, 14);
+					if (unitRect.Contains(args.Location))
+					{
+						if (units[i].Sentry || units[i].Fortify)
+						{
+							units[i].Busy      = false;
+							units[i].MovesLeft = units[i].Move;
+						}
+						Game.ActiveUnit = units[i];
+						CloseScreen();
+						return true;
+					}
+				}
+				return true;  // consume click in garrison panel
 			}
 
 			// Buildings list: sell button
@@ -552,8 +636,12 @@ namespace CivOne.Screens
 						return true;
 					}
 				}
-				return false;
+				return true;  // consume click in buildings panel
 			}
+
+			// Consume clicks in the left and center columns (no close action there)
+			if (new Rectangle(BodyX, BodyY, BodyW, BodyH).Contains(args.Location))
+				return true;
 
 			CloseScreen();
 			return true;
