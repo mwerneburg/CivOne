@@ -7,8 +7,8 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using System.Drawing;
-using System.Linq;
 using CivOne.Enums;
 using CivOne.IO;
 
@@ -22,9 +22,12 @@ namespace CivOne
 		{
 			get
 			{
-				if (Settings.AspectRatio != AspectRatio.Expand || Settings.ExpandWidth == -1 || Settings.ExpandHeight == -1)
+				if (Settings.AspectRatio != AspectRatio.Expand)
 					return new Size(320, 200);
-				return new Size(Settings.ExpandWidth, Settings.ExpandHeight);
+				// Fallback for initial window sizing before first SetCanvasSize() call
+				int w = Settings.ExpandWidth  > 0 ? Settings.ExpandWidth  : 640;
+				int h = Settings.ExpandHeight > 0 ? Settings.ExpandHeight : 360;
+				return new Size(w, h);
 			}
 		}
 
@@ -86,33 +89,14 @@ namespace CivOne
 
 		private Size SetCanvasSize()
 		{
-			if (Settings.AspectRatio != AspectRatio.Expand || (ScaleX < 1 || ScaleY < 1))
-			{
-				return DefaultCanvasSize;
-			}
+			if (Settings.AspectRatio != AspectRatio.Expand)
+				return new Size(320, 200);
 
-			int cw = ClientRectangle.Width, ch = ClientRectangle.Height;
-
-			if (Settings.ExpandWidth != -1 && Settings.ExpandHeight != -1)
-			{
-				cw = Settings.ExpandWidth;
-				ch = Settings.ExpandHeight;
-			}
-			else
-			{
-				// Target a canvas ≈720×450 at 2× integer scale on a 1440×900 display.
-				// Using 720/450 as divisors gives scale=2 on 1440×900, scale=1 on smaller windows.
-				int scale = new int[] { (cw - (cw % 720)) / 720, (ch - (ch % 450)) / 450 }.Min();
-				if (scale < 1) scale = 1;
-				cw /= scale;
-				ch /= scale;
-			}
-
-			// Round down to multiple of 8
-			cw -= (cw % 8);
-			ch -= (ch % 8);
-
-			return new Size(cw, ch);
+			// Derive canvas as half the actual window size so scale is always exactly 2.
+			// Rounding down to multiples of 8 keeps pixel-art alignment clean.
+			int cw = (ClientRectangle.Width  / 2 / 8) * 8;
+			int ch = (ClientRectangle.Height / 2 / 8) * 8;
+			return new Size(Math.Max(320, cw), Math.Max(200, ch));
 		}
 
 		private static int InitialCanvasWidth => DefaultCanvasSize.Width;
