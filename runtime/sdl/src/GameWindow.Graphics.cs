@@ -92,8 +92,13 @@ namespace CivOne
 			if (Settings.AspectRatio != AspectRatio.Expand)
 				return new Size(320, 200);
 
-			// Derive canvas as half the actual window size so scale is always exactly 2.
-			// Rounding down to multiples of 8 keeps pixel-art alignment clean.
+			// In fullscreen the window is much larger; keep the canvas fixed so all
+			// UI elements stay at their designed positions and scale evenly fills it.
+			if (Fullscreen)
+				return CanvasWidth > 0 ? new Size(CanvasWidth, CanvasHeight) : DefaultCanvasSize;
+
+			// In windowed mode derive canvas as half the actual window size so scale is
+			// always exactly 2. Rounding down to multiples of 8 keeps pixel art clean.
 			int cw = (ClientRectangle.Width  / 2 / 8) * 8;
 			int ch = (ClientRectangle.Height / 2 / 8) * 8;
 			return new Size(Math.Max(320, cw), Math.Max(200, ch));

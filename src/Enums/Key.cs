@@ -51,6 +51,7 @@ namespace CivOne.Enums
 		Plus,
 		Minus,
 		Slash,
+		Tab,
 		Other,
 	}
 }

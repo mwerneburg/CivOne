@@ -286,6 +286,11 @@ namespace CivOne.Screens.GamePlayPanels
 				Game.ActiveUnit.SkipTurn();
 				return true;
 			}
+			if (args.Key == Key.Tab)
+			{
+				Game.UnitWait();
+				return true;
+			}
 			else if (Settings.ArrowHelper)
 			{
 				switch (args.Key)
@@ -453,18 +458,33 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'T':
 					GameTask.Enqueue(Show.Terrain);
 					return true;
+				case 'W':
+				{
+					IUnit sentry = Game.GetUnits().FirstOrDefault(u => Human == u.Owner && u.Sentry);
+					if (sentry != null)
+					{
+						sentry.Sentry   = false;
+						sentry.MovesLeft = sentry.Move;
+						Game.ActiveUnit = sentry;
+						return true;
+					}
+					return false;
+				}
 			}
 
 			if (Game.ActiveUnit != null)
 			{
 				return KeyDownActiveUnit(args);
 			}
-			
+
 			switch (args.Key)
 			{
 				case Key.Space:
 				case Key.Enter:
 					GameTask.Enqueue(Turn.End());
+					return true;
+				case Key.Tab:
+					Game.UnitWait();
 					return true;
 			}
 			return false;

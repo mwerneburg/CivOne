@@ -137,6 +137,8 @@ namespace CivOne
 			if (Game.PlayerNumber(Player) == 0) return;
 			if (Player.Government is Governments.Anarchy) return;
 
+			if (Player.IsDestroyed()) return;
+
 			Player human = Human;
 			if (human == null || human == Player || human.IsDestroyed()) return;
 

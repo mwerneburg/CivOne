@@ -802,7 +802,7 @@ namespace CivOne.Units
 			if (player.IsHuman) Common.GamePlay?.RefreshMap();
 		}
 
-		public virtual void Explore() => Explore(1);
+		public virtual void Explore() => Explore(Map[X, Y].Type == Terrain.Mountains ? 2 : 1);
 
 		internal static IBitmap GetBaseSprite(UnitType type)
 		{

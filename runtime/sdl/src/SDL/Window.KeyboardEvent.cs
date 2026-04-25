@@ -86,6 +86,8 @@ namespace CivOne
 						return Key.Right;
 					case SDL_Scancode.SDL_SCANCODE_SPACE:
 						return Key.Space;
+					case SDL_Scancode.SDL_SCANCODE_TAB:
+						return Key.Tab;
 					case SDL_Scancode.SDL_SCANCODE_MINUS:
 					case SDL_Scancode.SDL_SCANCODE_KP_MINUS:
 						return Key.Minus;

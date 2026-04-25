@@ -79,8 +79,13 @@ namespace CivOne.Screens
 					if (uid < 0 || uid >= _units.Length)
 						return true;
 					
-					Game.ActiveUnit = _units[uid];
-					_units[uid].Busy = false;
+					IUnit waking = _units[uid];
+					if (waking.Sentry)
+					{
+						waking.Sentry = false;
+						waking.MovesLeft = waking.Move;
+					}
+					Game.ActiveUnit = waking;
 					return true;
 				}
 			}
