@@ -92,7 +92,6 @@ namespace CivOne
 			}
 
 			int cw = ClientRectangle.Width, ch = ClientRectangle.Height;
-			int scale = new int[] { (cw - (cw % 320)) / 320, (ch - (ch % 200)) / 200 }.Min();
 
 			if (Settings.ExpandWidth != -1 && Settings.ExpandHeight != -1)
 			{
@@ -101,18 +100,17 @@ namespace CivOne
 			}
 			else
 			{
+				// Target a canvas ≈720×450 at 2× integer scale on a 1440×900 display.
+				// Using 720/450 as divisors gives scale=2 on 1440×900, scale=1 on smaller windows.
+				int scale = new int[] { (cw - (cw % 720)) / 720, (ch - (ch % 450)) / 450 }.Min();
+				if (scale < 1) scale = 1;
 				cw /= scale;
 				ch /= scale;
 			}
 
-			// Make sure the canvas resolution is a multiple of 8
+			// Round down to multiple of 8
 			cw -= (cw % 8);
 			ch -= (ch % 8);
-
-			// Set maximum bounds to 512x384, the maximum logical boundaries 
-			// according this this table: https://github.com/SWY1985/CivOne/wiki/Settings#expand-experimental
-			if (cw > 512) cw = 512;
-			if (ch > 384) ch = 384;
 
 			return new Size(cw, ch);
 		}

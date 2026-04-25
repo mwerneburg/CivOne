@@ -20,18 +20,19 @@ using Gov = CivOne.Governments;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class King : BaseScreen
 	{
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
+		private const int FONT_ID  = 0;
+		private const int HEADER_H = 28;
+		private const int PAD      = 8;
+		private const int LEFT_W   = 220;
 
-		private const int FONT_ID = 0;
-		private const int PANEL_X = 2;
-		private const int PANEL_Y = 135;
-		private const int PANEL_W = 316;
+		private int RightX => PAD + LEFT_W + PAD;
+		private int RightW => Width - RightX - PAD;
+		private int BodyY  => HEADER_H + PAD;
 
 		private readonly Player _enemy;
-		private readonly Picture _background;
 		private readonly bool _aiInitiated;
 
 		private bool _menuAdded = false;
@@ -39,23 +40,74 @@ namespace CivOne.Screens
 		private FaceState _portraitState = FaceState.Neutral;
 		private string[] _speechLines;
 
-		// ── drawing ────────────────────────────────────────────────────────────
+		// ── drawing ─────────────────────────────────────────────────────────
 
 		private void DrawScene()
 		{
-			this.AddLayer(_background, OX, OY)
-				.AddLayer(_enemy.Civilization.Leader.GetPortrait(_portraitState), 90 + OX, OY);
+			int fh = Resources.GetFontHeight(FONT_ID);
 
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
+
+			// Header bar
+			this.FillRectangle(0, 0, Width, HEADER_H, CassetteTheme.BG1)
+			    .FillRectangle(0, HEADER_H, Width, 1, CassetteTheme.BORDER);
+			this.DrawText("DIPLOMATIC CONSOLE · " + _enemy.TribeNamePlural.ToUpper(),
+			              FONT_ID, CassetteTheme.INK_MID, 10, 4);
+			this.DrawText(_enemy.Civilization.Leader.Name.ToUpper(),
+			              FONT_ID, CassetteTheme.PHOS, 10, 4 + fh + 2);
+
+			bool atWar = Human.IsAtWar(_enemy);
+			byte moodColor = atWar ? CassetteTheme.ALERT : CassetteTheme.OK;
+			this.DrawText(atWar ? "◇ AT WAR ◇" : "▤ PEACE ▤",
+			              FONT_ID, moodColor, Width - PAD, 4 + fh / 2, TextAlign.Right);
+
+			// Left panel — portrait + status fields
+			int bodyH = Height - BodyY - PAD;
+			this.DrawCassettePanel(PAD, BodyY, LEFT_W, bodyH, "CHANNEL");
+
+			Picture portrait = _enemy.Civilization.Leader.GetPortrait(_portraitState);
+			int porW = portrait.Width, porH = portrait.Height;
+			int porX = PAD + PAD + (LEFT_W - 2 * PAD - porW) / 2;
+			int porY = BodyY + fh + 2 * PAD;
+			this.AddLayer(portrait, porX, porY);
+			this.DrawRectangle(porX - 2, porY - 2, porW + 4, porH + 4, CassetteTheme.BORDER);
+
+			string caption = "▤ " + _enemy.Civilization.Leader.Name.ToUpper() + " ▤";
+			int capY = porY + porH + PAD;
+			this.DrawText(caption, FONT_ID, CassetteTheme.PHOS, PAD + LEFT_W / 2, capY, TextAlign.Center);
+
+			int fieldX = PAD + PAD;
+			int fieldW = LEFT_W - PAD * 3;
+			int fieldY = capY + fh + PAD;
+			var agg = _enemy.Civilization.Leader.Aggression;
+			byte attColor = agg == AggressionLevel.Aggressive ? CassetteTheme.ALERT
+			              : agg == AggressionLevel.Friendly   ? CassetteTheme.OK
+			              : CassetteTheme.INK_MID;
+			string attStr = agg == AggressionLevel.Aggressive ? "HOSTILE"
+			              : agg == AggressionLevel.Friendly   ? "CORDIAL" : "NEUTRAL";
+
+			this.DrawCassetteField("ATTITUDE", attStr, fieldX, fieldY, fieldW, FONT_ID, attColor);
+			this.DrawCassetteField("STATUS", atWar ? "AT WAR" : "PEACE",
+			                       fieldX, fieldY + fh + PAD, fieldW, FONT_ID, moodColor);
+			this.DrawCassetteField("GOV", _enemy.Government.Name.ToUpper(),
+			                       fieldX, fieldY + (fh + PAD) * 2, fieldW);
+
+			// Right panel — speech transcript
 			if (_speechLines == null) return;
 
-			int fh = Resources.GetFontHeight(FONT_ID);
-			int panelH = _speechLines.Length * fh + 8;
-			DrawPanel(PANEL_X + OX, PANEL_Y + OY, PANEL_W, panelH);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			this.DrawCassettePanel(RightX, BodyY, RightW, speechPanelH, "TRANSCRIPT");
 			for (int i = 0; i < _speechLines.Length; i++)
-				this.DrawText(_speechLines[i], FONT_ID, 15, PANEL_X + 4 + OX, PANEL_Y + 4 + OY + i * fh);
+				this.DrawText(_speechLines[i], FONT_ID, CassetteTheme.INK_HIGH,
+				              RightX + PAD + 2, BodyY + fh + PAD + i * fh);
+
+			// "TRANSMIT · SELECT ACTION" header above menu items
+			int transmitY = BodyY + speechPanelH + PAD;
+			this.DrawText("TRANSMIT · SELECT ACTION", FONT_ID, CassetteTheme.INK_MID,
+			              RightX + PAD, transmitY);
 		}
 
-		// ── greeting text based on relationship and leader personality ──────────
+		// ── greeting text ────────────────────────────────────────────────────
 
 		private string[] GreetingText()
 		{
@@ -88,7 +140,7 @@ namespace CivOne.Screens
 				: new[] { $"Welcome, {Human.LeaderName}.", "What is your purpose here?" };
 		}
 
-		// ── AI decision helper ──────────────────────────────────────────────────
+		// ── AI helper ────────────────────────────────────────────────────────
 
 		private bool AIAccepts(int basePct)
 		{
@@ -102,7 +154,7 @@ namespace CivOne.Screens
 		private int TributeAmount() =>
 			Math.Max(25, 25 + Common.Random.Next(Math.Max(1, Math.Min(200, (int)_enemy.Gold) / 2)));
 
-		// ── response helper ─────────────────────────────────────────────────────
+		// ── response helper ──────────────────────────────────────────────────
 
 		private void SetResponse(FaceState face, params string[] lines)
 		{
@@ -111,7 +163,7 @@ namespace CivOne.Screens
 			_needsRedraw   = true;
 		}
 
-		// ── peace menu callbacks ────────────────────────────────────────────────
+		// ── peace menu callbacks ─────────────────────────────────────────────
 
 		private void SeekKnowledge(object sender, EventArgs args)
 		{
@@ -160,7 +212,6 @@ namespace CivOne.Screens
 			else
 			{
 				SetResponse(FaceState.Angry, "Tribute?! Never!", "Now leave our presence!");
-				// Aggressive leaders may take this as a declaration of war
 				if (_enemy.Civilization.Leader.Aggression == AggressionLevel.Aggressive
 				    && Common.Random.Next(100) < 50)
 					_enemy.DeclareWar(Human);
@@ -180,7 +231,7 @@ namespace CivOne.Screens
 			Destroy();
 		}
 
-		// ── war menu callbacks ──────────────────────────────────────────────────
+		// ── war menu callbacks ────────────────────────────────────────────────
 
 		private void SeekPeace(object sender, EventArgs args)
 		{
@@ -216,22 +267,25 @@ namespace CivOne.Screens
 			}
 		}
 
-		// ── menu construction ───────────────────────────────────────────────────
+		// ── menu construction ─────────────────────────────────────────────────
 
 		private Menu BuildMenu(bool atWar)
 		{
-			int fh     = Resources.GetFontHeight(FONT_ID);
-			int menuY  = PANEL_Y + OY + _speechLines.Length * fh + 10;
+			int fh = Resources.GetFontHeight(FONT_ID);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			int transmitY    = BodyY + speechPanelH + PAD;
+			int menuY        = transmitY + fh + PAD / 2;
 
 			var menu = new Menu(Palette)
 			{
-				X           = PANEL_X + OX + 2,
-				Y           = menuY,
-				MenuWidth   = PANEL_W - 4,
-				ActiveColour  = 11,
-				TextColour    = 5,
-				DisabledColour = 3,
-				FontId        = FONT_ID
+				X              = RightX,
+				Y              = menuY,
+				MenuWidth      = RightW,
+				ActiveColour   = CassetteTheme.PHOS_FAINT,
+				TextColour     = CassetteTheme.INK_HIGH,
+				DisabledColour = CassetteTheme.INK_LOW,
+				FontId         = FONT_ID,
+				Indent         = PAD
 			};
 
 			if (atWar)
@@ -251,7 +305,7 @@ namespace CivOne.Screens
 			return menu;
 		}
 
-		// ── update loop ─────────────────────────────────────────────────────────
+		// ── update loop ───────────────────────────────────────────────────────
 
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -281,34 +335,20 @@ namespace CivOne.Screens
 			return true;
 		}
 
-		// ── constructor ─────────────────────────────────────────────────────────
+		// ── constructor ───────────────────────────────────────────────────────
 
 		public King(Player player, bool aiInitiated = false)
 		{
-			_enemy = player;
+			_enemy      = player;
 			_aiInitiated = aiInitiated;
 
-			bool modern = player.HasAdvance<Invention>();
-			int govId = 0;
-			if (player.Government is Gov.Monarchy)
-				govId = 1;
-			else if (player.Government is Gov.Republic || player.Government is Gov.Democracy)
-				govId = 2;
-			else if (player.Government is Gov.Communism)
-			{
-				govId = 3;
-				modern = false;
-			}
-
-			_background = Resources[$"BACK{govId}{(modern ? "M" : "A")}"];
-			_background.ColourReplace(0, 5);
-
+			// Start with the portrait's full palette so its pixels render correctly,
+			// then overwrite indices 1-17 with the cassette design tokens.
 			Picture portrait = player.Civilization.Leader.GetPortrait();
-			using (Palette palette = _background.Palette.Copy())
-			{
-				palette.MergePalette(portrait.Palette, 64, 80);
-				Palette = palette;
-			}
+			Palette p = portrait.Palette.Copy();
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
 			_speechLines = GreetingText();
 		}
