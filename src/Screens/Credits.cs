@@ -85,7 +85,7 @@ namespace CivOne.Screens
 
 			if (_done && (_overlay == null || !_overlay.Update(gameTick))) return false;
 
-			if ((gameTick % 3) == 0) return false;
+			if ((gameTick % 3) == 0 && _overlay == null) return false;
 			
 			// Updates
 			if (_introLeft > -320)
