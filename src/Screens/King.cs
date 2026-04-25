@@ -20,7 +20,6 @@ using Gov = CivOne.Governments;
 
 namespace CivOne.Screens
 {
-	[Modal]
 	internal class King : BaseScreen
 	{
 		private int OX => (Width - 320) / 2;
