@@ -8,13 +8,16 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using CivOne.Buildings;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using CivOne.IO;
 using CivOne.Screens.CityManagerPanels;
+using CivOne.Screens.Dialogs;
+using CivOne.Wonders;
 
 namespace CivOne.Screens
 {
@@ -22,214 +25,590 @@ namespace CivOne.Screens
 	internal class CityManager : BaseScreen
 	{
 		private readonly City _city;
-		private readonly CityHeader _cityHeader;
-		private readonly CityResources _cityResources;
-		private readonly CityUnits _cityUnits;
-		private readonly CityMap _cityMap;
-		private readonly CityBuildings _cityBuildings;
-		private readonly CityFoodStorage _cityFoodStorage;
-		private readonly CityInfo _cityInfo;
-		private readonly CityProduction _cityProduction;
-		
 		private readonly bool _viewCity;
-		
+		private readonly CityMap _cityMap;
+
 		private bool _update = true;
-		private bool _redraw = false;
 		private bool _mouseDown = false;
+		private int _buildingsPage = 0;
 
-		private int ExtraWidth => (Width - 320);
-		private int ExtraMap => ExtraWidth >= 80 ? 80 : 0;
-		private int ExtraLeft => (int)Math.Ceiling((ExtraWidth - ExtraMap) / 2.0);
-		private int ExtraRight => (int)Math.Floor((ExtraWidth - ExtraMap) / 2.0);
-		private int MapSize => 82 + ExtraMap;
-		private int LowerPanelY => 23 + MapSize + 1;
+		// ─── layout ──────────────────────────────────────────────────────────────
 
-		private List<IScreen> _subScreens = new List<IScreen>();
+		private const int Margin = 2;
+		private const int ColGap = 2;
 
-		private void CloseScreen()
-		{
-			_cityHeader.Close();
-			Destroy();
-		}
-		
-		private void DrawLayer(IScreen layer, uint gameTick, int x, int y)
-		{
-			if (layer == null) return;
-			if (!layer.Update(gameTick) && !_redraw) return;
-			this.AddLayer(layer, x, y);
-		}
-		
+		private int HeaderH => 22;
+		private int BodyX   => Margin;
+		private int BodyY   => Margin + HeaderH + 2;
+		private int BodyW   => Width  - 2 * Margin;
+		private int BodyH   => Height - BodyY - Margin;
+
+		// Center column width must be (5k+2) so the map tiles fit exactly
+		private int RawCenterW  => Math.Max(82, (BodyW - 2 * ColGap) * 26 / 100);
+		private int ColCenterW  => ((RawCenterW - 2) / 5) * 5 + 2;
+		private int ColLeftW    => Math.Max(88, (BodyW - ColCenterW - 2 * ColGap) * 45 / 100);
+		private int ColRightW   => BodyW - ColLeftW - ColCenterW - 2 * ColGap;
+		private int ColLeftX    => BodyX;
+		private int ColCenterX  => ColLeftX + ColLeftW + ColGap;
+		private int ColRightX   => ColCenterX + ColCenterW + ColGap;
+
+		// Panel heights in the right column
+		private int NowBuildingH => 58;
+		private int BuildingsY   => BodyY + NowBuildingH + ColGap;
+		private int BuildingsH   => BodyH - NowBuildingH - ColGap;
+
+		// Row height for building list entries (font 0)
+		private int BuildingRowH => 9;
+
+		// How many buildings fit on one page
+		private int BuildingPageSize => Math.Max(1, (BuildingsH - 14) / BuildingRowH);
+
+		// All wonders + buildings in display order
+		private IProduction[] Improvements =>
+			_city.Wonders.Cast<IProduction>().Concat(_city.Buildings.Cast<IProduction>()).ToArray();
+
+		// ─── draw ────────────────────────────────────────────────────────────────
+
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_cityHeader.Update(gameTick)) _update = true;
-			if (_cityResources.Update(gameTick)) _update = true;
-			if (_cityUnits.Update(gameTick)) _update = true;
-			if (_cityMap.Update(gameTick)) _update = true;
-			if (_cityBuildings.Update(gameTick)) _update = true;
-			if (_cityFoodStorage.Update(gameTick)) _update = true;
-			if (_cityInfo.Update(gameTick)) _update = true;
-			if (_cityProduction.Update(gameTick)) _update = true;
+			bool mapUpdated = _cityMap.Update(gameTick);
+			if (!_update && !mapUpdated) return false;
 
-			if (_update)
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
+
+			DrawHeader();
+			DrawResources();
+			DrawTradeRoutes();
+			DrawHappiness();
+			DrawMapColumn();
+			DrawNowBuilding(gameTick);
+			DrawBuildingsList();
+
+			_update = false;
+			return true;
+		}
+
+		private void DrawHeader()
+		{
+			int hx = Margin;
+			int hy = Margin;
+			int hw = BodyW;
+			this.DrawCassettePanel(hx, hy, hw, HeaderH);
+
+			int fh0 = Resources.GetFontHeight(0);
+			int fh1 = Resources.GetFontHeight(1);
+
+			// Left: city name + empire/pop subtitle
+			string empire = _city.Player?.Civilization?.NamePlural ?? "UNKNOWN";
+			string pop    = Common.NumberSeperator(_city.Population);
+			this.DrawText(_city.Name.ToUpper(), 1, CassetteTheme.PHOS,       hx + 6, hy + 3);
+			this.DrawText($"{empire} · POP {pop}", 0, CassetteTheme.INK_MID, hx + 6, hy + 3 + fh1 + 2);
+
+			// Right: ESC hint
+			string escLabel = "ESC";
+			int escW = Resources.GetTextSize(0, escLabel).Width + 8;
+			this.DrawText(escLabel, 0, CassetteTheme.INK_MID, hx + hw - escW, hy + (HeaderH - fh0) / 2);
+
+			// Center: citizen icon strip, aligned to center of the header
+			int citizenW  = _city.Size * 8;
+			int citizenX0 = hx + (hw - citizenW) / 2;
+			int citizenY  = hy + (HeaderH - 14) / 2;
+			Citizen[] citizens = _city.Citizens.ToArray();
+			int cxx = citizenX0;
+			int group = -1;
+			for (int i = 0; i < _city.Size; i++)
 			{
-				DrawLayer(_cityHeader, gameTick, 2, 1);
-				DrawLayer(_cityResources, gameTick, 2, 23);
-				DrawLayer(_cityUnits, gameTick, 2, 67);
-				DrawLayer(_cityMap, gameTick, 127 + ExtraLeft, 23);
-				DrawLayer(_cityBuildings, gameTick, 211 + ExtraLeft + ExtraMap, 1);
-				DrawLayer(_cityFoodStorage, gameTick, 2, LowerPanelY);
-				DrawLayer(_cityInfo, gameTick, 95 + ExtraLeft, LowerPanelY);
-				DrawLayer(_cityProduction, gameTick, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
+				if (group != (group = Common.CitizenGroup(citizens[i])) && group > 0 && i > 0)
+				{
+					cxx += 2;
+					if (group == 3) cxx += 4;
+				}
+				this.AddLayer(Icons.Citizen(citizens[i]), cxx, citizenY);
+				cxx += 8;
+			}
+		}
 
-				DrawButton("Rename", 9, 1, 231 + ExtraLeft + ExtraMap, (Height - 10), 42);
-				DrawButton("Exit", 12, 4, (Width - 36), (Height - 10), 33);
+		private void DrawResources()
+		{
+			int px = ColLeftX;
+			int py = BodyY;
+			int pw = ColLeftW;
+			int fh = Resources.GetFontHeight(0);
 
-				_update = false;
+			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 3 fields (each fh+4)
+			int meterH = fh + 6;
+			int fieldH = fh + 4;
+			int ph     = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+			this.DrawCassettePanel(px, py, pw, ph, "RESOURCES");
+
+			int cx = px + 4;
+			int cw = pw - 8;
+			int cy = py + 8;
+
+			// Food meter: storage bar
+			int foodIncome = _city.FoodIncome;
+			string foodLabel = foodIncome >= 0 ? $"+{foodIncome} FOOD" : $"{foodIncome} FOOD";
+			this.DrawCassetteMeter(foodLabel, _city.Food, Math.Max(1, _city.FoodRequired), cx, cy, cw);
+			cy += meterH;
+
+			// Shields meter: production progress
+			int shieldIncome = _city.ShieldIncome;
+			string shldLabel = shieldIncome >= 0 ? $"+{shieldIncome} PROD" : $"{shieldIncome} PROD";
+			int prodCost = (int)_city.CurrentProduction.Price * 10;
+			this.DrawCassetteMeter(shldLabel, _city.Shields, Math.Max(1, prodCost), cx, cy, cw);
+			cy += meterH;
+
+			// Trade meter
+			this.DrawCassetteMeter($"+{_city.TradeTotal} TRADE", _city.TradeTotal, Math.Max(1, _city.TradeTotal + 4), cx, cy, cw);
+			cy += meterH;
+
+			this.DrawCassetteDivider(cx, cy + 1, cw);
+			cy += 4;
+
+			// Growth field
+			int growthTurns = (foodIncome > 0)
+				? (_city.FoodRequired - _city.Food + foodIncome - 1) / foodIncome
+				: 0;
+			string growthVal = (foodIncome > 0) ? $"{growthTurns} TURNS" : "NONE";
+			byte growthColor = (foodIncome > 0) ? CassetteTheme.OK : CassetteTheme.INK_MID;
+			this.DrawCassetteField("GROWTH", growthVal, cx, cy, cw, 0, growthColor);
+			cy += fieldH;
+
+			// Corruption field
+			string corrVal = _city.Corruption > 0 ? $"{_city.Corruption}" : "NONE";
+			byte corrColor = _city.Corruption > 0 ? CassetteTheme.WARN : CassetteTheme.INK_MID;
+			this.DrawCassetteField("CORRUPT", corrVal, cx, cy, cw, 0, corrColor);
+			cy += fieldH;
+
+			// Upkeep field (shield costs)
+			this.DrawCassetteField("UPKEEP", $"{_city.ShieldCosts} SHLD", cx, cy, cw);
+		}
+
+		private void DrawTradeRoutes()
+		{
+			// Position below the resources panel
+			int fh = Resources.GetFontHeight(0);
+			int meterH = fh + 6;
+			int fieldH = fh + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+
+			int px = ColLeftX;
+			int py = BodyY + resourcesPh + ColGap;
+			int pw = ColLeftW;
+			int ph = 8 + fh + 8;   // single line panel
+
+			if (py + ph > BodyY + BodyH) return;
+			this.DrawCassettePanel(px, py, pw, ph, "TRADE");
+
+			int routeCount = _city.TradeRoutes.Count();
+			string routeText = routeCount == 0 ? "NONE" : $"{routeCount}/3";
+			byte routeColor  = routeCount == 0 ? CassetteTheme.INK_LOW : CassetteTheme.OK;
+			this.DrawText(routeText, 0, routeColor, px + 4, py + 8);
+		}
+
+		private void DrawHappiness()
+		{
+			int fh = Resources.GetFontHeight(0);
+			int meterH = fh + 6;
+			int fieldH = fh + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+			int tradePh     = 8 + fh + 8;
+
+			int px = ColLeftX;
+			int py = BodyY + resourcesPh + ColGap + tradePh + ColGap;
+			int pw = ColLeftW;
+			int ph = BodyY + BodyH - py;  // fill remaining space in left column
+
+			if (ph < 14) return;
+			this.DrawCassettePanel(px, py, pw, ph, "MOOD");
+
+			int happy    = _city.HappyCitizens;
+			int content  = _city.ContentCitizens;
+			int unhappy  = _city.UnhappyCitizens;
+
+			int cx = px + 4;
+			int cy = py + 8;
+			int cw = pw - 8;
+
+			this.DrawCassetteField("HAPPY",   $"{happy}",   cx, cy,        cw, 0, CassetteTheme.PHOS);
+			this.DrawCassetteField("CONTENT", $"{content}", cx, cy + fieldH, cw);
+			if (cy + 2 * fieldH < py + ph - fh - 2)
+			{
+				byte alertCol = unhappy > 0 ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
+				this.DrawCassetteField("UNHAPPY", $"{unhappy}", cx, cy + 2 * fieldH, cw, 0, alertCol);
+			}
+
+			if (!_city.IsInDisorder)
+			{
+				this.DrawText("STABLE", 0, CassetteTheme.OK,
+					cx + cw, py + ph - fh - 4, TextAlign.Right);
+			}
+			else
+			{
+				this.DrawText("DISORDER", 0, CassetteTheme.ALERT,
+					cx + cw, py + ph - fh - 4, TextAlign.Right);
+			}
+		}
+
+		private void DrawMapColumn()
+		{
+			int fh0 = Resources.GetFontHeight(0);
+
+			// Panel wrapping the map
+			int px = ColCenterX;
+			int py = BodyY;
+			int pw = ColCenterW;
+			int mapPanelH = ColCenterW + 8;  // square map + label gap above
+			this.DrawCassettePanel(px, py, pw, mapPanelH, "TILES");
+
+			// Map at (px+1, py+7)
+			this.AddLayer(_cityMap, px + 1, py + 7);
+
+			// Rate bar below map panel
+			int rateY = py + mapPanelH + ColGap;
+			int rateH = BodyY + BodyH - rateY;
+			if (rateH < 14) return;
+			this.DrawCassettePanel(px, rateY, pw, rateH, "RATES");
+
+			// Tax / Lux / Sci as colored segments
+			int taxRate = _city.Player?.TaxesRate   ?? 0;
+			int luxRate = _city.Player?.LuxuriesRate ?? 0;
+			int sciRate = 10 - taxRate - luxRate;
+
+			int barX = px + 4;
+			int barW = pw - 8;
+			int barY = rateY + 8;
+			int barH = Math.Min(6, rateH - 12);
+			if (barH < 2) return;
+
+			int taxW = barW * taxRate / 10;
+			int luxW = barW * luxRate / 10;
+			int sciW = barW - taxW - luxW;
+
+			if (taxW > 0) this.FillRectangle(barX,          barY, taxW, barH, CassetteTheme.PHOS_DIM);
+			if (luxW > 0) this.FillRectangle(barX + taxW,   barY, luxW, barH, CassetteTheme.CYAN);
+			if (sciW > 0) this.FillRectangle(barX + taxW + luxW, barY, sciW, barH, CassetteTheme.OK);
+
+			// Labels below bar
+			int labelY = barY + barH + 2;
+			if (labelY + fh0 < rateY + rateH)
+			{
+				this.DrawText($"T{taxRate * 10}%", 0, CassetteTheme.PHOS_DIM, barX, labelY);
+				this.DrawText($"L{luxRate * 10}%", 0, CassetteTheme.CYAN,     barX + pw / 2, labelY, TextAlign.Center);
+				this.DrawText($"S{sciRate * 10}%", 0, CassetteTheme.OK,       barX + barW, labelY, TextAlign.Right);
+			}
+		}
+
+		private void DrawNowBuilding(uint gameTick)
+		{
+			int px = ColRightX;
+			int py = BodyY;
+			int pw = ColRightW;
+			int ph = NowBuildingH;
+
+			bool blink = ProductionInvalid && (gameTick % 4 > 1);
+			this.DrawCassettePanel(px, py, pw, ph, "BUILDING");
+
+			int fh0 = Resources.GetFontHeight(0);
+			int fh1 = Resources.GetFontHeight(1);
+
+			// Production name
+			string prodName = (_city.CurrentProduction as ICivilopedia)?.Name.ToUpper() ?? "???";
+			byte nameColor  = blink ? CassetteTheme.WARN : CassetteTheme.PHOS;
+			this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
+
+			// Progress meter
+			int prodCost    = (int)_city.CurrentProduction.Price * 10;
+			int meterH      = fh0 + 6;
+			this.DrawCassetteMeter($"{_city.Shields}/{prodCost} SHLD", _city.Shields, Math.Max(1, prodCost),
+				px + 4, py + 7 + fh1 + 2, pw - 8);
+
+			// Change / Buy buttons
+			if (!_viewCity)
+			{
+				int btnY  = py + ph - 14;
+				int btnW  = (pw - 10) / 2;
+				byte chgColor = blink ? CassetteTheme.WARN : CassetteTheme.PHOS_DIM;
+				DrawButton("CHANGE", 0, chgColor, CassetteTheme.BG3, px + 2, btnY, btnW, 11);
+				DrawButton("BUY",    0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3, px + 4 + btnW, btnY, btnW, 11);
+			}
+		}
+
+		private void DrawBuildingsList()
+		{
+			int px = ColRightX;
+			int py = BuildingsY;
+			int pw = ColRightW;
+			int ph = BuildingsH;
+			if (ph < 16) return;
+
+			IProduction[] items = Improvements;
+			int pageSize = BuildingPageSize;
+			int pageStart = _buildingsPage * pageSize;
+
+			this.DrawCassettePanel(px, py, pw, ph, "BUILDINGS");
+
+			int fh = Resources.GetFontHeight(0);
+			int cy = py + 8;
+			bool hasSold = _city.BuildingSold;
+
+			for (int i = pageStart; i < items.Length && i < pageStart + pageSize; i++)
+			{
+				if (cy + BuildingRowH > py + ph - 2) break;
+
+				IProduction item = items[i];
+				bool isWonder = item is IWonder;
+				byte nameCol  = isWonder ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
+
+				string name = ((item as ICivilopedia)?.Name ?? "?").ToUpper();
+				while (Resources.GetTextSize(0, name).Width > pw - (isWonder ? 8 : 22))
+					name = name.Substring(0, name.Length - 1);
+
+				this.DrawText(name, 0, nameCol, px + 4, cy);
+
+				if (!isWonder && !hasSold)
+				{
+					this.DrawText("SL", 0, CassetteTheme.INK_LOW, px + pw - 18, cy);
+				}
+				cy += BuildingRowH;
+			}
+
+			// "MORE" button if more than one page
+			if (items.Length > pageSize)
+			{
+				int moreBtnY = py + ph - 13;
+				DrawButton("MORE", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3, px + pw - 36, moreBtnY, 34, 11);
+			}
+		}
+
+		// ─── helpers ──────────────────────────────────────────────────────────────
+
+		private bool ProductionInvalid
+		{
+			get
+			{
+				if (_city.CurrentProduction is IBuilding b) return _city.HasBuilding(b);
+				if (_city.CurrentProduction is IWonder   w) return Game.WonderBuilt(w);
+				return false;
+			}
+		}
+
+		private void ForceUpdate(object sender, EventArgs args) => _update = true;
+
+		private void AcceptBuy(object sender, EventArgs args)
+		{
+			_city.Buy();
+			_update = true;
+		}
+
+		private void SellBuilding(object sender, EventArgs args)
+		{
+			_city.SellBuilding((sender as ConfirmSell).Building);
+			_buildingsPage = 0;
+			_update = true;
+		}
+
+		private bool OpenChange()
+		{
+			var menu = new CityChooseProduction(_city);
+			menu.Closed += ForceUpdate;
+			Common.AddScreen(menu);
+			return true;
+		}
+
+		private bool OpenBuy()
+		{
+			string name   = (_city.CurrentProduction as ICivilopedia)?.Name ?? "???";
+			short gold    = Game.CurrentPlayer.Gold;
+			short price   = _city.BuyPrice;
+			if (gold < price)
+			{
+				Common.AddScreen(new MessageBox("Cost to complete", $"{name}: ${price}", $"Treasury: ${gold}"));
 				return true;
 			}
-			return false;
+			var confirm = new ConfirmBuy(name, price, gold);
+			confirm.Buy += AcceptBuy;
+			Common.AddScreen(confirm);
+			return true;
 		}
 
-		private void CityRename(object sender, EventArgs args)
+		private bool OpenRename()
 		{
-			if (!(sender is CityName)) return;
-
-			Game.CityNames[_city.NameId] = (sender as CityName).Value;
-			_cityHeader.Update();
+			var nameDialog = new CityName(_city.NameId, _city.Name);
+			nameDialog.Accept += (s, _) =>
+			{
+				Game.CityNames[_city.NameId] = (s as CityName).Value;
+				_update = true;
+			};
+			Common.AddScreen(nameDialog);
+			return true;
 		}
-		
+
+		private void CloseScreen() => Destroy();
+
+		// ─── hit testing ─────────────────────────────────────────────────────────
+
+		private Rectangle MapRect       => new Rectangle(ColCenterX + 1, BodyY + 7, ColCenterW, ColCenterW);
+		private Rectangle HeaderRect    => new Rectangle(Margin, Margin, BodyW, HeaderH);
+		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
+		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
+		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
+
+		// Citizen x positions recomputed for header click tests
+		private int CitizenHeaderX0 => Margin + (BodyW - _city.Size * 8) / 2;
+		private int CitizenHeaderY  => Margin + (HeaderH - 14) / 2;
+
+		// ─── events ──────────────────────────────────────────────────────────────
+
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			foreach (IScreen screen in _subScreens)
+			switch (args.KeyChar)
 			{
-				if (!screen.KeyDown(args)) continue;
-				return true;
+				case 'B': if (!_viewCity) return OpenBuy();    break;
+				case 'C': if (!_viewCity) return OpenChange(); break;
+				case 'R': if (!_viewCity) return OpenRename(); break;
 			}
 			CloseScreen();
 			return true;
 		}
-		
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			_mouseDown = true;
-			
+
+			// Citizen click in header: change specialist
+			if (!_viewCity && HeaderRect.Contains(args.Location))
+			{
+				int y = args.Y;
+				if (y >= CitizenHeaderY && y < CitizenHeaderY + 14)
+				{
+					Citizen[] citizens = _city.Citizens.ToArray();
+					int cxx = CitizenHeaderX0;
+					int group = -1;
+					int specIndex = -1;
+					for (int i = 0; i < _city.Size; i++)
+					{
+						if (group != (group = Common.CitizenGroup(citizens[i])) && group > 0 && i > 0)
+						{
+							cxx += 2;
+							if (group == 3) cxx += 4;
+						}
+						if ((int)citizens[i] >= 6) specIndex++;
+						if (args.X >= cxx && args.X < cxx + 8 && specIndex >= 0)
+						{
+							_city.ChangeSpecialist(specIndex);
+							_update = true;
+							return true;
+						}
+						cxx += 8;
+					}
+				}
+				return false;
+			}
+
+			// Map click: handled on MouseUp via sub-panel delegation
+			if (MapRect.Contains(args.Location)) return true;
+
+			// Change / Buy buttons
 			if (!_viewCity)
 			{
-				if (new Rectangle(231 + ExtraLeft + ExtraMap, (Height - 10), 42, 10).Contains(args.Location))
-				{
-					// Rename button
-					CityName name = new CityName(_city.NameId, _city.Name);
-					name.Accept += CityRename;
-					Common.AddScreen(name);
-					return true;
-				}
-				if (new Rectangle(2, 1, _cityHeader.Width(), _cityHeader.Height()).Contains(args.Location))
-				{
-					MouseArgsOffset(ref args, 2, 1);
-					return _cityHeader.MouseDown(args);
-				}
-				if (new Rectangle(127 + ExtraLeft, 23, MapSize, MapSize).Contains(args.Location))
-				{
-					MouseArgsOffset(ref args, 127 + ExtraLeft, 23);
-					return _cityMap.MouseDown(args);
-				}
-				if (new Rectangle(95 + ExtraLeft, LowerPanelY, 133, 92).Contains(args.Location))
-				{
-					MouseArgsOffset(ref args, 95 + ExtraLeft, LowerPanelY);
-					return _cityInfo.MouseDown(args);
-				}
-				if (new Rectangle(211 + ExtraLeft + ExtraMap, 1, 107 + ExtraRight, 97).Contains(args.Location))
-				{
-					MouseArgsOffset(ref args, 211 + ExtraLeft + ExtraMap, 1);
-					if (_cityBuildings.MouseDown(args))
-						return true;
-				}
-				if (new Rectangle(230 + ExtraLeft + ExtraMap, LowerPanelY - 7, 88, 99).Contains(args.Location))
-				{
-					MouseArgsOffset(ref args, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
-					if (_cityProduction.MouseDown(args))
-						return true;
-				}
+				if (ChangeRect.Contains(args.Location)) return true;
+				if (BuyRect.Contains(args.Location))    return true;
 			}
+
+			// Buildings list: sell button
+			if (!_viewCity && !_city.BuildingSold && BuildingsRect.Contains(args.Location))
+			{
+				int pageStart = _buildingsPage * BuildingPageSize;
+				IProduction[] items = Improvements;
+				int cy = BuildingsY + 8;
+				for (int i = pageStart; i < items.Length && i < pageStart + BuildingPageSize; i++)
+				{
+					if (cy + BuildingRowH > BuildingsY + BuildingsH - 2) break;
+					if (items[i] is IBuilding bldg)
+					{
+						// Sell button is at ColRightX + ColRightW - 18 to end, same row
+						var sellRect = new Rectangle(ColRightX + ColRightW - 20, cy - 1, 18, BuildingRowH);
+						if (sellRect.Contains(args.Location))
+						{
+							var confirm = new ConfirmSell(bldg);
+							confirm.Sell += SellBuilding;
+							Common.AddScreen(confirm);
+							return true;
+						}
+					}
+					cy += BuildingRowH;
+				}
+
+				// "MORE" button
+				if (items.Length > BuildingPageSize)
+				{
+					int moreBtnY = BuildingsY + BuildingsH - 13;
+					var moreRect = new Rectangle(ColRightX + ColRightW - 36, moreBtnY, 34, 11);
+					if (moreRect.Contains(args.Location))
+					{
+						_buildingsPage = ((_buildingsPage + 1) * BuildingPageSize >= items.Length) ? 0 : _buildingsPage + 1;
+						_update = true;
+						return true;
+					}
+				}
+				return false;
+			}
+
 			CloseScreen();
 			return true;
 		}
-		
+
 		public override bool MouseUp(ScreenEventArgs args)
 		{
-			if (!_mouseDown) return true;
+			if (!_mouseDown) return false;
 
-			if (new Rectangle(230 + ExtraLeft + ExtraMap, LowerPanelY - 7, 88, 99).Contains(args.Location))
+			// Map tile click
+			if (MapRect.Contains(args.Location))
 			{
-				MouseArgsOffset(ref args, 230 + ExtraLeft + ExtraMap, LowerPanelY - 7);
-				return _cityProduction.MouseUp(args);
+				ScreenEventArgs local = new ScreenEventArgs(args.X - (ColCenterX + 1), args.Y - (BodyY + 7), args.Buttons);
+				_cityMap.MouseDown(local);
+				_update = true;
+				return true;
+			}
+
+			if (!_viewCity)
+			{
+				if (ChangeRect.Contains(args.Location)) return OpenChange();
+				if (BuyRect.Contains(args.Location))    return OpenBuy();
 			}
 			return false;
 		}
 
-		private void BuildingUpdate(object sender, EventArgs args)
-		{
-			_cityFoodStorage.Update();
-			_cityHeader.Update();
-			_cityMap.Update();
-			_cityProduction.Update();
-		}
-
-		private void HeaderUpdate(object sender, EventArgs args)
-		{
-			_cityResources.Update();
-		}
-
-		private void MapUpdate(object sender, EventArgs args)
-		{
-			_cityHeader.Update();
-			_cityResources.Update();
-		}
+		// ─── resize ──────────────────────────────────────────────────────────────
 
 		private void Resize(object sender, ResizeEventArgs args)
 		{
-			this.Clear(5);
-
+			_cityMap.Resize(ColCenterW);
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
 			_update = true;
-
-			_cityHeader.Resize(207 + ExtraLeft + ExtraMap);
-			_cityResources.Resize(123 + ExtraLeft);
-			_cityUnits.Resize(123 + ExtraLeft);
-			_cityFoodStorage.Resize(91 + ExtraLeft);
-			_cityBuildings.Resize(108 + ExtraRight);
-			_cityMap.Resize(MapSize);
 		}
+
+		// ─── lifecycle ───────────────────────────────────────────────────────────
 
 		public CityManager(City city, bool viewCity = false) : base(MouseCursor.Pointer)
 		{
 			_viewCity = viewCity;
+			_city     = city;
+			_cityMap  = new CityMap(_city);
+
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
+
+			_cityMap.Resize(ColCenterW);
 			OnResize += Resize;
-			
-			_city = city;
-
-			Palette = Common.DefaultPalette;
-			this.Clear(5);
-			
-			_subScreens.Add(_cityHeader = new CityHeader(_city));
-			_subScreens.Add(_cityResources = new CityResources(_city));
-			_subScreens.Add(_cityUnits = new CityUnits(_city));
-			_subScreens.Add(_cityMap = new CityMap(_city));
-			_subScreens.Add(_cityBuildings = new CityBuildings(_city));
-			_subScreens.Add(_cityFoodStorage = new CityFoodStorage(_city));
-			_subScreens.Add(_cityInfo = new CityInfo(_city));
-			_subScreens.Add(_cityProduction = new CityProduction(_city, viewCity));
-
-			_cityBuildings.BuildingUpdate += BuildingUpdate;
-			_cityHeader.HeaderUpdate += HeaderUpdate;
-			_cityMap.MapUpdate += MapUpdate;
-
-			if (Width != 320 || Height != 200) Resize(null, new ResizeEventArgs(Width, Height));
 		}
 
 		public override void Dispose()
 		{
-			_subScreens.ForEach(x => x.Dispose());
-			_subScreens.Clear();
+			_cityMap.Dispose();
 			base.Dispose();
 		}
 	}
