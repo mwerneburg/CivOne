@@ -829,16 +829,20 @@ namespace CivOne.Units
 
 		public IEnumerable<ITile> MoveTargets => Map[X, Y].GetBorderTiles().Where(t => ValidMoveTarget(t));
 
-		protected void Explore(int range, bool sea = false)
+		protected void Explore(int range, bool sea = false, bool noCorners = false)
 		{
 			if (Game == null) return;
 			Player player = Game.GetPlayer(Owner);
 			if (player == null) return;
-			player.Explore(X, Y, range, sea);
+			player.Explore(X, Y, range, sea, noCorners);
 			if (player.IsHuman) Common.GamePlay?.RefreshMap();
 		}
 
-		public virtual void Explore() => Explore(Map[X, Y].Type == Terrain.Mountains ? 2 : 1);
+		public virtual void Explore()
+		{
+			bool onMountain = Map[X, Y].Type == Terrain.Mountains;
+			Explore(onMountain ? 2 : 1, noCorners: onMountain);
+		}
 
 		internal static IBitmap GetBaseSprite(UnitType type)
 		{

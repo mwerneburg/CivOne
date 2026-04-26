@@ -125,6 +125,7 @@ namespace CivOne
 		public int ContentCitizens => Citizens.Count(c => c == Citizen.ContentFemale || c == Citizen.ContentMale);
  		public bool IsInDisorder => _size > 0 && UnhappyCitizens > HappyCitizens;
 		public bool WasInDisorder {get; set;} = false;
+		public bool WasWeLoveKing {get; set;} = false;
 
 		internal int ShieldCosts
 		{
@@ -831,32 +832,35 @@ namespace CivOne
 			}
  			if (UnhappyCitizens == 0 && HappyCitizens >= ContentCitizens && Size >= 3)
 			{
-				// we love the president day
-				if (Player.Government is Governments.Democracy || Player.Government is Republic)
+				if (!WasWeLoveKing)
 				{
-					if (Food > 0)
+					WasWeLoveKing = true;
+					// First-time benefit: growth or caravan (only with positive food income)
+					if (Player.Government is Governments.Democracy || Player.Government is Republic)
 					{
-						bool blocked = (Size >= 8 && !HasBuilding<Aqueduct>());
-						if (!blocked)
+						if (FoodIncome > 0)
 						{
-							Size++;
-						}
-						else
-						{
-							// Can't grow without aqueduct — gift a Caravan instead
-							Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
-							if (Human == Owner)
-								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-									$"{Name} celebration: free Caravan!",
-									"No room to grow without an Aqueduct."));
+							bool blocked = (Size >= 8 && !HasBuilding<Aqueduct>());
+							if (!blocked)
+							{
+								Size++;
+							}
+							else
+							{
+								Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
+								if (Human == Owner)
+									GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+										$"{Name} celebration: free Caravan!",
+										"No room to grow without an Aqueduct."));
+							}
 						}
 					}
+					GameTask.Insert(Show.WeLovePresidentDayCity(this));
 				}
-				else
-				{
-					// we love the king day
-				}
-				GameTask.Insert(Show.WeLovePresidentDayCity(this));
+			}
+			else
+			{
+				WasWeLoveKing = false;
 			}
  			Food += IsInDisorder ? 0 : FoodIncome;
 

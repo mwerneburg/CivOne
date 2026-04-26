@@ -82,19 +82,24 @@ namespace CivOne.Graphics
 			}
 		}
 
-		// Draw a single citizen token: a 6×12 filled rect (+ 1px BORDER frame) centered
-		// in an 8×16 slot. Uses only Cassette palette indices so all citizen types look
+		// Draw a single citizen token in a slotW×slotH slot (default 8×16).
+		// Scales the filled rect proportionally within the slot.
+		// Uses only Cassette palette indices so all citizen types look
 		// consistent regardless of where the original SP257 sprite pixels landed.
-		public static IBitmap DrawCitizenToken(this IBitmap bitmap, Citizen citizen, int x, int y)
+		public static IBitmap DrawCitizenToken(this IBitmap bitmap, Citizen citizen, int x, int y,
+			int slotW = 8, int slotH = 16)
 		{
-			byte fill = CitizenTokenColor(citizen);
-			// 6×12 token, offset (1,2) within the 8×16 slot
-			bitmap.FillRectangle(x + 1, y + 2, 6, 12, fill);
-			// thin dark frame
-			bitmap.FillRectangle(x + 1, y + 2,     6, 1, CassetteTheme.BG0);
-			bitmap.FillRectangle(x + 1, y + 2 + 11, 6, 1, CassetteTheme.BG0);
-			bitmap.FillRectangle(x + 1, y + 2,     1, 12, CassetteTheme.BG0);
-			bitmap.FillRectangle(x + 6, y + 2,     1, 12, CassetteTheme.BG0);
+			byte fill  = CitizenTokenColor(citizen);
+			int tokenW = slotW - 2;   // 1px margin each side
+			int tokenH = slotH - 4;   // 2px margin top + bottom
+			int tx     = x + 1;
+			int ty     = y + 2;
+			bitmap.FillRectangle(tx, ty, tokenW, tokenH, fill);
+			// thin dark frame (overwrites outer pixels of the fill)
+			bitmap.FillRectangle(tx,            ty,                tokenW, 1, CassetteTheme.BG0);
+			bitmap.FillRectangle(tx,            ty + tokenH - 1,  tokenW, 1, CassetteTheme.BG0);
+			bitmap.FillRectangle(tx,            ty,            1, tokenH,    CassetteTheme.BG0);
+			bitmap.FillRectangle(tx + tokenW - 1, ty,          1, tokenH,    CassetteTheme.BG0);
 			return bitmap;
 		}
 

@@ -87,12 +87,6 @@ namespace CivOne.Screens
 			Destroy();
 		}
 
-		private void MenuBuildPalace(object sender, EventArgs args)
-		{
-			GameTask.Enqueue(Show.BuildPalace());
-			Destroy();
-		}
-
 		private void MenuShowPowerGraph(object sender, EventArgs args)
 		{
 			GameTask.Enqueue(Show.Screen<PowerGraph>());
@@ -139,7 +133,6 @@ namespace CivOne.Screens
 				menu.Items.Add("Spawn Unit").OnSelect(MenuSpawnUnit);
 				menu.Items.Add("Meet With King").OnSelect(MenuMeetWithKing);
 				menu.Items.Add("Toggle Reveal World").OnSelect(MenuRevealWorld);
-				menu.Items.Add("Build Palace").OnSelect(MenuBuildPalace);
 				menu.Items.Add("Show PowerGraph").OnSelect(MenuShowPowerGraph);
 
 				this.FillRectangle(24, 16, 105, menu.RowHeight * (menu.Items.Count + 1), 5);

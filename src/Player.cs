@@ -440,12 +440,13 @@ namespace CivOne
 			return false;
 		}
 
-		public void Explore(int x, int y, int range = 1, bool sea = false)
+		public void Explore(int x, int y, int range = 1, bool sea = false, bool noCorners = false)
 		{
 			_explored[x, y] = true;
 			for (int relX = -range; relX <= range; relX++)
 			for (int relY = -range; relY <= range; relY++)
 			{
+				if (noCorners && Math.Abs(relX) == range && Math.Abs(relY) == range) continue;
 				int xx = x + relX;
 				int yy = y + relY;
 				if (yy < 0 || yy >= Map.HEIGHT) continue;
@@ -454,7 +455,7 @@ namespace CivOne
 				if (sea && !Map[xx, yy].IsOcean && (Math.Abs(relX) > 1 || Math.Abs(relY) > 1))
 					continue;
 				_visible[xx, yy] = true;
-			} 
+			}
 		}
 
 		public bool Visible(int x, int y)

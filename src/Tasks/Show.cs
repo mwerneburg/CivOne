@@ -109,8 +109,6 @@ namespace CivOne.Tasks
 
 		public static Show WeLovePresidentDayCity(City city) => new Show(new WeLovePresidentDayScreen(city));
 
-		public static Show BuildPalace() => new Show(new PalaceView(true));
-
 		public static Show CaravanChoice(Caravan unit, City city) => new Show(new CaravanChoice(unit, city));
 
 		public static Show DiplomatBribe(BaseUnitLand unitToBribe, Diplomat diplomat) => new Show(new DiplomatBribe(unitToBribe, diplomat));

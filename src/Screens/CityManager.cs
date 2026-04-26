@@ -38,7 +38,8 @@ namespace CivOne.Screens
 		private const int Margin = 2;
 		private const int ColGap = 2;
 
-		private int HeaderH => 22;
+		private int HeaderH    => 35;
+		private int CitizenSlotH => 26;
 		private int BodyX   => Margin;
 		private int BodyY   => Margin + HeaderH + 2;
 		private int BodyW   => Width  - 2 * Margin;
@@ -130,7 +131,7 @@ namespace CivOne.Screens
 			// Center: citizen icon strip, aligned to center of the header
 			int citizenW  = _city.Size * 8;
 			int citizenX0 = hx + (hw - citizenW) / 2;
-			int citizenY  = hy + (HeaderH - 14) / 2;
+			int citizenY  = hy + (HeaderH - CitizenSlotH) / 2;
 			Citizen[] citizens = _city.Citizens.ToArray();
 			int cxx = citizenX0;
 			int group = -1;
@@ -141,7 +142,7 @@ namespace CivOne.Screens
 					cxx += 2;
 					if (group == 3) cxx += 4;
 				}
-				this.DrawCitizenToken(citizens[i], cxx, citizenY);
+				this.DrawCitizenToken(citizens[i], cxx, citizenY, 8, CitizenSlotH);
 				cxx += 8;
 			}
 		}
@@ -519,7 +520,7 @@ namespace CivOne.Screens
 
 		// Citizen x positions recomputed for header click tests
 		private int CitizenHeaderX0 => Margin + (BodyW - _city.Size * 8) / 2;
-		private int CitizenHeaderY  => Margin + (HeaderH - 14) / 2;
+		private int CitizenHeaderY  => Margin + (HeaderH - CitizenSlotH) / 2;
 
 		// ─── events ──────────────────────────────────────────────────────────────
 
@@ -550,7 +551,7 @@ namespace CivOne.Screens
 			// Citizen click in header
 			if (!_viewCity && HeaderRect.Contains(args.Location))
 			{
-				if (args.Y >= CitizenHeaderY && args.Y < CitizenHeaderY + 14)
+				if (args.Y >= CitizenHeaderY && args.Y < CitizenHeaderY + CitizenSlotH)
 				{
 					Citizen[] citizens = _city.Citizens.ToArray();
 					int cxx = CitizenHeaderX0;

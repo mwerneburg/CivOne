@@ -8,45 +8,77 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
 
 namespace CivOne.Screens.Dialogs
 {
-	internal class ConfirmQuit : BaseDialog
+	[OwnPalette]
+	internal class ConfirmQuit : BaseScreen
 	{
-		private void MenuQuit(object sender, EventArgs args)
+		private bool _update = true;
+
+		protected override bool HasUpdate(uint gameTick)
 		{
-			Runtime.Quit();
-			Cancel();
+			if (!_update) return false;
+			_update = false;
+
+			const int pw = 200, ph = 68;
+			const int px = (320 - pw) / 2;
+			const int py = (200 - ph) / 2;
+
+			this.FillRectangle(px, py, pw, ph, CassetteTheme.BG1);
+			this.FillRectangle(px,          py,          pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py + ph - 1, pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py,          1, ph, CassetteTheme.BORDER);
+			this.FillRectangle(px + pw - 1, py,          1, ph, CassetteTheme.BORDER);
+
+			// Title band
+			this.FillRectangle(px + 1, py + 1, pw - 2, 14, CassetteTheme.BG3);
+			this.FillRectangle(px + 1, py + 14, pw - 2, 1, CassetteTheme.BORDER);
+			this.DrawText("QUIT GAME", 0, CassetteTheme.WARN, px + pw / 2, py + 4, TextAlign.Center);
+
+			int fh = Resources.GetFontHeight(0);
+			this.DrawText("Are you sure you want to quit?", 0, CassetteTheme.INK_HIGH,
+				px + pw / 2, py + 22, TextAlign.Center);
+
+			this.DrawText("Y - YES, QUIT", 0, CassetteTheme.ALERT,
+				px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Center);
+			this.DrawText("ESC / N - KEEP PLAYING", 0, CassetteTheme.INK_MID,
+				px + pw / 2, py + ph - fh - 6, TextAlign.Center);
+
+			return true;
 		}
 
-		protected override void FirstUpdate()
+		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			Menu menu = new Menu(Palette, Selection(3, 20, 100, 16))
+			if (args.Key == Key.Escape || Char.ToUpper(args.KeyChar) == 'N')
 			{
-				X = 103,
-				Y = 100,
-				MenuWidth = 100,
-				ActiveColour = 11,
-				TextColour = 5,
-				FontId = 0
-			};
-			foreach (string choice in new [] { "Keep Playing", "Yes, Quit" })
-			{
-				menu.Items.Add(choice);
+				Destroy();
+				return true;
 			}
-			menu.Items[0].Selected += Cancel;
-			menu.Items[1].Selected += MenuQuit;
-
-			menu.MissClick += Cancel;
-			menu.Cancel += Cancel;
-			AddMenu(menu);
+			if (Char.ToUpper(args.KeyChar) == 'Y')
+			{
+				Runtime.Quit();
+				Destroy();
+				return true;
+			}
+			return false;
 		}
 
-		public ConfirmQuit() : base(100, 80, 104, 39)
+		public override bool MouseDown(ScreenEventArgs args)
 		{
-			DialogBox.DrawText("Are you sure you", 0, 15, 5, 5);
-			DialogBox.DrawText("want to Quit?", 0, 15, 5, 13);
+			Destroy();
+			return true;
+		}
+
+		public ConfirmQuit() : base(MouseCursor.Pointer)
+		{
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }

@@ -101,6 +101,10 @@ namespace CivOne.Screens.GamePlayPanels
 				.DrawRectangle3D()
 				.FillRectangle(3, 2, 74, 11, 11)
 				.FillRectangle(3, 13, 74, 1, 2);
+
+			string govName = Human.Government?.Name ?? "";
+			_demographics.DrawText(govName.ToUpper(), 0, 5, 39, 4, TextAlign.Center);
+
 			if (Human.Population > 0)
 			{
 				string population = Common.NumberSeperator(Human.Population);
