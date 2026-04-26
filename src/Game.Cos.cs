@@ -45,11 +45,6 @@ namespace CivOne
 			for (int ci = 0; ci < _cities.Count; ci++)
 			{
 				var city = _cities[ci];
-				var fortified = city.Tile?.Units
-					.Where(u => u.Home == city && u.Fortify)
-					.Take(2)
-					.Select(u => (int)u.Type)
-					.ToArray() ?? Array.Empty<int>();
 
 				var tradeRoutes = city.TradeRoutes
 					.Select(r => new CosTradeRoute { PartnerX = r.Partner.X, PartnerY = r.Partner.Y, Commodity = r.Commodity })
@@ -75,38 +70,50 @@ namespace CivOne
 					Buildings      = city.Buildings.Select(b => (int)b.Id).ToArray(),
 					Wonders        = wonders,
 					ResourceTiles  = city.GetResourceTiles().Select(b => (int)b).ToArray(),
-					FortifiedUnits = fortified,
-					TradeRoutes    = tradeRoutes
+					TradeRoutes    = tradeRoutes,
+					WasInDisorder  = city.WasInDisorder ? (bool?)true : null
 				});
 			}
 
 			// City set used to identify home cities for units
 			var cityByRef = _cities.Select((c, i) => (city: c, idx: i)).ToDictionary(t => t.city, t => t.idx);
 
-			// Units (excluding fortified units already stored in cities)
-			var fortifiedSet = new HashSet<IUnit>(
-				_cities.SelectMany(c => c.Tile?.Units
-					.Where(u => u.Home == c && u.Fortify)
-					.Take(2) ?? Enumerable.Empty<IUnit>()));
-
 			var units = new List<CosUnit>();
-			foreach (var unit in _units.Where(u => !fortifiedSet.Contains(u)))
+			foreach (var unit in _units)
 			{
 				int? gx = unit.Goto.IsEmpty ? (int?)null : unit.Goto.X;
 				int? gy = unit.Goto.IsEmpty ? (int?)null : unit.Goto.Y;
 				int homeCityId = unit.Home != null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
+
+				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
+				if (unit is Settlers settlers)
+				{
+					if (settlers.BuildingRoad > 0)       buildRoad = settlers.BuildingRoad;
+					if (settlers.BuildingIrrigation > 0) buildIrr  = settlers.BuildingIrrigation;
+					if (settlers.BuildingMine > 0)       buildMine = settlers.BuildingMine;
+					if (settlers.BuildingFortress > 0)   buildFort = settlers.BuildingFortress;
+				}
+				int? fuelLeft = null;
+				if (unit is BaseUnitAir airUnit && airUnit.FuelLeft < airUnit.TotalFuel)
+					fuelLeft = airUnit.FuelLeft;
+
 				units.Add(new CosUnit
 				{
-					TypeId    = (int)unit.Type,
-					X         = unit.X,
-					Y         = unit.Y,
-					Status    = unit.Status,
-					MovesLeft = unit.MovesLeft,
-					PartMoves = unit.PartMoves,
-					Owner     = unit.Owner,
-					GotoX     = gx,
-					GotoY     = gy,
-					HomeCityId = homeCityId
+					TypeId             = (int)unit.Type,
+					X                  = unit.X,
+					Y                  = unit.Y,
+					Status             = unit.Status,
+					MovesLeft          = unit.MovesLeft,
+					PartMoves          = unit.PartMoves,
+					Owner              = unit.Owner,
+					GotoX              = gx,
+					GotoY              = gy,
+					HomeCityId         = homeCityId,
+					BuildingRoad       = buildRoad,
+					BuildingIrrigation = buildIrr,
+					BuildingMine       = buildMine,
+					BuildingFortress   = buildFort,
+					FuelLeft           = fuelLeft
 				});
 			}
 
@@ -333,6 +340,7 @@ namespace CivOne
 					_units.Add(unit);
 				}
 
+				city.WasInDisorder = cd.WasInDisorder ?? false;
 				cityById[cd.Id] = city;
 				_cities.Add(city);
 			}
@@ -361,6 +369,10 @@ namespace CivOne
 				if (ud.GotoX.HasValue) unit.Goto = new Point(ud.GotoX.Value, ud.GotoY ?? 0);
 				if (ud.HomeCityId >= 0 && cityById.TryGetValue(ud.HomeCityId, out var homeCity))
 					unit.SetHome(homeCity);
+				if (unit is Settlers s && (ud.BuildingRoad > 0 || ud.BuildingIrrigation > 0 || ud.BuildingMine > 0 || ud.BuildingFortress > 0))
+					s.SetBuildProgress(ud.BuildingRoad ?? 0, ud.BuildingIrrigation ?? 0, ud.BuildingMine ?? 0, ud.BuildingFortress ?? 0);
+				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)
+					airU.FuelLeft = ud.FuelLeft.Value;
 				_units.Add(unit);
 			}
 

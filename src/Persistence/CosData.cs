@@ -105,8 +105,9 @@ namespace CivOne.Persistence
 		public int[] Buildings { get; set; }
 		public int[] Wonders { get; set; }
 		public int[] ResourceTiles { get; set; }
-		public int[] FortifiedUnits { get; set; }
+		public int[] FortifiedUnits { get; set; }  // legacy: kept for loading old saves
 		public List<CosTradeRoute> TradeRoutes { get; set; }
+		public bool? WasInDisorder { get; set; }
 	}
 
 	public class CosTradeRoute
@@ -128,6 +129,13 @@ namespace CivOne.Persistence
 		public int? GotoX { get; set; }
 		public int? GotoY { get; set; }
 		public int HomeCityId { get; set; }
+		// Settler build progress (null = not building)
+		public int? BuildingRoad { get; set; }
+		public int? BuildingIrrigation { get; set; }
+		public int? BuildingMine { get; set; }
+		public int? BuildingFortress { get; set; }
+		// Air unit fuel (null = full / not an air unit)
+		public int? FuelLeft { get; set; }
 	}
 
 	public class CosMap

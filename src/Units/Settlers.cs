@@ -41,6 +41,14 @@ namespace CivOne.Units
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
 
+		internal void SetBuildProgress(int road, int irrigation, int mine, int fortress)
+		{
+			BuildingRoad = road;
+			BuildingIrrigation = irrigation;
+			BuildingMine = mine;
+			BuildingFortress = fortress;
+		}
+
 		internal void SetStatus(bool[] bits)
 		{
 			BuildingRoad = (bits[1] && !bits[6] && !bits[7]) ? 2 : 0;

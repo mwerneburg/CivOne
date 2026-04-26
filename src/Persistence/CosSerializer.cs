@@ -17,6 +17,7 @@ namespace CivOne.Persistence
 		private static readonly ISerializer _serializer =
 			new SerializerBuilder()
 				.WithNamingConvention(PascalCaseNamingConvention.Instance)
+				.ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
 				.Build();
 
 		private static readonly IDeserializer _deserializer =
