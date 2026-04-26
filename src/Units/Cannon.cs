@@ -14,6 +14,7 @@ namespace CivOne.Units
 {
 	internal class Cannon : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Artillery;
 		public Cannon() : base(4, 8, 1, 1)
 		{
 			Type = UnitType.Cannon;

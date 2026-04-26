@@ -15,6 +15,7 @@ namespace CivOne.Units
 	[Default]
 	internal class Militia : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Phalanx;
 		public Militia() : base(1, 1, 1, 1)
 		{
 			Type = UnitType.Militia;

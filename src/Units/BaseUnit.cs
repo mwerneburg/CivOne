@@ -696,7 +696,12 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return 0;
+				byte s = 0;
+				if (Sentry)         s |= (1 << 0);
+				if (FortifyActive)  s |= (1 << 2);
+				if (_fortify)       s |= (1 << 3);
+				if (Veteran)        s |= (1 << 5);
+				return s;
 			}
 			set
 			{
@@ -789,6 +794,34 @@ namespace CivOne.Units
 		protected MenuItem<int> MenuHomeCity() => MenuItem<int>.Create("Home City").SetShortcut("h").OnSelect((s, a) => SetHome());
 		
 		protected MenuItem<int> MenuDisbandUnit() => MenuItem<int>.Create("Disband Unit").SetShortcut("D").OnSelect((s, a) => Game.DisbandUnit(this));
+
+		// Returns the unit type this unit can upgrade to (one step), or null if none.
+		public virtual UnitType? UpgradesTo => null;
+
+		// Returns true when all conditions for upgrading are met, populating target name and gold cost.
+		// Conditions: unit is in a city with a Barracks, target tech is researched, player has the gold.
+		protected bool CanUpgrade(out string targetName, out int cost)
+		{
+			targetName = "";
+			cost = 0;
+			if (!UpgradesTo.HasValue) return false;
+			City city = Map[X, Y].City;
+			if (city == null || city.Owner != Owner) return false;
+			if (!city.HasBuilding<Barracks>()) return false;
+			IUnit target = Game.PeekUnit(UpgradesTo.Value);
+			if (target == null) return false;
+			if (target.RequiredTech != null && !Player.HasAdvance(target.RequiredTech)) return false;
+			targetName = target.Name;
+			cost = (int)target.Price * 10;
+			return Player.Gold >= cost;
+		}
+
+		protected MenuItem<int> MenuUpgrade()
+		{
+			if (!CanUpgrade(out string targetName, out int cost)) return null;
+			return MenuItem<int>.Create($"Upgrade to {targetName} ({cost}g)")
+				.OnSelect((s, a) => Game.UpgradeUnit(this, UpgradesTo.Value, cost));
+		}
 
 		public abstract IEnumerable<MenuItem<int>> MenuItems { get; }
 

@@ -15,6 +15,7 @@ namespace CivOne.Units
 	[Default]
 	internal class Musketeers : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Riflemen;
 		public Musketeers() : base(3, 2, 3, 1)
 		{
 			Type = UnitType.Musketeers;

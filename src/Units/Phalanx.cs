@@ -14,6 +14,7 @@ namespace CivOne.Units
 {
 	internal class Phalanx : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Musketeers;
 		public Phalanx() : base(2, 1, 2, 1)
 		{
 			Type = UnitType.Phalanx;

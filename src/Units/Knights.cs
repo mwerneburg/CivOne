@@ -14,6 +14,7 @@ namespace CivOne.Units
 {
 	internal class Knights : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Armor;
 		public Knights() : base(4, 4, 2, 2)
 		{
 			Type = UnitType.Knights;

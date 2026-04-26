@@ -401,6 +401,8 @@ namespace CivOne
 			return _cities.Where(c => c.X == x && c.Y == y && c.Size > 0).FirstOrDefault();
 		}
 		
+		internal static IUnit PeekUnit(UnitType type) => CreateUnit(type, 0, 0);
+
 		private static IUnit CreateUnit(UnitType type, int x, int y)
 		{
 			IUnit unit;
@@ -499,6 +501,25 @@ namespace CivOne
 
 		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech != null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
 		
+		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
+		{
+			if (unit == null || !_units.Contains(unit)) return;
+			Player player = GetPlayer(unit.Owner);
+			if (player.Gold < cost) return;
+
+			player.Gold -= (short)cost;
+
+			IUnit upgraded = CreateUnit(targetType, unit.X, unit.Y);
+			if (upgraded == null) return;
+			upgraded.Owner   = unit.Owner;
+			upgraded.Veteran = unit.Veteran;
+			upgraded.SetHome(unit.Home);
+			upgraded.SkipTurn();
+
+			_units.Remove(unit);
+			_units.Add(upgraded);
+		}
+
 		public void DisbandUnit(IUnit unit)
 		{
 			IUnit activeUnit = ActiveUnit;

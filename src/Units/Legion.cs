@@ -14,6 +14,7 @@ namespace CivOne.Units
 {
 	internal class Legion : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.Musketeers;
 		public Legion() : base(2, 3, 1, 1)
 		{
 			Type = UnitType.Legion;

@@ -102,14 +102,18 @@ namespace CivOne
 			Runtime.Palette?.Dispose();
 			// Build a composite palette:
 			//   Base  = TopScreen palette  (preserves portrait colours at indices 144-255 etc.)
-			//   Then overlay the last non-top [Expand] screen's Cassette-theme range (1-17)
-			//   so the themed background (CityManager etc.) renders correctly even when a
-			//   plain-palette dialog sits on top.
+			//   When a small non-[Expand] dialog (advisor, message box, etc.) sits on top of a
+			//   Cassette-themed [Expand] screen, the dialog's DefaultPalette doesn't have
+			//   Cassette colors at 1-17, so we pull them from the nearest [Expand] screen below.
+			//   Skip this when the TopScreen is itself [Expand] — it owns its palette.
 			Palette composite = Common.TopScreen.Palette.Copy();
-			IScreen themedScreen = Common.Screens
-				.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));
-			if (themedScreen != null)
-				composite.MergePalette(themedScreen.Palette, 1, 17);
+			if (!Common.HasAttribute<Expand>(Common.TopScreen))
+			{
+				IScreen themedScreen = Common.Screens
+					.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));
+				if (themedScreen != null)
+					composite.MergePalette(themedScreen.Palette, 1, 17);
+			}
 			Runtime.Palette = composite;
 			
 			if (Common.HasAttribute<Modal>(TopScreen))

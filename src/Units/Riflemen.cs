@@ -15,6 +15,7 @@ namespace CivOne.Units
 	[Default]
 	internal class Riflemen : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.MechInf;
 		public Riflemen() : base(3, 3, 5, 1)
 		{
 			Type = UnitType.Riflemen;

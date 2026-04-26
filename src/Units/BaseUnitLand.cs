@@ -225,6 +225,12 @@ namespace CivOne.Units
 				{
 					yield return MenuHomeCity();
 				}
+				var upgrade = MenuUpgrade();
+				if (upgrade != null)
+				{
+					yield return null;
+					yield return upgrade;
+				}
 				yield return null;
 				yield return MenuDisbandUnit();
 			}
