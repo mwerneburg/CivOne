@@ -12,7 +12,6 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Graphics.Sprites;
 using CivOne.IO;
 using CivOne.Tiles;
 
@@ -63,8 +62,15 @@ namespace CivOne.Screens.CityManagerPanels
 		{
 			if (_update)
 			{
-				this.Tile(Pattern.PanelBlue)
-					.DrawRectangle(colour: 1);
+					// Cassette dark background with CRT scanline effect visible in corner dead-zones
+				int bw = Bitmap.Width, bh = Bitmap.Height;
+				this.FillRectangle(0, 0, bw, bh, CassetteTheme.BG0);
+				for (int scanY = 0; scanY < bh; scanY += 2)
+					this.FillRectangle(0, scanY, bw, 1, CassetteTheme.BG1);
+				this.FillRectangle(0,      0,      bw, 1, CassetteTheme.BORDER);
+				this.FillRectangle(0,      bh - 1, bw, 1, CassetteTheme.BORDER);
+				this.FillRectangle(0,      0,      1,  bh, CassetteTheme.BORDER);
+				this.FillRectangle(bw - 1, 0,      1,  bh, CassetteTheme.BORDER);
 
 				ITile[,] tiles = _city.CityRadius;
 				int scale = _tileSize / 16;

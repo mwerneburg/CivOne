@@ -46,7 +46,7 @@ namespace CivOne.Screens.Reports
 					x += 2;
 					if (group == 3) x += 4;
 				}
-				this.AddLayer(Icons.Citizen(citizens[j]), x, y - 4);
+				this.DrawCitizenToken(citizens[j], x, y - 4);
 			}
 		}
 

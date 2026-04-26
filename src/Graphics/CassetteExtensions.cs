@@ -9,6 +9,7 @@
 
 using System;
 using System.Drawing;
+using CivOne.Enums;
 using CivOne.IO;
 using static CivOne.Enums.TextAlign;
 
@@ -60,6 +61,40 @@ namespace CivOne.Graphics
 			bitmap.DrawText(label.ToUpper(), font, CassetteTheme.INK_MID, x, y);
 			bitmap.DrawText(value.ToUpper(), font, valueColor, x + w, y, Right);
 			bitmap.DrawCassetteDivider(x, y + fh + 1, w);
+			return bitmap;
+		}
+
+		// Map a Citizen enum value to a Cassette palette color.
+		public static byte CitizenTokenColor(Citizen citizen)
+		{
+			switch (citizen)
+			{
+				case Citizen.HappyMale:
+				case Citizen.HappyFemale:   return CassetteTheme.PHOS_GLOW;
+				case Citizen.ContentMale:
+				case Citizen.ContentFemale: return CassetteTheme.INK_MID;
+				case Citizen.UnhappyMale:
+				case Citizen.UnhappyFemale: return CassetteTheme.ALERT;
+				case Citizen.Entertainer:   return CassetteTheme.PHOS;
+				case Citizen.Taxman:        return CassetteTheme.PHOS_DIM;
+				case Citizen.Scientist:     return CassetteTheme.CYAN;
+				default:                    return CassetteTheme.INK_LOW;
+			}
+		}
+
+		// Draw a single citizen token: a 6×12 filled rect (+ 1px BORDER frame) centered
+		// in an 8×16 slot. Uses only Cassette palette indices so all citizen types look
+		// consistent regardless of where the original SP257 sprite pixels landed.
+		public static IBitmap DrawCitizenToken(this IBitmap bitmap, Citizen citizen, int x, int y)
+		{
+			byte fill = CitizenTokenColor(citizen);
+			// 6×12 token, offset (1,2) within the 8×16 slot
+			bitmap.FillRectangle(x + 1, y + 2, 6, 12, fill);
+			// thin dark frame
+			bitmap.FillRectangle(x + 1, y + 2,     6, 1, CassetteTheme.BG0);
+			bitmap.FillRectangle(x + 1, y + 2 + 11, 6, 1, CassetteTheme.BG0);
+			bitmap.FillRectangle(x + 1, y + 2,     1, 12, CassetteTheme.BG0);
+			bitmap.FillRectangle(x + 6, y + 2,     1, 12, CassetteTheme.BG0);
 			return bitmap;
 		}
 

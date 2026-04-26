@@ -63,7 +63,7 @@ namespace CivOne.Screens
 
 		// Panel heights in the right column
 		private int NowBuildingH => 58;
-		private int GarrisonH    => 28;
+		private int GarrisonH    => 46;
 		private int BuildingsY   => BodyY + NowBuildingH + ColGap;
 		private int GarrisonY    => BodyY + BodyH - GarrisonH;
 		private int BuildingsH   => BodyH - NowBuildingH - ColGap - GarrisonH - ColGap;
@@ -141,7 +141,7 @@ namespace CivOne.Screens
 					cxx += 2;
 					if (group == 3) cxx += 4;
 				}
-				this.AddLayer(Icons.Citizen(citizens[i]), cxx, citizenY);
+				this.DrawCitizenToken(citizens[i], cxx, citizenY);
 				cxx += 8;
 			}
 		}
@@ -364,6 +364,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int cy = py + 8;
 			bool hasSold = _city.BuildingSold;
+			int sellW = hasSold ? 0 : Resources.GetTextSize(0, "SELL").Width + 4;
 
 			for (int i = pageStart; i < items.Length && i < pageStart + pageSize; i++)
 			{
@@ -374,14 +375,15 @@ namespace CivOne.Screens
 				byte nameCol  = isWonder ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
 
 				string name = ((item as ICivilopedia)?.Name ?? "?").ToUpper();
-				while (Resources.GetTextSize(0, name).Width > pw - (isWonder ? 8 : 22))
+				int maxNameW = pw - 8 - (isWonder ? 0 : sellW);
+				while (Resources.GetTextSize(0, name).Width > maxNameW)
 					name = name.Substring(0, name.Length - 1);
 
 				this.DrawText(name, 0, nameCol, px + 4, cy);
 
 				if (!isWonder && !hasSold)
 				{
-					this.DrawText("SL", 0, CassetteTheme.INK_LOW, px + pw - 18, cy);
+					this.DrawText("SELL", 0, CassetteTheme.INK_LOW, px + pw - 2, cy, TextAlign.Right);
 				}
 				cy += BuildingRowH;
 			}
@@ -416,24 +418,27 @@ namespace CivOne.Screens
 				return;
 			}
 
+			const int IconSize = 32;
 			int ux = px + 2;
 			foreach (IUnit unit in present)
 			{
-				if (ux + 16 > px + pw - 2) break;
-				this.AddLayer(unit.ToBitmap(), ux, py + 7);
+				if (ux + IconSize > px + pw - 2) break;
+				using (Bytemap scaled = unit.ToBitmap().Scale(2))
+					this.AddLayer(scaled, ux, py + 7);
 				if (unit.Sentry || unit.Fortify)
-					this.FillRectangle(ux, py + 7, 4, 4, CassetteTheme.INK_LOW);
-				ux += 16;
+					this.FillRectangle(ux, py + 7, 6, 6, CassetteTheme.INK_LOW);
+				ux += IconSize + 1;
 			}
 
 			// Remote units: show after a gap with a cyan corner tick
-			if (remote.Length > 0 && present.Length > 0) ux += 2;
+			if (remote.Length > 0 && present.Length > 0) ux += 4;
 			foreach (IUnit unit in remote)
 			{
-				if (ux + 16 > px + pw - 2) break;
-				this.AddLayer(unit.ToBitmap(), ux, py + 7);
-				this.FillRectangle(ux + 12, py + 7, 4, 4, CassetteTheme.CYAN);
-				ux += 16;
+				if (ux + IconSize > px + pw - 2) break;
+				using (Bytemap scaled = unit.ToBitmap().Scale(2))
+					this.AddLayer(scaled, ux, py + 7);
+				this.FillRectangle(ux + 26, py + 7, 6, 6, CassetteTheme.CYAN);
+				ux += IconSize + 1;
 			}
 		}
 
@@ -600,13 +605,13 @@ namespace CivOne.Screens
 			{
 				IUnit[] units = Game.GetUnits()
 					.Where(u => u.X == _city.X && u.Y == _city.Y)
-					.Take((ColRightW - 4) / 16)
+					.Take((ColRightW - 4) / 33)
 					.ToArray();
 				for (int i = 0; i < units.Length; i++)
 				{
-					int ux = ColRightX + 2 + i * 16;
-					if (ux + 16 > ColRightX + ColRightW - 2) break;
-					var unitRect = new Rectangle(ux, GarrisonY + 7, 16, 14);
+					int ux = ColRightX + 2 + i * 33;
+					if (ux + 32 > ColRightX + ColRightW - 2) break;
+					var unitRect = new Rectangle(ux, GarrisonY + 7, 32, 32);
 					if (unitRect.Contains(args.Location))
 					{
 						if (units[i].Sentry || units[i].Fortify)
@@ -633,8 +638,8 @@ namespace CivOne.Screens
 					if (cy + BuildingRowH > BuildingsY + BuildingsH - 2) break;
 					if (items[i] is IBuilding bldg)
 					{
-						// Sell button is at ColRightX + ColRightW - 18 to end, same row
-						var sellRect = new Rectangle(ColRightX + ColRightW - 20, cy - 1, 18, BuildingRowH);
+						int sw = Resources.GetTextSize(0, "SELL").Width + 4;
+						var sellRect = new Rectangle(ColRightX + ColRightW - sw - 2, cy - 1, sw + 2, BuildingRowH);
 						if (sellRect.Contains(args.Location))
 						{
 							var confirm = new ConfirmSell(bldg);
