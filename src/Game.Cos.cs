@@ -181,7 +181,6 @@ namespace CivOne
 					Options       = new CosOptions
 					{
 						InstantAdvice  = InstantAdvice,
-						AutoSave       = AutoSave,
 						EndOfTurn      = EndOfTurn,
 						Animations     = Animations,
 						Sound          = Sound,
@@ -404,7 +403,6 @@ namespace CivOne
 			// Game options
 			var opt = g.Options ?? new CosOptions();
 			InstantAdvice  = (Settings.InstantAdvice  == GameOption.On)  || (Settings.InstantAdvice  == GameOption.Default && opt.InstantAdvice);
-			AutoSave       = (Settings.AutoSave       != GameOption.Off) && (Settings.AutoSave       != GameOption.Default || opt.AutoSave);
 			EndOfTurn      = (Settings.EndOfTurn      == GameOption.On)  || (Settings.EndOfTurn      == GameOption.Default && opt.EndOfTurn);
 			Animations     = (Settings.Animations     != GameOption.Off) && (Settings.Animations     != GameOption.Default || opt.Animations);
 			Sound          = (Settings.Sound          != GameOption.Off) && (Settings.Sound          != GameOption.Default || opt.Sound);

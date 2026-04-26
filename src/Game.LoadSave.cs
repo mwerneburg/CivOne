@@ -105,7 +105,7 @@ namespace CivOne
 				gameData.GameOptions = new bool[]
 				{
 					InstantAdvice,
-					AutoSave,
+					false,
 					EndOfTurn,
 					Animations,
 					Sound,
@@ -328,7 +328,6 @@ namespace CivOne
 
 			// Game Settings
 			InstantAdvice = (Settings.InstantAdvice == GameOption.On);
-			AutoSave = (Settings.AutoSave != GameOption.Off);
 			EndOfTurn = (Settings.EndOfTurn == GameOption.On);
 			Animations = (Settings.Animations != GameOption.Off);
 			Sound = (Settings.Sound != GameOption.Off);
@@ -338,7 +337,6 @@ namespace CivOne
 
 			bool[] options = gameData.GameOptions;
 			if (Settings.InstantAdvice == GameOption.Default) InstantAdvice = options[0];
-			if (Settings.AutoSave == GameOption.Default) AutoSave = options[1];
 			if (Settings.EndOfTurn == GameOption.Default) EndOfTurn = options[2];
 			if (Settings.Animations == GameOption.Default) Animations = options[3];
 			if (Settings.Sound == GameOption.Default) Sound = options[4];

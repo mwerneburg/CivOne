@@ -64,16 +64,6 @@ namespace CivOne.Tasks
 
 		public static Show LuxuryRate => new Show(SetRate.Luxuries);
 
-		public static Show AutoSave
-		{
-			get
-			{
-				if (Game.GameTurn % 50 != 0) return null;
-				int gameId = ((Game.GameTurn / 50) % 6) + 4;
-				return new Show(new SaveGame(gameId));
-			}
-		}
-
 		public static Show CityManager(City city) => new Show(new CityManager(city));
 
 		public static Show ViewCity(City city) => new Show(new CityManager(city, true));

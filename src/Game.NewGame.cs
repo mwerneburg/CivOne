@@ -177,7 +177,6 @@ namespace CivOne
 			Log("Game instance created (difficulty: {0}, competition: {1})", _difficulty, _competition);
 
 			InstantAdvice = (Settings.InstantAdvice == GameOption.On || (Settings.InstantAdvice == GameOption.Default && difficulty == 0));
-			AutoSave = (Settings.AutoSave != GameOption.Off);
 			EndOfTurn = (Settings.EndOfTurn == GameOption.On);
 			Animations = (Settings.Animations != GameOption.Off);
 			Sound = (Settings.Sound != GameOption.Off);

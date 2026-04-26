@@ -55,12 +55,6 @@ namespace CivOne.Screens
 			Update();
 		}
 
-		private void MenuAutoSave(object sender, EventArgs args)
-		{
-			Game.AutoSave = !Game.AutoSave;
-			Update();
-		}
-
 		private void MenuEndOfTurn(object sender, EventArgs args)
 		{
 			Game.EndOfTurn = !Game.EndOfTurn;
@@ -111,7 +105,6 @@ namespace CivOne.Screens
 				menu.Cancel += MenuCancel;
 
 				menu.Items.Add($"{(Game.InstantAdvice ? '^' : ' ')}Instant Advice").OnSelect(MenuInstantAdvice);
-				menu.Items.Add($"{(Game.AutoSave ? '^' : ' ')}AutoSave").SetEnabled(Common.AllowSaveGame).OnSelect(MenuAutoSave);
 				menu.Items.Add($"{(Game.EndOfTurn ? '^' : ' ')}End of Turn").OnSelect(MenuEndOfTurn);
 				menu.Items.Add($"{(Game.Animations ? '^' : ' ')}Animations").OnSelect(MenuAnimations);
 				menu.Items.Add($"{(Game.Sound ? '^' : ' ')}Sound").OnSelect(MenuSound);

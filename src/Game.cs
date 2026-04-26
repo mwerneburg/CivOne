@@ -50,7 +50,7 @@ namespace CivOne
 		public bool CivilopediaText { get; set; }
 		public bool EndOfTurn { get; set; }
 		public bool InstantAdvice { get; set; }
-		public bool AutoSave { get; set; }
+
 		public bool EnemyMoves { get; set; }
 		public bool Palace { get; set; }
 
@@ -260,10 +260,7 @@ namespace CivOne
 					return;
 				}
 
-				if (GameTurn % 50 == 0 && AutoSave)
-				{
-					GameTask.Enqueue(Show.AutoSave);
-				}
+				PerformAutoSave();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -501,6 +498,12 @@ namespace CivOne
 
 		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech != null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
 		
+		internal void PerformAutoSave()
+		{
+			try { SaveCos(Settings.Instance.AutoSavePath); }
+			catch { }
+		}
+
 		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
 		{
 			if (unit == null || !_units.Contains(unit)) return;

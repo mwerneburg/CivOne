@@ -110,18 +110,20 @@ namespace CivOne.Screens
 		private IEnumerable<SaveGameFile> GetSaveGames()
 		{
 			string path = Path.Combine(Settings.SavesDirectory, char.ToLower(_driveLetter).ToString());
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < 4; i++)
 			{
 				string filename = Path.Combine(path, string.Format("CIVIL{0}", i));
 				yield return new SaveGameFile(filename);
 			}
+			// AutoSave slot — fixed path, always shown last
+			yield return new SaveGameFile(Settings.Instance.AutoSavePath.Replace(".cos", ""));
 		}
-		
+
 		private void LoadSaveFile(object sender, MenuItemEventArgs<int> args)
 		{
 			int item = args.Value;
 			SaveGameFile file = GetSaveGames().ToArray()[item];
-			SaveGame.SelectedGame = (item > 3 ? 3 : item);
+			SaveGame.SelectedGame = Math.Min(item, 3);
 			Log("Load game: {0}", file.Name);
 			Destroy();
 			if (file.IsCos)

@@ -44,6 +44,7 @@ namespace CivOne
 		internal string PluginsDirectory => Path.Combine(StorageDirectory, "plugins");
 		internal string SavesDirectory => Path.Combine(StorageDirectory, "saves");
 		internal string SoundsDirectory => Path.Combine(StorageDirectory, "sounds");
+		internal string AutoSavePath => Path.Combine(SavesDirectory, "autosave.cos");
 
 		// Settings
 
