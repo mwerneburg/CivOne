@@ -14,6 +14,7 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using CivOne.Persistence;
 using CivOne.UserInterface;
 
 namespace CivOne.Screens
@@ -27,58 +28,72 @@ namespace CivOne.Screens
 		private class SaveGameFile
 		{
 			public bool ValidFile { get; private set; }
+			public bool IsCos { get; private set; }
+			public string CosFile { get; private set; }
 			public string SveFile { get; private set; }
 			public string MapFile { get; private set; }
-			public int Difficulty { get; private set; }
-			
+
 			public string Name { get; private set; }
-			
+
 			private ushort ReadUShort(BinaryReader reader, int position)
-			{
-				return Common.BinaryReadUShort(reader, position);
-			}
-			
+				=> Common.BinaryReadUShort(reader, position);
+
 			private string[] ReadStrings(BinaryReader reader, int position, int length, int itemLength)
-			{
-				return Common.BinaryReadStrings(reader, position, length, itemLength);
-			}
-			
+				=> Common.BinaryReadStrings(reader, position, length, itemLength);
+
 			public SaveGameFile(string filename)
 			{
 				ValidFile = false;
 				Name = "(EMPTY)";
-				SveFile = string.Format("{0}.SVE", filename);
-				MapFile = string.Format("{0}.MAP", filename);
-				if (!File.Exists(SveFile) || !File.Exists(MapFile)) return;
-				
-				try
+				CosFile = $"{filename}.cos";
+				SveFile = $"{filename}.SVE";
+				MapFile = $"{filename}.MAP";
+
+				if (File.Exists(CosFile))
 				{
-					using (FileStream fs = new FileStream(SveFile, FileMode.Open))
-					using (BinaryReader br = new BinaryReader(fs))
+					try
 					{
-						if (fs.Length != 37856)
+						var meta = CosSerializer.DeserializeMeta(File.ReadAllText(CosFile));
+						if (meta != null)
 						{
-							Name = "(INCORRECT FILE SIZE)";
-							return;
+							Name = meta.Name ?? "(UNKNOWN)";
+							IsCos = true;
+							ValidFile = true;
 						}
-						
-						string turn = Common.YearString(ReadUShort(br, 0));
-						ushort humanPlayer = ReadUShort(br, 2);
-						ushort difficultyLevel = ReadUShort(br, 10);
-						string leaderName = ReadStrings(br, 16, 112, 14)[humanPlayer];
-						string civName = ReadStrings(br, 128, 96, 12)[humanPlayer];
-						string tribeName = ReadStrings(br, 224, 88, 11)[humanPlayer];
-						string title = Common.DifficultyName(difficultyLevel);
-						
-						Name = string.Format("{0} {1}, {2}/{3}", title, leaderName, civName, turn);
-						Difficulty = (int)difficultyLevel;
 					}
-					ValidFile = true;
+					catch (Exception ex)
+					{
+						Log($"Could not read .cos file: {ex.Message}");
+						Name = "(COULD NOT READ SAVE FILE)";
+					}
 				}
-				catch(Exception ex)
+				else if (File.Exists(SveFile) && File.Exists(MapFile))
 				{
-					Log($"Could not open .SVE file: {ex.InnerException}");
-					Name = "(COULD NOT READ SAVE FILE HEADER)";
+					try
+					{
+						using (FileStream fs = new FileStream(SveFile, FileMode.Open))
+						using (BinaryReader br = new BinaryReader(fs))
+						{
+							if (fs.Length != 37856)
+							{
+								Name = "(INCORRECT FILE SIZE)";
+								return;
+							}
+							string turn = Common.YearString(ReadUShort(br, 0));
+							ushort humanPlayer = ReadUShort(br, 2);
+							ushort difficultyLevel = ReadUShort(br, 10);
+							string leaderName = ReadStrings(br, 16, 112, 14)[humanPlayer];
+							string civName = ReadStrings(br, 128, 96, 12)[humanPlayer];
+							string title = Common.DifficultyName(difficultyLevel);
+							Name = $"{title} {leaderName}, {civName}/{turn}";
+						}
+						ValidFile = true;
+					}
+					catch (Exception ex)
+					{
+						Log($"Could not open .SVE file: {ex.InnerException}");
+						Name = "(COULD NOT READ SAVE FILE HEADER)";
+					}
 				}
 			}
 		}
@@ -105,16 +120,14 @@ namespace CivOne.Screens
 		private void LoadSaveFile(object sender, MenuItemEventArgs<int> args)
 		{
 			int item = args.Value;
-			
 			SaveGameFile file = GetSaveGames().ToArray()[item];
-
 			SaveGame.SelectedGame = (item > 3 ? 3 : item);
-			
 			Log("Load game: {0}", file.Name);
-			
 			Destroy();
-			
-			Game.LoadGame(file.SveFile, file.MapFile);
+			if (file.IsCos)
+				Game.LoadCos(file.CosFile);
+			else
+				Game.LoadGame(file.SveFile, file.MapFile);
 			Common.AddScreen(new GamePlay());
 		}
 		

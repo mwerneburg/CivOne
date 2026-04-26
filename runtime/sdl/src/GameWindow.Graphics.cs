@@ -25,7 +25,7 @@ namespace CivOne
 				if (Settings.AspectRatio != AspectRatio.Expand)
 					return new Size(320, 200);
 				// Fallback for initial window sizing before first SetCanvasSize() call
-				int w = Settings.ExpandWidth  > 0 ? Settings.ExpandWidth  : 640;
+				int w = Settings.ExpandWidth  > 0 ? Settings.ExpandWidth  : 576;
 				int h = Settings.ExpandHeight > 0 ? Settings.ExpandHeight : 360;
 				return new Size(w, h);
 			}

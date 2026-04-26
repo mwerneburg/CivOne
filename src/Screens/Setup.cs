@@ -15,7 +15,6 @@ using CivOne.Graphics;
 using CivOne.IO;
 using CivOne.UserInterface;
 
-using static CivOne.Enums.AspectRatio;
 using static CivOne.Enums.CursorType;
 using static CivOne.Enums.DestroyAnimation;
 using static CivOne.Enums.GraphicsMode;
@@ -132,7 +131,6 @@ namespace CivOne.Screens
 		private void SettingsMenu(int activeItem = 0) => CreateMenu("Settings", activeItem,
 			MenuItem.Create($"Window Title: {Settings.WindowTitle}").OnSelect(GotoScreen<WindowTitle>(ChangeWindowTitle)),
 			MenuItem.Create($"Graphics Mode: {Settings.GraphicsMode.ToText()}").OnSelect(GotoMenu(GraphicsModeMenu)),
-			MenuItem.Create($"Aspect Ratio: {Settings.AspectRatio.ToText()}").OnSelect(GotoMenu(AspectRatioMenu)),
 			MenuItem.Create($"Full Screen: {Settings.FullScreen.YesNo()}").OnSelect(GotoMenu(FullScreenMenu)),
 			MenuItem.Create($"Window Scale: {Settings.Scale}x").OnSelect(GotoMenu(WindowScaleMenu)),
 			MenuItem.Create("In-game sound").OnSelect(GotoMenu(SoundMenu)),
@@ -142,15 +140,6 @@ namespace CivOne.Screens
 		private void GraphicsModeMenu() => CreateMenu("Graphics Mode", GotoMenu(SettingsMenu, 1),
 			MenuItem.Create($"{Graphics256.ToText()} (default)").OnSelect((s, a) => Settings.GraphicsMode = Graphics256).SetActive(() => Settings.GraphicsMode == Graphics256),
 			MenuItem.Create(Graphics16.ToText()).OnSelect((s, a) => Settings.GraphicsMode = Graphics16).SetActive(() => Settings.GraphicsMode == Graphics16),
-			MenuItem.Create("Back")
-		);
-
-		private void AspectRatioMenu() => CreateMenu("Aspect Ratio", GotoMenu(SettingsMenu, 2),
-			MenuItem.Create($"{Auto.ToText()} (default)").OnSelect((s, a) => Settings.AspectRatio = Auto).SetActive(() => Settings.AspectRatio == Auto),
-			MenuItem.Create(Fixed.ToText()).OnSelect((s, a) => Settings.AspectRatio = Fixed).SetActive(() => Settings.AspectRatio == Fixed),
-			MenuItem.Create(Scaled.ToText()).OnSelect((s, a) => Settings.AspectRatio = Scaled).SetActive(() => Settings.AspectRatio == Scaled),
-			MenuItem.Create(ScaledFixed.ToText()).OnSelect((s, a) => Settings.AspectRatio = ScaledFixed).SetActive(() => Settings.AspectRatio == ScaledFixed),
-			MenuItem.Create(AspectRatio.Expand.ToText()).OnSelect((s, a) => Settings.AspectRatio = AspectRatio.Expand).SetActive(() => Settings.AspectRatio == AspectRatio.Expand),
 			MenuItem.Create("Back")
 		);
 

@@ -26,7 +26,7 @@ namespace CivOne
 		private bool _fullScreen = false;
 		private bool _rightSideBar = false;
 		private int _scale = 2;
-		private AspectRatio _aspectRatio = AspectRatio.Auto;
+		private AspectRatio _aspectRatio = AspectRatio.Expand;
 		private int _expandWidth, _expandHeight;
 		private bool _revealWorld = false;
 		private bool _debugMenu = false;
@@ -399,7 +399,7 @@ namespace CivOne
 			GetSetting("FullScreen", ref _fullScreen);
 			GetSetting("SideBar", ref _rightSideBar);
 			GetSetting("Scale", ref _scale, 1, 4);
-			GetSetting<AspectRatio>("AspectRatio", ref _aspectRatio);
+			// AspectRatio is always Expand; ignore any stored value.
 			GetSetting("Sound", ref _sound);
 			if (!GetSetting("ExpandWidth", ref _expandWidth, 320, 2560) || !GetSetting("ExpandHeight", ref _expandHeight, 200, 1600))
 			{
