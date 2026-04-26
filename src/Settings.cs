@@ -29,6 +29,7 @@ namespace CivOne
 		private AspectRatio _aspectRatio = AspectRatio.Expand;
 		private int _expandWidth, _expandHeight;
 		private bool _revealWorld = false;
+		private bool _riverFastMovement = false;
 		private bool _debugMenu = false;
 		private bool _deityEnabled = false;
 		private bool _arrowHelper = false;
@@ -139,6 +140,17 @@ namespace CivOne
 			{
 				_revealWorld = value;
 				SetSetting("RevealWorld", _revealWorld ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		internal bool RiverFastMovement
+		{
+			get => _riverFastMovement;
+			set
+			{
+				_riverFastMovement = value;
+				SetSetting("RiverFastMovement", _riverFastMovement ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -407,6 +419,7 @@ namespace CivOne
 				_expandHeight = -1;
 			}
 			GetSetting("RevealWorld", ref _revealWorld);
+			GetSetting("RiverFastMovement", ref _riverFastMovement);
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("DeityEnabled", ref _deityEnabled);
 			GetSetting("ArrowHelper", ref _arrowHelper);

@@ -37,9 +37,10 @@ namespace CivOne.Units
 				TribalHut();
 			}
 
+			bool riverBonus = Settings.Instance.RiverFastMovement && previousTile is River && Tile is River;
 			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City != null;
 			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City != null;
-			if (prevConnected && currConnected)
+			if (prevConnected && currConnected || riverBonus)
 			{
 				// Cities are railroad waypoints: city→rail and rail→city cost 0 moves, just like rail→rail.
 				// City→city and road segments cost 1/3 move (road speed).

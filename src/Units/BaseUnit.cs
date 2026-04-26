@@ -454,7 +454,8 @@ namespace CivOne.Units
 			// TODO: This implementation was done by observation, may need a revision
 			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.City != null;
 			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.City != null;
-			if (srcRoad && dstRoad)
+			bool riverBonus = Settings.Instance.RiverFastMovement && Tile is River && moveTarget is River;
+			if (srcRoad && dstRoad || riverBonus)
 			{
 				// Handle movement in MovementDone
 			}
