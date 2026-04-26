@@ -37,9 +37,15 @@ namespace CivOne.Units
 				TribalHut();
 			}
 
-			if ((previousTile.Road || previousTile.RailRoad) && (Tile.Road || Tile.RailRoad))
+			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City != null;
+			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City != null;
+			if (prevConnected && currConnected)
 			{
-				if ((Tile.RailRoad || Tile.City != null) && previousTile.RailRoad)
+				// Cities are railroad waypoints: city→rail and rail→city cost 0 moves, just like rail→rail.
+				// City→city and road segments cost 1/3 move (road speed).
+				bool srcRail = previousTile.RailRoad || previousTile.City != null;
+				bool dstRail = Tile.RailRoad || Tile.City != null;
+				if (srcRail && dstRail && (previousTile.RailRoad || Tile.RailRoad))
 				{
 					// No moves lost
 				}

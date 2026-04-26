@@ -452,11 +452,13 @@ namespace CivOne.Units
 			}
 
 			// TODO: This implementation was done by observation, may need a revision
-			if ((moveTarget.Road || moveTarget.RailRoad) && (Tile.Road || Tile.RailRoad))
+			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.City != null;
+			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.City != null;
+			if (srcRoad && dstRoad)
 			{
 				// Handle movement in MovementDone
 			}
-			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.Movement > 1)
+			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.City == null && moveTarget.Movement > 1)
 			{
 				bool success;
 				if (PartMoves >= 2)
