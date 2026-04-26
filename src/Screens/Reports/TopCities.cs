@@ -15,7 +15,7 @@ using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal]
+	[Modal, OwnPalette]
 	internal class TopCities : BaseScreen
 	{
 		private bool _update = true;
@@ -85,7 +85,10 @@ namespace CivOne.Screens.Reports
 		
 		public TopCities()
 		{
-			Palette = CassetteTheme.CreatePalette();
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
 			// I'm not sure about the order of top 5 cities, but this is pretty close
 			_cities = Game.GetCities()

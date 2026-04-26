@@ -15,7 +15,7 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal]
+	[Modal, OwnPalette]
 	internal abstract class BaseReport : BaseScreen
 	{
 		private bool _update = true;
@@ -62,11 +62,11 @@ namespace CivOne.Screens.Reports
 			{
 				Portrait[i] = Icons.GovernmentPortrait(Human.Government, (Advisor)Enum.Parse(typeof(Advisor), $"{i}"), modernGovernment);
 			}
-			using (Palette palette = CassetteTheme.CreatePalette())
-			{
-				palette.MergePalette(Portrait[0].Palette, 144);
-				Palette = palette;
-			}
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			p.MergePalette(Portrait[0].Palette, 144);
+			Palette = p;
 
 			this.Clear(CassetteTheme.BG0)
 				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)

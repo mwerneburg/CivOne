@@ -16,6 +16,7 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens.Reports
 {
+	[OwnPalette]
 	internal class Demographics : BaseScreen
 	{
 		private struct TableRow
@@ -112,7 +113,10 @@ namespace CivOne.Screens.Reports
 
 		public Demographics()
 		{
-			Palette = CassetteTheme.CreatePalette();
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
 			_normalText = new TextSettings() { Colour = CassetteTheme.INK_HIGH };
 			_shadowText = TextSettings.ShadowText(CassetteTheme.INK_HIGH, CassetteTheme.BG0);

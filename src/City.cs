@@ -833,17 +833,30 @@ namespace CivOne
 			{
 				// we love the president day
 				if (Player.Government is Governments.Democracy || Player.Government is Republic)
-				{ 
+				{
 					if (Food > 0)
 					{
-						Size++;
+						bool blocked = (Size >= 8 && !HasBuilding<Aqueduct>());
+						if (!blocked)
+						{
+							Size++;
+						}
+						else
+						{
+							// Can't grow without aqueduct — gift a Caravan instead
+							Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
+							if (Human == Owner)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									$"{Name} celebration: free Caravan!",
+									"No room to grow without an Aqueduct."));
+						}
 					}
 				}
 				else
 				{
 					// we love the king day
 				}
- 				GameTask.Insert(Show.WeLovePresidentDayCity(this));
+				GameTask.Insert(Show.WeLovePresidentDayCity(this));
 			}
  			Food += IsInDisorder ? 0 : FoodIncome;
 

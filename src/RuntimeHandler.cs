@@ -107,7 +107,9 @@ namespace CivOne
 			//   Cassette colors at 1-17, so we pull them from the nearest [Expand] screen below.
 			//   Skip this when the TopScreen is itself [Expand] — it owns its palette.
 			Palette composite = Common.TopScreen.Palette.Copy();
-			if (!Common.HasAttribute<Expand>(Common.TopScreen))
+			bool skipMerge = Common.HasAttribute<Expand>(Common.TopScreen)
+			              || Common.HasAttribute<OwnPalette>(Common.TopScreen);
+			if (!skipMerge)
 			{
 				IScreen themedScreen = Common.Screens
 					.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));

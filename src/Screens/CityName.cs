@@ -13,6 +13,7 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
+	[OwnPalette]
 	internal class CityName : BaseScreen
 	{
 		private readonly Input _input;
@@ -54,15 +55,49 @@ namespace CivOne.Screens
 		public CityName(int nameId, string cityName)
 		{
 			NameId = nameId;
-			Palette = Common.DefaultPalette;
 
-			this.FillRectangle(80, 80, 161, 33, 11)
-				.FillRectangle(81, 81, 159, 31, 15)
-				.DrawText("City Name...", 0, 5, 88, 82)
-				.FillRectangle(88, 95, 105, 14, 5)
-				.FillRectangle(89, 96, 103, 12, 15);
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
-			_input = new Input(Palette, cityName, 0, 5, 11, 90, 97, 101, 10, 12);
+			// Centered 200×44 Cassette panel
+			const int pw = 200, ph = 44;
+			int px = (320 - pw) / 2;
+			int py = (200 - ph) / 2;
+
+			// Panel fill + border
+			this.FillRectangle(px, py, pw, ph, CassetteTheme.BG1);
+			this.FillRectangle(px,          py,          pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py + ph - 1, pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py,          1,  ph, CassetteTheme.BORDER);
+			this.FillRectangle(px + pw - 1, py,          1,  ph, CassetteTheme.BORDER);
+
+			// Title label straddling the top border (Cassette motif)
+			int fh = Resources.GetFontHeight(0);
+			string label = " CITY NAME ";
+			int lw = Resources.GetTextSize(0, label).Width;
+			this.FillRectangle(px + 8, py, lw, 1, CassetteTheme.BG0);
+			this.DrawText(label, 0, CassetteTheme.PHOS, px + 8, py - fh / 2);
+
+			// Input field box
+			int ix = px + 8;
+			int iy = py + 14;
+			int iw = pw - 16;
+			int ih = fh + 6;
+			this.FillRectangle(ix,          iy,          iw, ih, CassetteTheme.BG3);
+			this.FillRectangle(ix,          iy,          iw, 1,  CassetteTheme.BORDER);
+			this.FillRectangle(ix,          iy + ih - 1, iw, 1,  CassetteTheme.BORDER);
+			this.FillRectangle(ix,          iy,          1,  ih, CassetteTheme.BORDER);
+			this.FillRectangle(ix + iw - 1, iy,          1,  ih, CassetteTheme.BORDER);
+
+			// Hint below
+			this.DrawText("ENTER to confirm  ESC to cancel", 0, CassetteTheme.INK_LOW,
+				px + pw / 2, py + ph - fh - 4, TextAlign.Center);
+
+			_input = new Input(Palette, cityName, 0,
+				CassetteTheme.INK_HIGH, CassetteTheme.PHOS_FAINT,
+				ix + 3, iy + 3, iw - 6, fh, 12);
 			_input.Accept += CityName_Accept;
 			_input.Cancel += CityName_Cancel;
 		}

@@ -15,7 +15,7 @@ using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal]
+	[Modal, OwnPalette]
 	internal class WorldWonders : BaseScreen
 	{
 		private struct CityWonders
@@ -79,7 +79,10 @@ namespace CivOne.Screens.Reports
 		
 		public WorldWonders()
 		{
-			Palette = CassetteTheme.CreatePalette();
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
 			_wonders = Game.BuiltWonders.OrderBy(w => w.Id).Select(w => new CityWonders()
 			{

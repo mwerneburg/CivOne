@@ -216,7 +216,9 @@ namespace CivOne.Screens
 				int i = 0;
 				foreach (SaveGameFile file in GetSaveGames())
 				{
-					_menu.Items.Add(file.Name, i++).OnSelect(LoadFileHandler(file));
+					bool isAuto = (i == 4);
+					string label = isAuto ? $"AUTO: {file.Name}" : file.Name;
+					_menu.Items.Add(label, i++).OnSelect(LoadFileHandler(file));
 				}
 				_cursor = MouseCursor.Pointer;
 			}
