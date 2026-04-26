@@ -118,6 +118,24 @@ namespace CivOne
 				return;
 			}
 
+			// Before 0 AD, respawn destroyed AI civs using their alternate civilization variant.
+			// Each civ has a "buddy" with Id offset by 7 (e.g. Romans Id=1 <-> Mongols Id=8).
+			// If the buddy hasn't already been destroyed this game, spawn it in the same player slot.
+			if (!(destroyed is Barbarian) && Common.TurnToYear(_gameTurn) < 0)
+			{
+				byte playerSlot = (byte)destroyed.PreferredPlayerNumber;
+				int buddyId = destroyed.Id >= 8 ? destroyed.Id - 7 : destroyed.Id + 7;
+				bool buddyDestroyed = _replayData.OfType<ReplayData.CivilizationDestroyed>()
+					.Any(rd => rd.DestroyedId == buddyId);
+				ICivilization buddyCiv = Common.Civilizations.FirstOrDefault(c => c.Id == buddyId);
+				if (!buddyDestroyed && buddyCiv != null)
+				{
+					_players[playerSlot] = new Player(buddyCiv);
+					_players[playerSlot].Destroyed += PlayerDestroyed;
+					AddStartingUnits(playerSlot);
+				}
+			}
+
 			GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", $"by {destroyedBy.NamePlural}!"));
 		}
 		
