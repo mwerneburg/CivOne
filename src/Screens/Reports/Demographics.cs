@@ -112,13 +112,15 @@ namespace CivOne.Screens.Reports
 
 		public Demographics()
 		{
-			Palette = Common.DefaultPalette;
+			Palette = CassetteTheme.CreatePalette();
 
-			_normalText = new TextSettings() { Colour = 15 };
-			_shadowText = TextSettings.ShadowText(15, 5);
-			
-			this.Clear(1)
-				.DrawText($"{Human.TribeName} Demographics", 0, 15, 160, 4, TextAlign.Center);
+			_normalText = new TextSettings() { Colour = CassetteTheme.INK_HIGH };
+			_shadowText = TextSettings.ShadowText(CassetteTheme.INK_HIGH, CassetteTheme.BG0);
+
+			this.Clear(CassetteTheme.BG0)
+				.FillRectangle(0, 0, 320, 18, CassetteTheme.BG3)
+				.FillRectangle(0, 18, 320, 1, CassetteTheme.BORDER)
+				.DrawText($"{Human.TribeName} Demographics", 0, CassetteTheme.PHOS_GLOW, 160, 4, TextAlign.Center);
 		}
 	}
 }

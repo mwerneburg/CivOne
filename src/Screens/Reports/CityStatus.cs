@@ -29,7 +29,7 @@ namespace CivOne.Screens.Reports
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(0, 32, 320, 168, 8);
+			this.FillRectangle(0, 32, 320, 168, CassetteTheme.BG1);
 
 			int fontHeight = Resources.GetFontHeight(FONT_ID);
 			int yy = 32;
@@ -40,10 +40,10 @@ namespace CivOne.Screens.Reports
 				string production = (city.CurrentProduction as ICivilopedia).Name;
 				int productionWidth = Resources.GetTextSize(1, production).Width;
 
-				this.DrawText(city.Name, FONT_ID, 15, 8, yy)
-					.DrawText($"{city.Size}-{city.FoodTotal}{FOOD} {city.ShieldTotal}{SHIELD} {city.TradeTotal}{TRADE}", FONT_ID, 15, 80, yy)
-					.DrawText(production, FONT_ID, 15, 172, yy)
-					.DrawText($"({city.Shields}/{city.CurrentProduction.Price * 10})", FONT_ID, 7, 172 + productionWidth + 7, yy);
+				this.DrawText(city.Name, FONT_ID, CassetteTheme.PHOS, 8, yy)
+					.DrawText($"{city.Size}-{city.FoodTotal}{FOOD} {city.ShieldTotal}{SHIELD} {city.TradeTotal}{TRADE}", FONT_ID, CassetteTheme.INK_HIGH, 80, yy)
+					.DrawText(production, FONT_ID, CassetteTheme.INK_MID, 172, yy)
+					.DrawText($"({city.Shields}/{city.CurrentProduction.Price * 10})", FONT_ID, CassetteTheme.INK_LOW, 172 + productionWidth + 7, yy);
 				yy += fontHeight;
 			}
 

@@ -93,7 +93,7 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("City Status (F1)").OnSelect((s, a) => Common.AddScreen(new CityStatus()));
 			_gameMenu.Items.Add("Military Advisor (F2)").OnSelect((s, a) => { Common.AddScreen(new MilitaryLosses()); Common.AddScreen(new MilitaryStatus()); });
 			_gameMenu.Items.Add("Intelligence Advisor (F3)").OnSelect((s, a) => Common.AddScreen(new IntelligenceReport()));
-			_gameMenu.Items.Add("Attitude Advisor (F4)").OnSelect((s, a) => Common.AddScreen(new AttitudeSurvey()));
+			_gameMenu.Items.Add("Sentiment Advisor (F4)").OnSelect((s, a) => Common.AddScreen(new AttitudeSurvey()));
 			_gameMenu.Items.Add("Trade Advisor (F5)").OnSelect((s, a) => Common.AddScreen(new TradeReport()));
 			_gameMenu.Items.Add("Science Advisor (F6)").OnSelect((s, a) => Common.AddScreen(new ScienceReport()));
 			

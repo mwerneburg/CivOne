@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System.Linq;
+using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Wonders;
@@ -51,7 +52,7 @@ namespace CivOne.Screens.Reports
 				this.FillRectangle(xx, yy, ww, hh, colour)
 					.FillRectangle(xx + 1, yy + 1, ww - 2, hh - 2, 3)
 					.AddLayer(wonder.SmallIcon, xx + 8, yy + 3)
-					.DrawText(wonder.FormatWorldWonder(city), 0, 15, xx + 32, yy + 5);
+					.DrawText(wonder.FormatWorldWonder(city), 0, CassetteTheme.INK_HIGH, xx + 32, yy + 5);
 			}
 
 			_update = false;
@@ -78,17 +79,18 @@ namespace CivOne.Screens.Reports
 		
 		public WorldWonders()
 		{
-			Palette = Common.DefaultPalette;
+			Palette = CassetteTheme.CreatePalette();
 
 			_wonders = Game.BuiltWonders.OrderBy(w => w.Id).Select(w => new CityWonders()
 			{
 				Wonder = w,
 				City = Game.GetCities().First(c => c.HasWonder(w))
 			}).ToArray();
-			
-			this.Clear(3)
-				.DrawText("The Wonders of the World", 0, 5, 100, 13)
-				.DrawText("The Wonders of the World", 0, 15, 100, 12);
+
+			this.Clear(CassetteTheme.BG0)
+				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
+				.DrawText("The Wonders of the World", 0, CassetteTheme.PHOS_GLOW, 160, 9, TextAlign.Center);
 		}
 	}
 }

@@ -72,7 +72,7 @@ namespace CivOne.Screens.Reports
 			{
 				City city = _cities[i];
 
-				this.DrawText($"{city.Name}:", FONT_ID, 15, 16, y);
+				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.INK_HIGH, 16, y);
 				
 				DrawCitizens(city, (i % 2 == 0) ? 72 : 76, y);
 				DrawBuildings(city, y);
@@ -95,7 +95,7 @@ namespace CivOne.Screens.Reports
 					int happy = (int)Math.Floor((double)(100 / totalCitizens) * happyCitizens);
 					int content = (int)Math.Floor((double)(100 / totalCitizens) * contentCitizens);
 					int unhappy = (int)Math.Floor((double)(100 / totalCitizens) * unhappyCitizens);
-					this.DrawText($"Population: {population} Happy:{happy}% Content:{content}% Unhappy:{unhappy}%", 0, 15, 16, y);
+					this.DrawText($"Population: {population} Happy:{happy}% Content:{content}% Unhappy:{unhappy}%", 0, CassetteTheme.INK_MID, 16, y);
 				}
 			}
 
@@ -126,7 +126,7 @@ namespace CivOne.Screens.Reports
 			return NextPage();
 		}
 
-		public AttitudeSurvey() : base("ATTITUDE SURVEY", 9)
+		public AttitudeSurvey() : base("SENTIMENT SURVEY", 9)
 		{
 			_cities = Game.GetCities().Where(c => Human == c.Owner && c.Size > 0).ToArray();
 		}

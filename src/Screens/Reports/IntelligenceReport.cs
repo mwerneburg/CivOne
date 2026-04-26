@@ -33,25 +33,24 @@ namespace CivOne.Screens.Reports
 
 				Player player = infoButton.Key;
 
-				this.FillRectangle(0, 25, 320, 172, BackgroundColour)
-					.DrawText($"Subject: the {player.TribeNamePlural}", 0, 5, 16, (y + 1))
-					.DrawText($"Subject: the {player.TribeNamePlural}", 0, 15, 16, y)
-					.DrawText("Leader:", 0, 9, 16, (y += fontHeight + 4))
-					.DrawText($"Emperor {player.LeaderName}", 0, 15, 62, y);
-				
-				foreach (string line in player.Civilization.Leader.Traits())
-					this.DrawText(line, 0, 7, 24, (y += fontHeight));
+				this.FillRectangle(0, 25, 320, 172, CassetteTheme.BG0)
+					.DrawText($"Subject: the {player.TribeNamePlural}", 0, CassetteTheme.PHOS, 16, y)
+					.DrawText("Leader:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
+					.DrawText($"Emperor {player.LeaderName}", 0, CassetteTheme.INK_HIGH, 62, y);
 
-				this.DrawText("Capital:", 0, 9, 16, (y += fontHeight + 4))
-					.DrawText(player.Capital, 0, 15, 63, y)
-					.DrawText("Government:", 0, 9, 16, (y += fontHeight))
-					.DrawText(player.Government.Name, 0, 15, 83, y)
-					.DrawText("Treasury:", 0, 9, 16, (y += fontHeight))
-					.DrawText($"{player.Gold}$", 0, 15, 73, y)
-					.DrawText("Military:", 0, 9, 16, (y += fontHeight))
-					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, 15, 67, y)
-					.DrawText("Foreign Affairs:", 0, 9, 16, (y += fontHeight + 4))
-					.DrawText("Technologies:", 0, 9, 16, (y += fontHeight + 4));
+				foreach (string line in player.Civilization.Leader.Traits())
+					this.DrawText(line, 0, CassetteTheme.INK_LOW, 24, (y += fontHeight));
+
+				this.DrawText("Capital:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
+					.DrawText(player.Capital, 0, CassetteTheme.INK_HIGH, 63, y)
+					.DrawText("Government:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
+					.DrawText(player.Government.Name, 0, CassetteTheme.INK_HIGH, 83, y)
+					.DrawText("Treasury:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
+					.DrawText($"{player.Gold}$", 0, CassetteTheme.OK, 73, y)
+					.DrawText("Military:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
+					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, CassetteTheme.INK_HIGH, 67, y)
+					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
+					.DrawText("Technologies:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4));
 
 				args.Handled = true;
 				SetUpdate();
@@ -75,8 +74,8 @@ namespace CivOne.Screens.Reports
 				{
 					int unitCount = Game.GetUnits().Count(u => u.Owner == id && u.Home != null);
 
-					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, 5, 8, yy + 3)
-						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, 15, 8, yy + 2)
+					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.BG0, 8, yy + 3)
+						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.INK_HIGH, 8, yy + 2)
 						.DrawText($"{player.Government.Name}, {player.Gold}$, {unitCount} Units.", 0, colour, 160, yy + 2);
 
 					if (!player.IsHuman)

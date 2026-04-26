@@ -299,7 +299,7 @@ namespace CivOne.Screens
 
 			(string label, int rate, byte color)[] rows =
 			{
-				("PRODUCTION", taxRate * 10, CassetteTheme.PHOS_DIM),
+				("TAX",        taxRate * 10, CassetteTheme.PHOS_DIM),
 				("SCIENCE",    sciRate * 10, CassetteTheme.OK),
 				("LUXURY",     luxRate * 10, CassetteTheme.CYAN),
 			};

@@ -60,18 +60,20 @@ namespace CivOne.Screens.Reports
 			bool modernGovernment = Human.HasAdvance<Invention>();
 			for (int i = 0; i < 4; i++)
 			{
-				Portrait[i] = Icons.GovernmentPortrait(Human.Government, (Advisor)Enum.Parse(typeof(Advisor), $"{i}"), modernGovernment); 
+				Portrait[i] = Icons.GovernmentPortrait(Human.Government, (Advisor)Enum.Parse(typeof(Advisor), $"{i}"), modernGovernment);
 			}
-			using (Palette palette = Common.DefaultPalette)
+			using (Palette palette = CassetteTheme.CreatePalette())
 			{
 				palette.MergePalette(Portrait[0].Palette, 144);
 				Palette = palette;
 			}
-			
-			this.Clear(backgroundColour)
-				.DrawText(title, 0, 15, 160, 2, TextAlign.Center)
-				.DrawText(string.Format("{0} of the {1}", "Empire", Human.TribeNamePlural), 0, 15, 160, 10, TextAlign.Center)
-				.DrawText(string.Format("{0} {1}: {2}", "Emperor", Human.LeaderName, Game.GameYear), 0, 15, 160, 18, TextAlign.Center);
+
+			this.Clear(CassetteTheme.BG0)
+				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
+				.DrawText(title, 0, CassetteTheme.PHOS_GLOW, 160, 2, TextAlign.Center)
+				.DrawText(string.Format("{0} of the {1}", "Empire", Human.TribeNamePlural), 0, CassetteTheme.INK_MID, 160, 10, TextAlign.Center)
+				.DrawText(string.Format("{0} {1}: {2}", "Emperor", Human.LeaderName, Game.GameYear), 0, CassetteTheme.INK_LOW, 160, 18, TextAlign.Center);
 		}
 	}
 }

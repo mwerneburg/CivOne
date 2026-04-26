@@ -32,16 +32,16 @@ namespace CivOne.Screens.Reports
 			int totalIncome = _cities.Sum(c => c.Taxes);
 			int totalScience = _cities.Sum(c => c.Science);
 
-			this.DrawText("City Trade", 0, 15, 8, 32);
+			this.DrawText("City Trade", 0, CassetteTheme.PHOS, 8, 32);
 
 			int yy = 40;
 			for (int i = (_page++ * 18); i < _cities.Length && i < (_page * 18); i++)
 			{
 				City city = _cities[i];
 
-				this.DrawText(city.Name, 0, 5, 16, yy + 1)
-					.DrawText(city.Name, 0, 15, 16, yy)
-					.DrawText($"{city.Luxuries}{LUXURIES}/{city.Taxes}{GOLD}/{city.Science}{SCIENCE}", 0, 10, 86, yy);
+				this.DrawText(city.Name, 0, CassetteTheme.BG0, 16, yy + 1)
+					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, 16, yy)
+					.DrawText($"{city.Luxuries}{LUXURIES}/{city.Taxes}{GOLD}/{city.Science}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, 86, yy);
 
 				yy += Resources.GetFontHeight(0);
 			}
@@ -62,7 +62,7 @@ namespace CivOne.Screens.Reports
 		{
 			int totalCost = _cities.Sum(c => c.TotalMaintenance);
 
-			this.DrawText("Maintenance Cost", 0, 15, 160, 32);
+			this.DrawText("Maintenance Cost", 0, CassetteTheme.PHOS, 160, 32);
 
 			int yy = 40;
 			foreach (Building entry in Enum.GetValues(typeof(Building)))

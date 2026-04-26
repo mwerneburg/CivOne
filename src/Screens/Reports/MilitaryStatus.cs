@@ -31,13 +31,13 @@ namespace CivOne.Screens.Reports
 				int inProduction = production.Count(u => u.Type == unit.Type);
 				
 				this.AddLayer(unit.ToBitmap(player, false), ((i % 2 == 0) ? 1 : 18), 27 + (9 * i))
-					.FillRectangle(36, 30 + (i * 9), 284, 1, 9)
-					.DrawText(unit.Name, 0, 15, 36, 32 + (i * 9))
-					.DrawText($"({unit.Attack}/{unit.Defense}/{unit.Move})", 0, 11, 112, 32 + (i * 9));
+					.FillRectangle(36, 30 + (i * 9), 284, 1, CassetteTheme.BORDER)
+					.DrawText(unit.Name, 0, CassetteTheme.INK_HIGH, 36, 32 + (i * 9))
+					.DrawText($"({unit.Attack}/{unit.Defense}/{unit.Move})", 0, CassetteTheme.INK_MID, 112, 32 + (i * 9));
 				if (active > 0)
-					this.DrawText($"{active} active", 0, 15, 168, 32 + (i * 9));
+					this.DrawText($"{active} active", 0, CassetteTheme.PHOS_DIM, 168, 32 + (i * 9));
 				if (inProduction > 0)
-					this.DrawText($"{inProduction} in production", 0, 11, 232, 32 + (i * 9));
+					this.DrawText($"{inProduction} in production", 0, CassetteTheme.OK, 232, 32 + (i * 9));
 				
 				i++;
 			}

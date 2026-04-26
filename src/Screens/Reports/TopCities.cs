@@ -64,7 +64,7 @@ namespace CivOne.Screens.Reports
 					dx += 19;
 				}
 
-				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, 15, 160, yy + 3, TextAlign.Center);
+				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, CassetteTheme.INK_HIGH, 160, yy + 3, TextAlign.Center);
 			}
 
 			_update = false;
@@ -85,7 +85,7 @@ namespace CivOne.Screens.Reports
 		
 		public TopCities()
 		{
-			Palette = Common.DefaultPalette;
+			Palette = CassetteTheme.CreatePalette();
 
 			// I'm not sure about the order of top 5 cities, but this is pretty close
 			_cities = Game.GetCities()
@@ -97,10 +97,11 @@ namespace CivOne.Screens.Reports
 							.ThenBy(c => c.Citizens.Count(x => x == Citizen.UnhappyMale || x == Citizen.UnhappyFemale))
 							.Take(5)
 							.ToArray();
-			
-			this.Clear(3)
-				.DrawText("The Top Five Cities in the World", 0, 5, 80, 13)
-				.DrawText("The Top Five Cities in the World", 0, 15, 80, 12);
+
+			this.Clear(CassetteTheme.BG0)
+				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
+				.DrawText("The Top Five Cities in the World", 0, CassetteTheme.PHOS_GLOW, 160, 9, TextAlign.Center);
 		}
 	}
 }

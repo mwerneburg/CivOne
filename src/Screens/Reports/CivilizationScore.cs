@@ -36,7 +36,7 @@ namespace CivOne.Screens.Reports
 				Player p = players[i];
 				int yy = 28 + i * 20;
 				bool isHuman = (p == Human);
-				byte fg = isHuman ? (byte)15 : Common.ColourLight[(byte)p];
+				byte fg = isHuman ? CassetteTheme.PHOS_GLOW : Common.ColourLight[(byte)p];
 
 				if (isHuman)
 					this.FillRectangle(8, yy - 2, 304, 18, Common.ColourDark[(byte)p]);
