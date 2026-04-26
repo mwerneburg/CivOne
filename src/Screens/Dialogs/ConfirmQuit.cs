@@ -43,7 +43,7 @@ namespace CivOne.Screens.Dialogs
 			this.DrawText("Are you sure you want to quit?", 0, CassetteTheme.INK_HIGH,
 				px + pw / 2, py + 22, TextAlign.Center);
 
-			this.DrawText("Y - YES, QUIT", 0, CassetteTheme.ALERT,
+			this.DrawText("Y / ENTER - YES, QUIT", 0, CassetteTheme.ALERT,
 				px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Center);
 			this.DrawText("ESC / N - KEEP PLAYING", 0, CassetteTheme.INK_MID,
 				px + pw / 2, py + ph - fh - 6, TextAlign.Center);
@@ -58,7 +58,7 @@ namespace CivOne.Screens.Dialogs
 				Destroy();
 				return true;
 			}
-			if (Char.ToUpper(args.KeyChar) == 'Y')
+			if (Char.ToUpper(args.KeyChar) == 'Y' || args.Key == Key.Enter)
 			{
 				Runtime.Quit();
 				Destroy();

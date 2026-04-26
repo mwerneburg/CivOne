@@ -82,24 +82,51 @@ namespace CivOne.Graphics
 			}
 		}
 
-		// Draw a single citizen token in a slotW×slotH slot (default 8×16).
-		// Scales the filled rect proportionally within the slot.
-		// Uses only Cassette palette indices so all citizen types look
-		// consistent regardless of where the original SP257 sprite pixels landed.
+		// Draw a person-silhouette citizen icon in a slotW×slotH slot (default 8×16).
+		// Head (INK_HIGH) + colored torso + split legs. Specialist types get a
+		// color-coded stripe on the top of the head.
 		public static IBitmap DrawCitizenToken(this IBitmap bitmap, Citizen citizen, int x, int y,
 			int slotW = 8, int slotH = 16)
 		{
-			byte fill  = CitizenTokenColor(citizen);
-			int tokenW = slotW - 2;   // 1px margin each side
-			int tokenH = slotH - 4;   // 2px margin top + bottom
-			int tx     = x + 1;
-			int ty     = y + 2;
-			bitmap.FillRectangle(tx, ty, tokenW, tokenH, fill);
-			// thin dark frame (overwrites outer pixels of the fill)
-			bitmap.FillRectangle(tx,            ty,                tokenW, 1, CassetteTheme.BG0);
-			bitmap.FillRectangle(tx,            ty + tokenH - 1,  tokenW, 1, CassetteTheme.BG0);
-			bitmap.FillRectangle(tx,            ty,            1, tokenH,    CassetteTheme.BG0);
-			bitmap.FillRectangle(tx + tokenW - 1, ty,          1, tokenH,    CassetteTheme.BG0);
+			byte body = CitizenTokenColor(citizen);
+			byte head = CassetteTheme.INK_HIGH;
+
+			int iW  = slotW - 2;      // inner width  (1px margin each side)
+			int iH  = slotH - 2;      // inner height (1px margin top/bottom)
+			int ox  = x + 1;
+			int oy  = y + 1;
+
+			// ── head (top ≈25%, horizontally centered) ───────────────────────────
+			int headH = Math.Max(2, iH / 4);
+			int headW = Math.Max(2, iW - 2);
+			int headX = ox + (iW - headW) / 2;
+			bitmap.FillRectangle(headX, oy, headW, headH, head);
+
+			// Specialist hat stripe across top of head
+			bool isSpecialist = citizen == Citizen.Entertainer
+			                 || citizen == Citizen.Taxman
+			                 || citizen == Citizen.Scientist;
+			if (isSpecialist)
+			{
+				byte stripe = citizen == Citizen.Scientist ? CassetteTheme.CYAN
+				            : citizen == Citizen.Taxman    ? CassetteTheme.PHOS_DIM
+				            :                               CassetteTheme.PHOS;
+				bitmap.FillRectangle(headX, oy, headW, 1, stripe);
+			}
+
+			// ── torso (full width, below 1px neck gap) ───────────────────────────
+			int bodyY  = oy + headH + 1;
+			int bodyH  = iH - headH - 1;
+			int legH   = Math.Max(1, bodyH / 3);
+			int torsoH = bodyH - legH;
+			bitmap.FillRectangle(ox, bodyY, iW, torsoH, body);
+
+			// ── legs (two columns) ───────────────────────────────────────────────
+			int legY = bodyY + torsoH;
+			int legW = Math.Max(1, (iW - 1) / 2);
+			bitmap.FillRectangle(ox,             legY, legW, legH, body);
+			bitmap.FillRectangle(ox + iW - legW, legY, legW, legH, body);
+
 			return bitmap;
 		}
 

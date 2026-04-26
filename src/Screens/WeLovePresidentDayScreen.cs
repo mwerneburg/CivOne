@@ -11,6 +11,7 @@ using System;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using CivOne.Tasks;
 
 namespace CivOne.Screens
 {
@@ -22,8 +23,9 @@ namespace CivOne.Screens
 
 		private void GoToCity()
 		{
-			Destroy();
+			Show.DropAllWeLovePresidentDay();
 			Common.GamePlay?.CenterOnPoint(_city.X, _city.Y);
+			Destroy();
 		}
 
 		protected override bool HasUpdate(uint gameTick)

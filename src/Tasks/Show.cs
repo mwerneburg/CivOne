@@ -30,6 +30,11 @@ namespace CivOne.Tasks
 			Common.AddScreen(_screen);
 		}
 
+		internal static void DropAllWeLovePresidentDay()
+		{
+			RemoveQueued(t => t is Show s && s._screen is WeLovePresidentDayScreen);
+		}
+
 		public static Show Empty => new Show(Overlay.Empty);
 
 		public static Show InterfaceHelp => new Show(Overlay.InterfaceHelp);

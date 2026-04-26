@@ -61,6 +61,11 @@ namespace CivOne
 			_tasks.Insert(0, task);
 		}
 
+		protected static void RemoveQueued(Predicate<GameTask> match)
+		{
+			_tasks.RemoveAll(t => t != _currentTask && match(t));
+		}
+
 		private static void Finish(object sender, EventArgs args)
 		{
 			_tasks.Remove((sender as GameTask));

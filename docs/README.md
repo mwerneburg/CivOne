@@ -1,6 +1,6 @@
 # CivOne
 
-This is a fork of the CivOne project, which has had various homes over many years. I have finished the various victory cases, added features and rules that were not complete, and re-focused on a larger screen size than the original 15x12 playable area (31x22). Go To actually works.
+This is a fork of the CivOne project, which has had various homes over many years. I have finished the various victory cases, added features and rules that were not complete, and re-focused on a larger screen size than the original 15x12 playable area (31x22). Go To actually works. The main screen tells you what your form of government is.
 
 Because of the resize, the old city screen no longer rendered properly, so I have replaced it outright with a two-tone screen with a "cassette futurism" look. The sort of thing you could play on the Nostromo. I am slowly removing all the animations and replacing the various newspaper pop-ups with similar screens.
 

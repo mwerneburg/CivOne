@@ -434,7 +434,11 @@ namespace CivOne
 					Game.DisbandUnit(unit);
 				}
 				_destroyed = true;
-				Destroyed?.Invoke(this, EventArgs.Empty);
+				// Don't re-fire if this destruction was already recorded in a previous session
+				bool alreadyRecorded = Game.GetReplayData<ReplayData.CivilizationDestroyed>()
+					.Any(rd => rd.DestroyedId == Civilization.Id);
+				if (!alreadyRecorded)
+					Destroyed?.Invoke(this, EventArgs.Empty);
 				return true;
 			}
 			return false;
