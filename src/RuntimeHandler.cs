@@ -100,13 +100,17 @@ namespace CivOne
 			if (TopScreen == null) return;
 
 			Runtime.Palette?.Dispose();
-			// Use the last [Expand] screen's palette as the composite source: Expand screens
-			// (CityManager, GamePlay, etc.) carry the most complete palette and define the
-			// visual theme. Overlaid dialogs without the theme would otherwise replace it,
-			// causing palette corruption in the layers beneath them.
-			IScreen paletteSource = Common.Screens.LastOrDefault(s => Common.HasAttribute<Expand>(s))
-			                        ?? Common.TopScreen;
-			Runtime.Palette = paletteSource.Palette.Copy();
+			// Build a composite palette:
+			//   Base  = TopScreen palette  (preserves portrait colours at indices 144-255 etc.)
+			//   Then overlay the last non-top [Expand] screen's Cassette-theme range (1-17)
+			//   so the themed background (CityManager etc.) renders correctly even when a
+			//   plain-palette dialog sits on top.
+			Palette composite = Common.TopScreen.Palette.Copy();
+			IScreen themedScreen = Common.Screens
+				.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));
+			if (themedScreen != null)
+				composite.MergePalette(themedScreen.Palette, 1, 17);
+			Runtime.Palette = composite;
 			
 			if (Common.HasAttribute<Modal>(TopScreen))
 			{

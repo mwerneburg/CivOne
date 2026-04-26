@@ -18,6 +18,7 @@ using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class ChooseTech : BaseScreen
 	{
 		private int OX => (Width - 320) / 2;
