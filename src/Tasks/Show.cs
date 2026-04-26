@@ -117,7 +117,7 @@ namespace CivOne.Tasks
 
 		public static Show DisorderCity(City city) => new Show(CityView.Disorder(city));
 
- 		public static Show WeLovePresidentDayCity(City city) => new Show(CityView.WeLovePresidentDay(city));
+		public static Show WeLovePresidentDayCity(City city) => new Show(new WeLovePresidentDayScreen(city));
 
 		public static Show BuildPalace() => new Show(new PalaceView(true));
 

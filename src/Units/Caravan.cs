@@ -11,6 +11,7 @@ using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Tasks;
 using CivOne.Tiles;
+using CivOne.Wonders;
 
 namespace CivOne.Units
 {
@@ -77,7 +78,7 @@ namespace CivOne.Units
 			ITile moveTarget = Map[X, Y][relX, relY];
 			City city = moveTarget.City;
 
-			if (city == null || city == Home || (city.Owner == Owner && Home != null && moveTarget.DistanceTo(Home) < 10))
+			if (city == null || city == Home || (city.Owner == Owner && Home != null && moveTarget.DistanceTo(Home) < 10 && !(city.CurrentProduction is IWonder)))
 			{
 				MovementTo(relX, relY);
 				return true;

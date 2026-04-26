@@ -288,32 +288,27 @@ namespace CivOne.Screens
 			if (rateH < 14) return;
 			this.DrawCassettePanel(px, rateY, pw, rateH, "RATES");
 
-			// Tax / Lux / Sci as colored segments
+			// Tax / Lux / Sci stacked rows
 			int taxRate = _city.Player?.TaxesRate   ?? 0;
 			int luxRate = _city.Player?.LuxuriesRate ?? 0;
 			int sciRate = 10 - taxRate - luxRate;
 
-			int barX = px + 4;
-			int barW = pw - 8;
-			int barY = rateY + 8;
-			int barH = Math.Min(6, rateH - 12);
-			if (barH < 2) return;
+			int rowX = px + 4;
+			int rowW = pw - 8;
+			int rowY = rateY + 8;
 
-			int taxW = barW * taxRate / 10;
-			int luxW = barW * luxRate / 10;
-			int sciW = barW - taxW - luxW;
-
-			if (taxW > 0) this.FillRectangle(barX,          barY, taxW, barH, CassetteTheme.PHOS_DIM);
-			if (luxW > 0) this.FillRectangle(barX + taxW,   barY, luxW, barH, CassetteTheme.CYAN);
-			if (sciW > 0) this.FillRectangle(barX + taxW + luxW, barY, sciW, barH, CassetteTheme.OK);
-
-			// Labels below bar
-			int labelY = barY + barH + 2;
-			if (labelY + fh0 < rateY + rateH)
+			(string label, int rate, byte color)[] rows =
 			{
-				this.DrawText($"T{taxRate * 10}%", 0, CassetteTheme.PHOS_DIM, barX, labelY);
-				this.DrawText($"L{luxRate * 10}%", 0, CassetteTheme.CYAN,     barX + pw / 2, labelY, TextAlign.Center);
-				this.DrawText($"S{sciRate * 10}%", 0, CassetteTheme.OK,       barX + barW, labelY, TextAlign.Right);
+				("PRODUCTION", taxRate * 10, CassetteTheme.PHOS_DIM),
+				("SCIENCE",    sciRate * 10, CassetteTheme.OK),
+				("LUXURY",     luxRate * 10, CassetteTheme.CYAN),
+			};
+			foreach (var (label, rate, color) in rows)
+			{
+				if (rowY + fh0 > rateY + rateH) break;
+				this.DrawText(label,          0, CassetteTheme.INK_MID, rowX,          rowY);
+				this.DrawText($"{rate}%", 0, color,              rowX + rowW,   rowY, TextAlign.Right);
+				rowY += fh0 + 1;
 			}
 		}
 
