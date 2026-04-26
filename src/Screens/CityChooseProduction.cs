@@ -89,14 +89,10 @@ namespace CivOne.Screens
 				if (sel)
 					this.FillRectangle(px + 2, ry, pw - 4, RowH, CassetteTheme.PHOS_FAINT);
 
-				// Type tag: U / B / W
-				string tag = ItemCategory(item) == 0 ? "U" : ItemCategory(item) == 1 ? "B" : "W";
-				this.DrawText(tag, 0, CassetteTheme.INK_LOW, px + 4, ry);
-
 				// Name
 				string name = (item as ICivilopedia)?.Name ?? "?";
 				byte nameCol = sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
-				this.DrawText(name, 0, nameCol, px + 14, ry);
+				this.DrawText(name, 0, nameCol, px + 4, ry);
 
 				// Right: turns + combat stats for units
 				int turns = TurnsFor(item);
