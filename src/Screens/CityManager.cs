@@ -110,13 +110,19 @@ namespace CivOne.Screens
 			int fh0 = Resources.GetFontHeight(0);
 			int fh1 = Resources.GetFontHeight(1);
 
-			// Left: city name + empire/pop subtitle
+			// Left: city name (clickable → rename) + empire/pop subtitle
 			string empire = _city.Player?.Civilization?.NamePlural ?? "UNKNOWN";
 			string pop    = Common.NumberSeperator(_city.Population);
 			this.DrawText(_city.Name.ToUpper(), 1, CassetteTheme.PHOS,       hx + 6, hy + 3);
 			this.DrawText($"{empire} · POP {pop}", 0, CassetteTheme.INK_MID, hx + 6, hy + 3 + fh1 + 2);
 
-			// Right: ESC hint
+			// Right: rename hint + ESC
+			if (!_viewCity)
+			{
+				string renameHint = "R-RENAME";
+				int rnW = Resources.GetTextSize(0, renameHint).Width + 4;
+				this.DrawText(renameHint, 0, CassetteTheme.INK_LOW, hx + hw - rnW - 36, hy + (HeaderH - fh0) / 2);
+			}
 			string escLabel = "ESC";
 			int escW = Resources.GetTextSize(0, escLabel).Width + 8;
 			this.DrawText(escLabel, 0, CassetteTheme.INK_MID, hx + hw - escW, hy + (HeaderH - fh0) / 2);
@@ -401,26 +407,38 @@ namespace CivOne.Screens
 			int ph = GarrisonH;
 			this.DrawCassettePanel(px, py, pw, ph, "GARRISON");
 
-			IUnit[] units = Game.GetUnits()
+			IUnit[] present = Game.GetUnits()
 				.Where(u => u.X == _city.X && u.Y == _city.Y)
-				.Take((pw - 4) / 16)
+				.ToArray();
+			// Units homed here but currently away (supported remotely)
+			IUnit[] remote = _city.Units
+				.Where(u => u.X != _city.X || u.Y != _city.Y)
 				.ToArray();
 
-			if (units.Length == 0)
+			if (present.Length == 0 && remote.Length == 0)
 			{
 				this.DrawText("NONE", 0, CassetteTheme.INK_LOW, px + 4, py + 10);
 				return;
 			}
 
-			for (int i = 0; i < units.Length; i++)
+			int ux = px + 2;
+			foreach (IUnit unit in present)
 			{
-				int ux = px + 2 + i * 16;
 				if (ux + 16 > px + pw - 2) break;
-				this.AddLayer(units[i].ToBitmap(), ux, py + 7);
-
-				// Dim corner indicator for sentry/fortified units
-				if (units[i].Sentry || units[i].Fortify)
+				this.AddLayer(unit.ToBitmap(), ux, py + 7);
+				if (unit.Sentry || unit.Fortify)
 					this.FillRectangle(ux, py + 7, 4, 4, CassetteTheme.INK_LOW);
+				ux += 16;
+			}
+
+			// Remote units: show after a gap with a cyan corner tick
+			if (remote.Length > 0 && present.Length > 0) ux += 2;
+			foreach (IUnit unit in remote)
+			{
+				if (ux + 16 > px + pw - 2) break;
+				this.AddLayer(unit.ToBitmap(), ux, py + 7);
+				this.FillRectangle(ux + 12, py + 7, 4, 4, CassetteTheme.CYAN);
+				ux += 16;
 			}
 		}
 
@@ -491,6 +509,7 @@ namespace CivOne.Screens
 
 		// ─── hit testing ─────────────────────────────────────────────────────────
 
+		private Rectangle RenameRect    => new Rectangle(Margin, Margin, BodyW / 2, HeaderH);
 		private Rectangle MapRect       => new Rectangle(ColCenterX + 1, BodyY + 7, ColCenterW, ColCenterW);
 		private Rectangle HeaderRect    => new Rectangle(Margin, Margin, BodyW, HeaderH);
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
@@ -519,6 +538,14 @@ namespace CivOne.Screens
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			_mouseDown = true;
+
+			// City name click → rename
+			if (!_viewCity && RenameRect.Contains(args.Location)
+				&& args.Y < CitizenHeaderY)
+			{
+				OpenRename();
+				return true;
+			}
 
 			// Citizen click in header
 			if (!_viewCity && HeaderRect.Contains(args.Location))

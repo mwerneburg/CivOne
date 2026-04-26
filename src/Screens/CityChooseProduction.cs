@@ -8,191 +8,228 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using CivOne.Buildings;
 using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Graphics.Sprites;
 using CivOne.Units;
-using CivOne.UserInterface;
 using CivOne.Wonders;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class CityChooseProduction : BaseScreen
 	{
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
-
 		private readonly City _city;
-
-		private readonly IProduction[] _availableProduction;
-		private readonly int _fontId = 0;
-		private readonly List<IProduction[]> _pages = new List<IProduction[]>();
-
+		private readonly IProduction[] _items;  // units, then buildings, then wonders
+		private int _selection;
+		private int _scrollTop;
 		private bool _update = true;
-		private int _menuHeight;
-		private int _page = 0;
-		
-		private void MenuCancel(object sender, EventArgs args)
+
+		// ─── layout ──────────────────────────────────────────────────────────────
+
+		private int RowH         => Resources.GetFontHeight(0) + 1;
+		private int PanelW       => Math.Min(Width - 20, 300);
+		private int HeaderH      => Resources.GetFontHeight(1) + 10;
+		private int FooterH      => Resources.GetFontHeight(0) + 8;
+		private int MaxVisible   => Math.Max(4, (Height - 60 - HeaderH - FooterH) / RowH);
+		private int ListH        => MaxVisible * RowH + 4;
+		private int PanelH       => HeaderH + ListH + FooterH;
+		private int PanelX       => (Width  - PanelW) / 2;
+		private int PanelY       => (Height - PanelH) / 2;
+
+		// ─── actions ──────────────────────────────────────────────────────────────
+
+		private void Confirm()
 		{
-			CloseMenus();
+			_city.SetProduction(_items[_selection]);
 			Destroy();
 		}
 
-		private void ProductionChoice(object sender, EventArgs args)
+		private void EnsureVisible()
 		{
-			if (_pages.Count > 1 && ((sender as MenuItem<int>).Value == _pages[_page].Length))
-			{
-				CloseMenus();
-				_page++;
-				if (_page >= _pages.Count) _page = 0;
-				_menuHeight = Resources.GetFontHeight(1) * (_pages[_page].Length + 1);
-				_update = true;
-				return;
-			}
-			_city.SetProduction(_pages[_page].ToArray()[(sender as MenuItem<int>).Value]);
-			MenuCancel(sender, args);
+			if (_selection < _scrollTop)
+				_scrollTop = _selection;
+			if (_selection >= _scrollTop + MaxVisible)
+				_scrollTop = _selection - MaxVisible + 1;
 		}
 
-		private void ProductionContext(object sender, EventArgs args)
-		{
-			if (_pages.Count > 1 && ((sender as MenuItem<int>).Value == _pages[_page].Length))
-			{
-				ProductionChoice(sender, args);
-				return;
-			}
-			ICivilopedia page = (_pages[_page][(sender as MenuItem<int>).Value] as ICivilopedia);
-			Common.AddScreen(new Civilopedia(page, icon: false));
-		}
+		// ─── draw ────────────────────────────────────────────────────────────────
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_update)
+			if (!_update) return false;
+
+			int fh0 = Resources.GetFontHeight(0);
+			int fh1 = Resources.GetFontHeight(1);
+			int px = PanelX, py = PanelY, pw = PanelW;
+			int mvr = MaxVisible;
+
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
+			this.DrawCassettePanel(px, py, pw, PanelH);
+
+			// Header
+			this.DrawText($"BUILD IN {_city.Name.ToUpper()}", 1, CassetteTheme.PHOS, px + 5, py + 4);
+			this.DrawCassetteDivider(px + 2, py + HeaderH - 1, pw - 4);
+
+			// Item list
+			int listTop = py + HeaderH + 2;
+			IProduction prev = null;
+			for (int i = _scrollTop; i < _items.Length && i < _scrollTop + mvr; i++)
 			{
-				this.FillRectangle(0, 0, Width, Height, 0);
+				IProduction item = _items[i];
+				int ry = listTop + (i - _scrollTop) * RowH;
+				bool sel = (i == _selection);
 
-				List<string> menuItems = new List<string>();
-				string menuHeaderText = $"What shall we build in {_city.Name}?";
-				int itemWidth = Resources.GetTextSize(_fontId, menuHeaderText).Width;
-				foreach (IProduction production in _pages[_page])
+				// Category divider when type changes
+				if (prev != null && ItemCategory(item) != ItemCategory(prev))
+					this.DrawCassetteDivider(px + 2, ry, pw - 4);
+
+				if (sel)
+					this.FillRectangle(px + 2, ry, pw - 4, RowH, CassetteTheme.PHOS_FAINT);
+
+				// Type tag: U / B / W
+				string tag = ItemCategory(item) == 0 ? "U" : ItemCategory(item) == 1 ? "B" : "W";
+				this.DrawText(tag, 0, CassetteTheme.INK_LOW, px + 4, ry);
+
+				// Name
+				string name = (item as ICivilopedia)?.Name ?? "?";
+				byte nameCol = sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
+				this.DrawText(name, 0, nameCol, px + 14, ry);
+
+				// Right: turns + combat stats for units
+				int turns = TurnsFor(item);
+				string right = $"{turns}t";
+				if (item is IUnit u)
+					right += $"  {u.Attack}/{u.Defense}/{u.Move}";
+				byte rightCol = sel ? CassetteTheme.PHOS_DIM : CassetteTheme.INK_LOW;
+				this.DrawText(right, 0, rightCol, px + pw - 4, ry, TextAlign.Right);
+
+				prev = item;
+			}
+
+			// Scroll indicators (up/down arrows substituted by ASCII)
+			if (_scrollTop > 0)
+				this.DrawText("^", 0, CassetteTheme.INK_MID, px + pw - 10, listTop);
+			if (_scrollTop + mvr < _items.Length)
+				this.DrawText("v", 0, CassetteTheme.INK_MID, px + pw - 10, listTop + (mvr - 1) * RowH);
+
+			// Footer
+			int footerY = py + HeaderH + ListH + 2;
+			this.DrawCassetteDivider(px + 2, footerY - 1, pw - 4);
+			this.DrawText("UP/DN MOVE  LETTER JUMP  ENTER SELECT  ESC CANCEL",
+				0, CassetteTheme.INK_LOW, px + pw / 2, footerY + 2, TextAlign.Center);
+
+			_update = false;
+			return true;
+		}
+
+		// ─── helpers ──────────────────────────────────────────────────────────────
+
+		private static int ItemCategory(IProduction item)
+		{
+			if (item is IUnit)     return 0;
+			if (item is IBuilding) return 1;
+			return 2;
+		}
+
+		private int TurnsFor(IProduction item)
+		{
+			int remaining = (int)item.Price * 10 - _city.Shields;
+			if (_city.ShieldIncome > 1)
+				remaining = (int)Math.Ceiling((double)remaining / _city.ShieldIncome);
+			return Math.Max(1, remaining);
+		}
+
+		// ─── input ────────────────────────────────────────────────────────────────
+
+		public override bool KeyDown(KeyboardEventArgs args)
+		{
+			switch (args.Key)
+			{
+				case Key.Up:
+				case Key.NumPad8:
+					if (_selection > 0) { _selection--; EnsureVisible(); _update = true; }
+					return true;
+				case Key.Down:
+				case Key.NumPad2:
+					if (_selection < _items.Length - 1) { _selection++; EnsureVisible(); _update = true; }
+					return true;
+				case Key.Enter:
+					Confirm();
+					return true;
+				case Key.Escape:
+					Destroy();
+					return true;
+			}
+
+			// Letter cycling: find the next item whose name starts with this letter
+			char key = char.ToUpperInvariant(args.KeyChar);
+			if (key >= 'A' && key <= 'Z')
+			{
+				for (int i = 1; i <= _items.Length; i++)
 				{
-					string menuText = string.Empty;
-					if (production is IUnit)
+					int idx = (_selection + i) % _items.Length;
+					string name = (_items[idx] as ICivilopedia)?.Name ?? "";
+					if (name.Length > 0 && char.ToUpperInvariant(name[0]) == key)
 					{
-						IUnit unit = (production as IUnit);
-						int turns = ((int)unit.Price * 10) - _city.Shields;
-						if (_city.ShieldIncome > 1)
-							turns = (int)Math.Ceiling((double)turns / _city.ShieldIncome);
-						if (turns < 1) turns = 1;
-						menuText = $"{unit.Name} ({turns} turns, ADM:{unit.Attack}/{unit.Defense}/{unit.Move})";
-						if (Resources.GetTextSize(_fontId, menuText).Width > itemWidth) itemWidth = Resources.GetTextSize(_fontId, menuText).Width;
-					}
-					if (production is IBuilding)
-					{
-						IBuilding building = (production as IBuilding);
-						int turns = ((int)building.Price * 10) - _city.Shields;
-						if (_city.ShieldIncome > 1)
-							turns = (int)Math.Ceiling((double)turns / _city.ShieldIncome);
-						if (turns < 1) turns = 1;
-						menuText = $"{building.Name} ({turns} turns)";
-						if (Resources.GetTextSize(_fontId, menuText).Width > itemWidth) itemWidth = Resources.GetTextSize(_fontId, menuText).Width;
-					}
-					if (production is IWonder)
-					{
-						IWonder wonder = (production as IWonder);
-						int turns = ((int)wonder.Price * 10) - _city.Shields;
-						if (_city.ShieldIncome > 1)
-							turns = (int)Math.Ceiling((double)turns / _city.ShieldIncome);
-						if (turns < 1) turns = 1;
-						menuText = $"{wonder.Name} ({turns} turns)";
-						if (Game.WonderObsolete(wonder)) menuText = $"*{menuText}";
-						if (Resources.GetTextSize(_fontId, menuText).Width > itemWidth) itemWidth = Resources.GetTextSize(_fontId, menuText).Width;
-					}
-					menuItems.Add(menuText);
-				}
-				if (_pages.Count > 1)
-				{
-					menuItems.Add("More...");
-				}
-				itemWidth += 10;
-
-				int width = itemWidth + 14;
-				int height = _menuHeight + 10 + Resources.GetFontHeight(_fontId);
-
-				using (Picture menuGfx = new Picture(width, height))
-				{
-					menuGfx.Tile(Pattern.PanelGrey)
-						.DrawRectangle3D()
-						.DrawText(menuHeaderText, _fontId, 15, 4, 4)
-						.DrawText($"(Help available)", 1, 10, width, height - Resources.GetFontHeight(1), TextAlign.Right);
-
-					this.FillRectangle(80 + OX, 8 + OY, width + 2, height + 2, 5)
-						.AddLayer(menuGfx, 81 + OX, 9 + OY);
-
-					using (Picture background = menuGfx[2, 3 + Resources.GetFontHeight(_fontId), itemWidth, Resources.GetFontHeight(_fontId) * menuItems.Count + 4])
-					{
-						background.ColourReplace((7, 11), (22, 3));
-
-						Menu menu = new Menu(Palette, background)
-						{
-							X = 83 + OX,
-							Y = 12 + OY + Resources.GetFontHeight(_fontId),
-							MenuWidth = itemWidth,
-							ActiveColour = 11,
-							TextColour = 5,
-							FontId = _fontId
-						};
-
-						int i = 0;
-						foreach (string item in menuItems)
-						{
-							menu.Items.Add(item, i++)
-								.OnSelect(ProductionChoice)
-								.OnContext(ProductionContext);
-						}
-						menu.MenuWidth += 10;
-						menu.MissClick += MenuCancel;
-						menu.Cancel += MenuCancel;
-
-						AddMenu(menu);
+						_selection = idx;
+						EnsureVisible();
+						_update = true;
+						break;
 					}
 				}
-				_update = false;
+				return true;
 			}
 			return true;
 		}
 
+		public override bool MouseDown(ScreenEventArgs args)
+		{
+			int listTop = PanelY + HeaderH + 2;
+			int mvr     = MaxVisible;
+
+			// Click in list area: single-click selects, double-click (same row) confirms
+			if (args.X >= PanelX + 2 && args.X < PanelX + PanelW - 2
+				&& args.Y >= listTop && args.Y < listTop + mvr * RowH)
+			{
+				int row = (args.Y - listTop) / RowH;
+				int idx = _scrollTop + row;
+				if (idx >= 0 && idx < _items.Length)
+				{
+					if (idx == _selection)
+						Confirm();
+					else
+					{
+						_selection = idx;
+						_update = true;
+					}
+				}
+				return true;
+			}
+
+			// Click outside panel: cancel
+			Destroy();
+			return true;
+		}
+
+		// ─── lifecycle ────────────────────────────────────────────────────────────
+
 		public CityChooseProduction(City city) : base(MouseCursor.Pointer)
 		{
 			_city = city;
-			
-			Palette = Common.DefaultPalette;
 
-			_availableProduction = _city.AvailableProduction.ToArray();
-			_menuHeight = Resources.GetFontHeight(0) * _availableProduction.Length;
-			if (_menuHeight > 170)
-			{
-				_fontId = 1;
-				_menuHeight = Resources.GetFontHeight(1) * _availableProduction.Length;
-				if (_menuHeight > 170)
-				{
-					_pages.Add(_availableProduction.Where(p => (p is IUnit)).Take(28).ToArray());
-					if (_availableProduction.Count(p => (p is IBuilding || p is IWonder)) > 28)
-					{
-						_pages.Add(_availableProduction.Where(p => (p is IBuilding)).Take(28).ToArray());
-						_pages.Add(_availableProduction.Where(p => (p is IWonder)).Take(28).ToArray());
-					}
-					else
-					{
-						_pages.Add(_availableProduction.Where(p => (p is IBuilding || p is IWonder)).Take(28).ToArray());
-					}
-					_menuHeight = Resources.GetFontHeight(1) * (_pages[0].Length + 1);
-					return;
-				}
-			}
-			_pages.Add(_availableProduction);
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
+
+			var available = _city.AvailableProduction.ToArray();
+			_items = available.Where(p2 => p2 is IUnit)
+				.Concat(available.Where(p2 => p2 is IBuilding))
+				.Concat(available.Where(p2 => p2 is IWonder))
+				.ToArray();
 		}
 	}
 }
