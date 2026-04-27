@@ -424,7 +424,8 @@ namespace CivOne.Screens
 			foreach (IUnit unit in present)
 			{
 				if (ux + IconSize > px + pw - 2) break;
-				using (Bytemap scaled = unit.ToBitmap().Scale(2))
+				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
+				using (Bytemap scaled = iconSrc.Scale(2))
 					this.AddLayer(scaled, ux, py + 7);
 				if (unit.Sentry || unit.Fortify)
 					this.FillRectangle(ux, py + 7, 6, 6, CassetteTheme.INK_LOW);
@@ -436,7 +437,8 @@ namespace CivOne.Screens
 			foreach (IUnit unit in remote)
 			{
 				if (ux + IconSize > px + pw - 2) break;
-				using (Bytemap scaled = unit.ToBitmap().Scale(2))
+				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
+				using (Bytemap scaled = iconSrc.Scale(2))
 					this.AddLayer(scaled, ux, py + 7);
 				this.FillRectangle(ux + 26, py + 7, 6, 6, CassetteTheme.CYAN);
 				ux += IconSize + 1;

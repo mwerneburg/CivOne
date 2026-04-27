@@ -71,7 +71,8 @@ namespace CivOne
 					Wonders        = wonders,
 					ResourceTiles  = city.GetResourceTiles().Select(b => (int)b).ToArray(),
 					TradeRoutes    = tradeRoutes,
-					WasInDisorder  = city.WasInDisorder ? (bool?)true : null
+					WasInDisorder  = city.WasInDisorder  ? (bool?)true : null,
+					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null
 				});
 			}
 
@@ -215,6 +216,7 @@ namespace CivOne
 				var text = File.ReadAllText(cosFile);
 				var cos  = CosSerializer.Deserialize(text);
 				_instance = new Game(cos);
+				WLTKNotifications.Clear();
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
 				return true;
 			}
@@ -340,6 +342,7 @@ namespace CivOne
 				}
 
 				city.WasInDisorder = cd.WasInDisorder ?? false;
+				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
 				cityById[cd.Id] = city;
 				_cities.Add(city);
 			}

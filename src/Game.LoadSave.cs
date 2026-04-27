@@ -39,6 +39,7 @@ namespace CivOne
 
 				Map.Instance.LoadMap(mapFile, adapter.RandomSeed);
 				_instance = new Game(adapter);
+				WLTKNotifications.Clear();
 				_instance.LoadProductionQueues(sveFile);
 				Log($"Game instance loaded (difficulty: {_instance._difficulty}, competition: {_instance._competition}");
 			}

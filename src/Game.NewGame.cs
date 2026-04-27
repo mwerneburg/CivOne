@@ -163,7 +163,8 @@ namespace CivOne
 				return;
 			}
 			_instance = new Game(difficulty, competition, tribe, leaderName, tribeName, tribeNamePlural);
-			
+			WLTKNotifications.Clear();
+
 			foreach (IUnit unit in _instance._units)
 			{
 				unit.Explore();

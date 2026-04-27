@@ -855,11 +855,13 @@ namespace CivOne
 							}
 						}
 					}
-					GameTask.Insert(Show.WeLovePresidentDayCity(this));
 				}
+				WLTKNotifications.Add(Name);
 			}
 			else
 			{
+				if (WasWeLoveKing)
+					WLTKNotifications.Remove(Name);
 				WasWeLoveKing = false;
 			}
  			Food += IsInDisorder ? 0 : FoodIncome;

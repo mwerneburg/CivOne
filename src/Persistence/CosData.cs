@@ -107,7 +107,8 @@ namespace CivOne.Persistence
 		public int[] ResourceTiles { get; set; }
 		public int[] FortifiedUnits { get; set; }  // legacy: kept for loading old saves
 		public List<CosTradeRoute> TradeRoutes { get; set; }
-		public bool? WasInDisorder { get; set; }
+		public bool? WasInDisorder  { get; set; }
+		public bool? WasWeLoveKing  { get; set; }
 	}
 
 	public class CosTradeRoute

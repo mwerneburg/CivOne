@@ -24,7 +24,7 @@ namespace CivOne.Screens.GamePlayPanels
 	internal class SideBar : BaseScreen
 	{
 		private bool _update = true;
-		
+
 		private readonly Picture _miniMap, _demographics;
 		private Picture _gameInfo;
 		
@@ -186,8 +186,66 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 		}
 		
+		// ─── WLTK notification strip ──────────────────────────────────────────
+		// Drawn at the bottom of _gameInfo. Uses palette color 8 (white text)
+		// on a dark base. Will switch to Cassette amber in the sidebar redesign.
+		private const int NotifLineH = 8;
+		private const int NotifMaxLines = 5;
+
+		private int NotifPanelH
+		{
+			get
+			{
+				int n = WLTKNotifications.Cities.Count;
+				if (n == 0) return 0;
+				return Math.Min(n, NotifMaxLines) * NotifLineH + NotifLineH + 4; // entries + header + padding
+			}
+		}
+
+		private void DrawNotifications()
+		{
+			var cities = WLTKNotifications.Cities;
+			int gameInfoH = _gameInfo.Height;
+			int ph = NotifPanelH;
+
+			// Erase previous strip (redraw gameInfo will have left old pixels).
+			// We only touch the bottom ph rows of _gameInfo.
+			if (ph == 0)
+			{
+				// Nothing to draw — clear bottom strip just in case.
+				_gameInfo.FillRectangle(0, gameInfoH - NotifMaxLines * NotifLineH - NotifLineH - 4,
+					80, NotifMaxLines * NotifLineH + NotifLineH + 4, 0);
+				return;
+			}
+
+			int py = gameInfoH - ph;
+
+			// Divider above strip
+			_gameInfo.FillRectangle(2, py, 76, 1, 5);
+			py++;
+
+			// Header row: "WE LOVE" in the header color
+			_gameInfo.FillRectangle(2, py, 76, NotifLineH, 0);
+			_gameInfo.DrawText("WE LOVE THE KING:", 0, 11, 3, py, TextAlign.Left);
+			py += NotifLineH;
+
+			// City entries
+			int shown = 0;
+			foreach (string city in cities)
+			{
+				if (shown >= NotifMaxLines) break;
+				_gameInfo.FillRectangle(2, py, 76, NotifLineH, 0);
+				_gameInfo.DrawText($"  {city.ToUpper()}", 0, 8, 3, py, TextAlign.Left);
+				py += NotifLineH;
+				shown++;
+			}
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
+			if (WLTKNotifications.ConsumedDirty())
+				_update = true;
+
 			if (_update || (gameTick % 2 == 0))
 			{
 				if (!(Common.TopScreen is GamePlay))
@@ -196,11 +254,12 @@ namespace CivOne.Screens.GamePlayPanels
 				DrawMiniMap(gameTick);
 				DrawDemographics();
 				DrawGameInfo(gameTick);
-				
+				DrawNotifications();
+
 				this.AddLayer(_miniMap, 0, 0)
 					.AddLayer(_demographics, 0, 50)
 					.AddLayer(_gameInfo, 0, 89);
-				
+
 				_update = false;
 				return true;
 			}

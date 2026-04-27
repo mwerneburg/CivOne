@@ -9,62 +9,45 @@
 
 using System;
 using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
-	[OwnPalette]
+	[Expand, OwnPalette]
 	internal class CityName : BaseScreen
 	{
-		private readonly Input _input;
+		private Input _input;
 
 		public int NameId { get; private set; }
-
 		public string Value { get; private set; }
 
 		public event EventHandler Accept, Cancel;
 
+		private readonly string _initialName;
+
 		private void CityName_Accept(object sender, EventArgs args)
 		{
 			Value = (sender as Input).Text;
-			if (Accept != null)
-				Accept(this, null);
-			if (sender is Input)
-				((Input)sender)?.Close();
+			Accept?.Invoke(this, null);
+			((Input)sender)?.Close();
 			Destroy();
 		}
 
 		private void CityName_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
-				Cancel(this, null);
-			if (sender is Input)
-				((Input)sender)?.Close();
+			Cancel?.Invoke(this, null);
+			((Input)sender)?.Close();
 			Destroy();
 		}
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (!Common.HasScreenType<Input>())
-			{
-				Common.AddScreen(_input);
-			}
-			return false;
-		}
+			this.FillRectangle(0, 0, Width, Height, 0);
 
-		public CityName(int nameId, string cityName)
-		{
-			NameId = nameId;
-
-			Palette p = Common.DefaultPalette;
-			using (Palette cassette = CassetteTheme.CreatePalette())
-				p.MergePalette(cassette, 1, 17);
-			Palette = p;
-
-			// Centered 200×44 Cassette panel
 			const int pw = 200, ph = 44;
-			int px = (320 - pw) / 2;
-			int py = (200 - ph) / 2;
+			int px = (Width  - pw) / 2;
+			int py = (Height - ph) / 2;
 
 			// Panel fill + border
 			this.FillRectangle(px, py, pw, ph, CassetteTheme.BG1);
@@ -73,14 +56,14 @@ namespace CivOne.Screens
 			this.FillRectangle(px,          py,          1,  ph, CassetteTheme.BORDER);
 			this.FillRectangle(px + pw - 1, py,          1,  ph, CassetteTheme.BORDER);
 
-			// Title label straddling the top border (Cassette motif)
+			// Title label straddling the top border
 			int fh = Resources.GetFontHeight(0);
 			string label = " CITY NAME ";
 			int lw = Resources.GetTextSize(0, label).Width;
 			this.FillRectangle(px + 8, py, lw, 1, CassetteTheme.BG0);
 			this.DrawText(label, 0, CassetteTheme.PHOS, px + 8, py - fh / 2);
 
-			// Input field box
+			// Input well
 			int ix = px + 8;
 			int iy = py + 14;
 			int iw = pw - 16;
@@ -91,15 +74,40 @@ namespace CivOne.Screens
 			this.FillRectangle(ix,          iy,          1,  ih, CassetteTheme.BORDER);
 			this.FillRectangle(ix + iw - 1, iy,          1,  ih, CassetteTheme.BORDER);
 
-			// Hint below
+			// Hint
 			this.DrawText("ENTER to confirm  ESC to cancel", 0, CassetteTheme.INK_LOW,
 				px + pw / 2, py + ph - fh - 4, TextAlign.Center);
 
-			_input = new Input(Palette, cityName, 0,
-				CassetteTheme.INK_HIGH, CassetteTheme.PHOS_FAINT,
-				ix + 3, iy + 3, iw - 6, fh, 12);
-			_input.Accept += CityName_Accept;
-			_input.Cancel += CityName_Cancel;
+			// Create or reposition the Input
+			if (_input == null)
+			{
+				_input = new Input(Palette, _initialName, 0,
+					CassetteTheme.INK_HIGH, CassetteTheme.PHOS_FAINT,
+					ix + 3, iy + 3, iw - 6, fh, 12);
+				_input.Accept += CityName_Accept;
+				_input.Cancel += CityName_Cancel;
+			}
+			else
+			{
+				_input.X = ix + 3;
+				_input.Y = iy + 3;
+			}
+
+			if (!Common.HasScreenType<Input>())
+				Common.AddScreen(_input);
+
+			return true;
+		}
+
+		public CityName(int nameId, string cityName)
+		{
+			NameId = nameId;
+			_initialName = cityName;
+
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }
