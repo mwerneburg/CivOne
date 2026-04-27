@@ -1063,7 +1063,7 @@ namespace CivOne
 					RemoveBuilding(buildingToDestroy);
 
 					message.Add($"Earthquake in {Name}!");
-					message.Add($"{buildingToDestroy} destroyed!");
+					message.Add($"{buildingToDestroy.Name} destroyed!");
 
 					break;
 				}

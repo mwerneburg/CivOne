@@ -27,3 +27,8 @@ Platforms
 Technology
  + dotnet 10
  + YAML save files (hat tip to ChrisWi)
+
+Known issues
+ + No space race
+ + The unit graphics in the garrison (city view) are badly munched, and the citizens are barely two-legged sticks. Bear with me, folks.
+ + If WLTK can't grow a city, it spawns a free caravan. But that has home set to NONE.

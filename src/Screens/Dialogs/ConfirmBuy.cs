@@ -8,51 +8,86 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
 
 namespace CivOne.Screens.Dialogs
 {
-	internal class ConfirmBuy : BaseDialog
+	[OwnPalette]
+	internal class ConfirmBuy : BaseScreen
 	{
+		private bool _update = true;
+
 		public event EventHandler Buy;
 
-		private void MenuYes(object sender, EventArgs args)
+		protected override bool HasUpdate(uint gameTick)
 		{
-			if (Buy != null)
-				Buy(this, args);
-			Cancel();
+			if (!_update) return false;
+			_update = false;
+
+			const int pw = 200, ph = 72;
+			const int px = (320 - pw) / 2;
+			const int py = (200 - ph) / 2;
+
+			this.FillRectangle(px, py, pw, ph, CassetteTheme.BG1);
+			this.FillRectangle(px,          py,          pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py + ph - 1, pw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(px,          py,          1, ph, CassetteTheme.BORDER);
+			this.FillRectangle(px + pw - 1, py,          1, ph, CassetteTheme.BORDER);
+
+			// Title band
+			this.FillRectangle(px + 1, py + 1, pw - 2, 14, CassetteTheme.BG3);
+			this.FillRectangle(px + 1, py + 14, pw - 2, 1, CassetteTheme.BORDER);
+			this.DrawText("BUY NOW?", 0, CassetteTheme.PHOS, px + pw / 2, py + 4, TextAlign.Center);
+
+			int fh = Resources.GetFontHeight(0);
+			this.DrawText(_line1, 0, CassetteTheme.INK_MID,  px + pw / 2, py + 20, TextAlign.Center);
+			this.DrawText(_line2, 0, CassetteTheme.INK_HIGH, px + pw / 2, py + 20 + fh + 2, TextAlign.Center);
+			this.DrawText(_line3, 0, CassetteTheme.INK_MID,  px + pw / 2, py + 20 + (fh + 2) * 2, TextAlign.Center);
+
+			this.DrawText("Y / ENTER - YES, BUY", 0, CassetteTheme.PHOS_GLOW,
+				px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Center);
+			this.DrawText("ESC / N - CANCEL", 0, CassetteTheme.INK_MID,
+				px + pw / 2, py + ph - fh - 6, TextAlign.Center);
+
+			return true;
 		}
 
-		protected override void FirstUpdate()
+		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			Menu menu = new Menu(Palette, Selection(3, 28, TextWidth + 5, 20))
+			if (args.Key == Key.Escape || Char.ToUpper(args.KeyChar) == 'N')
 			{
-				X = 103,
-				Y = 108,
-				MenuWidth = TextWidth + 5,
-				ActiveColour = 11,
-				TextColour = 5,
-				FontId = 0
-			};
-			int i = 0;
-			foreach (string choice in new [] { "Yes", "No" })
-			{
-				menu.Items.Add(choice, i++);
+				Destroy();
+				return true;
 			}
-			menu.Items[0].Selected += MenuYes;
-			menu.Items[1].Selected += Cancel;
-
-			menu.MissClick += Cancel;
-			menu.Cancel += Cancel;
-			AddMenu(menu);
+			if (Char.ToUpper(args.KeyChar) == 'Y' || args.Key == Key.Enter)
+			{
+				Buy?.Invoke(this, EventArgs.Empty);
+				Destroy();
+				return true;
+			}
+			return false;
 		}
 
-		public ConfirmBuy(string name, short price, short treasury) : base(100, 80, 9, 23, new string[] { "Cost to complete", $"{name}: ${price}", $"Treasury: ${treasury}" })
+		public override bool MouseDown(ScreenEventArgs args)
 		{
-			for (int i = 0; i < TextLines.Length; i++)
-			{
-				DialogBox.AddLayer(TextLines[i], 5, (TextLines[i].Height * i) + 5);
-			}
+			Destroy();
+			return true;
+		}
+
+		private readonly string _line1, _line2, _line3;
+
+		public ConfirmBuy(string name, short price, short treasury) : base(MouseCursor.Pointer)
+		{
+			_line1 = "Cost to complete";
+			_line2 = $"{name}: ${price}";
+			_line3 = $"Treasury: ${treasury}";
+
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }
