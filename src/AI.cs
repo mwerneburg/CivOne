@@ -100,6 +100,13 @@ namespace CivOne
 				}
 				if (!unit.Goto.IsEmpty)
 				{
+					// Chieftain: build roads while in transit to the city site
+					if (Game.Difficulty == 0 && !tile.Road && !tile.RailRoad
+					    && tile.City == null && !tile.IsOcean)
+					{
+						GameTask.Enqueue(Orders.BuildRoad(unit));
+						return;
+					}
 					ITile next = Common.GotoStep(unit);
 					if (next == null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
@@ -110,7 +117,7 @@ namespace CivOne
 			}
 			else if (unit is Militia || unit is Phalanx || unit is Musketeers || unit is Riflemen || unit is MechInf)
 			{
-				unit.Fortify = true;
+				// Trim excess defenders in cities (per-city cap of 2)
 				while (unit.Tile.City != null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 2)
 				{
 					IUnit disband = null;
@@ -121,6 +128,25 @@ namespace CivOne
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Riflemen)) != null) { Game.DisbandUnit(disband); continue; }
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is MechInf)) != null) { Game.DisbandUnit(disband); continue; }
 				}
+
+				// Chieftain: militia explore toward fog-of-war instead of fortifying immediately
+				if (Game.Difficulty == 0 && unit is Militia)
+				{
+					if (unit.Goto.IsEmpty)
+					{
+						ITile dest = BestExploreTile(unit);
+						if (dest != null) unit.Goto = new Point(dest.X, dest.Y);
+					}
+					if (!unit.Goto.IsEmpty)
+					{
+						ITile next = Common.GotoStep(unit);
+						if (next == null) { unit.Goto = Point.Empty; unit.Fortify = true; return; }
+						if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
+						return;
+					}
+				}
+
+				unit.Fortify = true;
 			}
 			else
 			{
@@ -248,7 +274,9 @@ namespace CivOne
 
 			city.ClearProductionQueue();
 			var stance = GetStance();
-			var plan = PlanProduction(city, stance);
+			var plan = Game.Difficulty == 0
+				? PlanChieftain(city, stance)
+				: PlanProduction(city, stance);
 			city.SetProduction(plan[0]);
 			for (int i = 1; i < plan.Count; i++)
 				city.EnqueueProduction(plan[i]);

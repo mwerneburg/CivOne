@@ -638,7 +638,11 @@ namespace CivOne
 
 		private List<IProduction> PlanProduction(City city, StrategyStance stance)
 		{
-			var plan = new List<IProduction>();
+			return PlanProductionInto(new List<IProduction>(), city, stance);
+		}
+
+		private List<IProduction> PlanProductionInto(List<IProduction> plan, City city, StrategyStance stance)
+		{
 			void Consider(IProduction p)
 			{
 				if (plan.All(x => x.GetType() != p.GetType())) plan.Add(p);
@@ -710,6 +714,82 @@ namespace CivOne
 			}
 
 			return plan;
+		}
+
+		// ── Chieftain-specific production plan ────────────────────────────────
+
+		private List<IProduction> PlanChieftain(City city, StrategyStance stance)
+		{
+			var plan = new List<IProduction>();
+
+			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+			byte ownId     = Game.PlayerNumber(Player);
+			int ownCities  = Player.Cities.Length;
+			int ownMilitia = Game.GetUnits().Count(u => u.Owner == ownId && u is Militia);
+
+			// 1. Defensive unit if city is undefended
+			if (defenders < 1) plan.Add(BestDefender());
+
+			// 2. Barracks
+			if (!city.HasBuilding<Barracks>()) plan.Add(new Barracks());
+
+			// 3. Militia — capped at 2× city count
+			if (ownMilitia < ownCities * 2 && plan.All(x => !(x is Militia)))
+				plan.Add(new Militia());
+
+			// 4. First Settler — only if city is large enough to survive the shrink
+			if (city.Size >= 2 && plan.All(x => !(x is Settlers)))
+				plan.Add(new Settlers());
+
+			// 5. Temple
+			if (!city.HasBuilding<Temple>()) plan.Add(new Temple());
+
+			// 6. Second Settler
+			if (city.Size >= 2) plan.Add(new Settlers());
+
+			// 7. Append standard plan items (no duplicates)
+			PlanProductionInto(plan, city, stance);
+
+			return plan;
+		}
+
+		// ── exploration helpers ───────────────────────────────────────────────
+
+		internal ITile BestExploreTile(IUnit unit)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			ITile best = null;
+			int bestScore = 0; // only move if it adds value
+
+			for (int dy = -8; dy <= 8; dy++)
+			for (int dx = -8; dx <= 8; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int tx = (unit.X + dx + w) % w;
+				int ty = unit.Y + dy;
+				if (ty < 0 || ty >= h) continue;
+				ITile t = Map[tx, ty];
+				if (t == null || t.IsOcean) continue;
+				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
+				int score = CountUnseenTiles(tx, ty) - dist;
+				if (score > bestScore) { bestScore = score; best = t; }
+			}
+			return best;
+		}
+
+		private int CountUnseenTiles(int x, int y)
+		{
+			int count = 0;
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
+				int tx = (x + dx + Map.WIDTH) % Map.WIDTH;
+				int ty = y + dy;
+				if (ty < 0 || ty >= Map.HEIGHT) continue;
+				if (!Player.Visible(tx, ty)) count++;
+			}
+			return count;
 		}
 	}
 }

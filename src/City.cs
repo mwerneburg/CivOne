@@ -856,8 +856,12 @@ namespace CivOne
 							}
 						}
 					}
+					WLTKNotifications.Add(Name);
 				}
-				WLTKNotifications.Add(Name);
+				else
+				{
+					WLTKNotifications.Remove(Name); // expire after one turn
+				}
 			}
 			else
 			{
