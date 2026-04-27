@@ -962,11 +962,9 @@ namespace CivOne
 					Shields = 0;
 					if (CurrentProduction is ISpaceShip)
 					{
+						_buildings.Add(CurrentProduction as IBuilding);
 						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
-						message.Done += (s, a) => {
-							// TODO: Add space ship component
-							GameTask.Insert(Show.CityManager(this));
-						};
+						message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
 						GameTask.Enqueue(message);
 					}
 					else if (CurrentProduction is Palace)
