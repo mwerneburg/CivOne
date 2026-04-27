@@ -30,5 +30,5 @@ Technology
  + YAML save files (hat tip to ChrisWi)
 
 Known issues
- + No space race
+ + The space race exists, but it is extremely primitive; you build the various parts of the ship and it auto-launches when there are enough parts. It then exits the game when the ship arrives (which happens very quickly).
  + The unit graphics in the garrison (city view) are badly munched, and the citizens are barely two-legged sticks. Bear with me, folks.

@@ -156,7 +156,7 @@ namespace CivOne.Screens.GamePlayPanels
 			Player renderPlayer = Settings.RevealWorld ? null : Human;
 
 			IUnit activeUnit = ActiveUnit;
-			if (Game.MovingUnit != null && !_fullRedraw)
+			if (Game.MovingUnit != null)
 			{
 				IUnit movingUnit = Game.MovingUnit;
 				ITile tile = movingUnit.Tile;
@@ -178,7 +178,8 @@ namespace CivOne.Screens.GamePlayPanels
 					return true;
 				}
 			}
-			else if (_fullRedraw)
+
+			if (_fullRedraw)
 			{
 				_fullRedraw = false;
 				this.Clear(5)
