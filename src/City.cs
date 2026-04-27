@@ -847,7 +847,8 @@ namespace CivOne
 							}
 							else
 							{
-								Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
+								var caravan = Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
+								caravan.SetHome(this);
 								if (Human == Owner)
 									GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 										$"{Name} celebration: free Caravan!",
