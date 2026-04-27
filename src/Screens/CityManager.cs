@@ -617,11 +617,8 @@ namespace CivOne.Screens
 					var unitRect = new Rectangle(ux, GarrisonY + 7, 32, 32);
 					if (unitRect.Contains(args.Location))
 					{
-						if (units[i].Sentry || units[i].Fortify)
-						{
-							units[i].Busy      = false;
-							units[i].MovesLeft = units[i].Move;
-						}
+						units[i].Busy      = false;
+						units[i].MovesLeft = units[i].Move;
 						Game.ActiveUnit = units[i];
 						CloseScreen();
 						return true;

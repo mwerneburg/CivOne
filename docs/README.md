@@ -15,6 +15,7 @@ As for rule changes:
  + Upgradable military units (like Civ 2).
  + Autosave always on. Yes, I have a lock-up or two.
  + AI with real strategy. Yes, that includes stacking units. Watch out!
+ + If WLTKD can't grow a city, it spawns a free caravan.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
@@ -31,4 +32,3 @@ Technology
 Known issues
  + No space race
  + The unit graphics in the garrison (city view) are badly munched, and the citizens are barely two-legged sticks. Bear with me, folks.
- + If WLTK can't grow a city, it spawns a free caravan. But that has home set to NONE.
