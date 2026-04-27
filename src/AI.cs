@@ -129,8 +129,11 @@ namespace CivOne
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is MechInf)) != null) { Game.DisbandUnit(disband); continue; }
 				}
 
-				// Chieftain: militia explore toward fog-of-war instead of fortifying immediately
-				if (Game.Difficulty == 0 && unit is Militia)
+				// Chieftain: militia explore toward fog-of-war instead of fortifying immediately,
+				// but only if the city still has another defender (or the unit is already in the field).
+				bool lastCityDefender = unit.Tile.City != null
+					&& unit.Tile.Units.Count(u => u.Role == UnitRole.Defense) <= 1;
+				if (Game.Difficulty == 0 && unit is Militia && !lastCityDefender)
 				{
 					if (unit.Goto.IsEmpty)
 					{

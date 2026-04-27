@@ -37,7 +37,7 @@ namespace CivOne.Units
 				TribalHut();
 			}
 
-			bool riverBonus = Settings.Instance.RiverFastMovement && previousTile is River && Tile is River;
+			bool riverBonus = previousTile is River && Tile is River;
 			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City != null;
 			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City != null;
 			if (prevConnected && currConnected || riverBonus)

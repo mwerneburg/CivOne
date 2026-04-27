@@ -73,7 +73,7 @@ namespace CivOne
 		public RuntimeSettings()
 		{
 			DataCheck = true;
-			ShowCredits = true;
+			ShowCredits = false;
 			ShowIntro = true;
 			Free = false;
 		}
