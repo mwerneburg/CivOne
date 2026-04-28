@@ -511,8 +511,11 @@ namespace CivOne
 			while (x < 0) x += Map.WIDTH;
 			while (x >= Map.WIDTH) x-= Map.WIDTH;
 			if (y < 0) return null;
-			if (y >= Map.HEIGHT) return null; 
-			return _units.Where(u => u.X == x && u.Y == y).OrderBy(u => (u == ActiveUnit) ? 0 : (u.Fortify || u.FortifyActive ? 1 : 2)).ToArray();
+			if (y >= Map.HEIGHT) return null;
+			// Use the raw index field, not the ActiveUnit property, to avoid the
+			// circular: ActiveUnit → IsAboard → tile.Units → GetUnits → ActiveUnit
+			IUnit cur = (_activeUnit >= 0 && _activeUnit < _units.Count) ? _units[_activeUnit] : null;
+			return _units.Where(u => u.X == x && u.Y == y).OrderBy(u => (u == cur) ? 0 : (u.Fortify || u.FortifyActive ? 1 : 2)).ToArray();
 		}
 
 		internal IUnit[] GetUnits() => _units.ToArray();
