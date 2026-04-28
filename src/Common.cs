@@ -436,17 +436,6 @@ namespace CivOne
 			}
 		}
 
-		public static bool AllowSaveGame
-		{
-			get
-			{
-				if (!Map.Instance.Ready) return false;
-				
-				using (IGameData gameData = new SaveDataAdapter())
-				{
-					return gameData.ValidMapSize(Map.WIDTH, Map.HEIGHT);
-				}
-			}
-		}
+		public static bool AllowSaveGame => Map.Instance.Ready;
 	}
 }

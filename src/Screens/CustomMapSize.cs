@@ -37,9 +37,7 @@ namespace CivOne.Screens
 		{	
 			Palette = Common.GetPalette256;
 
-			this.Clear(3)
-				.DrawText("Warning! Save games will be disabled on", 1, 16, 159, 176, TextAlign.Center)
-				.DrawText("anything other than Normal map size...", 1, 16, 159, 184, TextAlign.Center);
+			this.Clear(3);
 
 			_sizeSelect = new Menu<Size>("CustomMapSize", Palette)
 			{
@@ -59,6 +57,7 @@ namespace CivOne.Screens
 			_sizeSelect.Items.Add("Normal (80x50)", new Size(80, 50));
 			_sizeSelect.Items.Add("Large (120x75)", new Size(120, 75));
 			_sizeSelect.Items.Add("Huge (160x100)", new Size(160, 100));
+			_sizeSelect.Items.Add("Epic (320x200)", new Size(320, 200));
 
 			foreach (MenuItem<Size> item in _sizeSelect.Items)
 			{
