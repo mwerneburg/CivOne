@@ -42,7 +42,7 @@ namespace CivOne.Screens
 				MenuWidth = GetMenuWidth(title, menuTexts),
 				TitleColour = 15,
 				ActiveColour = 11,
-				TextColour = 79,
+				TextColour = 15,
 				DisabledColour = 8,
 				FontId = 0
 			};

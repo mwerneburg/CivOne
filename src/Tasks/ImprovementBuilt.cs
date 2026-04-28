@@ -21,8 +21,15 @@ namespace CivOne.Tasks
 
 		private void ClosedCityView(object sender, EventArgs args)
 		{
-			if (Common.HasScreenType<CityManager>()) return;
-			
+			if (Common.HasScreenType<CityManager>())
+			{
+				// A CityManager was opened outside the task (e.g., player clicked a city
+				// during the Turn.End countdown). The production is complete; just end
+				// the task so the queue doesn't deadlock.
+				EndTask();
+				return;
+			}
+
 			CityManager cityManager = new CityManager(_city);
 			cityManager.Closed += (s, a) => EndTask();
 			Common.AddScreen(cityManager);

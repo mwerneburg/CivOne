@@ -522,7 +522,7 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 			if ((args.Buttons & MouseButton.Left) > 0)
 			{
-				if (city != null && (Human == city.Owner || Settings.RevealWorld))
+				if (city != null && (Human == city.Owner || Settings.RevealWorld) && !GameTask.Any())
 				{
 					Common.AddScreen(new CityManager(city));
 				}
