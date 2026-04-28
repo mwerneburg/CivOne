@@ -13,6 +13,7 @@ using CivOne.Buildings;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using CivOne.IO;
 
 namespace CivOne.Screens.Reports
 {
@@ -29,6 +30,20 @@ namespace CivOne.Screens.Reports
 		{
 			byte id = Game.PlayerNumber(p);
 			return Game.GetCities().Where(c => c.Owner == id).Sum(c => c.Buildings.Count(b => b is T));
+		}
+
+		// Nearest-neighbor scale of a Bytemap to the given target dimensions.
+		private static Bytemap ScaleBytemap(Bytemap src, int targetW, int targetH)
+		{
+			int sw = src.Width, sh = src.Height;
+			var dst = new Bytemap(targetW, targetH);
+			for (int dy = 0; dy < targetH; dy++)
+			{
+				int sy = dy * sh / targetH;
+				for (int dx = 0; dx < targetW; dx++)
+					dst[dx, dy] = src[dx * sw / targetW, sy];
+			}
+			return dst;
 		}
 
 		// ── drawing helpers ──────────────────────────────────────────────────────
@@ -118,11 +133,8 @@ namespace CivOne.Screens.Reports
 			IBitmap bg = Resources.SpacedockImage;
 			if (bg != null)
 			{
-				// Tile/clip the image across the full content area
-				int bgW = bg.Bitmap.Width, bgH = bg.Bitmap.Height;
-				for (int ty = 0; ty < contentH; ty += Math.Max(1, bgH))
-				for (int tx = 0; tx < vistaW + 20; tx += Math.Max(1, bgW))
-					this.AddLayer(bg, tx, headerH + ty);
+				Bytemap scaled = ScaleBytemap(bg.Bitmap, vistaW, contentH);
+				this.AddLayer(scaled, 0, headerH);
 			}
 
 			// Darken right side behind roster with a semi-opaque panel
