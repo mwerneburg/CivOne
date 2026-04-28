@@ -42,6 +42,17 @@ namespace CivOne
 		
 		private int _currentPlayer = 0;
 		private int _activeUnit;
+		private readonly HashSet<IUnit> _waitingUnits = new HashSet<IUnit>();
+
+		// True for a land unit sitting on a non-city tile with a boardable ship —
+		// it is effectively cargo and should not be prompted for orders.
+		private static bool IsAboard(IUnit unit)
+		{
+			if (unit.Class != UnitClass.Land) return false;
+			ITile tile = unit.Tile;
+			if (tile == null || tile.City != null) return false;
+			return tile.Units.Any(u => u is IBoardable);
+		}
 
 		private ushort _anthologyTurn = 0;
 
@@ -200,6 +211,7 @@ namespace CivOne
 
 		public void EndTurn()
 		{
+			_waitingUnits.Clear();
 			foreach (Player player in _players.Where(x => !(x.Civilization is Barbarian)))
 			{
 				player.IsDestroyed();
@@ -584,43 +596,63 @@ namespace CivOne
 			}
 		}
 
-		public void UnitWait() => _activeUnit++;
+		public void UnitWait()
+		{
+			if (_activeUnit < _units.Count)
+				_waitingUnits.Add(_units[_activeUnit]);
+			_activeUnit++;
+		}
 		
 		public IUnit ActiveUnit
 		{
 			get
 			{
-				if (_units.Count(u => u.Owner == _currentPlayer && !u.Busy) == 0)
+				if (!_units.Any(u => u.Owner == _currentPlayer && !u.Busy && !IsAboard(u)))
 					return null;
-				
-				// If the unit counter is too high, return to 0
+
 				if (_activeUnit >= _units.Count)
 					_activeUnit = 0;
-					
-				// Does the current unit still have moves left?
-				if (_units[_activeUnit].Owner == _currentPlayer && (_units[_activeUnit].MovesLeft > 0 || _units[_activeUnit].PartMoves > 0) && !_units[_activeUnit].Sentry && !_units[_activeUnit].Fortify)
+
+				// Fast path: current unit is still valid
+				if (_units[_activeUnit].Owner == _currentPlayer && (_units[_activeUnit].MovesLeft > 0 || _units[_activeUnit].PartMoves > 0) && !_units[_activeUnit].Sentry && !_units[_activeUnit].Fortify && !_waitingUnits.Contains(_units[_activeUnit]) && !IsAboard(_units[_activeUnit]))
 					return _units[_activeUnit];
 
-				// Task busy, don't change the active unit
+				// Task busy — hold position
 				if (GameTask.Any())
 					return _units[_activeUnit];
-				
-				// Check if any units are still available for this player
-				if (!_units.Any(u => u.Owner == _currentPlayer && (u.MovesLeft > 0 || u.PartMoves > 0) && !u.Busy))
+
+				// No movable units left this turn (waited units don't count here)
+				if (!_units.Any(u => u.Owner == _currentPlayer && (u.MovesLeft > 0 || u.PartMoves > 0) && !u.Busy && !IsAboard(u)))
 				{
 					if (CurrentPlayer == HumanPlayer && !EndOfTurn && !GameTask.Any() && (Common.TopScreen is GamePlay))
-					{
 						GameTask.Enqueue(Turn.End());
-					}
 					return null;
 				}
-				
-				// Loop through units
-				while (_units[_activeUnit].Owner != _currentPlayer || (_units[_activeUnit].MovesLeft == 0 && _units[_activeUnit].PartMoves == 0) || (_units[_activeUnit].Sentry || _units[_activeUnit].Fortify))
+
+				// Advance to the next valid unit, skipping waited and aboard units.
+				// If we wrap all the way around without finding one, the player has
+				// waited every remaining unit — clear the queue and pick freely.
+				int startIdx = _activeUnit;
+				while (true)
 				{
 					_activeUnit++;
-					if (_activeUnit >= _units.Count)
-						_activeUnit = 0;
+					if (_activeUnit >= _units.Count) _activeUnit = 0;
+
+					var u = _units[_activeUnit];
+					if (u.Owner == _currentPlayer && (u.MovesLeft > 0 || u.PartMoves > 0) && !u.Sentry && !u.Fortify && !_waitingUnits.Contains(u) && !IsAboard(u))
+						break;
+
+					if (_activeUnit == startIdx)
+					{
+						// Full lap with no candidate — release the wait queue
+						_waitingUnits.Clear();
+						while (_units[_activeUnit].Owner != _currentPlayer || (_units[_activeUnit].MovesLeft == 0 && _units[_activeUnit].PartMoves == 0) || _units[_activeUnit].Sentry || _units[_activeUnit].Fortify || IsAboard(_units[_activeUnit]))
+						{
+							_activeUnit++;
+							if (_activeUnit >= _units.Count) _activeUnit = 0;
+						}
+						break;
+					}
 				}
 				return _units[_activeUnit];
 			}

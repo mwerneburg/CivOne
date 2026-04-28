@@ -162,7 +162,7 @@ namespace CivOne.Screens.GamePlayPanels
 				ITile tile = movingUnit.Tile;
 				int dx = GetX(tile);
 				int dy = GetY(tile);
-				if (dx < _tilesX && dy < _tilesY)
+				if (dx >= 0 && dy >= 0 && dx < _tilesX && dy < _tilesY)
 				{
 					dx *= 16; dy *= 16;
 
