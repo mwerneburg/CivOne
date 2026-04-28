@@ -14,6 +14,7 @@ using System.Reflection;
 using CivOne.Enums;
 using CivOne.Graphics;
 using CivOne.Graphics.ImageFormats;
+using CivOne.IO;
 
 namespace CivOne
 {
@@ -26,6 +27,8 @@ namespace CivOne
 		private static Stream HelpTextTxt => GetInternalResource("HelpText.txt");
 
 		private static Stream WindowIcon => GetInternalResource("WindowIcon.gif");
+
+		private static Stream SpacedockGif => GetInternalResource("spacedock.gif");
 
 		private static string GetResourceString(Stream resource)
 		{
@@ -56,5 +59,16 @@ namespace CivOne
 		}
 		
 		public static string HelpText => GetResourceString(HelpTextTxt);
+
+		public static IBitmap GetSpacedock()
+		{
+			using (Stream s = SpacedockGif)
+			using (MemoryStream ms = new MemoryStream())
+			{
+				if (s == null) return null;
+				s.CopyTo(ms);
+				return new GifFile(ms.ToArray()).GetBitmap();
+			}
+		}
 	}
 }

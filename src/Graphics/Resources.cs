@@ -321,6 +321,9 @@ namespace CivOne.Graphics
 			return _palacePart[combine];
 		}
 		
+		// Runtime-injected images (set by the SDL/API layer at startup)
+		public static IBitmap SpacedockImage { get; set; }
+
 		private static Resources _instance;
 		public static Resources Instance
 		{

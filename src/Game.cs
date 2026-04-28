@@ -160,12 +160,42 @@ namespace CivOne
 
 		internal IEnumerable<Player> Players => _players;
 
+		// mass_ht = comps×4 + mods×4 + str (in hundred-ton units)
+		// flight_years = (4445 + mass_ht) / (100 × engines)  where engines = comps/2
+		internal static float SpaceshipFlightYears(int structural, int component, int module)
+		{
+			int engines = Math.Max(1, component / 2);
+			int massHt = component * 4 + module * 4 + structural;
+			return (4445f + massHt) / (100f * engines);
+		}
+
+		internal static int SpaceshipStructuresNeeded(int component, int module)
+		{
+			int engines = component / 2;
+			int modSets = module / 3;
+			return 15 + Math.Max(0, engines - 2) * 4 + Math.Max(0, modSets - 1) * 4;
+		}
+
+		// Success: 70% base (1 engine), +6.67% per additional engine up to +20%,
+		//          +10% per additional module set above 1, capped at 100%.
+		internal static int SpaceshipSuccessPct(int component, int module)
+		{
+			int engines = component / 2;
+			int modSets = module / 3;
+			int engineBonus = Math.Min(20, (engines - 1) * 20 / 3);
+			int moduleBonus = Math.Min(10, Math.Max(0, modSets - 1) * 10);
+			return Math.Min(100, 70 + engineBonus + moduleBonus);
+		}
+
+		// Score contribution: hab_modules × 500 × success% / 100
+		internal static int SpaceshipScore(int module, int component)
+		{
+			return module * 500 * SpaceshipSuccessPct(component, module) / 100;
+		}
+
 		private static int SpaceshipTravelTurns(int structural, int component, int module)
 		{
-			int bonus = Math.Max(0, structural - 4)
-			          + Math.Max(0, component - 4) * 2
-			          + Math.Max(0, module - 2) * 4;
-			return Math.Max(1, 20 - bonus);
+			return Math.Max(1, (int)Math.Ceiling(SpaceshipFlightYears(structural, component, module)));
 		}
 
 		public void EndTurn()
@@ -186,7 +216,9 @@ namespace CivOne
 					int structural = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSStructural));
 					int component  = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSComponent));
 					int module     = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSModule));
-					if (structural < 4 || component < 4 || module < 2) continue;
+					// Minimum: 1 engine (2 comps), 1 module set (3 mods), sufficient structure
+					int needed = SpaceshipStructuresNeeded(component, module);
+					if (component < 2 || module < 3 || structural < needed) continue;
 					if (SpaceshipLaunchTurn[p] != 0) continue;
 
 					SpaceshipLaunchTurn[p] = _gameTurn;

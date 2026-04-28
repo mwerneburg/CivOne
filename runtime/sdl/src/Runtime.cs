@@ -14,6 +14,7 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.IO;
 using CivOne.Graphics;
+using CoreRes = CivOne.Graphics.Resources;
 
 namespace CivOne
 {
@@ -81,9 +82,10 @@ namespace CivOne
 		void IRuntime.Quit() => SignalQuit = true;
 
 		public Runtime(RuntimeSettings settings)
-		{	
+		{
 			Settings = settings;
 			Profile = Profile.Get(this, settings.Get<string>("profile-name"));
+			CoreRes.SpacedockImage = Resources.GetSpacedock();
 			RuntimeHandler.Register(this);
 		}
 
