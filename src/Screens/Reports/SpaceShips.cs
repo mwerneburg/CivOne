@@ -161,16 +161,16 @@ namespace CivOne.Screens.Reports
 			DrawCornerBracket(vx2 - 1, vy2 - 1, 2);
 			DrawCornerBracket(vx1,     vy2 - 1, 3);
 
-			// Telemetry lines top-left
-			int tx0 = vx1 + 12, tly = vy1 + 4;
-			this.DrawText("ORBITAL SHIPYARD · L4",  0, CassetteTheme.PHOS_DIM, tx0, tly);      tly += 9;
-			this.DrawText($"ENGINES ·· {engines:D2}",      0, CassetteTheme.PHOS_DIM, tx0, tly); tly += 9;
-			this.DrawText($"MOD·SETS ·· {modSets:D2}",     0, CassetteTheme.PHOS_DIM, tx0, tly); tly += 9;
-			this.DrawText($"STRUCTURE · {str:D2}/{strNeeded:D2}", 0, str >= strNeeded ? CassetteTheme.OK : CassetteTheme.WARN, tx0, tly);
+			// Telemetry lines top-right (open sky area)
+			int tx0 = vx2 - 12, tly = vy1 + 4;
+			this.DrawText("ORBITAL SHIPYARD · L4",  0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right);      tly += 9;
+			this.DrawText($"ENGINES ·· {engines:D2}",      0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right); tly += 9;
+			this.DrawText($"MOD·SETS ·· {modSets:D2}",     0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right); tly += 9;
+			this.DrawText($"STRUCTURE · {str:D2}/{strNeeded:D2}", 0, str >= strNeeded ? CassetteTheme.OK : CassetteTheme.WARN, tx0, tly, TextAlign.Right);
 
-			// Telemetry lines bottom-right
+			// Telemetry lines bottom-right — anchored above the progress bar (barY = vy2-18)
 			int trx = vx2 - 4;
-			int bly = vy2 - 4 - 9 * 3;
+			int bly = vy2 - 18 - 6 - 9 * 3;
 			this.DrawText($"TRAVEL ·· {flightYrs:F1} YRS", 0, CassetteTheme.PHOS_DIM, trx, bly, TextAlign.Right); bly += 9;
 			this.DrawText($"SUCCESS · {successPct}%",  0, successPct >= 90 ? CassetteTheme.OK : successPct >= 75 ? CassetteTheme.WARN : CassetteTheme.ALERT, trx, bly, TextAlign.Right); bly += 9;
 			this.DrawText($"SCORE ··· +{score}",        0, CassetteTheme.PHOS_DIM, trx, bly, TextAlign.Right);

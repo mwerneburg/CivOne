@@ -26,7 +26,7 @@ namespace CivOne.Screens.Dialogs
 			if (!_update) return false;
 			_update = false;
 
-			const int pw = 200, ph = 72;
+			const int pw = 200, ph = 84;
 			const int px = (320 - pw) / 2;
 			const int py = (200 - ph) / 2;
 
