@@ -660,8 +660,7 @@ namespace CivOne
 			{
 				if (value == null || value.MovesLeft == 0 && value.PartMoves == 0)
 					return;
-				value.Sentry = false;
-				value.Fortify = false;
+				value.Busy = false;   // clears Sentry, Fortify, and FortifyActive
 				_activeUnit = _units.IndexOf(value);
 			}
 		}

@@ -461,12 +461,12 @@ namespace CivOne.Screens.GamePlayPanels
 					return true;
 				case 'W':
 				{
-					IUnit sentry = Game.GetUnits().FirstOrDefault(u => Human == u.Owner && u.Sentry);
-					if (sentry != null)
+					IUnit sleeping = Game.GetUnits().FirstOrDefault(u => Human == u.Owner && (u.Sentry || u.Fortify));
+					if (sleeping != null)
 					{
-						sentry.Sentry   = false;
-						sentry.MovesLeft = sentry.Move;
-						Game.ActiveUnit = sentry;
+						sleeping.Busy    = false;
+						sleeping.MovesLeft = sleeping.Move;
+						Game.ActiveUnit  = sleeping;
 						return true;
 					}
 					return false;
