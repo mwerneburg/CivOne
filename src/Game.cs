@@ -42,6 +42,7 @@ namespace CivOne
 		
 		private int _currentPlayer = 0;
 		private int _activeUnit;
+		private bool _activeUnitExplicit = false;
 		private readonly HashSet<IUnit> _waitingUnits = new HashSet<IUnit>();
 
 		// True for a land unit sitting on a non-city tile with a boardable ship —
@@ -212,6 +213,7 @@ namespace CivOne
 		public void EndTurn()
 		{
 			_waitingUnits.Clear();
+			_activeUnitExplicit = false;
 			foreach (Player player in _players.Where(x => !(x.Civilization is Barbarian)))
 			{
 				player.IsDestroyed();
@@ -610,19 +612,25 @@ namespace CivOne
 		{
 			get
 			{
-				if (!_units.Any(u => u.Owner == _currentPlayer && !u.Busy && !IsAboard(u)))
+				if (!_units.Any(u => u.Owner == _currentPlayer && !u.Busy && (!IsAboard(u) || _activeUnitExplicit)))
 					return null;
 
 				if (_activeUnit >= _units.Count)
 					_activeUnit = 0;
 
-				// Fast path: current unit is still valid
-				if (_units[_activeUnit].Owner == _currentPlayer && (_units[_activeUnit].MovesLeft > 0 || _units[_activeUnit].PartMoves > 0) && !_units[_activeUnit].Sentry && !_units[_activeUnit].Fortify && !_waitingUnits.Contains(_units[_activeUnit]) && !IsAboard(_units[_activeUnit]))
-					return _units[_activeUnit];
+				var cur = _units[_activeUnit];
+
+				// Fast path: current unit is still valid.
+				// Respect _activeUnitExplicit to allow a player-selected cargo unit through.
+				if (cur.Owner == _currentPlayer && (cur.MovesLeft > 0 || cur.PartMoves > 0) && !cur.Sentry && !cur.Fortify && !_waitingUnits.Contains(cur) && (_activeUnitExplicit || !IsAboard(cur)))
+					return cur;
+
+				// Explicit flag only survives one fast-path miss; the scanning loop picks freely.
+				_activeUnitExplicit = false;
 
 				// Task busy — hold position
 				if (GameTask.Any())
-					return _units[_activeUnit];
+					return cur;
 
 				// No movable units left this turn (waited units don't count here)
 				if (!_units.Any(u => u.Owner == _currentPlayer && (u.MovesLeft > 0 || u.PartMoves > 0) && !u.Busy && !IsAboard(u)))
@@ -665,6 +673,7 @@ namespace CivOne
 					return;
 				value.Busy = false;   // clears Sentry, Fortify, and FortifyActive
 				_activeUnit = _units.IndexOf(value);
+				_activeUnitExplicit = IsAboard(value);
 			}
 		}
 
