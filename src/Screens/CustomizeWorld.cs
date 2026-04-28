@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Drawing;
 using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
@@ -17,7 +18,17 @@ namespace CivOne.Screens
 {
 	internal class CustomizeWorld : BaseScreen
 	{
-		private int _landMass = -1, _temperature = -1, _climate = -1, _age = -1;
+		private static readonly (string Label, Size Size)[] MapSizes = new[]
+		{
+			("Tiny (40x25)",   new Size(40,  25)),
+			("Small (60x40)",  new Size(60,  40)),
+			("Normal (80x50)", new Size(80,  50)),
+			("Large (120x75)", new Size(120, 75)),
+			("Huge (160x100)", new Size(160, 100)),
+			("Epic (320x200)", new Size(320, 200)),
+		};
+
+		private int _mapSize = -1, _landMass = -1, _temperature = -1, _climate = -1, _age = -1;
 		private bool _hasUpdate = true;
 
 		private bool _closing = false;
@@ -55,6 +66,12 @@ namespace CivOne.Screens
 			return menu;
 		}
 		
+		private void SetMapSize(object sender, MenuItemEventArgs<int> args)
+		{
+			_mapSize = args.Value;
+			_hasUpdate = true;
+		}
+
 		private void SetLandMass(object sender, MenuItemEventArgs<int> args)
 		{
 			Log("Customize World - Land Mass: {0}", _landMass);
@@ -90,7 +107,8 @@ namespace CivOne.Screens
 				if (!HandleScreenFadeOut())
 				{
 					Destroy();
-					Map.Generate(_landMass, _temperature, _climate, _age);
+					Size sz = MapSizes[_mapSize].Size;
+					Map.Generate(_landMass, _temperature, _climate, _age, sz.Width, sz.Height);
 					if (!Runtime.Settings.ShowIntro)
 					{
 						Common.AddScreen(new NewGame());
@@ -104,8 +122,9 @@ namespace CivOne.Screens
 			}
 			
 			if (!_hasUpdate) return false;
-			
-			if (_landMass < 0) AddMenu(CreateMenu(6, "LAND MASS:", SetLandMass, "Small", "Normal", "Large"));
+
+			if (_mapSize < 0) AddMenu(CreateMenu(6, "MAP SIZE:", SetMapSize, "Tiny (40x25)", "Small (60x40)", "Normal (80x50)", "Large (120x75)", "Huge (160x100)", "Epic (320x200)"));
+			else if (_landMass < 0) AddMenu(CreateMenu(6, "LAND MASS:", SetLandMass, "Small", "Normal", "Large"));
 			else if (_temperature < 0) AddMenu(CreateMenu(56, "TEMPERATURE:", SetTemperature, "Cool", "Temperate", "Warm"));
 			else if (_climate < 0) AddMenu(CreateMenu(106, "CLIMATE:", SetClimate, "Arid", "Normal", "Wet"));
 			else if (_age < 0) AddMenu(CreateMenu(156, "AGE:", SetAge, "3 billion years", "4 billion years", "5 billion years"));

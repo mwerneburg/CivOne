@@ -588,40 +588,21 @@ namespace CivOne
 			Log("Map: Ready");
 		}
 		
-		public void Generate(int landMass = 1, int temperature = 1, int climate = 1, int age = 1)
+		public void Generate(int landMass = 1, int temperature = 1, int climate = 1, int age = 1, int width = 80, int height = 50)
 		{
 			if (Ready || _tiles != null)
 			{
 				Log("ERROR: Map is already load{0}/generat{0}", (Ready ? "ed" : "ing"));
 				return;
 			}
-			
-			if (Settings.Instance.CustomMapSize)
-			{
-				CustomMapSize customMapSize = new CustomMapSize();
-				customMapSize.Closed += (s, a) =>
-				{
-					Size mapSize = (s as CustomMapSize).MapSize;
-					_width = mapSize.Width;
-					_height = mapSize.Height;
 
-					_landMass = landMass;
-					_temperature = temperature;
-					_climate = climate;
-					_age = age;
-					
-					Task.Run(() => GenerateThread());
-				};
-
-				GameTask.Insert(Show.Screen(customMapSize));
-				return;
-			}
-			
+			_width = width;
+			_height = height;
 			_landMass = landMass;
 			_temperature = temperature;
 			_climate = climate;
 			_age = age;
-			
+
 			Task.Run(() => GenerateThread());
 		}
 	}
