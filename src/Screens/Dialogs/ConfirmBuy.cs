@@ -46,7 +46,7 @@ namespace CivOne.Screens.Dialogs
 			this.DrawText(_line2, 0, CassetteTheme.INK_HIGH, px + pw / 2, py + 20 + fh + 2, TextAlign.Center);
 			this.DrawText(_line3, 0, CassetteTheme.INK_MID,  px + pw / 2, py + 20 + (fh + 2) * 2, TextAlign.Center);
 
-			this.DrawText("Y / ENTER - YES, BUY", 0, CassetteTheme.PHOS_GLOW,
+			this.DrawText("Y / ENTER - BUY", 0, CassetteTheme.PHOS_GLOW,
 				px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Center);
 			this.DrawText("ESC / N - CANCEL", 0, CassetteTheme.INK_MID,
 				px + pw / 2, py + ph - fh - 6, TextAlign.Center);

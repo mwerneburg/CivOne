@@ -24,7 +24,7 @@ namespace CivOne.Screens.Dialogs
 			if (!_update) return false;
 			_update = false;
 
-			const int pw = 200, ph = 68;
+			const int pw = 200, ph = 68; // dimensions of the text box (I think)
 			const int px = (320 - pw) / 2;
 			const int py = (200 - ph) / 2;
 
@@ -41,12 +41,15 @@ namespace CivOne.Screens.Dialogs
 
 			int fh = Resources.GetFontHeight(0);
 			this.DrawText("Are you sure you want to quit?", 0, CassetteTheme.INK_HIGH,
-				px + pw / 2, py + 22, TextAlign.Center);
+				px + 5, py + 22, TextAlign.Left);
+				// px + pw / 2, py + 22, TextAlign.Left);
 
-			this.DrawText("Y / ENTER - YES, QUIT", 0, CassetteTheme.ALERT,
-				px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Center);
+			this.DrawText("Y / ENTER - QUIT", 0, CassetteTheme.ALERT,
+				px + 5, py + ph - fh * 2 - 10, TextAlign.Left);
+				// px + pw / 2, py + ph - fh * 2 - 10, TextAlign.Left);
 			this.DrawText("ESC / N - KEEP PLAYING", 0, CassetteTheme.INK_MID,
-				px + pw / 2, py + ph - fh - 6, TextAlign.Center);
+				px + 5, py + ph - fh - 6, TextAlign.Left);
+				// px + pw / 2, py + ph - fh - 6, TextAlign.Left);
 
 			return true;
 		}

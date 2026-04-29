@@ -28,7 +28,8 @@ namespace CivOne
 		private int _scale = 2;
 		private AspectRatio _aspectRatio = AspectRatio.Expand;
 		private int _expandWidth, _expandHeight;
-		private bool _revealWorld = false;
+		//private bool _revealWorld = false;
+		private bool _revealWorld = true;
 		private bool _riverFastMovement = false;
 		private bool _debugMenu = false;
 		private bool _deityEnabled = false;

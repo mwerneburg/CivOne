@@ -79,23 +79,22 @@ namespace CivOne.Screens
 			{
 				_update = false;
 
-				Picture menuGfx = new Picture(103, 79)
+				Picture menuGfx = new Picture(103, 79) // this appears to create the image rectangle
 					.Tile(Pattern.PanelGrey)
 					.DrawRectangle3D()
 					.DrawText("Options:", 0, 15, 4, 4)
 					.As<Picture>();
 
-				IBitmap menuBackground = menuGfx[2, 11, 100, 64]
+				// IBitmap menuBackground = menuGfx[2, 11, 100, 64]
+				IBitmap menuBackground = menuGfx[1, 10, 99, 63]
 					.ColourReplace((7, 11), (22, 3));
 
 				this.AddLayer(menuGfx, 25, 17);
 
 				Menu menu = new Menu(Palette, menuBackground)
 				{
-					X = 37,
-					Y = 38,
-					// X = 27,
-					// Y = 28,
+					X = 27, // these are the confirmed text origin coordinates
+					Y = 28,
 					MenuWidth = 99,
 					ActiveColour = 11,
 					TextColour = 5,
@@ -122,8 +121,8 @@ namespace CivOne.Screens
 		public GameOptions() : base(MouseCursor.Pointer)
 		{
 			Palette = Common.DefaultPalette;
-			this.AddLayer(Common.Screens.Last(), 0, 0)
-				.FillRectangle(24, 16, 105, 81, 5);
+			this.AddLayer(Common.Screens.Last(), 0, 0) // this is a black box (presumably behind the menu?
+				 .FillRectangle(24, 16, 105, 81, 5);
 		}
 	}
 }
