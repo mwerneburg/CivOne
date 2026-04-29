@@ -30,5 +30,15 @@ Technology
  + YAML save files (hat tip to ChrisWi)
 
 Known issues
- + The space race exists, but it is extremely primitive; you build the various parts of the ship and it auto-launches when there are enough parts. It then exits the game when the ship arrives (which happens very quickly).
- + The unit graphics in the garrison (city view) are badly munched, and the citizens are barely two-legged sticks. Bear with me, folks.
+
+ + *** Showstoppers
+ + There is a serious limitation; I cannot get ship-board units off through 'unload'; this broke recently and I cannot unbreak it.
+ + There is a situation I haven't resolved where a single save game will hang at the same spot.
+ + On an 'epic' map, I have had a single instance of a barbarian spawning at a locale resulting in an overflow for an integer, causing a crash.
+ + In the above situation, the always-on end-of-turn auto-save file resulted in a different crash.
+
+ + Less seriously
+ + Units at sea can't be roused from Sentry status.
+ + The SpaceRace works (is winable) but currently requires a lot of cities contribute because only one (each) Structure, Component, and Module may be built in any city (they appear as city buildings).
+ + The unit graphics in the garrison (city view) are badly downscaled/upscaled; also, the citizens are barely two-legged sticks. Bear with me, folks.
+ + I have burned a lot of tokens trying to get rid of the glitchy presentation of battle without luck. But they don't impact game-play.
