@@ -30,8 +30,8 @@ namespace CivOne.Screens.Dialogs
 		{
 			Menu menu = new Menu(Palette, Selection(3, 20, TextWidth + 5, 20))
 			{
-				X = 131,
-				Y = 100,
+				X = 259,
+				Y = 182,
 				MenuWidth = TextWidth + 5,
 				ActiveColour = 11,
 				TextColour = 5,
