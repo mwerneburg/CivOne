@@ -73,7 +73,7 @@ namespace CivOne.Screens
 		{
 			_advance = advance;
 			_modern = Human.HasAdvance<Electricity>() && advance.Not<Electricity>();
-			string scientistName = Human.HasAdvance<Invention>() && (advance.Not<Invention>()) ? "scientists" : "wise men";
+			string scientistName = Human.HasAdvance<Invention>() && (advance.Not<Invention>()) ? "scientists" : "scholars";
 
 			Picture background = Resources[$"DISCOVR{(_modern ? 2 : 1)}"];
 			
