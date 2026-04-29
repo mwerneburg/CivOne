@@ -83,15 +83,17 @@ namespace CivOne.Screens
 
 		public Search()
 		{
-			Palette = Common.Screens.Last().OriginalColours;
+			Palette = Common.Screens.Last().OriginalColours; // does this work? is white/black the palette?
 
-			this.FillRectangle(64, 78, 225, 25, 5)
+			this.FillRectangle(64, 78, 225, 25, 5) // x, y, r, g, b?
 				.FillRectangle(65, 79, 223, 23, 15)
 				.DrawText("Where in the heck is ... (city name)", 0, 5, 66, 80)
 				.FillRectangle(66, 88, 137, 14, 5)
 				.FillRectangle(67, 89, 135, 12, 15);
 
-			_input = new Input(Palette, string.Empty, 0, 5, 11, 68, 90, 133, 10, 16);
+			// _input = new Input(Palette, string.Empty, 0, 5, 11, 68, 90, 133, 10, 16);
+            //                                                  X    Y
+			_input = new Input(Palette, string.Empty, 0, 5, 11, 196, 170, 133, 10, 16);
 			_input.Accept += Search_Accept;
 			_input.Cancel += Search_Cancel;
 		}
