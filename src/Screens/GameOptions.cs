@@ -92,8 +92,10 @@ namespace CivOne.Screens
 
 				Menu menu = new Menu(Palette, menuBackground)
 				{
-					X = 27,
-					Y = 28,
+					X = 37,
+					Y = 38,
+					// X = 27,
+					// Y = 28,
 					MenuWidth = 99,
 					ActiveColour = 11,
 					TextColour = 5,
@@ -110,7 +112,7 @@ namespace CivOne.Screens
 				menu.Items.Add($"{(Game.Sound ? '^' : ' ')}Sound").OnSelect(MenuSound);
 				menu.Items.Add($"{(Game.EnemyMoves ? '^' : ' ')}Enemy Moves").OnSelect(MenuEnemyMoves);
 				menu.Items.Add($"{(Game.CivilopediaText ? '^' : ' ')}Civilopedia Text").OnSelect(MenuCivilopediaText);
-				#menu.Items.Add($"{(Game.Palace ? '^' : ' ')}Palace").OnSelect(MenuPalace);
+				// menu.Items.Add($"{(Game.Palace ? '^' : ' ')}Palace").OnSelect(MenuPalace);
 
 				AddMenu(menu);
 			}
