@@ -98,7 +98,7 @@ namespace CivOne.Screens
 					.DrawText("Science Advisor:", 46, 3, DialogText)
 					.FillRectangle(46, 10, 89, 1, 11)
 					.DrawText("Which discovery should our", 46, 12, DialogText)
-					.DrawText("wise men be pursuing, sire?", 46, 20, DialogText)
+					.DrawText("wise folk pursue, sire?", 46, 20, DialogText)
 					.DrawText("Pick one...", 46, 28, DialogText)
 					.DrawText($"(Help available)", 202, dialogHeight, HelpText)
 					.As<Picture>();
