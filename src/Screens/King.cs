@@ -263,7 +263,7 @@ namespace CivOne.Screens
 			}
 			else
 			{
-				SetResponse(FaceState.Angry, "We will pay nothing!", "The war continues.");
+				SetResponse(FaceState.Angry, "You don't have the cards!", "The war continues.");
 			}
 		}
 
