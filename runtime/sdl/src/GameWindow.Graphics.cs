@@ -23,7 +23,9 @@ namespace CivOne
 			get
 			{
 				if (Settings.AspectRatio != AspectRatio.Expand)
+                {
 					return new Size(320, 200);
+                }
 				// Fallback for initial window sizing before first SetCanvasSize() call
 				int w = Settings.ExpandWidth  > 0 ? Settings.ExpandWidth  : 576;
 				int h = Settings.ExpandHeight > 0 ? Settings.ExpandHeight : 360;
@@ -61,8 +63,10 @@ namespace CivOne
 					if (scaleFactor < 1) scaleFactor = 1;
 					bw = bytemap.Width * scaleFactor;
 					bh = bytemap.Height * scaleFactor;
-					bx = x1 + (drawW - bw) / 2;
-					by = y1 + (drawH - bh) / 2;
+					//bx = x1 + (drawW - bw) / 2;
+					//by = y1 + (drawH - bh) / 2;
+                    bx = 0;
+                    by = 0;
 				}
 				canvas.Draw(bx, by, bw, bh);
 				

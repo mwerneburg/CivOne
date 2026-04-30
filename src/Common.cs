@@ -7,6 +7,14 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+// Common.cs
+//
+// Whoever stripped all the comments from this thing clearly hated us. 8)
+//
+// Regarding the rendering faiclities in this file:
+//  - not about rendering primitives
+//  - is about screen lifetime and screen stacking
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;

@@ -91,9 +91,9 @@ namespace CivOne.Screens
 				.FillRectangle(66, 88, 137, 14, 5)
 				.FillRectangle(67, 89, 135, 12, 15);
 
-			// _input = new Input(Palette, string.Empty, 0, 5, 11, 68, 90, 133, 10, 16);
+			_input = new Input(Palette, string.Empty, 0, 5, 11, 68, 90, 133, 10, 16);
             //                                                  X    Y
-			_input = new Input(Palette, string.Empty, 0, 5, 11, 196, 170, 133, 10, 16);
+			//_input = new Input(Palette, string.Empty, 0, 5, 11, 196, 170, 133, 10, 16);
 			_input.Accept += Search_Accept;
 			_input.Cancel += Search_Cancel;
 		}

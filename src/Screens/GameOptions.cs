@@ -88,7 +88,7 @@ namespace CivOne.Screens
 				IBitmap menuBackground = menuGfx[2, 11, 100, 64]
 					.ColourReplace((7, 11), (22, 3));
 
-				this.AddLayer(menuGfx, 25, 17); // this is the Options menu itself, not the crazily repeated upper left corner of the screen.
+				this.AddLayer(menuGfx, 25, 17); // this is the Options menu grey box, not the crazily repeated upper left corner of the screen.
 
 				Menu menu = new Menu(Palette, menuBackground)
 				{

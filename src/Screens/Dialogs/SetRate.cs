@@ -67,8 +67,10 @@ namespace CivOne.Screens.Dialogs
 		{
 			Menu menu = new Menu(Palette, Selection(3, 12, ItemWidth, (_menuItems.Length * Resources.GetFontHeight(FONT_ID)) + 4))
 			{
-				X = 231, // this sets the x,y origin of the text (hard-coding is wrong)
-				Y = 174,
+				// X = 231, // this sets the x,y origin of the text (hard-coding is wrong)
+				// Y = 174,
+				X = 103,
+				Y = 93,
 				MenuWidth = ItemWidth,
 				ActiveColour = 11,
 				TextColour = 5,

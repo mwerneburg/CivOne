@@ -25,6 +25,7 @@ namespace CivOne.Screens.Reports
 				width -= 0.1;
 			}
 
+            // I think this is the progress on our current research project
 			int barWidth = (int)Math.Ceiling(width * Human.ScienceCost);
 			int barX = (320 - barWidth) / 2;
 			this.FillRectangle(barX, 25, barWidth, 16, 9);
@@ -58,7 +59,7 @@ namespace CivOne.Screens.Reports
 				// Bar too wide, do not draw advisor
 				return;
 			}
-			this.AddLayer(Portrait[(int)Advisor.Science], 278, 2);
+		//	this.AddLayer(Portrait[(int)Advisor.Science], 278, 2);
 		}
 	}
 }

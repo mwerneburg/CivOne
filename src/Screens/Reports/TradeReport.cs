@@ -85,14 +85,15 @@ namespace CivOne.Screens.Reports
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(0, 32, 320, 168, 2);
+			this.FillRectangle(0, 32, 576, 328, 2);
+			//this.FillRectangle(0, 32, 320, 168, 2);
 			DrawCityTrade();
 			if ((_page * 18) >= _cities.Length)
 			{
 				DrawMaintenanceCost();
 			}
 
-			this.AddLayer(Portrait[(int)Advisor.Domestic], 278, 2);
+		//	this.AddLayer(Portrait[(int)Advisor.Domestic], 278, 2);
 
 			_update = false;
 			return true;

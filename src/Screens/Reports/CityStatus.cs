@@ -29,7 +29,8 @@ namespace CivOne.Screens.Reports
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(0, 32, 320, 168, CassetteTheme.BG1);
+			//this.FillRectangle(0, 32, 320, 168, CassetteTheme.BG1);
+			this.FillRectangle(0, 32, 576, 360, CassetteTheme.BG1);
 
 			int fontHeight = Resources.GetFontHeight(FONT_ID);
 			int yy = 32;

@@ -19,7 +19,9 @@ namespace CivOne.Screens.Reports
 		public MilitaryStatus() : base("MILITARY STATUS", 1)
 		{
 			byte player = Game.PlayerNumber(Human);
+
 			IUnit[] units = Game.GetUnits().Where(u => u.Owner == player && u.Home != null).ToArray();
+
 			IUnit[] production = Game.GetCities().Where(c => c.Owner == player).Where(c => (c.CurrentProduction is IUnit)).Select(c => (c.CurrentProduction as IUnit)).ToArray();
 
 			int i = 0;
@@ -28,21 +30,25 @@ namespace CivOne.Screens.Reports
 				if (!units.Any(u => u.Type == unit.Type) && !production.Any(u => u.Type == unit.Type)) continue;
 
 				int active = units.Count(u => u.Type == unit.Type);
+
 				int inProduction = production.Count(u => u.Type == unit.Type);
 				
 				this.AddLayer(unit.ToBitmap(player, false), ((i % 2 == 0) ? 1 : 18), 27 + (9 * i))
-					.FillRectangle(36, 30 + (i * 9), 284, 1, CassetteTheme.BORDER)
+					//.FillRectangle(36, 30 + (i * 9), 284, 1, CassetteTheme.BORDER)
+					.FillRectangle(36, 30 + (i * 9), 540, 1, CassetteTheme.BORDER)
 					.DrawText(unit.Name, 0, CassetteTheme.INK_HIGH, 36, 32 + (i * 9))
 					.DrawText($"({unit.Attack}/{unit.Defense}/{unit.Move})", 0, CassetteTheme.INK_MID, 112, 32 + (i * 9));
+
 				if (active > 0)
 					this.DrawText($"{active} active", 0, CassetteTheme.PHOS_DIM, 168, 32 + (i * 9));
+
 				if (inProduction > 0)
 					this.DrawText($"{inProduction} in production", 0, CassetteTheme.OK, 232, 32 + (i * 9));
 				
 				i++;
 			}
 			
-			this.AddLayer(Portrait[(int)Advisor.Defense], 278, 2);
+			//this.AddLayer(Portrait[(int)Advisor.Defense], 278, 2);
 		}
 	}
 }

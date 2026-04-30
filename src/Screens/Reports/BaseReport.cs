@@ -69,8 +69,10 @@ namespace CivOne.Screens.Reports
 			Palette = p;
 
 			this.Clear(CassetteTheme.BG0)
-				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
-				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
+				//.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 0, 576, 27, CassetteTheme.BG3)
+				//.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
+				.FillRectangle(0, 27, 576, 1, CassetteTheme.BORDER)
 				.DrawText(title, 0, CassetteTheme.PHOS_GLOW, 160, 2, TextAlign.Center)
 				.DrawText(string.Format("{0} of the {1}", "Empire", Human.TribeNamePlural), 0, CassetteTheme.INK_MID, 160, 10, TextAlign.Center)
 				.DrawText(string.Format("{0} {1}: {2}", "Emperor", Human.LeaderName, Game.GameYear), 0, CassetteTheme.INK_LOW, 160, 18, TextAlign.Center);

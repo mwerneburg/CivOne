@@ -266,7 +266,7 @@ namespace CivOne.Screens
 			MenuItem.Create($"Enemy Moves: {Settings.EnemyMoves.ToText()}").OnSelect(GotoMenu(GameOptionMenu(5, "Enemy Moves", () => Settings.EnemyMoves, (GameOption option) => Settings.EnemyMoves = option))),
 			MenuItem.Create($"Civilopedia Text: {Settings.CivilopediaText.ToText()}").OnSelect(GotoMenu(GameOptionMenu(6, "Civilopedia Text", () => Settings.CivilopediaText, (GameOption option) => Settings.CivilopediaText = option))),
 			// MenuItem.Create($"Palace: {Settings.Palace.ToText()}").OnSelect(GotoMenu(GameOptionMenu(7, "Palace", () => Settings.Palace, (GameOption option) => Settings.Palace = option))),
-			MenuItem.Create("Back").OnSelect(GotoMenu(MainMenu, 3))
+			 MenuItem.Create("Back").OnSelect(GotoMenu(MainMenu, 3))
 		);
 
 		private Action GameOptionMenu(int item, string title, Func<GameOption> getOption, Action<GameOption> setOption) => () => CreateMenu(title, GotoMenu(GameOptionsMenu, item),
