@@ -142,7 +142,9 @@ namespace CivOne.Persistence
 	public class CosMap
 	{
 		public int TerrainSeed { get; set; }
-		// base64-encoded byte array, 80*50=4000 bytes, terrain type per tile (row-major)
+		public int Width { get; set; } = 80;
+		public int Height { get; set; } = 50;
+		// base64-encoded byte array, Width*Height bytes, terrain type per tile (row-major)
 		public string Terrain { get; set; }
 		public List<CosImprovement> Improvements { get; set; }
 	}

@@ -57,7 +57,10 @@ namespace CivOne
 			for (int relX = -1; relX <= 1; relX++)
 			{
 				if (Math.Abs(relX) == Math.Abs(relY)) continue;
-				if (_tiles[x + relX, y + relY] is Ocean) return true;
+				int ny = y + relY;
+				if (ny < 0 || ny >= HEIGHT) continue;
+				int nx = (x + relX + WIDTH) % WIDTH;
+				if (_tiles[nx, ny] is Ocean) return true;
 			}
 			return false;
 		}

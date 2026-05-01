@@ -100,7 +100,8 @@ namespace CivOne
 				bool[,] seed = GenerateLandChunk(elevation, growFromExisting: false);
 				for (int y = 0; y < HEIGHT; y++)
 				for (int x = 0; x < WIDTH; x++)
-					if (seed[x, y]) elevation[x, y]++;
+					if (seed[x, y]) elevation[x, y] = 1;
+					//if (seed[x, y]) elevation[x, y]++;
 			}
 
 			// Grow from existing land until target coverage is reached.
@@ -112,7 +113,8 @@ namespace CivOne
 				for (int y = 0; y < HEIGHT; y++)
 				for (int x = 0; x < WIDTH; x++)
 				{
-					if (chunk[x, y]) elevation[x, y]++;
+					if (chunk[x, y]) elevation[x, y] = 1;
+					//if (chunk[x, y]) elevation[x, y]++;
 				}
 			}
 			
@@ -122,12 +124,15 @@ namespace CivOne
 			{
 				if ((elevation[x, y] > 0 && elevation[x + 1, y + 1] > 0) && (elevation[x + 1, y] == 0 && elevation[x, y + 1] == 0))
 				{
-					elevation[x + 1, y]++;
-					elevation[x, y + 1]++;
+					//elevation[x + 1, y]++;
+					//elevation[x, y + 1]++;
+					elevation[x + 1, y] = 1;
+					elevation[x, y + 1] = 1;
 				}
 				else if ((elevation[x, y] == 0 && elevation[x + 1, y + 1] == 0) && (elevation[x + 1, y] > 0 && elevation[x, y + 1] > 0))
 				{
-					elevation[x + 1, y + 1]++;
+					//elevation[x + 1, y + 1]++;
+					elevation[x + 1, y + 1] = 1;
 				}
 			}
 			
@@ -169,28 +174,30 @@ namespace CivOne
 		private void MergeElevationAndLatitude(int[,] elevation, int[,] latitude)
 		{
 			Log("Map: Stage 3 - Merge elevation and latitude into the map");
-			
-			// merge elevation and latitude into the map
+
+			// Arctic and Tundra are restricted to the polar bands (top/bottom 20% of the
+			// map). CreatePoles() will enforce them further at the actual map edges.
+			int polarBand = Math.Max(1, HEIGHT / 5);
+
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
 				bool special = TileIsSpecial(x, y);
+				bool highLatitude = Math.Min(y, HEIGHT - 1 - y) < polarBand;
+
 				switch (elevation[x, y])
 				{
 					case 0: _tiles[x, y] = new Ocean(x, y, special); break;
 					case 1:
+						switch (latitude[x, y])
 						{
-							switch (latitude[x, y])
-							{
-								case 0: _tiles[x, y] = new Desert(x, y, special); break;
-								case 1: _tiles[x, y] = new Plains(x, y, special); break;
-								case 2: _tiles[x, y] = new Tundra(x, y, special); break;
-								case 3: _tiles[x, y] = new Arctic(x, y, special); break;
-							}
+							case 0: _tiles[x, y] = new Desert(x, y, special); break;
+							case 1: _tiles[x, y] = new Plains(x, y, special); break;
+							case 2: _tiles[x, y] = highLatitude ? (ITile)new Tundra(x, y, special) : new Plains(x, y, special); break;
+							default: _tiles[x, y] = highLatitude ? (ITile)new Arctic(x, y, special) : new Plains(x, y, special); break;
 						}
 						break;
-					case 2: _tiles[x, y] = new Hills(x, y, special); break;
-					default: _tiles[x, y] = new Mountains(x, y, special); break;
+					default: _tiles[x, y] = new Plains(x, y, special); break;
 				}
 			}
 		}
@@ -227,8 +234,8 @@ namespace CivOne
 						
 						switch (_tiles[x, y].Type)
 						{
-							case Terrain.Plains: _tiles[x, y] = new Grassland(x, y); break;
 							case Terrain.Tundra: _tiles[x, y] = new Arctic(x, y, special); break;
+							case Terrain.Plains: _tiles[x, y] = new Grassland(x, y); break;
 							case Terrain.Hills: _tiles[x, y] = new Forest(x, y, special); break;
 							case Terrain.Desert: _tiles[x, y] = new Plains(x, y, special); break;
 							case Terrain.Mountains: wetness -= 3; break;
@@ -315,10 +322,10 @@ namespace CivOne
 					case Terrain.Jungle: _tiles[x, y] = new Swamp(x, y, special); break;
 					case Terrain.Hills: _tiles[x, y] = new Mountains(x, y, special); break;
 					case Terrain.Mountains:
-						if ((x == 0 || _tiles[x - 1, y - 1].Type != Terrain.Ocean) &&
-						    (y == 0 || _tiles[x + 1, y - 1].Type != Terrain.Ocean) &&
-							(x == (WIDTH - 1) || _tiles[x + 1, y + 1].Type != Terrain.Ocean) &&
-							(y == (HEIGHT - 1) || _tiles[x - 1, y + 1].Type != Terrain.Ocean))
+						if ((x == 0           || y == 0            || _tiles[x - 1, y - 1].Type != Terrain.Ocean) &&
+						    (x == (WIDTH - 1)  || y == 0            || _tiles[x + 1, y - 1].Type != Terrain.Ocean) &&
+							(x == (WIDTH - 1)  || y == (HEIGHT - 1) || _tiles[x + 1, y + 1].Type != Terrain.Ocean) &&
+							(x == 0            || y == (HEIGHT - 1) || _tiles[x - 1, y + 1].Type != Terrain.Ocean))
 						_tiles[x, y] = new Ocean(x, y, special);
 						break;
 					case Terrain.Desert: _tiles[x, y] = new Plains(x, y, special); break;
@@ -358,17 +365,17 @@ namespace CivOne
 					riverLength++;
 					
 					nearOcean = NearOcean(tile.X, tile.Y);
+					int rNx = tile.X, rNy = tile.Y;
 					switch (varA)
 					{
-						case 0:
-						case 1: tile = _tiles[tile.X, tile.Y - 1]; break;
-						case 2:
-						case 3: tile = _tiles[tile.X + 1, tile.Y]; break;
-						case 4:
-						case 5: tile = _tiles[tile.X, tile.Y + 1]; break;
-						case 6:
-						case 7: tile = _tiles[tile.X - 1, tile.Y]; break;
+						case 0: case 1: rNy--; break;
+						case 2: case 3: rNx++; break;
+						case 4: case 5: rNy++; break;
+						case 6: case 7: rNx--; break;
 					}
+					rNx = (rNx + WIDTH) % WIDTH;
+					if (rNy < 0 || rNy >= HEIGHT) break;
+					tile = _tiles[rNx, rNy];
 				}
 				while (!nearOcean && (tile.GetType() != typeof(Ocean) && tile.GetType() != typeof(River) && tile.GetType() != typeof(Mountains)));
 				

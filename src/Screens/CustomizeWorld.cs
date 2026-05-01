@@ -8,14 +8,13 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System.Drawing;
-using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
+	[Expand, OwnPalette]
 	internal class CustomizeWorld : BaseScreen
 	{
 		private static readonly (string Label, Size Size)[] MapSizes = new[]
@@ -28,78 +27,28 @@ namespace CivOne.Screens
 			("Epic (320x200)", new Size(320, 200)),
 		};
 
-		private int _mapSize = -1, _landMass = -1, _temperature = -1, _climate = -1, _age = -1;
+		private static readonly (string Question, string[] Options)[] Steps = new[]
+		{
+			("MAP SIZE",    new[] { "Tiny (40x25)", "Small (60x40)", "Normal (80x50)", "Large (120x75)", "Huge (160x100)", "Epic (320x200)" }),
+			("LAND MASS",   new[] { "Small", "Normal", "Large" }),
+			("TEMPERATURE", new[] { "Cool", "Temperate", "Warm" }),
+			("CLIMATE",     new[] { "Arid", "Normal", "Wet" }),
+			("AGE",         new[] { "3 billion years", "4 billion years", "5 billion years" }),
+		};
+
+		private int _step = 0;
+		private int _cursor = 2;
+		private readonly int[] _confirmed = new int[] { 2, 1, 1, 1, 1 };
 		private bool _hasUpdate = true;
-
 		private bool _closing = false;
-		
-		private int GetMenuWidth(string title, string[] items)
-		{
-			int i = 0;
-			Picture[] texts = new Picture[items.Length + 1];
-			texts[i++] = Resources.GetText(" " + title, 0, 15);
-			foreach (string item in items)
-				texts[i++] = Resources.GetText(" " + item, 0, 5);
-			return (texts.Select(t => t.Width).Max()) + 6;
-		}
-		
-		private Menu CreateMenu(int y, string title, MenuItemEventHandler<int> setChoice, params string[] menuTexts)
-		{
-			Menu menu = new Menu(Palette)
-			{
-				Title = title,
-				X = 203,
-				Y = y,
-				MenuWidth = GetMenuWidth(title, menuTexts),
-				TitleColour = 15,
-				ActiveColour = 11,
-				TextColour = 15,
-				DisabledColour = 8,
-				FontId = 0
-			};
-			
-			for (int i = 0; i < menuTexts.Length; i++)
-			{
-				menu.Items.Add(menuTexts[i], i).OnSelect(setChoice);
-			}
-			menu.ActiveItem = 1;
-			return menu;
-		}
-		
-		private void SetMapSize(object sender, MenuItemEventArgs<int> args)
-		{
-			_mapSize = args.Value;
-			_hasUpdate = true;
-		}
 
-		private void SetLandMass(object sender, MenuItemEventArgs<int> args)
-		{
-			Log("Customize World - Land Mass: {0}", _landMass);
-			_landMass = args.Value;
-			_hasUpdate = true;
-		}
-		
-		private void SetTemperature(object sender, MenuItemEventArgs<int> args)
-		{
-			Log("Customize World - Temperature: {0}", _temperature);
-			_temperature = args.Value;
-			_hasUpdate = true;
-		}
-		
-		private void SetClimate(object sender, MenuItemEventArgs<int> args)
-		{
-			Log("Customize World - Climate: {0}", _climate);
-			_climate = args.Value;
-			_hasUpdate = true;
-		}
-		
-		private void SetAge(object sender, MenuItemEventArgs<int> args)
-		{
-			Log("Customize World - Age: {0}", _age);
-			_age = args.Value;
-			_hasUpdate = true;
-		}
-		
+		private Rectangle[] _optionRects;
+
+		private int PanelW => 290;
+		private int PanelH => 208;
+		private int PanelX => (Width  - PanelW) / 2;
+		private int PanelY => (Height - PanelH) / 2;
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (_closing)
@@ -107,46 +56,154 @@ namespace CivOne.Screens
 				if (!HandleScreenFadeOut())
 				{
 					Destroy();
-					Size sz = MapSizes[_mapSize].Size;
-					Map.Generate(_landMass, _temperature, _climate, _age, sz.Width, sz.Height);
+					Size sz = MapSizes[_confirmed[0]].Size;
+					Map.Generate(_confirmed[1], _confirmed[2], _confirmed[3], _confirmed[4], sz.Width, sz.Height);
 					if (!Runtime.Settings.ShowIntro)
-					{
 						Common.AddScreen(new NewGame());
-					}
 					else
-					{
 						Common.AddScreen(new Intro());
-					}
 				}
 				return true;
 			}
-			
-			if (!_hasUpdate) return false;
 
-			if (_mapSize < 0) AddMenu(CreateMenu(6, "MAP SIZE:", SetMapSize, "Tiny (40x25)", "Small (60x40)", "Normal (80x50)", "Large (120x75)", "Huge (160x100)", "Epic (320x200)"));
-			else if (_landMass < 0) AddMenu(CreateMenu(6, "LAND MASS:", SetLandMass, "Small", "Normal", "Large"));
-			else if (_temperature < 0) AddMenu(CreateMenu(56, "TEMPERATURE:", SetTemperature, "Cool", "Temperate", "Warm"));
-			else if (_climate < 0) AddMenu(CreateMenu(106, "CLIMATE:", SetClimate, "Arid", "Normal", "Wet"));
-			else if (_age < 0) AddMenu(CreateMenu(156, "AGE:", SetAge, "3 billion years", "4 billion years", "5 billion years"));
-			else
-			{
-				_closing = true;
-				foreach (IScreen menu in _menus)
-					this.AddLayer(menu);
-				CloseMenus();
-				return true;
-			}
-			
+			if (!_hasUpdate) return false;
 			_hasUpdate = false;
+
+			Draw();
 			return true;
 		}
-		
-		public CustomizeWorld()
+
+		private void Draw()
 		{
-			Picture background = Resources["CUSTOM"];
-			
-			Palette = background.Palette;
-			this.AddLayer(background, 0, 0);
+			const int font = 0;
+			int fh = Resources.GetFontHeight(font);
+			int rowH = fh + 4;
+
+			int pw = PanelW, ph = PanelH, px = PanelX, py = PanelY;
+
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
+			this.DrawCassettePanel(px, py, pw, ph, "CUSTOMIZE WORLD");
+
+			int cx = px + 12;
+			int cw = pw - 24;
+			int cy = py + 14;
+
+			// Current step question header
+			var (question, options) = Steps[_step];
+			this.DrawText(question, font, CassetteTheme.PHOS, cx, cy);
+			cy += fh + 5;
+
+			// Option rows
+			_optionRects = new Rectangle[options.Length];
+			for (int i = 0; i < options.Length; i++)
+			{
+				bool selected = (i == _cursor);
+				if (selected)
+				{
+					this.FillRectangle(cx - 3, cy - 1, cw + 6, rowH, CassetteTheme.PHOS_FAINT);
+					this.DrawText("\x10 " + options[i], font, CassetteTheme.PHOS_GLOW, cx + 1, cy);
+				}
+				else
+				{
+					this.DrawText("  " + options[i], font, CassetteTheme.INK_HIGH, cx + 1, cy);
+				}
+				_optionRects[i] = new Rectangle(cx - 3, cy - 1, cw + 6, rowH);
+				cy += rowH;
+			}
+
+			// Confirmed answers summary
+			if (_step > 0)
+			{
+				cy += 4;
+				this.DrawCassetteDivider(cx, cy, cw);
+				cy += 5;
+
+				for (int s = 0; s < _step; s++)
+				{
+					string lbl = Steps[s].Question;
+					string val = Steps[s].Options[_confirmed[s]];
+					this.DrawCassetteField(lbl, val, cx, cy, cw, font, CassetteTheme.PHOS_DIM);
+					cy += fh + 4;
+				}
+			}
+
+			// Footer
+			int footerY = py + ph - fh - 6;
+			this.DrawCassetteDivider(cx, footerY - 4, cw);
+			this.DrawText("\x18\x19 Navigate   ENTER Select   ESC Back", font, CassetteTheme.INK_LOW,
+				px + pw / 2, footerY, TextAlign.Center);
+		}
+
+		public override bool KeyDown(KeyboardEventArgs args)
+		{
+			string[] options = Steps[_step].Options;
+			switch (args.Key)
+			{
+				case Key.Up:
+					_cursor = (_cursor - 1 + options.Length) % options.Length;
+					_hasUpdate = true;
+					return true;
+				case Key.Down:
+					_cursor = (_cursor + 1) % options.Length;
+					_hasUpdate = true;
+					return true;
+				case Key.Enter:
+					Confirm(_cursor);
+					return true;
+				case Key.Escape:
+					GoBack();
+					return true;
+			}
+			return false;
+		}
+
+		public override bool MouseDown(ScreenEventArgs args)
+		{
+			if (_optionRects == null) return false;
+			for (int i = 0; i < _optionRects.Length; i++)
+			{
+				if (_optionRects[i].Contains(args.X, args.Y))
+				{
+					Confirm(i);
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private void Confirm(int choice)
+		{
+			_confirmed[_step] = choice;
+			_step++;
+			if (_step >= Steps.Length)
+			{
+				_closing = true;
+			}
+			else
+			{
+				_cursor = _confirmed[_step];
+			}
+			_hasUpdate = true;
+		}
+
+		private void GoBack()
+		{
+			if (_step == 0)
+			{
+				Destroy();
+				return;
+			}
+			_step--;
+			_cursor = _confirmed[_step];
+			_hasUpdate = true;
+		}
+
+		public CustomizeWorld() : base(MouseCursor.Pointer)
+		{
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }

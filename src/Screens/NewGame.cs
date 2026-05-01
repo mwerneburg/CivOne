@@ -187,7 +187,8 @@ namespace CivOne.Screens
 			else if (!_done)
 			{
 				if (_showIntroText) return false;
-				
+				if (!Map.Instance.Ready) return false;
+
 				ICivilization civ = _tribesAvailable[_tribe];
 				Game.CreateGame(_difficulty, _competition, civ, _leaderName, _tribeName, _tribeNamePlural);
 				

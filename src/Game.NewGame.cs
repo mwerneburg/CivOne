@@ -39,7 +39,8 @@ namespace CivOne
 				else
 				{
 					ITile tile = Map[x, y];
-					
+					if (tile == null) continue;
+
 					if (tile.IsOcean) continue; // Is it an ocean tile?
 					if (tile.Hut) continue; // Is there a hut on this tile?
 					if (_units.Any(u => u.X == x || u.Y == y)) continue; // Is there already a unit on this tile?

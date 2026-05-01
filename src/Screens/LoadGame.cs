@@ -130,7 +130,8 @@ namespace CivOne.Screens
 				Game.LoadCos(file.CosFile);
 			else
 				Game.LoadGame(file.SveFile, file.MapFile);
-			Common.AddScreen(new GamePlay());
+			if (Game.Started)
+				Common.AddScreen(new GamePlay());
 		}
 		
 		private void LoadEmptyFile(object sender, MenuItemEventArgs<int> args)

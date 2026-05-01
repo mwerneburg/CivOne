@@ -76,6 +76,8 @@ namespace CivOne
 			return new CosMap
 			{
 				TerrainSeed  = _terrainMasterWord,
+				Width        = WIDTH,
+				Height       = HEIGHT,
 				Terrain      = Convert.ToBase64String(terrain),
 				Improvements = improvements
 			};
@@ -83,6 +85,8 @@ namespace CivOne
 
 		internal void LoadFromCos(CosMap cos)
 		{
+			_width  = cos.Width  > 0 ? cos.Width  : 80;
+			_height = cos.Height > 0 ? cos.Height : 50;
 			InitializeForCosLoad(cos.TerrainSeed);
 
 			byte[] terrain = Convert.FromBase64String(cos.Terrain);
