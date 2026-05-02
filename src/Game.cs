@@ -430,6 +430,7 @@ namespace CivOne
 		{
 			foreach (IUnit unit in _units.Where(u => u.Home == city).ToArray())
 				_units.Remove(unit);
+			_cities.Remove(city);
 			city.X = 255;
 			city.Y = 255;
 			city.Owner = 0;

@@ -175,9 +175,10 @@ namespace CivOne
 		{
 			Log("Map: Stage 3 - Merge elevation and latitude into the map");
 
-			// Arctic and Tundra are restricted to the polar bands (top/bottom 20% of the
-			// map). CreatePoles() will enforce them further at the actual map edges.
-			int polarBand = Math.Max(1, HEIGHT / 5);
+			// Polar band width scales with temperature: Temperate ≈ 10% of HEIGHT,
+			// Cool slightly wider, Warm slightly narrower.
+			// CreatePoles() will further enforce cold tiles at the actual map edges.
+			int polarBand = Math.Max(1, HEIGHT / (8 + _temperature * 2));
 
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
