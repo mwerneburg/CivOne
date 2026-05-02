@@ -15,7 +15,7 @@ using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal, OwnPalette]
+	[Modal, OwnPalette, Expand]
 	internal class WorldWonders : BaseScreen
 	{
 		private struct CityWonders
@@ -30,18 +30,20 @@ namespace CivOne.Screens.Reports
 
 		private readonly CityWonders[] _wonders;
 		
+		private int OX => (Width - 320) / 2;
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(8, 32, 304, 160, 3);
+			this.FillRectangle(OX + 8, 32, 304, Height - 40, 3);
 
 			for (int i = (_page * 7); i < _wonders.Length && i < ((_page + 1) * 7); i++)
 			{
 				IWonder wonder = _wonders[i].Wonder;
 				City city = _wonders[i].City;
 
-				int xx = 8;
+				int xx = OX + 8;
 				int yy = 32 + (24 * (i % 7));
 				int ww = 304;
 				int hh = 16;
@@ -91,9 +93,9 @@ namespace CivOne.Screens.Reports
 			}).ToArray();
 
 			this.Clear(CassetteTheme.BG0)
-				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
-				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
-				.DrawText("The Wonders of the World", 0, CassetteTheme.PHOS_GLOW, 160, 9, TextAlign.Center);
+				.FillRectangle(0, 0, Width, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, Width, 1, CassetteTheme.BORDER)
+				.DrawText("The Wonders of the World", 0, CassetteTheme.PHOS_GLOW, Width / 2, 9, TextAlign.Center);
 		}
 	}
 }

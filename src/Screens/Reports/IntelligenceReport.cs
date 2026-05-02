@@ -33,24 +33,24 @@ namespace CivOne.Screens.Reports
 
 				Player player = infoButton.Key;
 
-				this.FillRectangle(0, 25, 320, 172, CassetteTheme.BG0)
-					.DrawText($"Subject: the {player.TribeNamePlural}", 0, CassetteTheme.PHOS, 16, y)
-					.DrawText("Leader:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
-					.DrawText($"Emperor {player.LeaderName}", 0, CassetteTheme.INK_HIGH, 62, y);
+				this.FillRectangle(0, 25, Width, Height - 25, CassetteTheme.BG0)
+					.DrawText($"Subject: the {player.TribeNamePlural}", 0, CassetteTheme.PHOS, OX + 16, y)
+					.DrawText("Leader:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4))
+					.DrawText($"Emperor {player.LeaderName}", 0, CassetteTheme.INK_HIGH, OX + 62, y);
 
 				foreach (string line in player.Civilization.Leader.Traits())
-					this.DrawText(line, 0, CassetteTheme.INK_LOW, 24, (y += fontHeight));
+					this.DrawText(line, 0, CassetteTheme.INK_LOW, OX + 24, (y += fontHeight));
 
-				this.DrawText("Capital:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
-					.DrawText(player.Capital, 0, CassetteTheme.INK_HIGH, 63, y)
-					.DrawText("Government:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
-					.DrawText(player.Government.Name, 0, CassetteTheme.INK_HIGH, 83, y)
-					.DrawText("Treasury:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
-					.DrawText($"{player.Gold}$", 0, CassetteTheme.OK, 73, y)
-					.DrawText("Military:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight))
-					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, CassetteTheme.INK_HIGH, 67, y)
-					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4))
-					.DrawText("Technologies:", 0, CassetteTheme.INK_MID, 16, (y += fontHeight + 4));
+				this.DrawText("Capital:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4))
+					.DrawText(player.Capital, 0, CassetteTheme.INK_HIGH, OX + 63, y)
+					.DrawText("Government:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
+					.DrawText(player.Government.Name, 0, CassetteTheme.INK_HIGH, OX + 83, y)
+					.DrawText("Treasury:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
+					.DrawText($"{player.Gold}$", 0, CassetteTheme.OK, OX + 73, y)
+					.DrawText("Military:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
+					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, CassetteTheme.INK_HIGH, OX + 67, y)
+					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4))
+					.DrawText("Technologies:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4));
 
 				args.Handled = true;
 				SetUpdate();
@@ -66,7 +66,7 @@ namespace CivOne.Screens.Reports
 			int yy = 30;
 			foreach (Player player in Game.Players.Where(p => p != 0 && !p.IsDestroyed()))
 			{
-				this.FillRectangle(4, yy, 313, 1, 9);
+				this.FillRectangle(0, yy, Width, 1, 9);
 
 				byte id = Game.PlayerNumber(player);
 				byte colour = Common.ColourLight[id];
@@ -74,19 +74,19 @@ namespace CivOne.Screens.Reports
 				{
 					int unitCount = Game.GetUnits().Count(u => u.Owner == id && u.Home != null);
 
-					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.BG0, 8, yy + 3)
-						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.INK_HIGH, 8, yy + 2)
-						.DrawText($"{player.Government.Name}, {player.Gold}$, {unitCount} Units.", 0, colour, 160, yy + 2);
+					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.BG0, OX + 8, yy + 3)
+						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.INK_HIGH, OX + 8, yy + 2)
+						.DrawText($"{player.Government.Name}, {player.Gold}$, {unitCount} Units.", 0, colour, OX + 160, yy + 2);
 
 					if (!player.IsHuman)
 					{
-						this.DrawButton($"INFO{id}", 0, colour, Common.ColourDark[id], 281, yy + 14, 38, Resources.GetFontHeight(0) + 2);
-						_infoButtons.Add(player, new Rectangle(281, yy + 14, 38, Resources.GetFontHeight(0) + 2));
+						this.DrawButton($"INFO{id}", 0, colour, Common.ColourDark[id], OX + 281, yy + 14, 38, Resources.GetFontHeight(0) + 2);
+						_infoButtons.Add(player, new Rectangle(OX + 281, yy + 14, 38, Resources.GetFontHeight(0) + 2));
 					}
 				}
 				else
 				{
-					this.DrawText("No embassy established.", 0, colour, 160, yy + 2, TextAlign.Center);
+					this.DrawText("No embassy established.", 0, colour, OX + 160, yy + 2, TextAlign.Center);
 				}
 
 				yy += 24;

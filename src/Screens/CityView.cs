@@ -21,7 +21,7 @@ using UniversityBuilding = CivOne.Buildings.University;
 
 namespace CivOne.Screens
 {
-	[Modal]
+	[Modal, Expand]
 	internal class CityView : BaseScreen
 	{
 		private const float FADE_STEP = 0.1f;
@@ -40,6 +40,9 @@ namespace CivOne.Screens
 		private readonly byte[,] _noiseMap;
 		
 		private int _noiseCounter = NOISE_COUNT + 15;
+
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
 
 		private int _houseType = 0;
 
@@ -84,13 +87,13 @@ namespace CivOne.Screens
 
 			if (_captured || _disorder)
 			{
-				this.AddLayer(_background);
+				this.AddLayer(_background, OX, OY);
 				int frame = (_x % 30) / 3;
 				for (int i = 7; i >= 0; i--)
 				{
 					int xx = (_x - 65) - (48 * i);
 					if (xx + 78 <= 0) continue;
-					this.AddLayer(_invadersOrRevolters[frame], xx, _y);
+					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
 					Log($"i {i}, _x {_x}, xx {xx}, _y {_y}");
 				}
 				_x++;
@@ -99,13 +102,13 @@ namespace CivOne.Screens
 			
  			if (_weLovePresidentDay)
 			{
-				this.AddLayer(_background);
+				this.AddLayer(_background, OX, OY);
 				int frame = ((_x + 600) % 30) / 3;
 				for (int i = 0; i <= 7; i++)
 				{
 					int xx = (_x + 65) + (48 * i);
 					//if (xx <= 0) continue;
-					this.AddLayer(_invadersOrRevolters[frame], xx, _y);
+					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
 				}
 				_x--;
 
@@ -117,8 +120,8 @@ namespace CivOne.Screens
 				if (_noiseCounter > 0)
 				{
 					_overlay.ApplyNoise(_noiseMap, _noiseCounter--);
-					this.AddLayer(_background)
-						.AddLayer(_overlay);
+					this.AddLayer(_background, OX, OY)
+						.AddLayer(_overlay, OX, OY);
 					return true;
 				}
 				return false;
@@ -136,14 +139,14 @@ namespace CivOne.Screens
 			}
 			if (_founded && (gameTick % 3 == 0))
 			{
-				this.AddLayer(_background)
-					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, 161, 3, TextAlign.Center);
+				this.AddLayer(_background, OX, OY)
+					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, OX + 161, OY + 3, TextAlign.Center);
 
 				int frame = (_x % 4);
-				this.AddLayer(Resources["SETTLERS"][1, 1 + (16 * frame), 48, 15], _x, 120)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 2) % 4)), 48, 15], _x + 27, 125)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 3) % 4)), 48, 15], _x + 14, 131)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 1) % 4)), 48, 15], _x + 40, 135);
+				this.AddLayer(Resources["SETTLERS"][1, 1 + (16 * frame), 48, 15], OX + _x, OY + 120)
+					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 2) % 4)), 48, 15], OX + _x + 27, OY + 125)
+					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 3) % 4)), 48, 15], OX + _x + 14, OY + 131)
+					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 1) % 4)), 48, 15], OX + _x + 40, OY + 135);
 
 				_x++;
 				return true;
@@ -741,7 +744,7 @@ namespace CivOne.Screens
 			if (founded) return;
 
 			DrawBuildings();
-			this.AddLayer(_background);
+			this.AddLayer(_background, OX, OY);
 			
 			if (_captured = captured)
 			{
@@ -899,10 +902,10 @@ namespace CivOne.Screens
 
 			if (captured) return;
 			
-			this.DrawText(_city.Name, 5, 5, 161, 3, TextAlign.Center)
-				.DrawText(_city.Name, 5, 15, 160, 2, TextAlign.Center)
-				.DrawText(Game.GameYear, 5, 5, 161, 16, TextAlign.Center)
-				.DrawText(Game.GameYear, 5, 15, 160, 15, TextAlign.Center);
+			this.DrawText(_city.Name, 5, 5, OX + 161, OY + 3, TextAlign.Center)
+				.DrawText(_city.Name, 5, 15, OX + 160, OY + 2, TextAlign.Center)
+				.DrawText(Game.GameYear, 5, 5, OX + 161, OY + 16, TextAlign.Center)
+				.DrawText(Game.GameYear, 5, 15, OX + 160, OY + 15, TextAlign.Center);
 			
 			if (firstView)
 			{
@@ -922,7 +925,7 @@ namespace CivOne.Screens
 				int sx = ((int)(citizen) * 35) + 1, sy = (modern ? 1 : 52);
 				int sw = 34, sh = (modern ? 50 : 52);
 				int dx = (int)(citizen) + offsetX + (11 * i++), dy = 140;
-				this.AddLayer(Resources["POP"][sx, sy, sw, sh], dx, dy);
+				this.AddLayer(Resources["POP"][sx, sy, sw, sh], OX + dx, OY + dy);
 			}
 		}
 	}

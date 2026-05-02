@@ -52,7 +52,7 @@ namespace CivOne.Screens.Reports
 
 		private void DrawBuildings(City city, int y)
 		{
-			int x = 212;
+			int x = OX + 212;
 			this.FillRectangle(x, y - 1, 90, 10, 11);
 			DrawBuilding<Temple>(city, ref x, y);
 			DrawBuilding<MarketPlace>(city, ref x, y);
@@ -65,16 +65,16 @@ namespace CivOne.Screens.Reports
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(0, 28, 320, 172, 9);
+			this.FillRectangle(0, 28, Width, Height - 28, 9);
 
 			int y = 32;
 			for (int i = (_page++ * 16); i < _cities.Length && i < (_page * 16); i++)
 			{
 				City city = _cities[i];
 
-				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.INK_HIGH, 16, y);
-				
-				DrawCitizens(city, (i % 2 == 0) ? 72 : 76, y);
+				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.INK_HIGH, OX + 16, y);
+
+				DrawCitizens(city, OX + ((i % 2 == 0) ? 72 : 76), y);
 				DrawBuildings(city, y);
 
 				y += 10;
@@ -95,7 +95,7 @@ namespace CivOne.Screens.Reports
 					int happy = (int)Math.Floor((double)(100 / totalCitizens) * happyCitizens);
 					int content = (int)Math.Floor((double)(100 / totalCitizens) * contentCitizens);
 					int unhappy = (int)Math.Floor((double)(100 / totalCitizens) * unhappyCitizens);
-					this.DrawText($"Population: {population} Happy:{happy}% Content:{content}% Unhappy:{unhappy}%", 0, CassetteTheme.INK_MID, 16, y);
+					this.DrawText($"Population: {population} Happy:{happy}% Content:{content}% Unhappy:{unhappy}%", 0, CassetteTheme.INK_MID, OX + 16, y);
 				}
 			}
 

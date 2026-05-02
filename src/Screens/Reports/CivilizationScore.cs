@@ -39,11 +39,11 @@ namespace CivOne.Screens.Reports
 				byte fg = isHuman ? CassetteTheme.PHOS_GLOW : Common.ColourLight[(byte)p];
 
 				if (isHuman)
-					this.FillRectangle(8, yy - 2, 304, 18, Common.ColourDark[(byte)p]);
+					this.FillRectangle(OX + 8, yy - 2, 304, 18, Common.ColourDark[(byte)p]);
 
 				string name = $"{i + 1}. {p.TribeNamePlural} ({p.LeaderName})";
-				this.DrawText(name, 0, fg, 12, yy)
-				    .DrawText(p.Score.ToString(), 0, fg, 308, yy, TextAlign.Right);
+				this.DrawText(name, 0, fg, OX + 12, yy)
+				    .DrawText(p.Score.ToString(), 0, fg, OX + 308, yy, TextAlign.Right);
 			}
 
 			return true;

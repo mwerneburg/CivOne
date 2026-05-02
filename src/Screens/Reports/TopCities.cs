@@ -15,13 +15,15 @@ using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal, OwnPalette]
+	[Modal, OwnPalette, Expand]
 	internal class TopCities : BaseScreen
 	{
 		private bool _update = true;
 
 		private readonly City[] _cities;
 		
+		private int OX => (Width - 320) / 2;
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
@@ -33,7 +35,7 @@ namespace CivOne.Screens.Reports
 				if (city == null || city.Size == 0) continue;
 				byte colour = Common.ColourLight[city.Owner];
 
-				int xx = 8;
+				int xx = OX + 8;
 				int yy = 32 + (32 * i);
 				int ww = 304;
 				int hh = 26;
@@ -64,7 +66,7 @@ namespace CivOne.Screens.Reports
 					dx += 19;
 				}
 
-				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, CassetteTheme.INK_HIGH, 160, yy + 3, TextAlign.Center);
+				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, CassetteTheme.INK_HIGH, Width / 2, yy + 3, TextAlign.Center);
 			}
 
 			_update = false;
@@ -102,9 +104,9 @@ namespace CivOne.Screens.Reports
 							.ToArray();
 
 			this.Clear(CassetteTheme.BG0)
-				.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
-				.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
-				.DrawText("The Top Five Cities in the World", 0, CassetteTheme.PHOS_GLOW, 160, 9, TextAlign.Center);
+				.FillRectangle(0, 0, Width, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, Width, 1, CassetteTheme.BORDER)
+				.DrawText("The Top Five Cities in the World", 0, CassetteTheme.PHOS_GLOW, Width / 2, 9, TextAlign.Center);
 		}
 	}
 }

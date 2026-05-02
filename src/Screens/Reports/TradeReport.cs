@@ -32,16 +32,16 @@ namespace CivOne.Screens.Reports
 			int totalIncome = _cities.Sum(c => c.Taxes);
 			int totalScience = _cities.Sum(c => c.Science);
 
-			this.DrawText("City Trade", 0, CassetteTheme.PHOS, 8, 32);
+			this.DrawText("City Trade", 0, CassetteTheme.PHOS, OX + 8, 32);
 
 			int yy = 40;
 			for (int i = (_page++ * 18); i < _cities.Length && i < (_page * 18); i++)
 			{
 				City city = _cities[i];
 
-				this.DrawText(city.Name, 0, CassetteTheme.BG0, 16, yy + 1)
-					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, 16, yy)
-					.DrawText($"{city.Luxuries}{LUXURIES}/{city.Taxes}{GOLD}/{city.Science}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, 86, yy);
+				this.DrawText(city.Name, 0, CassetteTheme.BG0, OX + 16, yy + 1)
+					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, OX + 16, yy)
+					.DrawText($"{city.Luxuries}{LUXURIES}/{city.Taxes}{GOLD}/{city.Science}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy);
 
 				yy += Resources.GetFontHeight(0);
 			}
@@ -49,11 +49,11 @@ namespace CivOne.Screens.Reports
 			if ((_page * 18) >= _cities.Length)
 			{
 				yy += 4;
-				this.DrawText($"Total Income: {totalIncome}$", 0, 10, 8, yy);
+				this.DrawText($"Total Income: {totalIncome}$", 0, 10, OX + 8, yy);
 				yy += Resources.GetFontHeight(0);
 				if (totalScience > 0 && yy <= 188)
 				{
-					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, 10, 8, yy);
+					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, 10, OX + 8, yy);
 				}
 			}
 		}
@@ -62,7 +62,7 @@ namespace CivOne.Screens.Reports
 		{
 			int totalCost = _cities.Sum(c => c.TotalMaintenance);
 
-			this.DrawText("Maintenance Cost", 0, CassetteTheme.PHOS, 160, 32);
+			this.DrawText("Maintenance Cost", 0, CassetteTheme.PHOS, OX + 160, 32);
 
 			int yy = 40;
 			foreach (Building entry in Enum.GetValues(typeof(Building)))
@@ -73,20 +73,19 @@ namespace CivOne.Screens.Reports
 				IBuilding building = _cities.SelectMany(c => c.Buildings).First(b => b.Id == (int)entry);
 				if (building.Maintenance == 0) continue;
 
-				this.DrawText($"{count} {building.Name}, {building.Maintenance * count}$", 0, 14, 160, yy);
+				this.DrawText($"{count} {building.Name}, {building.Maintenance * count}$", 0, 14, OX + 160, yy);
 				yy += Resources.GetFontHeight(0);
 			}
 
 			yy += 4;
-			this.DrawText($"Total Cost: {totalCost}$", 0, 14, 160, yy);
+			this.DrawText($"Total Cost: {totalCost}$", 0, 14, OX + 160, yy);
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
 
-			this.FillRectangle(0, 32, 576, 328, 2);
-			//this.FillRectangle(0, 32, 320, 168, 2);
+			this.FillRectangle(0, 32, Width, Height - 32, 2);
 			DrawCityTrade();
 			if ((_page * 18) >= _cities.Length)
 			{

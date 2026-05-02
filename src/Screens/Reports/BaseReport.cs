@@ -15,7 +15,7 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens.Reports
 {
-	[Modal, OwnPalette]
+	[Modal, OwnPalette, Expand]
 	internal abstract class BaseReport : BaseScreen
 	{
 		private bool _update = true;
@@ -23,8 +23,10 @@ namespace CivOne.Screens.Reports
 		protected readonly IBitmap[] Portrait = new Picture[4];
 
 		protected event ScreenEventHandler OnMouseDown;
-		
+
 		protected byte BackgroundColour { get; }
+
+		protected int OX => (Width - 320) / 2;
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -69,13 +71,11 @@ namespace CivOne.Screens.Reports
 			Palette = p;
 
 			this.Clear(CassetteTheme.BG0)
-				//.FillRectangle(0, 0, 320, 27, CassetteTheme.BG3)
-				.FillRectangle(0, 0, 576, 27, CassetteTheme.BG3)
-				//.FillRectangle(0, 27, 320, 1, CassetteTheme.BORDER)
-				.FillRectangle(0, 27, 576, 1, CassetteTheme.BORDER)
-				.DrawText(title, 0, CassetteTheme.PHOS_GLOW, 160, 2, TextAlign.Center)
-				.DrawText(string.Format("{0} of the {1}", "Empire", Human.TribeNamePlural), 0, CassetteTheme.INK_MID, 160, 10, TextAlign.Center)
-				.DrawText(string.Format("{0} {1}: {2}", "Emperor", Human.LeaderName, Game.GameYear), 0, CassetteTheme.INK_LOW, 160, 18, TextAlign.Center);
+				.FillRectangle(0, 0, Width, 27, CassetteTheme.BG3)
+				.FillRectangle(0, 27, Width, 1, CassetteTheme.BORDER)
+				.DrawText(title, 0, CassetteTheme.PHOS_GLOW, Width / 2, 2, TextAlign.Center)
+				.DrawText(string.Format("{0} of the {1}", "Empire", Human.TribeNamePlural), 0, CassetteTheme.INK_MID, Width / 2, 10, TextAlign.Center)
+				.DrawText(string.Format("{0} {1}: {2}", "Emperor", Human.LeaderName, Game.GameYear), 0, CassetteTheme.INK_LOW, Width / 2, 18, TextAlign.Center);
 		}
 	}
 }
