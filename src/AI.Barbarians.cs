@@ -168,8 +168,8 @@ namespace CivOne
 				ITile moveTo = tiles[Common.Random.Next(tiles.Length)];
 				int relX = moveTo.X - unit.X;
 				int relY = moveTo.Y - unit.Y;
-				while (relX < -1) relX += 80;
-				while (relX > 1) relX -= 80;
+				while (relX < -1) relX += Map.WIDTH;
+				while (relX > 1) relX -= Map.WIDTH;
 				if (unit is Diplomat && unit.Tile.City != null) return;
 
 				unit.MoveTo(relX, relY);

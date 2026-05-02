@@ -933,7 +933,7 @@ namespace CivOne
 				}
 			}
 
-			if (Shields >= (int)CurrentProduction.Price * 10)
+			if (CurrentProduction != null && Shields >= (int)CurrentProduction.Price * 10)
 			{
 				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0)
 				{

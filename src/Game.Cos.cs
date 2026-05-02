@@ -304,6 +304,11 @@ namespace CivOne
 			for (int ci = 0; ci < (cos.Cities?.Count ?? 0); ci++)
 			{
 				var cd   = cos.Cities[ci];
+				if (cd.X < 0 || cd.X >= Map.WIDTH || cd.Y < 0 || cd.Y >= Map.HEIGHT)
+				{
+					Log($"Skipping corrupt city id={cd.Id} at ({cd.X},{cd.Y}) — out of bounds for {Map.WIDTH}x{Map.HEIGHT} map");
+					continue;
+				}
 				var city = new City((byte)cd.Owner)
 				{
 					X       = (byte)cd.X,
