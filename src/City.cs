@@ -1129,13 +1129,13 @@ namespace CivOne
 					bool hasGranary = HasBuilding<Granary>();
 					bool hasPottery = Player.HasAdvance<Pottery>();
 
-					if (!hasGranary && hasPottery)
+					if (!hasGranary)
 					{
 						Size = (byte)(Size - Size / 3);
 
 						message.Add($"Famine in {Name}!");
 						message.Add($"Citizens killed!");
-						message.Add($"Citizens demand POTTERY.");
+						message.Add(hasPottery ? $"Citizens demand GRANARY." : $"Citizens demand POTTERY.");
 					}
 
 					break;
