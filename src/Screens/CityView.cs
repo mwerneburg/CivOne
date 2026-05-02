@@ -88,26 +88,24 @@ namespace CivOne.Screens
 			if (_captured || _disorder)
 			{
 				this.AddLayer(_background, OX, OY);
-				int frame = (_x % 30) / 3;
+				int frame = ((_x % 30) + 30) % 30 / 3;
 				for (int i = 7; i >= 0; i--)
 				{
 					int xx = (_x - 65) - (48 * i);
 					if (xx + 78 <= 0) continue;
 					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
-					Log($"i {i}, _x {_x}, xx {xx}, _y {_y}");
 				}
 				_x++;
 				return true;
 			}
-			
- 			if (_weLovePresidentDay)
+
+			if (_weLovePresidentDay)
 			{
 				this.AddLayer(_background, OX, OY);
-				int frame = ((_x + 600) % 30) / 3;
+				int frame = (((_x + 600) % 30) + 30) % 30 / 3;
 				for (int i = 0; i <= 7; i++)
 				{
 					int xx = (_x + 65) + (48 * i);
-					//if (xx <= 0) continue;
 					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
 				}
 				_x--;

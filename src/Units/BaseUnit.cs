@@ -237,9 +237,16 @@ namespace CivOne.Units
 			}
 
 			Movement = new MoveUnit(relX, relY);
-			
+
 			ITile moveTarget = Map[X, Y][relX, relY];
 			if (moveTarget == null) return false;
+
+			{
+				string targetDesc = moveTarget.City != null
+					? $"city {moveTarget.City.Name}(P{moveTarget.City.Owner})"
+					: $"unit {(moveTarget.Units.FirstOrDefault()?.GetType().Name ?? "?")}(P{moveTarget.Units.FirstOrDefault()?.Owner})";
+				Log($"[Confront] {GetType().Name} P{Owner} ({X},{Y}) → ({X+relX},{Y+relY}) {targetDesc}");
+			}
 
 			// Any hostile act against another civ triggers a state of war
 			if (moveTarget.City != null && moveTarget.City.Owner != Owner)
@@ -262,6 +269,7 @@ namespace CivOne.Units
 					Action changeOwner = delegate()
 					{
 						Player previousOwner = Game.GetPlayer(capturedCity.Owner);
+						Log($"[changeOwner] {GetType().Name} P{Owner} captures {capturedCity.Name}(P{capturedCity.Owner}) size={capturedCity.Size} walls={capturedCity.HasBuilding<CityWalls>()}");
 
 						if (capturedCity.HasBuilding<Palace>())
 							capturedCity.RemoveBuilding<Palace>();
@@ -277,6 +285,7 @@ namespace CivOne.Units
 						}
 
 						previousOwner.IsDestroyed();
+						Log($"[changeOwner] done; {capturedCity.Name} now P{capturedCity.Owner} size={capturedCity.Size}");
 					};
 
 					IList<IAdvance> advancesToSteal = GetAdvancesToSteal(capturedCity.Player);
@@ -411,7 +420,11 @@ namespace CivOne.Units
 
 		public virtual bool MoveTo(int relX, int relY)
 		{
-			if (Movement != null) return false;
+			if (Movement != null)
+			{
+				Log($"[MoveTo] Blocked: {GetType().Name} P{Owner} ({X},{Y}) has active Movement");
+				return false;
+			}
 			
 			ITile moveTarget = Map[X, Y][relX, relY];
 			if (moveTarget == null) return false;

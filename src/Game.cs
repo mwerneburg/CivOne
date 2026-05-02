@@ -45,6 +45,9 @@ namespace CivOne
 		private bool _activeUnitExplicit = false;
 		private readonly HashSet<IUnit> _waitingUnits = new HashSet<IUnit>();
 
+		private IUnit _lastMovedUnit = null;
+		private int _sameUnitMoveCount = 0;
+
 		// True for a land unit sitting on a non-city tile with a boardable ship —
 		// it is effectively cargo and should not be prompted for orders.
 		private static bool IsAboard(IUnit unit)
@@ -371,9 +374,23 @@ namespace CivOne
 			}
 			if (unit != null && (unit.MovesLeft > 0 || unit.PartMoves > 0))
 			{
+				if (unit == _lastMovedUnit)
+				{
+					_sameUnitMoveCount++;
+					if (_sameUnitMoveCount % 20 == 0)
+						Log($"[AI] {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) queued {_sameUnitMoveCount}x; MovesLeft={unit.MovesLeft} PartMoves={unit.PartMoves} Moving={unit.Moving} Goto={unit.Goto}");
+				}
+				else
+				{
+					_sameUnitMoveCount = 1;
+					_lastMovedUnit = unit;
+				}
 				GameTask.Enqueue(Turn.Move(unit));
 				return;
 			}
+			_sameUnitMoveCount = 0;
+			_lastMovedUnit = null;
+			Log($"[AI] P{_currentPlayer} ({CurrentPlayer.LeaderName}) ending turn");
 			GameTask.Enqueue(Turn.End());
 		}
 

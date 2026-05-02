@@ -37,6 +37,8 @@ namespace CivOne
 		{
 			if (Player != unit.Owner) return;
 
+			Log($"[AI.Move] {Player.LeaderName}(P{Game.PlayerNumber(Player)}) {unit.GetType().Name} ({unit.X},{unit.Y}) ML={unit.MovesLeft} PM={unit.PartMoves} Moving={unit.Moving} Goto={unit.Goto}");
+
 			if (unit.Owner == 0)
 			{
 				BarbarianMove(unit);
