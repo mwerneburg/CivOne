@@ -119,8 +119,8 @@ namespace CivOne
 			}
 			else if (unit is Militia || unit is Phalanx || unit is Musketeers || unit is Riflemen || unit is MechInf)
 			{
-				// Trim excess defenders in cities (per-city cap of 2)
-				while (unit.Tile.City != null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 2)
+				// Trim excess defenders in cities (per-city cap of 4)
+				while (unit.Tile.City != null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)
 				{
 					IUnit disband = null;
 					IUnit[] units = unit.Tile.Units.Where(x => x != unit).ToArray();

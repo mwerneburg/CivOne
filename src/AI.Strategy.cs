@@ -722,10 +722,11 @@ namespace CivOne
 		{
 			var plan = new List<IProduction>();
 
-			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+			int defenders  = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
 			byte ownId     = Game.PlayerNumber(Player);
 			int ownCities  = Player.Cities.Length;
 			int ownMilitia = Game.GetUnits().Count(u => u.Owner == ownId && u is Militia);
+			int ownSettlers = Game.GetUnits().Count(u => u.Owner == ownId && u is Settlers);
 
 			// 1. Defensive unit if city is undefended
 			if (defenders < 1) plan.Add(BestDefender());
@@ -733,21 +734,18 @@ namespace CivOne
 			// 2. Barracks
 			if (!city.HasBuilding<Barracks>()) plan.Add(new Barracks());
 
-			// 3. Militia — capped at 2× city count
-			if (ownMilitia < ownCities * 2 && plan.All(x => !(x is Militia)))
+			// 3. Militia — capped at 4× city count
+			if (ownMilitia < ownCities * 4 && plan.All(x => !(x is Militia)))
 				plan.Add(new Militia());
 
-			// 4. First Settler — only if city is large enough to survive the shrink
-			if (city.Size >= 2 && plan.All(x => !(x is Settlers)))
+			// 4. Settler — size >= 3 so the city stays viable; cap at 1 per 2 cities
+			if (city.Size >= 3 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
 				plan.Add(new Settlers());
 
 			// 5. Temple
 			if (!city.HasBuilding<Temple>()) plan.Add(new Temple());
 
-			// 6. Second Settler
-			if (city.Size >= 2) plan.Add(new Settlers());
-
-			// 7. Append standard plan items (no duplicates)
+			// 6. Append standard plan items (no duplicates)
 			PlanProductionInto(plan, city, stance);
 
 			return plan;
