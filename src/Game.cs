@@ -378,7 +378,10 @@ namespace CivOne
 				{
 					_sameUnitMoveCount++;
 					if (_sameUnitMoveCount % 20 == 0)
-						Log($"[AI] {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) queued {_sameUnitMoveCount}x; MovesLeft={unit.MovesLeft} PartMoves={unit.PartMoves} Moving={unit.Moving} Goto={unit.Goto}");
+					{
+						string gotoStr = unit.Goto.IsEmpty ? "empty" : $"({unit.Goto.X},{unit.Goto.Y})";
+						Log($"[AI] {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) queued {_sameUnitMoveCount}x; MovesLeft={unit.MovesLeft} PartMoves={unit.PartMoves} Moving={unit.Moving} Goto={gotoStr}");
+					}
 				}
 				else
 				{
