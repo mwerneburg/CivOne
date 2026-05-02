@@ -277,6 +277,33 @@ namespace CivOne
 			}
 		}
 		
+		private void CreateTemperateForest()
+		{
+			Log("Map: Creating temperate forests");
+
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (_tiles[x, y].IsOcean) continue;
+				int yy = (int)(((float)y / HEIGHT) * 50);
+				int latitude = Math.Abs(25 - yy);
+				if (latitude < 8 || latitude > 20) continue;
+				bool special = TileIsSpecial(x, y);
+				switch (_tiles[x, y].Type)
+				{
+					case Terrain.Grassland1:
+					case Terrain.Grassland2:
+						if (Common.Random.Next(20) < 11 - latitude / 2)
+							_tiles[x, y] = new Forest(x, y, special);
+						break;
+					case Terrain.Plains:
+						if (Common.Random.Next(20) < 6 - latitude / 4)
+							_tiles[x, y] = new Forest(x, y, special);
+						break;
+				}
+			}
+		}
+
 		private void AgeAdjustments()
 		{
 			Log("Map: Stage 5 - Age adjustments");
@@ -315,13 +342,13 @@ namespace CivOne
 				{
 					case Terrain.Forest: _tiles[x, y] = new Jungle(x, y, special); break;
 					case Terrain.Swamp: _tiles[x, y] = new Grassland(x, y); break;
-					case Terrain.Plains: _tiles[x, y] = new Hills(x, y, special); break;
+					case Terrain.Plains: if (Common.Random.Next(2) == 0) _tiles[x, y] = new Hills(x, y, special); break;
 					case Terrain.Tundra: _tiles[x, y] = new Hills(x, y, special); break;
 					case Terrain.River: _tiles[x, y] = new Forest(x, y, special); break;
 					case Terrain.Grassland1:
 					case Terrain.Grassland2: _tiles[x, y] = new Forest(x, y, special); break;
 					case Terrain.Jungle: _tiles[x, y] = new Swamp(x, y, special); break;
-					case Terrain.Hills: _tiles[x, y] = new Mountains(x, y, special); break;
+					case Terrain.Hills: if (Common.Random.Next(4) == 0) _tiles[x, y] = new Mountains(x, y, special); break;
 					case Terrain.Mountains:
 						if ((x == 0           || y == 0            || _tiles[x - 1, y - 1].Type != Terrain.Ocean) &&
 						    (x == (WIDTH - 1)  || y == 0            || _tiles[x + 1, y - 1].Type != Terrain.Ocean) &&
@@ -335,6 +362,47 @@ namespace CivOne
 			}
 		}
 		
+		private void CreateRainforestBand()
+		{
+			Log("Map: Creating rainforest band");
+
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (_tiles[x, y].IsOcean) continue;
+				int yy = (int)(((float)y / HEIGHT) * 50);
+				int latitude = Math.Abs(25 - yy);
+				if (latitude >= 10) continue;
+				int bias = Math.Max(0, 14 - latitude * 2);
+				if (bias == 0) continue;
+				bool special = TileIsSpecial(x, y);
+				switch (_tiles[x, y].Type)
+				{
+					case Terrain.Desert:
+					case Terrain.Plains:
+					case Terrain.Tundra:
+						if (Common.Random.Next(20) < bias)
+							_tiles[x, y] = new Jungle(x, y, special);
+						break;
+					case Terrain.Grassland1:
+					case Terrain.Grassland2:
+						if (Common.Random.Next(20) < bias)
+						{
+							int roll = Common.Random.Next(20);
+							if (roll < bias / 2)
+								_tiles[x, y] = new Swamp(x, y, special);
+							else
+								_tiles[x, y] = new Jungle(x, y, special);
+						}
+						break;
+					case Terrain.Forest:
+						if (Common.Random.Next(20) < bias)
+							_tiles[x, y] = new Jungle(x, y, special);
+						break;
+				}
+			}
+		}
+
 		private void CreateRivers()
 		{
 			Log("Map: Stage 6 - Create rivers");
@@ -396,6 +464,44 @@ namespace CivOne
 				else
 				{
 					_tiles = (ITile[,])tilesBackup.Clone(); ;
+				}
+			}
+
+			// Coastal river stubs
+			var coastalTiles = new List<(int x, int y)>();
+			for (int y = 2; y < HEIGHT - 2; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (!_tiles[x, y].IsOcean && NearOcean(x, y))
+					coastalTiles.Add((x, y));
+			}
+
+			int stubCount = Math.Min(3 + Common.Random.Next(4), coastalTiles.Count);
+			for (int s = 0; s < stubCount; s++)
+			{
+				var (sx, sy) = coastalTiles[Common.Random.Next(coastalTiles.Count)];
+				_tiles[sx, sy] = new River(sx, sy);
+				int cx = sx, cy = sy;
+				int steps = 2 + Common.Random.Next(5);
+				for (int step = 0; step < steps; step++)
+				{
+					int[] dxs = { 0, 0, -1, 1 };
+					int[] dys = { -1, 1, 0, 0 };
+					var valid = new List<(int nx, int ny)>();
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx + dxs[d] + WIDTH) % WIDTH;
+						int ny = cy + dys[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (_tiles[nx, ny].IsOcean) continue;
+						if (_tiles[nx, ny].Type == Terrain.River) continue;
+						valid.Add((nx, ny));
+					}
+					if (valid.Count == 0) break;
+					var (nx2, ny2) = valid[Common.Random.Next(valid.Count)];
+					_tiles[nx2, ny2] = new River(nx2, ny2);
+					cx = nx2;
+					cy = ny2;
 				}
 			}
 		}
@@ -461,6 +567,95 @@ namespace CivOne
 			}
 		}
 		
+		private void CreateMountainRanges()
+		{
+			Log("Map: Creating mountain ranges");
+
+			// Build continent size map
+			var continentSizes = new Dictionary<byte, int>();
+			foreach (ITile tile in AllTiles())
+			{
+				if (tile.IsOcean || tile.ContinentId == 15) continue;
+				if (!continentSizes.ContainsKey(tile.ContinentId))
+					continentSizes[tile.ContinentId] = 0;
+				continentSizes[tile.ContinentId]++;
+			}
+
+			int threshold = WIDTH * HEIGHT / 26;
+
+			var largeContinents = continentSizes
+				.Where(pair => pair.Value >= threshold)
+				.OrderByDescending(pair => pair.Value)
+				.ToList();
+
+			foreach (var pair in largeContinents)
+			{
+				byte contId = pair.Key;
+				var contTiles = AllTiles().Where(t => t.ContinentId == contId).ToList();
+
+				int minY = contTiles.Min(t => t.Y);
+				int maxY = contTiles.Max(t => t.Y);
+				int spanY = maxY - minY;
+
+				if (spanY < 6) continue;
+
+				int numChains = pair.Value >= threshold * 3 ? 2 : 1;
+
+				for (int chain = 0; chain < numChains; chain++)
+				{
+					var upper = contTiles.Where(t => t.Y <= minY + spanY / 3).ToList();
+					if (upper.Count == 0)
+						upper = contTiles.Where(t => t.Y <= minY + spanY / 2).ToList();
+					if (upper.Count == 0) continue;
+
+					var start = upper[Common.Random.Next(upper.Count)];
+					int cx = start.X;
+					int cy = start.Y;
+
+					int chainLen = Math.Max(5, Math.Min(spanY / 2 + Common.Random.Next(Math.Max(1, spanY / 4)), HEIGHT / 4));
+
+					var chainTiles = new HashSet<(int, int)>();
+
+					for (int step = 0; step < chainLen && cy < HEIGHT - 1; step++)
+					{
+						// possible x drift
+						int driftRoll = Common.Random.Next(6);
+						if (driftRoll == 0)
+							cx = (cx - 1 + WIDTH) % WIDTH;
+						else if (driftRoll == 1)
+							cx = (cx + 1) % WIDTH;
+
+						for (int dx = -1; dx <= 1; dx++)
+						{
+							int nx = (cx + dx + WIDTH) % WIDTH;
+							if (_tiles[nx, cy].IsOcean) continue;
+							_tiles[nx, cy] = new Mountains(nx, cy, TileIsSpecial(nx, cy));
+							chainTiles.Add((nx, cy));
+						}
+
+						cy++;
+					}
+
+					// Surround chain with hills
+					foreach (var (mx, my) in chainTiles)
+					{
+						for (int dy = -1; dy <= 1; dy++)
+						for (int dx = -1; dx <= 1; dx++)
+						{
+							if (dx == 0 && dy == 0) continue;
+							int nx = (mx + dx + WIDTH) % WIDTH;
+							int ny = my + dy;
+							if (ny < 0 || ny >= HEIGHT) continue;
+							if (_tiles[nx, ny].IsOcean) continue;
+							if (chainTiles.Contains((nx, ny))) continue;
+							if (_tiles[nx, ny].Type == Terrain.Mountains || _tiles[nx, ny].Type == Terrain.Hills) continue;
+							_tiles[nx, ny] = new Hills(nx, ny, TileIsSpecial(nx, ny));
+						}
+					}
+				}
+			}
+		}
+
 		private void CreatePoles()
 		{
 			Log("Map: Creating poles");
@@ -584,10 +779,13 @@ namespace CivOne
 			int[,] latitude = TemperatureAdjustments();
 			MergeElevationAndLatitude(elevation, latitude);
 			ClimateAdjustments();
+			CreateTemperateForest();
 			AgeAdjustments();
+			CreateRainforestBand();
 			CreateRivers();
-			
+
 			CalculateContinentSize();
+			CreateMountainRanges();
 			CreatePoles();
 			PlaceHuts();
 			CalculateLandValue();
