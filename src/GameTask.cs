@@ -31,18 +31,45 @@ namespace CivOne
 			TaskEventArgs eventArgs = new TaskEventArgs();
 			Started?.Invoke(_currentTask, eventArgs);
 			if (eventArgs.Aborted)
+			{
 				_currentTask.EndTask();
-			else
+				return;
+			}
+			try
+			{
 				_currentTask.Run();
+			}
+			catch (Exception ex)
+			{
+				Log($"[GameTask] Unhandled exception in {_currentTask.GetType().Name}.Run(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+				// Don't call EndTask() here — it would re-fire Done and could throw again, escaping the catch.
+				// Just drop the task; Update() will call NextTask() on the next tick.
+				_tasks.Remove(_currentTask);
+				_currentTask = null;
+			}
 		}
-		
+
 		public static bool Update()
 		{
 			if (_currentTask != null)
-				return _currentTask.Step();
+			{
+				try
+				{
+					return _currentTask.Step();
+				}
+				catch (Exception ex)
+				{
+					Log($"[GameTask] Unhandled exception in {_currentTask.GetType().Name}.Step(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+					// Don't call EndTask() here — it would re-fire Done and could throw again, escaping the catch.
+					// Just drop the task; the next Update() call will advance to the next queued task.
+					_tasks.Remove(_currentTask);
+					_currentTask = null;
+					return true;
+				}
+			}
 			else if (_tasks.Count == 0)
 				return false;
-			
+
 			NextTask();
 			return true;
 		}
