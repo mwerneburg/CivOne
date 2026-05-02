@@ -73,26 +73,37 @@ namespace CivOne.Units
 			Game.DisbandUnit(this);
 		}
 
+		public override bool MoveTo(int relX, int relY)
+		{
+			ITile moveTarget = Map[X, Y][relX, relY];
+			if (moveTarget == null) return false;
+
+			City city = moveTarget.City;
+			if (city != null && city != Home && city.Owner == Owner)
+			{
+				bool tooClose = Home != null && moveTarget.DistanceTo(Home) < 10;
+				bool buildingWonder = city.CurrentProduction is IWonder;
+
+				if (!tooClose || buildingWonder)
+				{
+					if (Game.Human == Owner)
+						GameTask.Enqueue(Show.CaravanChoice(this, city));
+					return true;
+				}
+			}
+
+			return base.MoveTo(relX, relY);
+		}
+
 		protected override bool Confront(int relX, int relY)
 		{
 			ITile moveTarget = Map[X, Y][relX, relY];
 			City city = moveTarget.City;
 
-			if (city == null || city == Home || (city.Owner == Owner && Home != null && moveTarget.DistanceTo(Home) < 10 && !(city.CurrentProduction is IWonder)))
-			{
-				MovementTo(relX, relY);
-				return true;
-			}
-
-			if (city.Owner != Owner)
+			if (city == null || city.Owner != Owner)
 			{
 				EstablishTradeRoute(moveTarget.City);
 				return true;
-			}
-
-			if (Game.Human == Owner)
-			{
-				GameTask.Enqueue(Show.CaravanChoice(this, city));
 			}
 
 			return true;
