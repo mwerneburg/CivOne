@@ -225,6 +225,10 @@ namespace CivOne.Screens
 			{
 				_nextScreen = new NewGame();
 			}
+			else if (Resources.SplashRawImage != null)
+			{
+				_nextScreen = new Splash();
+			}
 			else
 			{
 				_nextScreen = new Intro();

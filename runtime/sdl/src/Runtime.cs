@@ -86,6 +86,8 @@ namespace CivOne
 			Settings = settings;
 			Profile = Profile.Get(this, settings.Get<string>("profile-name"));
 			CoreRes.SpacedockImage = Resources.GetSpacedock();
+			string splashPath = Path.Combine(((IRuntime)this).StorageDirectory, "splash.png");
+			CoreRes.SplashRawImage = PngDecoder.Load(splashPath);
 			RuntimeHandler.Register(this);
 		}
 
