@@ -15,6 +15,7 @@ using CivOne.Units;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class UnitStack : BaseScreen
 	{
 		private const int XX = 101;
@@ -23,8 +24,10 @@ namespace CivOne.Screens
 		private readonly int _x, _y;
 		private readonly IUnit[] _units;
 
+		private int OX => (Width - 320) / 2;
+
 		private bool _update = true;
-		
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (_update)
@@ -37,7 +40,7 @@ namespace CivOne.Screens
 				}
 
 				int height = (16 * _units.Length) + 6;
-				int yy = (200 - height) / 2;
+				int yy = (Height - height) / 2;
 
 				Picture dialog = new Picture(WIDTH, height)
 					.FillRectangle(1, 1, WIDTH - 2, height - 2, 3)
@@ -52,8 +55,8 @@ namespace CivOne.Screens
 						.DrawText(unit.Home == null ? "NONE" : unit.Home.Name, 0, 14, 27, (i * 16) + 12);
 				}
 
-				this.FillRectangle(XX - 1, yy - 1, WIDTH + 2, height + 2, 5)
-					.AddLayer(dialog, XX, yy);
+				this.FillRectangle(OX + XX - 1, yy - 1, WIDTH + 2, height + 2, 5)
+					.AddLayer(dialog, OX + XX, yy);
 				
 				return true;
 			}
@@ -68,10 +71,10 @@ namespace CivOne.Screens
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (args.X >= XX && args.X < (XX + WIDTH))
+			if (args.X >= OX + XX && args.X < (OX + XX + WIDTH))
 			{
 				int height = (16 * _units.Length) + 6;
-				int yy = (200 - height) / 2;
+				int yy = (Height - height) / 2;
 				if (args.Y >= yy && args.Y < (yy + height))
 				{
 					int y = (args.Y - yy - 3);

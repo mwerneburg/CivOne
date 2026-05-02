@@ -19,6 +19,7 @@ using CivOne.Units;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class Overlay : BaseScreen
 	{
 		private struct HelpLabel
@@ -35,6 +36,9 @@ namespace CivOne.Screens
 				PointY = pointY;
 			}
 		}
+
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
 
 		private bool _update = true;
 		private bool _interfaceHelp = false;
@@ -118,8 +122,8 @@ namespace CivOne.Screens
 							.DrawText(helpLabel.Text, 0, 15, 5, 5)
 							.As<Picture>();
 
-						this.DrawLine(helpLabel.PointX, helpLabel.PointY, helpLabel.X + 5, helpLabel.Y + 6, 15)
-							.AddLayer(label, helpLabel.X, helpLabel.Y);
+						this.DrawLine(OX + helpLabel.PointX, OY + helpLabel.PointY, OX + helpLabel.X + 5, OY + helpLabel.Y + 6, 15)
+							.AddLayer(label, OX + helpLabel.X, OY + helpLabel.Y);
 					}
 				}
 

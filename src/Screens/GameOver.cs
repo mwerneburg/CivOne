@@ -13,43 +13,47 @@ using CivOne.IO;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class GameOver : BaseScreen
 	{
 		private readonly Picture _background;
 		private readonly string[] _textLines;
 		private int _currentLine = 0;
 		private int _lineTick = 0;
-		
+
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (gameTick % 10 != 0) return false;
 			_lineTick++;
-			
+
 			if (_lineTick % 6 != 0) return false;
-			
+
 			if (_textLines.Length <= _currentLine)
 			{
 				Runtime.Quit();
 				return true;
 			}
-			
-			this.AddLayer(_background)
-				.DrawText(_textLines[_currentLine], 5, 15, 159, 7, TextAlign.Center)
-				.DrawText(_textLines[_currentLine], 5, 13, 159, 9, TextAlign.Center)
-				.DrawText(_textLines[_currentLine], 5, 14, 159, 8, TextAlign.Center);
-			
+
+			this.AddLayer(_background, OX, OY)
+				.DrawText(_textLines[_currentLine], 5, 15, OX + 159, OY + 7, TextAlign.Center)
+				.DrawText(_textLines[_currentLine], 5, 13, OX + 159, OY + 9, TextAlign.Center)
+				.DrawText(_textLines[_currentLine], 5, 14, OX + 159, OY + 8, TextAlign.Center);
+
 			_currentLine++;
 			return true;
 		}
-		
+
 		public GameOver()
 		{
 			_background = Resources["ARCH"];
 			Palette = _background.Palette;
-			this.AddLayer(_background);
+			this.AddLayer(_background, OX, OY);
 
 			PlaySound("lose2");
-			
+
 			// Load text and replace strings
 			_textLines = TextFile.Instance.GetGameText("KING/ARCH");
 			for (int i = 0; i < _textLines.Length; i++)

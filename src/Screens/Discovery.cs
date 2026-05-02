@@ -14,15 +14,19 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class Discovery : BaseScreen
 	{
 		private const float FADE_STEP = 0.025f;
 
 		private readonly IAdvance _advance;
 		private readonly bool _modern;
-		
+
 		private float _fadeStep = 0.0f;
-		
+
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private Colour FadeColour(Colour colour1, Colour colour2)
 		{
 			int r = (int)(((float)colour1.R * (1.0F - _fadeStep)) + ((float)colour2.R * _fadeStep));
@@ -30,17 +34,17 @@ namespace CivOne.Screens
 			int b = (int)(((float)colour1.B * (1.0F - _fadeStep)) + ((float)colour2.B * _fadeStep));
 			return new Colour(r, g, b);
 		}
-		
+
 		private void FadeColours()
 		{
 			if (Settings.GraphicsMode != GraphicsMode.Graphics256) return;
-			
+
 			Palette palette = Palette;
 			for (int i = 86; i < 256; i++)
 				palette[i] = FadeColour(OriginalColours[i], _advance.OriginalColours[i]);
 			this.SetPalette(palette);
 		}
-		
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (_fadeStep < 1.0F)
@@ -54,21 +58,21 @@ namespace CivOne.Screens
 			}
 			return true;
 		}
-		
+
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
 			if (_fadeStep >= 1.0F)
 				Destroy();
 			return true;
 		}
-		
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			if (_fadeStep >= 1.0F)
 				Destroy();
 			return true;
 		}
-		
+
 		public Discovery(IAdvance advance)
 		{
 			_advance = advance;
@@ -76,10 +80,10 @@ namespace CivOne.Screens
 			string scientistName = Human.HasAdvance<Invention>() && (advance.Not<Invention>()) ? "scientists" : "scholars";
 
 			Picture background = Resources[$"DISCOVR{(_modern ? 2 : 1)}"];
-			
+
 			Palette = background.Palette;
 			this.Clear(32)
-				.AddLayer(background);
+				.AddLayer(background, OX, OY);
 
 			string[] text = new string[]
 			{
@@ -88,21 +92,20 @@ namespace CivOne.Screens
 				$"of {advance.Name}!"
 			};
 
-			
 			for (int i = 0; i < text.Length; i++)
 			{
 				if (_modern)
 				{
-					this.DrawText(text[i], 0, 3, 101, 30 + (8 * i));
+					this.DrawText(text[i], 0, 3, OX + 101, OY + 30 + (8 * i));
 				}
 				else
 				{
-					this.DrawText(text[i], 5, 32, 101, 7 + (15 * i))
-						.DrawText(text[i], 5, 15, 101, 6 + (15 * i));
+					this.DrawText(text[i], 5, 32, OX + 101, OY + 7 + (15 * i))
+						.DrawText(text[i], 5, 15, OX + 101, OY + 6 + (15 * i));
 				}
 			}
 
-			this.AddLayer(advance.Icon, 119, _modern ? 53 : 61);
+			this.AddLayer(advance.Icon, OX + 119, OY + (_modern ? 53 : 61));
 
 			PlaySound(Human.Civilization.Tune);
 		}

@@ -16,8 +16,12 @@ using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class GameOptions : BaseScreen
 	{
+		private int OX => (Width - 320) / 2;
+		private int OY => (Height - 200) / 2;
+
 		private bool _update = true;
 		
 		private void MenuCancel(object sender, EventArgs args)
@@ -88,12 +92,12 @@ namespace CivOne.Screens
 				IBitmap menuBackground = menuGfx[2, 11, 100, 64]
 					.ColourReplace((7, 11), (22, 3));
 
-				this.AddLayer(menuGfx, 25, 17); // this is the Options menu grey box, not the crazily repeated upper left corner of the screen.
+				this.AddLayer(menuGfx, OX + 25, OY + 17); // this is the Options menu grey box, not the crazily repeated upper left corner of the screen.
 
 				Menu menu = new Menu(Palette, menuBackground)
 				{
-					X = 27, // these are the confirmed text origin coordinates
-					Y = 28,
+					X = OX + 27, // these are the confirmed text origin coordinates
+					Y = OY + 28,
 					MenuWidth = 99,
 					ActiveColour = 11,
 					TextColour = 5,
@@ -121,7 +125,7 @@ namespace CivOne.Screens
 		{
 			Palette = Common.DefaultPalette;
 			this.AddLayer(Common.Screens.Last(), 0, 0) // this is a black box (presumably behind the menu?
-				 .FillRectangle(24, 16, 105, 81, 5);
+				 .FillRectangle(OX + 24, OY + 16, 105, 81, 5);
 		}
 	}
 }

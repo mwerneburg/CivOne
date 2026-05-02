@@ -14,6 +14,7 @@ using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
+	[Expand]
 	internal class Goto : BaseScreen
 	{
 		private readonly int _x, _y;

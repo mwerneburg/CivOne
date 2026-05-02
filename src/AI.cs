@@ -46,9 +46,12 @@ namespace CivOne
 				return;
 			}
 			
-			if (unit is Settlers)
+			if (unit is Settlers) // there may be a problem here
 			{
 				ITile tile = unit.Tile;
+
+                // [AI] Settlers P7 (15,38) queued 40x; MovesLeft=1 PartMoves=0 Moving=False Goto=(18,38)
+                // [AI.Move] Genghis Khan(P7) Settlers (15,38) ML=1 PM=0 Moving=False Goto=(18,38)
 
 				bool hasCity = (tile.City != null);
 				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City == null);
@@ -104,12 +107,12 @@ namespace CivOne
 				if (!unit.Goto.IsEmpty)
 				{
 					// Chieftain: build roads while in transit to the city site
-					if (Game.Difficulty == 0 && !tile.Road && !tile.RailRoad
-					    && tile.City == null && !tile.IsOcean)
-					{
-						GameTask.Enqueue(Orders.BuildRoad(unit));
-						return;
-					}
+//					if (Game.Difficulty == 0 && !tile.Road && !tile.RailRoad
+//					    && tile.City == null && !tile.IsOcean)
+//					{
+//						GameTask.Enqueue(Orders.BuildRoad(unit));
+//						return;
+//					}
 					ITile next = Common.GotoStep(unit);
 					if (next == null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
