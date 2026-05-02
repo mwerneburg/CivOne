@@ -545,7 +545,8 @@ namespace CivOne
 
 		public void SetProduction(IProduction production)
 		{
-			if (CurrentProduction != null && CurrentProduction.GetType() != production.GetType())
+			bool switchingWonders = CurrentProduction is IWonder && production is IWonder;
+			if (!switchingWonders && CurrentProduction != null && CurrentProduction.GetType() != production.GetType())
 				Shields = 0;
 			CurrentProduction = production;
 		}
