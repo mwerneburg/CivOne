@@ -46,76 +46,72 @@ namespace CivOne
 				return;
 			}
 			
-			if (unit is Settlers) // there may be a problem here
+			if (unit is Settlers)
 			{
 				ITile tile = unit.Tile;
 
-                // [AI] Settlers P7 (15,38) queued 40x; MovesLeft=1 PartMoves=0 Moving=False Goto=(18,38)
-                // [AI.Move] Genghis Khan(P7) Settlers (15,38) ML=1 PM=0 Moving=False Goto=(18,38)
-
-				bool hasCity = (tile.City != null);
 				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City == null);
 				bool validIrrigaton = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation) && tile.CrossTiles().Any(x => x.IsOcean || x is River || x.Irrigation);
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation);
 				bool validRoad = (tile.City == null) && tile.Road;
 				int nearestCity = 255;
 				int nearestOwnCity = 255;
-				
+
 				if (Game.GetCities().Any()) nearestCity = Game.GetCities().Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
 				if (Game.GetCities().Any(x => x.Owner == unit.Owner)) nearestOwnCity = Game.GetCities().Where(x => x.Owner == unit.Owner).Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
-				
-				if (validCity && nearestCity > 3)
-				{
-					GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
-					return;
-				}
-				else if (nearestOwnCity < 3)
-				{
-					switch (Common.Random.Next(5 * nearestOwnCity))
-					{
-						case 0:
-							if (validRoad)
-							{
-								GameTask.Enqueue(Orders.BuildRoad(unit));
-								return;
-							}
-							break;
-						case 1:
-							if (validIrrigaton)
-							{
-								GameTask.Enqueue(Orders.BuildIrrigation(unit));
-								return;
-							}
-							break;
-						case 2:
-							if (validMine)
-							{
-								GameTask.Enqueue(Orders.BuildMines(unit));
-								return;
-							}
-							break;
-					}
-				}
 
-				// Navigate toward the best visible city site
+				// If Goto is already set the AI previously committed to a better site — honour
+				// that commitment and don't detour to found a city at the current tile.
 				if (unit.Goto.IsEmpty)
 				{
+					if (validCity && nearestCity > 3)
+					{
+						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
+						unit.SkipTurn();
+						return;
+					}
+					else if (nearestOwnCity < 3)
+					{
+						switch (Common.Random.Next(nearestOwnCity < 1 ? 1 : 5 * nearestOwnCity))
+						{
+							case 0:
+								if (validRoad)
+								{
+									GameTask.Enqueue(Orders.BuildRoad(unit));
+									return;
+								}
+								break;
+							case 1:
+								if (validIrrigaton)
+								{
+									GameTask.Enqueue(Orders.BuildIrrigation(unit));
+									return;
+								}
+								break;
+							case 2:
+								if (validMine)
+								{
+									GameTask.Enqueue(Orders.BuildMines(unit));
+									return;
+								}
+								break;
+						}
+					}
+
 					ITile best = BestSettleSite(unit);
 					if (best != null && (best.X != unit.X || best.Y != unit.Y))
 						unit.Goto = new Point(best.X, best.Y);
 				}
+
 				if (!unit.Goto.IsEmpty)
 				{
-					// Chieftain: build roads while in transit to the city site
-//					if (Game.Difficulty == 0 && !tile.Road && !tile.RailRoad
-//					    && tile.City == null && !tile.IsOcean)
-//					{
-//						GameTask.Enqueue(Orders.BuildRoad(unit));
-//						return;
-//					}
 					ITile next = Common.GotoStep(unit);
 					if (next == null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
-					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+					{
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+					}
 					return;
 				}
 				unit.SkipTurn();
