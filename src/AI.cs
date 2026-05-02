@@ -199,6 +199,20 @@ namespace CivOne
 						return;
 					}
 
+					// Don't let a GoTo move initiate war with a civilization at peace.
+					{
+						Player nextCityOwner = (next.City != null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
+						bool peacefulBlock =
+							next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = Game.GetPlayer(u.Owner); return p != null && !Player.IsAtWar(p); })
+							|| (nextCityOwner != null && !Player.IsAtWar(nextCityOwner));
+						if (peacefulBlock)
+						{
+							unit.Goto = Point.Empty;
+							unit.SkipTurn();
+							return;
+						}
+					}
+
 					if (next.Units.Any(x => x.Owner != unit.Owner))
 					{
 						if (unit.Role == UnitRole.Civilian || unit.Role == UnitRole.Settler)

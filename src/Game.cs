@@ -367,6 +367,17 @@ namespace CivOne
 						unit.Goto = Point.Empty;
 						return;
 					}
+					// Don't let a GoTo move initiate war — stop peacefully at the border.
+					Player owner = HumanPlayer;
+					Player nextCityOwner = (next.City != null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
+					bool peacefulBlock =
+						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p != null && !owner.IsAtWar(p); })
+						|| (nextCityOwner != null && !owner.IsAtWar(nextCityOwner));
+					if (peacefulBlock)
+					{
+						unit.Goto = Point.Empty;
+						return;
+					}
 					unit.MoveTo(next.X - unit.X, next.Y - unit.Y);
 					return;
 				}
