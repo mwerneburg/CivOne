@@ -117,6 +117,21 @@ namespace CivOne.Screens.GamePlayPanels
 			_demographics.AddLayer(Icons.Lamp(stage), 4 + width, 22);
 
 			_demographics.DrawText($"{Human.Gold}$ {Human.LuxuriesRate}.{Human.TaxesRate}.{Human.ScienceRate}", 0, 5, 2, 31, TextAlign.Left);
+
+			// Warming indicator: a small coloured dot in the bottom-right corner
+			int indicator = Game.WarmingIndicator;
+			if (indicator > 0)
+			{
+				byte dotColour = indicator switch
+				{
+					1 => 4,  // dark red
+					2 => 12, // light red
+					3 => 14, // yellow
+					_ => 15  // white
+				};
+				_demographics.FillRectangle(70, 30, 7, 7, dotColour)
+				             .DrawRectangle(70, 30, 7, 7, 0);
+			}
 		}
 		
 		private void DrawGameInfo(uint gameTick = 0)

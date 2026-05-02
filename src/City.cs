@@ -790,9 +790,52 @@ namespace CivOne
 			}
 		}
 
+		// Industrial + population pollution, reduced by clean-power buildings.
+		public int SmokeStacks
+		{
+			get
+			{
+				int industrial = ShieldTotal;
+				if (HasBuilding<Buildings.RecyclingCenter>()) industrial /= 3;
+				else if (HasBuilding<Buildings.HydroPlant>() || HasBuilding<Buildings.NuclearPlant>()) industrial /= 2;
+
+				int popMult = 100;
+				if (HasBuilding<Buildings.MassTransit>())       popMult = 0;
+				else if (Player.HasAdvance<Advances.Plastics>())        popMult = 100;
+				else if (Player.HasAdvance<Advances.MassProduction>())  popMult = 75;
+				else if (Player.HasAdvance<Advances.Automobile>())      popMult = 50;
+				else if (Player.HasAdvance<Advances.Industrialization>()) popMult = 25;
+				else                                                     popMult = 0;
+
+				int stacks = industrial + (Size * popMult / 100);
+				return Math.Max(0, stacks - 20); // first 20 units are tolerated
+			}
+		}
+
+		private bool GeneratePollution()
+		{
+			if (SmokeStacks == 0) return false;
+			int cap = Math.Max(2, 256 - (Player.Advances.Length * (1 + Game.Difficulty) / 2));
+			return (2 * SmokeStacks) > Common.Random.Next(cap);
+		}
+
+		private void ExecutePollution()
+		{
+			if (!GeneratePollution()) return;
+
+			var candidates = CityTiles.Where(t => !t.Pollution && t.City == null && !t.IsOcean).ToList();
+			if (candidates.Count == 0) return;
+
+			candidates[Common.Random.Next(candidates.Count)].Pollution = true;
+
+			if (Human == Owner)
+				GameTask.Enqueue(Message.Newspaper(this, "Pollution in", $"{Name}!", "Health problems feared."));
+		}
+
 		public void NewTurn()
 		{
 			UpdateResources();
+			ExecutePollution();
 
 			if (IsInDisorder)
 			{

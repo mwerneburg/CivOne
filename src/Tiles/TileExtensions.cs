@@ -199,6 +199,7 @@ namespace CivOne.Tiles
 			}
 			if (tile.DrawFortress()) output.AddLayer(MapTile.Fortress);
 			if (tile.DrawHut()) output.AddLayer(MapTile.Hut);
+			if (tile.Pollution && !tile.IsOcean) output.AddLayer(MapTile.Pollution);
 
 			if (player != null)
 			{

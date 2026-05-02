@@ -50,6 +50,7 @@ namespace CivOne
 			using (IGameData gameData = new SaveDataAdapter())
 			{
 				gameData.GameTurn = _gameTurn;
+				gameData.GlobalWarmingCount = GlobalWarmingCount;
 				gameData.HumanPlayer = (ushort)PlayerNumber(HumanPlayer);
 				gameData.RandomSeed = Map.Instance.SaveMap(mapFile);
 				gameData.Difficulty = (ushort)_difficulty;
@@ -255,6 +256,7 @@ namespace CivOne
 			HumanPlayer.CurrentResearch = Common.Advances.FirstOrDefault(a => a.Id == gameData.CurrentResearch);
 		
 			_anthologyTurn = gameData.NextAnthologyTurn;
+			GlobalWarmingCount = gameData.GlobalWarmingCount;
 
 			Dictionary<byte, City> cityList = new Dictionary<byte, City>();
 			foreach (CityData cityData in gameData.Cities)

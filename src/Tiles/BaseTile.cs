@@ -187,6 +187,7 @@ namespace CivOne.Tiles
 		public virtual bool Irrigation { get; set; }
 		public virtual bool Mine { get; set; }
 		public virtual bool Fortress { get; set; }
+		public bool Pollution { get; set; }
 		private bool _hut;
 		public virtual bool Hut
 		{

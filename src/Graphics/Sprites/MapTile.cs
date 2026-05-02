@@ -278,6 +278,24 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[240, 112, 16, 16]
 				.ColourReplace(3, 0);
 		}
+
+		private static Bytemap GetPollution()
+		{
+			// Draw a small smog cloud: two overlapping dark ovals in the lower-centre
+			Bytemap output = new Bytemap(16, 16);
+			byte c = GFX256 ? (byte)6 : (byte)6; // dark brown/olive in standard palette
+			// Left blob (5-8, 8-11)
+			for (int x = 4; x <= 8; x++)
+			for (int y = 8; y <= 11; y++)
+				output[x, y] = c;
+			// Right blob (7-11, 7-10)
+			for (int x = 7; x <= 11; x++)
+			for (int y = 7; y <= 10; y++)
+				output[x, y] = c;
+			// Highlight centre pixels lighter
+			output[6, 9] = 14; output[9, 8] = 14;
+			return output;
+		}
 		
 		public static readonly ISprite LandBase = new CachedSprite(GetLandBase);
 		public static readonly ISprite OceanBase = new CachedSprite(GetOceanBase);
@@ -300,6 +318,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Mine = new CachedSprite(GetMine);
 		public static readonly ISprite Fortress = new CachedSprite(GetFortress);
 		public static readonly ISprite Hut = new CachedSprite(GetHut);
+		public static readonly ISprite Pollution = new CachedSprite(GetPollution);
 		public static readonly ISprite Seals = new CachedSprite(GetSpecial<Arctic>);
 		public static readonly ISprite Oasis = new CachedSprite(GetSpecial<Desert>);
 		public static readonly ISprite Game = new CachedSprite(GetSpecial<Forest>);

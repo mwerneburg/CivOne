@@ -89,6 +89,8 @@ namespace CivOne
 
 		public bool HasUpdate => false;
 		
+		internal ushort GlobalWarmingCount { get; set; }
+
 		private ushort _gameTurn;
 		internal ushort GameTurn
 		{
@@ -213,6 +215,60 @@ namespace CivOne
 			return Math.Max(1, (int)Math.Ceiling(SpaceshipFlightYears(structural, component, module)));
 		}
 
+		// ── Pollution / Global Warming ───────────────────────────────────────────
+
+		// Returns 0-4 warming indicator level: 0=none,1=darkred,2=lightred,3=yellow,4=white
+		public int WarmingIndicator
+		{
+			get
+			{
+				int n = Map.AllTiles().Count(t => t.Pollution);
+				if (n == 0) return 0;
+				if (n == 1) return 1;
+				if (n <= 3) return 2;
+				if (n <= 5) return 3;
+				return 4;
+			}
+		}
+
+		private void HandleGlobalWarming()
+		{
+			int polluted = Map.AllTiles().Count(t => t.Pollution);
+			int threshold = 8 + (GlobalWarmingCount * 2);
+			if (polluted < threshold) return;
+
+			GlobalWarmingCount++;
+
+			// Remove all pollution, then transform affected tiles
+			foreach (ITile tile in Map.AllTiles())
+			{
+				tile.Pollution = false;
+				if (tile.City != null || tile.IsOcean) continue;
+
+				int adjacentOcean = tile.GetBorderTiles().Count(t => t != null && t.IsOcean);
+				int oceanThreshold = Math.Max(0, 7 - GlobalWarmingCount);
+
+				if (adjacentOcean >= oceanThreshold)
+				{
+					// Flood: near-coast tiles become swamp/jungle
+					Map.ChangeTileType(tile.X, tile.Y, tile is Tiles.Forest ? Terrain.Jungle : Terrain.Swamp);
+					tile.Irrigation = false;
+					tile.Mine = false;
+				}
+				else
+				{
+					// Dry out: deterministic mesh check (matches original algorithm)
+					int mesh = (11 * tile.X + 13 * tile.Y) & 7;
+					if (mesh != (GlobalWarmingCount & 7)) continue;
+					bool isDesertOrPlains = tile.Type == Terrain.Desert || tile.Type == Terrain.Plains;
+					Map.ChangeTileType(tile.X, tile.Y, isDesertOrPlains ? Terrain.Desert : Terrain.Plains);
+					tile.Irrigation = false;
+				}
+			}
+
+			GameTask.Enqueue(Message.Newspaper(null, "Global temperature", "rises! Icecaps melt.", "Severe Drought."));
+		}
+
 		public void EndTurn()
 		{
 			_waitingUnits.Clear();
@@ -225,6 +281,7 @@ namespace CivOne
 			if (++_currentPlayer >= _players.Length)
 			{
 				_currentPlayer = 0;
+				HandleGlobalWarming();
 				GameTurn++;
 				// Check for spaceship launches (any player now has minimum parts)
 				for (int p = 1; p < _players.Length; p++)

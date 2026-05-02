@@ -232,6 +232,8 @@ namespace CivOne
 		
 		public short Science { get; internal set; }
 
+		public int Pollution => Cities.Sum(c => c.SmokeStacks);
+
 		public void AddAdvance(IAdvance advance, bool setOrigin = true)
 		{
 			if (advance is FutureTech)

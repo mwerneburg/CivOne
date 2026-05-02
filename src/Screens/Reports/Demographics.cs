@@ -62,7 +62,7 @@ namespace CivOne.Screens.Reports
 			yield return new TableRow("Land Area", "0 sq.miles", 1);
 			yield return new TableRow("Literacy", "0%", 1);
 			yield return new TableRow("Disease", "0%", 1);
-			yield return new TableRow("Pollution", "00 tons/year", 1);
+			yield return new TableRow("Pollution", $"{Human.Pollution:D2} tons/year", 1);
 			yield return new TableRow("Life expectancy", "20 years", 1);
 			yield return new TableRow("Family Size", "2.0 children", 1);
 			yield return new TableRow("Military Service", "0 years", 1);

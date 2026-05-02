@@ -285,6 +285,12 @@ namespace CivOne
 			set => _saveData.OpponentCount = value;
 		}
 
+		public ushort GlobalWarmingCount
+		{
+			get => _saveData.GlobalWarming;
+			set => _saveData.GlobalWarming = value;
+		}
+
 		public ReplayData[] ReplayData
 		{
 			get => GetReplayData().ToArray();

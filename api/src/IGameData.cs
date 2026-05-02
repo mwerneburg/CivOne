@@ -40,6 +40,7 @@ namespace CivOne
 		bool[] GameOptions { get; set; }
 		ushort NextAnthologyTurn { get; set; }
 		ushort OpponentCount { get; set; }
+		ushort GlobalWarmingCount { get; set; }
 		ReplayData[] ReplayData { get; set; }
 
 		bool ValidData { get; }
