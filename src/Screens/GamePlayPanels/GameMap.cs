@@ -110,9 +110,12 @@ namespace CivOne.Screens.GamePlayPanels
 
 			if ((gameTick % 2) == 0 && (_lastTurn != Game.GameTurn || _lastUnit != unit))
 			{
-				if (_lastUnit != unit && unit != null && Game.Human == unit.Owner && ShouldCenter())
+				if (unit != null && Game.Human == unit.Owner)
 				{
-					CenterOnUnit();
+					if (!unit.Goto.IsEmpty)
+						CenterOnUnit();
+					else if (_lastUnit != unit && ShouldCenter())
+						CenterOnUnit();
 				}
 				_fullRedraw = true;
 				_update = true;
