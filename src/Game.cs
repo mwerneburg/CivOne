@@ -41,7 +41,32 @@ namespace CivOne
 		internal readonly int[] SpaceshipStructural = new int[8];
 		internal readonly int[] SpaceshipComponent  = new int[8];
 		internal readonly int[] SpaceshipModule     = new int[8];
-		
+
+		// Exploration: byte[x, y] = player index who first revealed that tile; 255 = unvisited
+		private byte[,] _firstExplorer;
+		internal byte[,] FirstExplorer
+		{
+			get
+			{
+				if (_firstExplorer == null)
+				{
+					_firstExplorer = new byte[Map.WIDTH, Map.HEIGHT];
+					for (int x = 0; x < Map.WIDTH; x++)
+					for (int y = 0; y < Map.HEIGHT; y++)
+						_firstExplorer[x, y] = 255;
+				}
+				return _firstExplorer;
+			}
+			set => _firstExplorer = value;
+		}
+
+		internal bool ClaimTile(int x, int y, byte playerIdx)
+		{
+			if (FirstExplorer[x, y] != 255) return false;
+			FirstExplorer[x, y] = playerIdx;
+			return true;
+		}
+
 		internal readonly string[] CityNames = Common.AllCityNames.ToArray();
 		
 		private int _currentPlayer = 0;

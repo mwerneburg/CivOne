@@ -195,6 +195,7 @@ namespace CivOne
 					SpaceshipStructural  = SpaceshipStructural.ToArray(),
 					SpaceshipComponent   = SpaceshipComponent.ToArray(),
 					SpaceshipModule      = SpaceshipModule.ToArray(),
+					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					ReplayData           = replay
 				},
 				Map     = Map.Instance.SaveToCos(),
@@ -295,6 +296,19 @@ namespace CivOne
 			// Future techs and human player
 			for (int i = 0; i < _players.Length; i++)
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
+
+			// Exploration credits
+			if (!string.IsNullOrEmpty(g.FirstExplorer))
+			{
+				FirstExplorer = UnpackFirstExplorer(g.FirstExplorer);
+				for (int x = 0; x < Map.WIDTH; x++)
+				for (int y = 0; y < Map.HEIGHT; y++)
+				{
+					byte pIdx = FirstExplorer[x, y];
+					if (pIdx < _players.Length)
+						_players[pIdx].ExplorationCredits++;
+				}
+			}
 
 			GameTurn     = (ushort)g.Turn;
 			CityNames    = g.CityNames;
@@ -462,6 +476,27 @@ namespace CivOne
 			string year = Common.YearString(_gameTurn);
 			string rank = Common.DifficultyName(_difficulty);
 			return $"{rank} {human.LeaderName}, {human.TribeNamePlural} / {year}";
+		}
+
+		private static string PackFirstExplorer(byte[,] fe)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			var bytes = new byte[w * h];
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				bytes[y * w + x] = fe[x, y];
+			return Convert.ToBase64String(bytes);
+		}
+
+		private static byte[,] UnpackFirstExplorer(string b64)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			var bytes = Convert.FromBase64String(b64);
+			var fe = new byte[w, h];
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				fe[x, y] = (y * w + x < bytes.Length) ? bytes[y * w + x] : (byte)255;
+			return fe;
 		}
 
 		private static string PackVisibility(bool[,] vis)

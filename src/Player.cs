@@ -192,11 +192,14 @@ namespace CivOne
 		public int FutureTechs => _futureTechs;
 		internal void SetFutureTechs(int count) => _futureTechs = count;
 
+		internal int ExplorationCredits;
+
 		public int Score =>
-			Population / 5000 +           // 2 pts per 10,000 people
-			_advances.Count * 3 +          // 3 pts per advance
-			Cities.Sum(c => c.Wonders.Length) * 4 + // 4 pts per wonder
-			_futureTechs * 5;              // 5 pts per future tech
+			Population / 5000 +                      // 2 pts per 10,000 people
+			_advances.Count * 3 +                    // 3 pts per advance
+			Cities.Sum(c => c.Wonders.Length) * 4 +  // 4 pts per wonder
+			_futureTechs * 5 +                       // 5 pts per future tech
+			ExplorationCredits / 10;                 // 1 pt per 10 tiles first explored
 
 		public short Gold
 		{
@@ -466,6 +469,16 @@ namespace CivOne
 				while (xx >= Map.WIDTH) xx -= Map.WIDTH;
 				if (sea && !Map[xx, yy].IsOcean && (Math.Abs(relX) > 1 || Math.Abs(relY) > 1))
 					continue;
+				if (!_visible[xx, yy])
+				{
+					var gameInst = Game.Instance;
+					if (gameInst != null)
+					{
+						byte pNum = gameInst.PlayerNumber(this);
+						if (gameInst.ClaimTile(xx, yy, pNum))
+							ExplorationCredits++;
+					}
+				}
 				_visible[xx, yy] = true;
 			}
 		}

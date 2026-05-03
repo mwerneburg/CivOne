@@ -44,6 +44,8 @@ namespace CivOne.Persistence
 		public int[] SpaceshipStructural { get; set; }
 		public int[] SpaceshipComponent { get; set; }
 		public int[] SpaceshipModule { get; set; }
+		// base64-encoded byte array, Width*Height bytes; value = player index who first explored (255 = unvisited)
+		public string FirstExplorer { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
 	}
 
