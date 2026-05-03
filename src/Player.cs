@@ -491,6 +491,26 @@ namespace CivOne
 			return Visible(tile.GetBorderTile(direction));
 		}
 
+		public void MergeVisibility(Player other)
+		{
+			for (int x = 0; x < Map.WIDTH; x++)
+			for (int y = 0; y < Map.HEIGHT; y++)
+			{
+				if (!other._explored[x, y]) continue;
+				_visible[x, y]  = true;
+				_explored[x, y] = true;
+			}
+		}
+
+		public bool HasNewVisibilityFor(Player other)
+		{
+			for (int x = 0; x < Map.WIDTH; x++)
+			for (int y = 0; y < Map.HEIGHT; y++)
+				if (_explored[x, y] && !other._explored[x, y])
+					return true;
+			return false;
+		}
+
 		public void NewTurn()
 		{
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))
@@ -510,6 +530,7 @@ namespace CivOne
 			AI?.ConsiderGovernment();
 			AI?.ConsiderWar();
 			AI?.ConsiderDiplomacy();
+			AI?.ConsiderMapTrade();
 		}
 
 		public override bool Equals (object obj)

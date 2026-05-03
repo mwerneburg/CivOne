@@ -218,6 +218,32 @@ namespace CivOne.Screens
 			}
 		}
 
+		private void TradeMaps(object sender, EventArgs args)
+		{
+			CloseMenus();
+			bool weHaveNew  = Human.HasNewVisibilityFor(_enemy);
+			bool theyHaveNew = _enemy.HasNewVisibilityFor(Human);
+
+			if (!weHaveNew && !theyHaveNew)
+			{
+				SetResponse(FaceState.Neutral,
+					"Our cartographers have nothing", "you don't already know.");
+				return;
+			}
+			if (AIAccepts(65))
+			{
+				Human.MergeVisibility(_enemy);
+				_enemy.MergeVisibility(Human);
+				SetResponse(FaceState.Smiling,
+					"Agreed. Our cartographers", "will share their charts.");
+			}
+			else
+			{
+				SetResponse(FaceState.Neutral,
+					"We are not interested", "in sharing our maps.");
+			}
+		}
+
 		private void DeclareWarOnThem(object sender, EventArgs args)
 		{
 			CloseMenus();
@@ -297,6 +323,7 @@ namespace CivOne.Screens
 			else
 			{
 				menu.Items.Add("Seek exchange of knowledge").OnSelect(SeekKnowledge);
+				menu.Items.Add("Trade maps").OnSelect(TradeMaps);
 				menu.Items.Add("Demand tribute").OnSelect(SeekTribute);
 				menu.Items.Add("Declare war!").OnSelect(DeclareWarOnThem);
 				menu.Items.Add("Farewell").OnSelect(Farewell);

@@ -157,6 +157,39 @@ namespace CivOne
 			GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true));
 		}
 
+		// ── background map trading ────────────────────────────────────────────────
+
+		internal void ConsiderMapTrade()
+		{
+			if (Game.PlayerNumber(Player) == 0) return;
+			if (Player.Government is Governments.Anarchy) return;
+			if (Player.IsDestroyed()) return;
+
+			// ~3 % chance per turn to consider a map trade
+			if (Common.Random.Next(100) >= 3) return;
+
+			// Pick a random non-barbarian, non-hostile AI partner that has an embassy
+			Player[] candidates = Game.Players
+				.Where(p => p != Player
+				         && !p.IsDestroyed()
+				         && Game.PlayerNumber(p) != 0   // not barbarians
+				         && !p.IsHuman
+				         && !Player.IsAtWar(p)
+				         && Player.HasEmbassy(p))
+				.ToArray();
+
+			if (candidates.Length == 0) return;
+
+			Player partner = candidates[Common.Random.Next(candidates.Length)];
+
+			bool weHaveNew   = Player.HasNewVisibilityFor(partner);
+			bool theyHaveNew = partner.HasNewVisibilityFor(Player);
+			if (!weHaveNew && !theyHaveNew) return;
+
+			Player.MergeVisibility(partner);
+			partner.MergeVisibility(Player);
+		}
+
 		// ── proactive war declaration ──────────────────────────────────────────
 
 		internal void ConsiderWar()
