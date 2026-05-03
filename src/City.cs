@@ -1049,6 +1049,13 @@ namespace CivOne
 					{
 						Shields = 0;
 						AddWonder(wonder);
+						if (wonder is ApolloProgram)
+						{
+							foreach (Player p in Game.Players)
+								for (int xx = 0; xx < Map.WIDTH; xx++)
+								for (int yy = 0; yy < Map.HEIGHT; yy++)
+									p.Explore(xx, yy, 0);
+						}
 						GameTask.Enqueue(new ImprovementBuilt(this, wonder));
 					}
 					else
