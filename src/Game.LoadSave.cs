@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using CivOne.Buildings;
 using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Units;
@@ -144,12 +145,15 @@ namespace CivOne
 					foreach (IProduction item in city.ProductionQueue)
 						bw.Write(item.GetType().Name);
 				}
-				// 0xFF marker, 8×int32 spaceship turns, 8×int32 future tech counts
+				// 0xFF marker, 8×int32 spaceship turns, 8×int32 future tech counts, 3×8×int32 SS part counts
 				bw.Write((byte)0xFF);
 				foreach (int t in SpaceshipLaunchTurn)  bw.Write(t);
 				foreach (int t in SpaceshipArrivalTurn) bw.Write(t);
 				for (int i = 0; i < _players.Length; i++) bw.Write(_players[i].FutureTechs);
 				for (int i = _players.Length; i < 8; i++) bw.Write(0);
+				foreach (int v in SpaceshipStructural) bw.Write(v);
+				foreach (int v in SpaceshipComponent)  bw.Write(v);
+				foreach (int v in SpaceshipModule)     bw.Write(v);
 			}
 		}
 
@@ -188,6 +192,25 @@ namespace CivOne
 						{
 							int ft = br.ReadInt32();
 							if (i < _players.Length) _players[i].SetFutureTechs(ft);
+						}
+						// SS part counts (added after future techs — absent in older queue files)
+						bool hasSsParts = br.BaseStream.Position < br.BaseStream.Length;
+						for (int i = 0; i < 8 && br.BaseStream.Position < br.BaseStream.Length; i++) SpaceshipStructural[i] = br.ReadInt32();
+						for (int i = 0; i < 8 && br.BaseStream.Position < br.BaseStream.Length; i++) SpaceshipComponent[i]  = br.ReadInt32();
+						for (int i = 0; i < 8 && br.BaseStream.Position < br.BaseStream.Length; i++) SpaceshipModule[i]     = br.ReadInt32();
+						// Migrate older SVE saves where SS parts were city buildings
+						if (!hasSsParts)
+						{
+							foreach (City city in _cities)
+							{
+								int p = city.Owner;
+								SpaceshipStructural[p] += city.Buildings.Count(b => b is SSStructural);
+								SpaceshipComponent[p]  += city.Buildings.Count(b => b is SSComponent);
+								SpaceshipModule[p]     += city.Buildings.Count(b => b is SSModule);
+								city.RemoveBuilding<SSStructural>();
+								city.RemoveBuilding<SSComponent>();
+								city.RemoveBuilding<SSModule>();
+							}
 						}
 					}
 				}

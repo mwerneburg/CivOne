@@ -1007,17 +1007,23 @@ namespace CivOne
 						GameTask.Enqueue(advisorMessage);
 					}
 				}
-				if (CurrentProduction is IBuilding && !_buildings.Any(b => b.Id == (CurrentProduction as IBuilding).Id))
+				if (CurrentProduction is ISpaceShip)
+				{
+					// SS parts are tracked as player-level counters, not city buildings,
+					// so the city can repeat-build the same part.
+					Shields = 0;
+					int p = Owner;
+					if (CurrentProduction is Buildings.SSStructural)      Game.SpaceshipStructural[p]++;
+					else if (CurrentProduction is Buildings.SSComponent)  Game.SpaceshipComponent[p]++;
+					else if (CurrentProduction is Buildings.SSModule)     Game.SpaceshipModule[p]++;
+					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
+					message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
+					GameTask.Enqueue(message);
+				}
+				else if (CurrentProduction is IBuilding && !_buildings.Any(b => b.Id == (CurrentProduction as IBuilding).Id))
 				{
 					Shields = 0;
-					if (CurrentProduction is ISpaceShip)
-					{
-						_buildings.Add(CurrentProduction as IBuilding);
-						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
-						message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
-						GameTask.Enqueue(message);
-					}
-					else if (CurrentProduction is Palace)
+					if (CurrentProduction is Palace)
 					{
 						foreach (City city in Game.Instance.GetCities().Where(c => c.Owner == Owner))
 						{

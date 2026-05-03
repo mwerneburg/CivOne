@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using CivOne.Buildings;
 using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Persistence;
@@ -189,9 +190,12 @@ namespace CivOne
 						CivilopediaText = CivilopediaText,
 						Palace         = Palace
 					},
-					SpaceshipLaunch  = SpaceshipLaunchTurn.ToArray(),
-					SpaceshipArrival = SpaceshipArrivalTurn.ToArray(),
-					ReplayData       = replay
+					SpaceshipLaunch      = SpaceshipLaunchTurn.ToArray(),
+					SpaceshipArrival     = SpaceshipArrivalTurn.ToArray(),
+					SpaceshipStructural  = SpaceshipStructural.ToArray(),
+					SpaceshipComponent   = SpaceshipComponent.ToArray(),
+					SpaceshipModule      = SpaceshipModule.ToArray(),
+					ReplayData           = replay
 				},
 				Map     = Map.Instance.SaveToCos(),
 				Players = players,
@@ -390,6 +394,29 @@ namespace CivOne
 			if (g.SpaceshipArrival != null)
 				for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, 8); i++)
 					SpaceshipArrivalTurn[i] = g.SpaceshipArrival[i];
+			if (g.SpaceshipStructural != null)
+				for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, 8); i++)
+					SpaceshipStructural[i] = g.SpaceshipStructural[i];
+			if (g.SpaceshipComponent != null)
+				for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, 8); i++)
+					SpaceshipComponent[i] = g.SpaceshipComponent[i];
+			if (g.SpaceshipModule != null)
+				for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, 8); i++)
+					SpaceshipModule[i] = g.SpaceshipModule[i];
+			// Migrate: old COS saves stored SS parts as city buildings; convert and strip them.
+			if (g.SpaceshipStructural == null && g.SpaceshipComponent == null && g.SpaceshipModule == null)
+			{
+				foreach (City city in _cities)
+				{
+					int p = city.Owner;
+					SpaceshipStructural[p] += city.Buildings.Count(b => b is SSStructural);
+					SpaceshipComponent[p]  += city.Buildings.Count(b => b is SSComponent);
+					SpaceshipModule[p]     += city.Buildings.Count(b => b is SSModule);
+					city.RemoveBuilding<SSStructural>();
+					city.RemoveBuilding<SSComponent>();
+					city.RemoveBuilding<SSModule>();
+				}
+			}
 
 			// Replay data
 			foreach (var re in g.ReplayData ?? Enumerable.Empty<CosReplayEntry>())

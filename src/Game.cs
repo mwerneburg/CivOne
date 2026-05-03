@@ -37,6 +37,10 @@ namespace CivOne
 		// [0]=barbarians, [1-7]=civs; 0 = not yet launched
 		internal readonly int[] SpaceshipLaunchTurn = new int[8];
 		internal readonly int[] SpaceshipArrivalTurn = new int[8];
+		// SS part inventories — incremented when a city finishes a part; not stored as city buildings
+		internal readonly int[] SpaceshipStructural = new int[8];
+		internal readonly int[] SpaceshipComponent  = new int[8];
+		internal readonly int[] SpaceshipModule     = new int[8];
 		
 		internal readonly string[] CityNames = Common.AllCityNames.ToArray();
 		
@@ -287,9 +291,9 @@ namespace CivOne
 				for (int p = 1; p < _players.Length; p++)
 				{
 					if (_players[p].IsDestroyed()) continue;
-					int structural = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSStructural));
-					int component  = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSComponent));
-					int module     = _cities.Where(c => c.Owner == p).Sum(c => c.Buildings.Count(b => b is SSModule));
+					int structural = SpaceshipStructural[p];
+					int component  = SpaceshipComponent[p];
+					int module     = SpaceshipModule[p];
 					// Minimum: 1 engine (2 comps), 1 module set (3 mods), sufficient structure
 					int needed = SpaceshipStructuresNeeded(component, module);
 					if (component < 2 || module < 3 || structural < needed) continue;

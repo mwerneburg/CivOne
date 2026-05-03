@@ -28,8 +28,11 @@ namespace CivOne.Screens.Reports
 
 		private int Count<T>(Player p) where T : IBuilding
 		{
-			byte id = Game.PlayerNumber(p);
-			return Game.GetCities().Where(c => c.Owner == id).Sum(c => c.Buildings.Count(b => b is T));
+			int id = Game.PlayerNumber(p);
+			if (typeof(T) == typeof(SSStructural)) return Game.SpaceshipStructural[id];
+			if (typeof(T) == typeof(SSComponent))  return Game.SpaceshipComponent[id];
+			if (typeof(T) == typeof(SSModule))     return Game.SpaceshipModule[id];
+			return 0;
 		}
 
 		// Nearest-neighbor scale of a Bytemap to the given target dimensions.

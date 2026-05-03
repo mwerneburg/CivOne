@@ -41,6 +41,9 @@ namespace CivOne.Persistence
 		public CosOptions Options { get; set; }
 		public int[] SpaceshipLaunch { get; set; }
 		public int[] SpaceshipArrival { get; set; }
+		public int[] SpaceshipStructural { get; set; }
+		public int[] SpaceshipComponent { get; set; }
+		public int[] SpaceshipModule { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
 	}
 
