@@ -377,9 +377,15 @@ namespace CivOne
 
 		private bool BuildingAvailable(IBuilding building)
 		{
-			// Only allow spaceship to be built if Apollo Program exists
-			if ((building is ISpaceShip) && !Game.Instance.WonderBuilt<ApolloProgram>())
-				return false;
+			if (building is ISpaceShip)
+			{
+				// Requires Apollo Program
+				if (!Game.Instance.WonderBuilt<ApolloProgram>())
+					return false;
+				// No new SS parts once launched
+				if (Game.SpaceshipLaunchTurn[Game.PlayerNumber(this)] != 0)
+					return false;
+			}
 
 			// Determine if the building requires a tech
 			if (building.RequiredTech == null)
