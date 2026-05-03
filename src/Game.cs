@@ -42,6 +42,9 @@ namespace CivOne
 		internal readonly int[] SpaceshipComponent  = new int[8];
 		internal readonly int[] SpaceshipModule     = new int[8];
 
+		// True once the satellite-coverage intelligence report has fired
+		internal bool MapRevealedNotified;
+
 		// Exploration: byte[x, y] = player index who first revealed that tile; 255 = unvisited
 		private byte[,] _firstExplorer;
 		internal byte[,] FirstExplorer
@@ -312,6 +315,22 @@ namespace CivOne
 				_currentPlayer = 0;
 				HandleGlobalWarming();
 				GameTurn++;
+
+				// Fire the satellite-anomaly intelligence report once Apollo is built
+				if (!MapRevealedNotified && WonderBuilt<ApolloProgram>())
+				{
+					MapRevealedNotified = true;
+					SouthPoleExpeditionLog.EnsureConfigFile();
+					string[] intelLines = SouthPoleExpeditionLog.LoadIntelLines()
+						?? new[]
+						{
+							"Satellite imagery has revealed an anomalous formation at the South Pole.",
+							"Norwegian scientists confirm the structure is of non-terrestrial origin.",
+							"A classified expedition has been dispatched. Details: EYES ONLY."
+						};
+					GameTask.Enqueue(Message.Advisor(Advisor.Science, false, intelLines));
+				}
+
 				// Check for spaceship launches (any player now has minimum parts)
 				for (int p = 1; p < _players.Length; p++)
 				{

@@ -46,6 +46,7 @@ namespace CivOne.Persistence
 		public int[] SpaceshipModule { get; set; }
 		// base64-encoded byte array, Width*Height bytes; value = player index who first explored (255 = unvisited)
 		public string FirstExplorer { get; set; }
+		public bool MapRevealedNotified { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
 	}
 

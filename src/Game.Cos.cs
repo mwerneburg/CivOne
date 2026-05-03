@@ -196,6 +196,7 @@ namespace CivOne
 					SpaceshipComponent   = SpaceshipComponent.ToArray(),
 					SpaceshipModule      = SpaceshipModule.ToArray(),
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
+					MapRevealedNotified  = MapRevealedNotified,
 					ReplayData           = replay
 				},
 				Map     = Map.Instance.SaveToCos(),
@@ -296,6 +297,8 @@ namespace CivOne
 			// Future techs and human player
 			for (int i = 0; i < _players.Length; i++)
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
+
+			MapRevealedNotified = g.MapRevealedNotified;
 
 			// Exploration credits
 			if (!string.IsNullOrEmpty(g.FirstExplorer))

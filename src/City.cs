@@ -14,6 +14,7 @@ using CivOne.Advances;
 using CivOne.Buildings;
 using CivOne.Enums;
 using CivOne.Governments;
+using CivOne.Screens;
 using CivOne.Tasks;
 using CivOne.Tiles;
 using CivOne.Units;
@@ -1057,7 +1058,14 @@ namespace CivOne
 					{
 						Shields = 0;
 						AddWonder(wonder);
-						GameTask.Enqueue(new ImprovementBuilt(this, wonder));
+						var impTask = new ImprovementBuilt(this, wonder);
+						if (wonder is Wonders.SouthPoleExpedition && Player == Human)
+						{
+							Game.SpaceshipComponent[Game.PlayerNumber(Player)] += 2;
+							string gameYear = Game.GameYear;
+							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
+						}
+						GameTask.Enqueue(impTask);
 					}
 					else
 					{
