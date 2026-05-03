@@ -166,9 +166,10 @@ namespace CivOne
 			}
 		}
 
-		internal int FoodIncome => ResourceTiles.Sum(t => FoodValue(t)) - FoodCosts;
+		private int FoodRaw => ResourceTiles.Sum(t => FoodValue(t));
+		internal int FoodIncome => (HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw) - FoodCosts;
 		internal int FoodRequired => (int)(Size + 1) * 10;
-		internal int FoodTotal => ResourceTiles.Sum(t => FoodValue(t));
+		internal int FoodTotal => HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw;
 
 		internal int FoodValue(ITile tile)
 		{
@@ -209,6 +210,7 @@ namespace CivOne
 			get
 			{
 				int shields = ResourceTiles.Sum(t => ShieldValue(t));
+				if (HasBuilding<Buildings.MassTransit>()) shields = (int)(shields * 1.2);
 				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant)) ? 1.0 : 0.5));
 				if (_buildings.Any(b => (b is MfgPlant))) shields += (short)Math.Floor((double)shields * 1.0);
 				return shields;

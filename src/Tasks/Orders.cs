@@ -27,6 +27,7 @@ namespace CivOne.Tasks
 			Irrigate,
 			Mines,
 			Fortress,
+			CleanPollution,
 			Wait,
 			Skip,
 			Unload,
@@ -217,6 +218,17 @@ namespace CivOne.Tasks
 			EndTask();
 		}
 
+		private void DoCleanPollution()
+		{
+			if (!(_unit is Settlers))
+			{
+				EndTask();
+				return;
+			}
+			(_unit as Settlers).CleanPollution();
+			EndTask();
+		}
+
 		private void UnitWait()
 		{
 			Game.UnitWait();
@@ -241,6 +253,9 @@ namespace CivOne.Tasks
 					break;
 				case Order.Road:
 					Road();
+					break;
+				case Order.CleanPollution:
+					DoCleanPollution();
 					break;
 				case Order.Wait:
 					UnitWait();
@@ -304,6 +319,15 @@ namespace CivOne.Tasks
 			{
 				_unit = unit,
 				_order = Order.Road
+			};
+		}
+
+		public static Orders CleanPollution(IUnit unit)
+		{
+			return new Orders()
+			{
+				_unit = unit,
+				_order = Order.CleanPollution
 			};
 		}
 

@@ -25,7 +25,7 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0);
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0);
 			}
 			set
 			{
@@ -34,12 +34,14 @@ namespace CivOne.Units
 				BuildingIrrigation = 0;
 				BuildingMine = 0;
 				BuildingFortress = 0;
+				BuildingCleanPollution = 0;
 			}
 		}
 		public int BuildingRoad { get; private set; }
 		public int BuildingIrrigation { get; private set; }
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
+		public int BuildingCleanPollution { get; private set; }
 
 		internal void SetBuildProgress(int road, int irrigation, int mine, int fortress)
 		{
@@ -144,7 +146,7 @@ namespace CivOne.Units
 		{
 			if (!Game.CurrentPlayer.HasAdvance<Construction>())
 				return false;
-			
+
 			ITile tile = Map[X, Y];
 			if (!tile.IsOcean && !(tile.Fortress) && tile.City == null)
 			{
@@ -154,6 +156,16 @@ namespace CivOne.Units
 				return true;
 			}
 			return false;
+		}
+
+		public bool CleanPollution()
+		{
+			ITile tile = Map[X, Y];
+			if (!tile.Pollution) return false;
+			BuildingCleanPollution = 2;
+			MovesLeft = 0;
+			PartMoves = 0;
+			return true;
 		}
 
 		public override void NewTurn()
@@ -247,6 +259,19 @@ namespace CivOne.Units
 					Map[X, Y].Fortress = true;
 				}
 			}
+			else if (BuildingCleanPollution > 0)
+			{
+				BuildingCleanPollution--;
+				if (BuildingCleanPollution > 0)
+				{
+					MovesLeft = 0;
+					PartMoves = 0;
+				}
+				else
+				{
+					Map[X, Y].Pollution = false;
+				}
+			}
 		}
 
 		private MenuItem<int> MenuFoundCity() => MenuItem<int>
@@ -278,6 +303,11 @@ namespace CivOne.Units
 			.SetShortcut("f")
 			.SetEnabled(Game.CurrentPlayer.HasAdvance<Construction>())
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildFortress(this)));
+
+		private MenuItem<int> MenuCleanPollution() => MenuItem<int>
+			.Create("Clean Pollution")
+			.SetShortcut("p")
+			.OnSelect((s, a) => GameTask.Enqueue(Orders.CleanPollution(this)));
 		
 		public override IEnumerable<MenuItem<int>> MenuItems
 		{
@@ -305,6 +335,10 @@ namespace CivOne.Units
 				if (!tile.IsOcean && !tile.Fortress)
 				{
 					yield return MenuBuildFortress();
+				}
+				if (tile.Pollution)
+				{
+					yield return MenuCleanPollution();
 				}
 				//
 				yield return MenuWait();

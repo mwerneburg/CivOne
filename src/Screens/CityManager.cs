@@ -154,10 +154,10 @@ namespace CivOne.Screens
 			int pw = ColLeftW;
 			int fh = Resources.GetFontHeight(0);
 
-			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 3 fields (each fh+4)
+			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 4 fields (each fh+4)
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int ph     = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+			int ph     = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
 			this.DrawCassettePanel(px, py, pw, ph, "RESOURCES");
 
 			int cx = px + 4;
@@ -201,6 +201,13 @@ namespace CivOne.Screens
 
 			// Upkeep field (shield costs)
 			this.DrawCassetteField("UPKEEP", $"{_city.ShieldCosts} SHLD", cx, cy, cw);
+			cy += fieldH;
+
+			// Pollution field
+			int smokeStacks = _city.SmokeStacks;
+			string pollVal = smokeStacks > 0 ? $"{smokeStacks} TONS" : "NONE";
+			byte pollColor = smokeStacks > 0 ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
+			this.DrawCassetteField("POLLUT", pollVal, cx, cy, cw, 0, pollColor);
 		}
 
 		private void DrawTradeRoutes()
@@ -209,7 +216,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
 
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap;
@@ -230,7 +237,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 3 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
 			int tradePh     = 8 + fh + 8;
 
 			int px = ColLeftX;
