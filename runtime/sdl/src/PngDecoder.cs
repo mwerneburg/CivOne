@@ -23,12 +23,25 @@ namespace CivOne
 
 		public static SplashData Load(string path)
 		{
-			if (!File.Exists(path)) return null;
+			if (!File.Exists(path))
+			{
+				Console.Error.WriteLine($"PngDecoder: file not found: {path}");
+				return null;
+			}
 			try
 			{
-				return Decode(File.ReadAllBytes(path));
+				SplashData result = Decode(File.ReadAllBytes(path));
+				if (result == null)
+					Console.Error.WriteLine($"PngDecoder: Decode returned null for {path} (unsupported format?)");
+				else
+					Console.Error.WriteLine($"PngDecoder: loaded {result.Width}x{result.Height} from {path}");
+				return result;
 			}
-			catch { return null; }
+			catch (Exception ex)
+			{
+				Console.Error.WriteLine($"PngDecoder: exception loading {path}: {ex}");
+				return null;
+			}
 		}
 
 		private static SplashData Decode(byte[] data)

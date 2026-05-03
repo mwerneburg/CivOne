@@ -137,6 +137,15 @@ namespace CivOne.Screens
 			this.AddLayer(_picture, 0, 0);
 		}
 
+		private readonly bool _addNewGameOnDismiss;
+
+		private void Dismiss()
+		{
+			Destroy();
+			if (_addNewGameOnDismiss)
+				Common.AddScreen(new NewGame());
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (_picture == null)
@@ -144,8 +153,7 @@ namespace CivOne.Screens
 				Build();
 				if (_picture == null)
 				{
-					Destroy();
-					Common.AddScreen(new NewGame());
+					Dismiss();
 					return false;
 				}
 				return true;
@@ -153,24 +161,19 @@ namespace CivOne.Screens
 
 			_ticks++;
 			if (_ticks >= AutoAdvanceTicks)
-			{
-				Destroy();
-				Common.AddScreen(new NewGame());
-			}
+				Dismiss();
 			return false;
 		}
 
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			Destroy();
-			Common.AddScreen(new NewGame());
+			Dismiss();
 			return true;
 		}
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			Destroy();
-			Common.AddScreen(new NewGame());
+			Dismiss();
 			return true;
 		}
 
@@ -180,8 +183,13 @@ namespace CivOne.Screens
 			Bitmap.Clear();
 		}
 
-		public Splash()
+		// Startup mode: just destroy on dismiss; Credits is already queued next.
+		public Splash() : this(false) { }
+
+		// New-game mode: add NewGame screen on dismiss.
+		public Splash(bool addNewGameOnDismiss)
 		{
+			_addNewGameOnDismiss = addNewGameOnDismiss;
 			OnResize += Resize;
 		}
 	}

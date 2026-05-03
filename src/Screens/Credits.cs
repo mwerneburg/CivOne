@@ -221,13 +221,9 @@ namespace CivOne.Screens
 			foreach (IScreen menu in _menus)
 				this.AddLayer(menu);
 			CloseMenus();
-			if (!Runtime.Settings.ShowIntro)
+			if (!Runtime.Settings.ShowIntro || Resources.SplashRawImage != null)
 			{
 				_nextScreen = new NewGame();
-			}
-			else if (Resources.SplashRawImage != null)
-			{
-				_nextScreen = new Splash();
 			}
 			else
 			{

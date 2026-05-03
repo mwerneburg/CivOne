@@ -75,6 +75,7 @@ namespace CivOne
 				if (Runtime.Settings.DataCheck && !FileSystem.DataFilesExist()) yield return typeof(MissingFiles);
 				if (Runtime.Settings.Demo) yield return typeof(Demo);
 				if (Runtime.Settings.Setup) yield return typeof(Setup);
+				if (Resources.SplashRawImage != null) yield return typeof(Splash);
 				yield return typeof(Credits);
 			}
 		}
