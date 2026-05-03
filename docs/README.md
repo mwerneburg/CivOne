@@ -20,6 +20,7 @@ As for rule changes:
  + AI with real strategy. Yes, that includes stacking units. Watch out!
  + If WLTKD can't grow a city, it spawns a free caravan.
  + A mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (cornerstone of a modern city).
+ + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
