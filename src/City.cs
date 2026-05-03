@@ -871,7 +871,7 @@ namespace CivOne
 				if (WasInDisorder)
 				{
 					if (Player == Human)
-						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Order restored", $" in{Name}."));
+						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Order restored", $" in {Name}."));
  					Log($"City {Name} belonging to {Player.TribeName} is no longer in disorder");
 				}
  				WasInDisorder = false;
