@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
@@ -19,9 +20,6 @@ namespace CivOne.Screens
 	internal class WorldMap : BaseScreen
 	{
 		private bool _update = true;
-
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
 
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -42,75 +40,48 @@ namespace CivOne.Screens
 			return true;
 		}
 
-		private int VisibleTop
-		{
-			get
-			{
-				Player player = Game.Human;
-				for(int yy = 0; yy < Map.HEIGHT; yy++)
-				for(int xx = 0; xx < Map.WIDTH; xx++)
-				{
-					if (player.Visible(xx, yy)) return yy;
-				}
-				return 0;
-			}
-		}
-
-		private int VisibleBottom
-		{
-			get
-			{
-				Player player = Game.Human;
-				for(int yy = Map.HEIGHT - 1; yy >= 0; yy--)
-				for(int xx = 0; xx < Map.WIDTH; xx++)
-				{
-					if (player.Visible(xx, yy)) return yy;
-				}
-				return 0;
-			}
-		}
-
 		public WorldMap()
 		{
 			Palette = Resources.WorldMapTiles.Palette;
 			this.Clear(5);
 
-			int startX = Game.Human.StartX - 40;
-			int startY = ((Map.HEIGHT - (VisibleBottom - VisibleTop)) / 2) - VisibleTop;
-			if (Settings.RevealWorld) startX = 0;
-			if (Settings.RevealWorld || VisibleTop == 0 || VisibleBottom == Map.HEIGHT) startY = 0;
+			int tileW = Math.Max(1, Width / Map.WIDTH);
+			int tileH = Math.Max(1, Height / Map.HEIGHT);
+			int ox = (Width - Map.WIDTH * tileW) / 2;
+			int oy = (Height - Map.HEIGHT * tileH) / 2;
 
 			for (int x = 0; x < Map.WIDTH; x++)
 			for (int y = 0; y < Map.HEIGHT; y++)
 			{
 				if (!Settings.RevealWorld && !Human.Visible(x, y)) continue;
 
-				City city = null;
-				IUnit[] units;
 				ITile tile = Map[x, y];
 				Terrain type = tile.Type;
 				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
 				bool altTile = ((x + y) % 2 == 1);
-				int xx = (((int)type) * 4);
-				int yy = altTile ? 4 : 0;
+				int tx = ((int)type) * 4;
+				int ty = altTile ? 4 : 0;
+				byte colour = Resources.WorldMapTiles.Bitmap[tx, ty];
 
-				int dx = (x - startX) * 4;
-				int dy = (y + startY) * 4;
-				if (dy < 0 || dy >= 200) continue;
+				int dx = ox + x * tileW;
+				int dy = oy + y * tileH;
+				this.FillRectangle(dx, dy, tileW, tileH, colour);
 
-				while (dx > 320) dx -= 320;
-				while (dx < 0) dx += 320;
-
-				this.AddLayer(Resources.WorldMapTiles[xx, yy, 4, 4], OX + dx, OY + dy);
-
-				if ((city = tile.City) != null && city.Size > 0)
+				City city = tile.City;
+				if (city != null && city.Size > 0)
 				{
-					this.FillRectangle(OX + dx, OY + dy, 4, 4, Common.ColourLight[city.Owner]);
+					this.FillRectangle(dx, dy, tileW, tileH, Common.ColourLight[city.Owner]);
 				}
-				else if ((units = tile.Units).Length > 0)
+				else
 				{
-					this.FillRectangle(OX + dx + 1, OY + dy + 1, 3, 3, 5)
-						.FillRectangle(OX + dx, OY + dy, 3, 3, Common.ColourLight[units[0].Owner]);
+					IUnit[] units = tile.Units;
+					if (units.Length > 0)
+					{
+						int iW = Math.Max(1, tileW - 1);
+						int iH = Math.Max(1, tileH - 1);
+						this.FillRectangle(dx + 1, dy + 1, iW, iH, 5)
+							.FillRectangle(dx, dy, iW, iH, Common.ColourLight[units[0].Owner]);
+					}
 				}
 			}
 		}
