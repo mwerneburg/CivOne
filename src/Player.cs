@@ -469,6 +469,7 @@ namespace CivOne
 			if (y < 0 || y >= Map.HEIGHT) return false;
 			while (x < 0) x += Map.WIDTH;
 			while (x >= Map.WIDTH) x -= Map.WIDTH;
+			if (Game.WonderBuilt<ApolloProgram>()) return true;
 			return _visible[x, y];
 		}
 

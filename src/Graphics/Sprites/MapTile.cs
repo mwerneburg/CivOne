@@ -281,19 +281,27 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetPollution()
 		{
-			// Draw a small smog cloud: two overlapping dark ovals in the lower-centre
+			// Amber phosphor smog cloud: idx 57 = orange-amber body, 9 = bright yellow glow, 1 = golden shadow
 			Bytemap output = new Bytemap(16, 16);
-			byte c = GFX256 ? (byte)6 : (byte)6; // dark brown/olive in standard palette
-			// Left blob (5-8, 8-11)
-			for (int x = 4; x <= 8; x++)
+			const byte body = 57;   // #e88440 orange-amber
+			const byte glow = 9;    // #e8f454 bright yellow highlight
+			const byte shadow = 1;  // #a88020 golden shadow edge
+
+			// Left lobe
+			for (int x = 3; x <= 7; x++)
 			for (int y = 8; y <= 11; y++)
-				output[x, y] = c;
-			// Right blob (7-11, 7-10)
+				output[x, y] = body;
+			// Right lobe
 			for (int x = 7; x <= 11; x++)
 			for (int y = 7; y <= 10; y++)
-				output[x, y] = c;
-			// Highlight centre pixels lighter
-			output[6, 9] = 14; output[9, 8] = 14;
+				output[x, y] = body;
+			// Bright glow centre pixels
+			output[5, 9] = glow; output[6, 9] = glow;
+			output[8, 8] = glow; output[9, 8] = glow;
+			// Shadow edges
+			output[3, 11] = shadow; output[4, 11] = shadow;
+			output[10, 10] = shadow; output[11, 10] = shadow;
+			output[11, 9] = shadow; output[11, 8] = shadow;
 			return output;
 		}
 		
