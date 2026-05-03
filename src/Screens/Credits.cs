@@ -329,7 +329,7 @@ namespace CivOne.Screens
 			_pictures = new Picture[3];
 			for (int i = 0; i < 2; i++)
 				_pictures[i] = Resources[$"BIRTH{i}"];
-			_pictures[2] = Resources["LOGO"];
+			_pictures[2] = Splash.MakePicture(320, 200) ?? Resources["LOGO"];
 			_noiseMap = new byte[320, 200];
 			for (int x = 0; x < 320; x++)
 			for (int y = 0; y < 200; y++)

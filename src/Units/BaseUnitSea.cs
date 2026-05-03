@@ -54,6 +54,17 @@ namespace CivOne.Units
 				unit.Y = Y;
 			}
 
+			// Auto-wake land units when arriving at a coastal tile, matching original Civ I behaviour.
+			if (this is IBoardable)
+			{
+				ITile tile = Map[X, Y];
+				if (tile.GetBorderTiles().Any(t => !t.IsOcean))
+				{
+					foreach (IUnit unit in tile.Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable).Cargo))
+						unit.Sentry = false;
+				}
+			}
+
 			base.MovementDone(previousTile);
 		}
 

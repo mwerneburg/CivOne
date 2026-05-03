@@ -127,12 +127,18 @@ namespace CivOne.Screens
 			return new Picture(bytemap, (Palette)palette);
 		}
 
-		private void Build()
+		internal static Picture MakePicture(int w, int h)
 		{
 			SplashData raw = Resources.SplashRawImage;
-			if (raw == null) return;
-			byte[] scaled = ScaleRgba(raw.Rgba, raw.Width, raw.Height, Width, Height);
-			_picture = Quantize(scaled, Width, Height);
+			if (raw == null) return null;
+			byte[] scaled = ScaleRgba(raw.Rgba, raw.Width, raw.Height, w, h);
+			return Quantize(scaled, w, h);
+		}
+
+		private void Build()
+		{
+			_picture = MakePicture(Width, Height);
+			if (_picture == null) return;
 			Palette = _picture.Palette;
 			this.AddLayer(_picture, 0, 0);
 		}

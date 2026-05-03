@@ -207,7 +207,7 @@ namespace CivOne.Screens
 			int smokeStacks = _city.SmokeStacks;
 			string pollVal = smokeStacks > 0 ? $"{smokeStacks} TONS" : "NONE";
 			byte pollColor = smokeStacks > 0 ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
-			this.DrawCassetteField("POLLUT", pollVal, cx, cy, cw, 0, pollColor);
+			this.DrawCassetteField("POLLUTION", pollVal, cx, cy, cw, 0, pollColor);
 		}
 
 		private void DrawTradeRoutes()
