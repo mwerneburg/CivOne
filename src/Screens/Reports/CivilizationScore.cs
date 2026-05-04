@@ -107,29 +107,21 @@ namespace CivOne.Screens.Reports
 
 			for (int pi = 0; pi < players.Length; pi++)
 			{
-				int   pIdx = (byte)players[pi];
-				byte  col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
+				int  pIdx = (byte)players[pi];
+				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
 
-				if (n <= 1)
-				{
-					// Single data point — draw a vertical bar
-					int score = players[pi].Score;
-					int barY  = GraphBottom - (int)(score * pxPerScore);
-					int barX  = GraphLeft + GraphW / 2 - 1 + pi;
-					this.FillRectangle(barX, barY, 1, GraphBottom - barY + 1, col);
-					continue;
-				}
-
+				int lastX = int.MinValue, lastY = int.MinValue;
 				int prevX = int.MinValue, prevY = int.MinValue;
+
 				for (int t = 0; t < n; t++)
 				{
 					int screenX = GraphLeft + (int)((t - _scrollX) * pxPerTurn);
 					if (screenX < GraphLeft - 1) { prevX = int.MinValue; continue; }
 					if (screenX > GraphRight + 1) break;
 
-					var  snap  = history[t];
-					int  score = (pIdx + 1 < snap.Length) ? snap[pIdx + 1] : 0;
-					int  screenY = GraphBottom - (int)(score * pxPerScore);
+					var snap   = history[t];
+					int score  = (pIdx + 1 < snap.Length) ? snap[pIdx + 1] : 0;
+					int screenY = GraphBottom - (int)(score * pxPerScore);
 					screenY = Math.Max(GraphTop, Math.Min(GraphBottom, screenY));
 
 					if (prevX != int.MinValue)
@@ -137,12 +129,27 @@ namespace CivOne.Screens.Reports
 
 					prevX = screenX;
 					prevY = screenY;
+					lastX = screenX;
+					lastY = screenY;
 				}
+
+				// If no history yet, plot current score as a single point
+				if (n == 0)
+				{
+					int score   = players[pi].Score;
+					lastX = GraphLeft + GraphW / 2;
+					lastY = GraphBottom - (int)(score * pxPerScore);
+					lastY = Math.Max(GraphTop, Math.Min(GraphBottom, lastY));
+				}
+
+				// Terminal dot (3×3) at the most recent visible data point
+				if (lastX != int.MinValue)
+					this.FillRectangle(lastX - 1, lastY - 1, 3, 3, col);
 			}
 
 			// ── X-axis year labels ───────────────────────────────────────────
 
-			if (n > 1)
+			if (n >= 1)
 			{
 				int labelEvery = Math.Max(1, NiceInterval((int)Math.Ceiling((n - 1) / Math.Max(1f, GraphW / 80f))));
 				for (int t = 0; t < n; t += labelEvery)

@@ -35,7 +35,7 @@ namespace CivOne
 				advanceOrigin[kv.Key] = kv.Value;
 
 			// Wonders per city: build a lookup of wonder.Id → city index
-			var wonderCityIndex = new int[22];
+			var wonderCityIndex = new int[Common.Wonders.Length > 0 ? Common.Wonders.Max(w => w.Id) + 1 : 1];
 			for (int i = 0; i < wonderCityIndex.Length; i++) wonderCityIndex[i] = -1;
 			for (int i = 0; i < _cities.Count; i++)
 				foreach (var w in _cities[i].Wonders)
