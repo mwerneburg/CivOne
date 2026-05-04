@@ -42,6 +42,7 @@ namespace CivOne.Screens.Reports
 			this.FillRectangle(0, 32, Width, Height - 32, CassetteTheme.BG1);
 
 			int fontHeight = Resources.GetFontHeight(FONT_ID);
+			int pageSize   = (Height - 32) / fontHeight;
 			int yy = 32;
 
 			// Column x-positions (within the 320-wide centred content area)
@@ -50,7 +51,7 @@ namespace CivOne.Screens.Reports
 			int colProd    = OX + 172;  // production name (clipped to colProgress - gap)
 			int colProgress = OX + 310; // shields progress, right-aligned
 
-			for (int i = (_page++ * 20); i < _cities.Length && i < (_page * 20); i++)
+			for (int i = (_page++ * pageSize); i < _cities.Length && i < (_page * pageSize); i++)
 			{
 				City city = _cities[i];
 
@@ -75,7 +76,8 @@ namespace CivOne.Screens.Reports
 
 		private bool NextPage()
 		{
-			if ((_page * 20) < _cities.Length)
+			int pageSize = (Height - 32) / Resources.GetFontHeight(FONT_ID);
+			if ((_page * pageSize) < _cities.Length)
 			{
 				_update = true;
 			}

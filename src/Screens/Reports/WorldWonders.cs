@@ -30,7 +30,8 @@ namespace CivOne.Screens.Reports
 
 		private readonly CityWonders[] _wonders;
 		
-		private int OX => (Width - 320) / 2;
+		private int OX       => (Width - 320) / 2;
+		private int PageSize => (Height - 40) / 24;
 
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -38,13 +39,13 @@ namespace CivOne.Screens.Reports
 
 			this.FillRectangle(OX + 8, 32, 304, Height - 40, 3);
 
-			for (int i = (_page * 7); i < _wonders.Length && i < ((_page + 1) * 7); i++)
+			for (int i = (_page * PageSize); i < _wonders.Length && i < ((_page + 1) * PageSize); i++)
 			{
 				IWonder wonder = _wonders[i].Wonder;
 				City city = _wonders[i].City;
 
 				int xx = OX + 8;
-				int yy = 32 + (24 * (i % 7));
+				int yy = 32 + (24 * (i % PageSize));
 				int ww = 304;
 				int hh = 16;
 
@@ -63,16 +64,16 @@ namespace CivOne.Screens.Reports
 		
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			if ((++_page * 7) > _wonders.Length)
+			if ((++_page * PageSize) > _wonders.Length)
 				Destroy();
 			else
 				_update = true;
 			return true;
 		}
-		
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if ((++_page * 7) > _wonders.Length)
+			if ((++_page * PageSize) > _wonders.Length)
 				Destroy();
 			else
 				_update = true;

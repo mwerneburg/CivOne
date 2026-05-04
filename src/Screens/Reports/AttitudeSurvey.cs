@@ -67,8 +67,9 @@ namespace CivOne.Screens.Reports
 
 			this.FillRectangle(0, 28, Width, Height - 28, 9);
 
+			int pageSize = (Height - 32) / 10;
 			int y = 32;
-			for (int i = (_page++ * 16); i < _cities.Length && i < (_page * 16); i++)
+			for (int i = (_page++ * pageSize); i < _cities.Length && i < (_page * pageSize); i++)
 			{
 				City city = _cities[i];
 
@@ -80,7 +81,7 @@ namespace CivOne.Screens.Reports
 				y += 10;
 			}
 			y += 8;
-			if (y <= 190)
+			if (y <= Height - 20)
 			{
 				Citizen[] citizens = Human.Cities.SelectMany(x => x.Citizens).ToArray();
 				string population = Common.NumberSeperator(Human.Population);
@@ -105,7 +106,8 @@ namespace CivOne.Screens.Reports
 
 		private bool NextPage()
 		{
-			if ((_page * 16) < _cities.Length)
+			int pageSize = (Height - 32) / 10;
+			if ((_page * pageSize) < _cities.Length)
 			{
 				_update = true;
 			}
