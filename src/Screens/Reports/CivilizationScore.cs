@@ -151,7 +151,8 @@ namespace CivOne.Screens.Reports
 
 			if (n >= 1)
 			{
-				int labelEvery = Math.Max(1, NiceInterval((int)Math.Ceiling((n - 1) / Math.Max(1f, GraphW / 80f))));
+				int minTurns  = (int)Math.Ceiling(52.0 / Math.Max((double)pxPerTurn, 0.001));
+				int labelEvery = NiceCeil(Math.Max(1, minTurns));
 				for (int t = 0; t < n; t += labelEvery)
 				{
 					int sx = GraphLeft + (int)((t - _scrollX) * pxPerTurn);
@@ -206,6 +207,19 @@ namespace CivOne.Screens.Reports
 		}
 
 		// ── axis helpers ──────────────────────────────────────────────────────
+
+		// Round up to the nearest 1/2/5/10 × power-of-10 that is >= minVal.
+		private static int NiceCeil(int minVal)
+		{
+			if (minVal <= 1) return 1;
+			double mag = Math.Pow(10, Math.Floor(Math.Log10(minVal)));
+			foreach (int m in new[] { 1, 2, 5, 10 })
+			{
+				int v = (int)(m * mag);
+				if (v >= minVal) return v;
+			}
+			return (int)(10 * mag);
+		}
 
 		private static int NiceInterval(int range, int targetTicks = 8)
 		{
