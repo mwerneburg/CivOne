@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
@@ -35,6 +36,7 @@ namespace CivOne.Units
 				BuildingMine = 0;
 				BuildingFortress = 0;
 				BuildingCleanPollution = 0;
+				AutoClean = false;
 			}
 		}
 		public int BuildingRoad { get; private set; }
@@ -42,6 +44,29 @@ namespace CivOne.Units
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
 		public int BuildingCleanPollution { get; private set; }
+		public bool AutoClean { get; private set; }
+
+		private ITile FindNearestCityPollution()
+		{
+			ITile best = null;
+			int bestDist = int.MaxValue;
+			foreach (ITile t in Map.AllTiles())
+			{
+				if (!t.Pollution) continue;
+				bool nearCity = Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) <= 3);
+				if (!nearCity) continue;
+				int d = Common.DistanceToTile(X, Y, t.X, t.Y);
+				if (d < bestDist) { bestDist = d; best = t; }
+			}
+			return best;
+		}
+
+		protected override void MovementDone(ITile previousTile)
+		{
+			base.MovementDone(previousTile);
+			if (AutoClean && Map[X, Y].Pollution)
+				CleanPollution();
+		}
 
 		internal void SetBuildProgress(int road, int irrigation, int mine, int fortress)
 		{
@@ -275,6 +300,22 @@ namespace CivOne.Units
 					Map[X, Y].Pollution = false;
 				}
 			}
+
+			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0)
+			{
+				if (Map[X, Y].Pollution && Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, X, Y) <= 3))
+				{
+					CleanPollution();
+				}
+				else
+				{
+					ITile target = FindNearestCityPollution();
+					if (target != null)
+						Goto = new Point(target.X, target.Y);
+					else
+						AutoClean = false;
+				}
+			}
 		}
 
 		private MenuItem<int> MenuFoundCity() => MenuItem<int>
@@ -311,6 +352,27 @@ namespace CivOne.Units
 			.Create("Clean Pollution")
 			.SetShortcut("p")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.CleanPollution(this)));
+
+		private MenuItem<int> MenuAutoCleanPollution() => MenuItem<int>
+			.Create("Auto-Clean Pollution")
+			.SetShortcut("c")
+			.OnSelect((s, a) =>
+			{
+				AutoClean = true;
+				Goto = Point.Empty;
+				ITile target = FindNearestCityPollution();
+				if (target != null)
+				{
+					if (target.X == X && target.Y == Y)
+						CleanPollution();
+					else
+						Goto = new Point(target.X, target.Y);
+				}
+				else
+				{
+					AutoClean = false;
+				}
+			});
 		
 		public override IEnumerable<MenuItem<int>> MenuItems
 		{
@@ -342,6 +404,10 @@ namespace CivOne.Units
 				if (tile.Pollution)
 				{
 					yield return MenuCleanPollution();
+				}
+				if (!AutoClean && FindNearestCityPollution() != null)
+				{
+					yield return MenuAutoCleanPollution();
 				}
 				//
 				yield return MenuWait();

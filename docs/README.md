@@ -48,3 +48,4 @@ Known issues
  + Battle animations are a bit herky-jerky, it was this way in the code repo from 2017 that I cloned.
  + Lots and lots of natural disasters.
  + Otherwise, seems a bit too easy.
+ + Some of the wonders seem to lack any effect on the game
