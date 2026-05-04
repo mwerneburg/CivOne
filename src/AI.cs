@@ -57,8 +57,10 @@ namespace CivOne
 				int nearestCity = 255;
 				int nearestOwnCity = 255;
 
-				if (Game.GetCities().Any()) nearestCity = Game.GetCities().Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
-				if (Game.GetCities().Any(x => x.Owner == unit.Owner)) nearestOwnCity = Game.GetCities().Where(x => x.Owner == unit.Owner).Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
+				City[] cities = Game.GetCities();
+				if (cities.Any()) nearestCity = cities.Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
+				City[] ownCities = cities.Where(x => x.Owner == unit.Owner).ToArray();
+				if (ownCities.Any()) nearestOwnCity = ownCities.Min(x => Common.DistanceToTile(x.X, x.Y, tile.X, tile.Y));
 
 				// If Goto is already set the AI previously committed to a better site — honour
 				// that commitment and don't detour to found a city at the current tile.

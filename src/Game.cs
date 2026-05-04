@@ -744,11 +744,13 @@ namespace CivOne
 					IUnit subUnit = unit.Tile.Units.First(u => u.Class != UnitClass.Water);
 					subUnit.X = 255;
 					subUnit.Y = 255;
+					subUnit.Home?.RemoveHomeUnit(subUnit);
 					_units.Remove(subUnit);
 				} 
 			}
 			unit.X = 255;
 			unit.Y = 255;
+			unit.Home?.RemoveHomeUnit(unit);
 			_units.Remove(unit);
 
 			GetPlayer(unit.Owner).IsDestroyed();

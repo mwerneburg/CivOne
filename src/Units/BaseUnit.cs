@@ -756,10 +756,16 @@ namespace CivOne.Units
 		public void SetHome()
 		{
 			if (Map[X, Y].City == null) return;
-			Home = Map[X, Y].City;
+			SetHome(Map[X, Y].City);
 		}
 
-		public void SetHome(City city) => Home = city;
+		public void SetHome(City city)
+		{
+			if (Home == city) return;
+			Home?.RemoveHomeUnit(this);
+			Home = city;
+			city?.AddHomeUnit(this);
+		}
 		
 		public void Pillage()
 		{

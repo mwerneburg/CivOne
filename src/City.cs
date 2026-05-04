@@ -652,8 +652,9 @@ namespace CivOne
 			get
 			{
 				// Update specialist count
-				while (_specialists.Count < Size - (ResourceTiles.Count() - 1)) _specialists.Add(Citizen.Entertainer);
-				while (_specialists.Count > Size - (ResourceTiles.Count() - 1)) _specialists.Remove(_specialists.Last());
+				int resourceCount = ResourceTiles.Count();
+				while (_specialists.Count < Size - (resourceCount - 1)) _specialists.Add(Citizen.Entertainer);
+				while (_specialists.Count > Size - (resourceCount - 1)) _specialists.Remove(_specialists.Last());
 
 				int happyCount = (int)Math.Floor((double)Luxuries / 2);
 				if (Player.HasWonder<HangingGardens>() && !Game.WonderObsolete<HangingGardens>()) happyCount++;
@@ -696,7 +697,7 @@ namespace CivOne
 
 				int content = 0;
 				int unhappy = 0;
-				int working = (ResourceTiles.Count() - 1);
+				int working = resourceCount - 1;
 				int specialist = 0;
 
 				for (int i = 0; i < Size; i++)
@@ -759,7 +760,10 @@ namespace CivOne
 			}
 		}
 
-		public IUnit[] Units => Game.Instance.GetUnits().Where(u => u.Home == this).ToArray();
+		private readonly List<IUnit> _homeUnits = new List<IUnit>();
+		internal void AddHomeUnit(IUnit unit)    { if (!_homeUnits.Contains(unit)) _homeUnits.Add(unit); }
+		internal void RemoveHomeUnit(IUnit unit) => _homeUnits.Remove(unit);
+		public IUnit[] Units => _homeUnits.ToArray();
 
 		public ITile Tile => Map[X, Y];
 
@@ -853,7 +857,16 @@ namespace CivOne
 			UpdateResources();
 			ExecutePollution();
 
-			if (IsInDisorder)
+			// Cache expensive per-city computations once for the whole turn.
+			int shieldIncome = ShieldIncome;
+			int foodIncome   = FoodIncome;
+			Citizen[] citizensSnapshot = Citizens.ToArray();
+			int happyCit   = citizensSnapshot.Count(c => c == Citizen.HappyMale   || c == Citizen.HappyFemale);
+			int unhappyCit = citizensSnapshot.Count(c => c == Citizen.UnhappyMale || c == Citizen.UnhappyFemale);
+			int contentCit = citizensSnapshot.Count(c => c == Citizen.ContentMale || c == Citizen.ContentFemale);
+			bool inDisorder = _size > 0 && unhappyCit > happyCit;
+
+			if (inDisorder)
 			{
 				if (Common.Random.Next(20) == 1 && HasBuilding<Buildings.NuclearPlant>() && !Player.HasAdvance<Advances.FusionPower>())
 				{
@@ -890,7 +903,7 @@ namespace CivOne
 				}
  				WasInDisorder = false;
 			}
- 			if (UnhappyCitizens == 0 && HappyCitizens >= ContentCitizens && Size >= 3)
+ 			if (unhappyCit == 0 && happyCit >= contentCit && Size >= 3)
 			{
 				if (!WasWeLoveKing)
 				{
@@ -898,7 +911,7 @@ namespace CivOne
 					// First-time benefit: growth or caravan (only with positive food income)
 					if (Player.Government is Governments.Democracy || Player.Government is Republic)
 					{
-						if (FoodIncome > 0)
+						if (foodIncome > 0)
 						{
 							bool blocked = (Size >= 8 && !HasBuilding<Aqueduct>());
 							if (!blocked)
@@ -929,7 +942,7 @@ namespace CivOne
 					WLTKNotifications.Remove(Name);
 				WasWeLoveKing = false;
 			}
- 			Food += IsInDisorder ? 0 : FoodIncome;
+ 			Food += inDisorder ? 0 : foodIncome;
 
 			if (Food < 0)
 			{
@@ -963,10 +976,11 @@ namespace CivOne
 				}
 			}
 
-			if (ShieldIncome < 0)
+			if (shieldIncome < 0)
 			{
-				int maxDistance = Units.Max(u => Common.DistanceToTile(X, Y, u.X, u.Y));
-				IUnit unit = Units.Last(u => Common.DistanceToTile(X, Y, u.X, u.Y) == maxDistance);
+				IUnit[] homeUnits = Units;
+				int maxDistance = homeUnits.Max(u => Common.DistanceToTile(X, Y, u.X, u.Y));
+				IUnit unit = homeUnits.Last(u => Common.DistanceToTile(X, Y, u.X, u.Y) == maxDistance);
 				if (Human == Owner)
 				{
 					Message message = Message.DisbandUnit(this, unit);
@@ -980,11 +994,11 @@ namespace CivOne
 					Game.DisbandUnit(unit);
 				}
 			}
-			else if (ShieldIncome > 0)
+			else if (shieldIncome > 0)
 			{
-				if (!IsInDisorder)
+				if (!inDisorder)
 				{
-					int income = ShieldIncome;
+					int income = shieldIncome;
 					// Higher difficulties give AI cities a production bonus (classic Civ 1 "cheat").
 					// +25 % per difficulty step — double speed at Emperor.
 					if (Player != Human && Game.Difficulty > 0)
