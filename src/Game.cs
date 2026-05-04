@@ -351,10 +351,11 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
 				}
 
-				// Check for spaceship launches (any player now has minimum parts)
+				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
 				for (int p = 1; p < _players.Length; p++)
 				{
 					if (_players[p].IsDestroyed()) continue;
+					if (_players[p] == HumanPlayer) continue;
 					int structural = SpaceshipStructural[p];
 					int component  = SpaceshipComponent[p];
 					int module     = SpaceshipModule[p];
