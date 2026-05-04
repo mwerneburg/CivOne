@@ -1075,6 +1075,46 @@ namespace CivOne
 						}
 						if (wonder is Wonders.SETIProgram)
 							Game.SETISignalTurn = (uint)(Game.GameTurn + 5);
+						if (wonder is Wonders.DarwinsVoyage)
+						{
+							if (Player == Human)
+							{
+								// Human gets to choose 2 free advances immediately
+								impTask.Done += (s, a) =>
+								{
+									IScreen ct1 = new ChooseTech();
+									ct1.Closed += (s2, a2) =>
+									{
+										if (Human.CurrentResearch != null)
+										{
+											Human.AddAdvance(Human.CurrentResearch);
+											Human.CurrentResearch = null;
+										}
+										IScreen ct2 = new ChooseTech();
+										ct2.Closed += (s3, a3) =>
+										{
+											if (Human.CurrentResearch != null)
+											{
+												Human.AddAdvance(Human.CurrentResearch);
+												Human.CurrentResearch = null;
+											}
+											GameTask.Enqueue(new TechSelect(Human));
+										};
+										Common.AddScreen(ct2);
+									};
+									Common.AddScreen(ct1);
+								};
+							}
+							else
+							{
+								// AI gets 2 random available advances
+								for (int ii = 0; ii < 2; ii++)
+								{
+									IAdvance adv = Player.AvailableResearch.FirstOrDefault(a => !(a is FutureTech));
+									if (adv != null) Player.AddAdvance(adv);
+								}
+							}
+						}
 						GameTask.Enqueue(impTask);
 					}
 					else
