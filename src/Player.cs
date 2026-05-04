@@ -407,14 +407,18 @@ namespace CivOne
 			if (Game.Instance.BuiltWonders.Any(w => w.Id == wonder.Id))
 				return false;
 
+			// South Pole Expedition requires the Apollo Program to be built first
+			if (wonder is Wonders.SouthPoleExpedition && !Game.Instance.WonderBuilt<Wonders.ApolloProgram>())
+				return false;
+
 			// Determine if the building requires a tech
 			if (wonder.RequiredTech == null)
 				return true;
-			
+
 			// Determine if the Player has the required tech
 			if (_advances.Any(a => wonder.RequiredTech.Id == a))
 				return true;
-			
+
 			return false;
 		}
 		
