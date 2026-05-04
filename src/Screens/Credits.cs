@@ -94,12 +94,10 @@ namespace CivOne.Screens
 			}
 			else if (_logoSwipe < 320)
 			{
-				this.Cycle(224, 254);
 				_logoSwipe += 16;
 			}
 			else if (_cycleCounter < 98)
 			{
-				this.Cycle(224, 254);
 				_cycleCounter++;
 			}
 			else if (_noiseCounter > 0)
@@ -307,6 +305,18 @@ namespace CivOne.Screens
 			}
 		}
 
+		private Picture BuildProceduralTitle()
+		{
+			Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Picture pic = new Picture(320, 200, p);
+			pic.FillRectangle(0, 0, 320, 200, CassetteTheme.BG0)
+			   .DrawText("CivOne", 4, CassetteTheme.PHOS_GLOW, 160, 80, TextAlign.Center)
+			   .DrawText("A Civilization remake", 0, CassetteTheme.INK_MID, 160, 110, TextAlign.Center);
+			return pic;
+		}
+
 		private void Resize(object sender, ResizeEventArgs args)
 		{
 			_done = false;
@@ -328,13 +338,25 @@ namespace CivOne.Screens
 			if (_introText.Length == 0) _introText = new string[25];
 			_pictures = new Picture[3];
 			for (int i = 0; i < 2; i++)
-				_pictures[i] = Resources[$"BIRTH{i}"];
-			_pictures[2] = Splash.MakePicture(320, 200) ?? Resources["LOGO"];
-			_noiseMap = new byte[320, 200];
-			for (int x = 0; x < 320; x++)
-			for (int y = 0; y < 200; y++)
+				_pictures[i] = new Picture(320, 200);
+			Picture splash = Splash.MakePicture(320, 200);
+			_pictures[2] = splash ?? BuildProceduralTitle();
+			if (splash == null)
 			{
-				_noiseMap[x, y] = (byte)Common.Random.Next(1, _noiseCounter);
+				_introLeft    = -320;
+				_logoSwipe    = 320;
+				_cycleCounter = 98;
+				_noiseCounter = 0;
+				_introSkipped = true;
+			}
+			_noiseMap = new byte[320, 200];
+			if (_noiseCounter > 0)
+			{
+				for (int x = 0; x < 320; x++)
+				for (int y = 0; y < 200; y++)
+				{
+					_noiseMap[x, y] = (byte)Common.Random.Next(1, _noiseCounter);
+				}
 			}
 			switch (Settings.GraphicsMode)
 			{

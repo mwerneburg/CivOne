@@ -53,7 +53,6 @@ namespace CivOne.Screens
 		
 		private int _x = 80, _y = 138;
 		private float _fadeStep = 1.0f;
-		private bool _skip = false;
 
 		private string _buildingFile = null;
 
@@ -125,28 +124,20 @@ namespace CivOne.Screens
 				return false;
 			}
 
-			if (_founded && (_skip || _x > 120))
+			if (_founded)
 			{
-				_fadeStep -= FADE_STEP;
-				if (_fadeStep <= 0.0f)
+				if (_fadeStep < 1.0f)
+				{
+					_fadeStep = Math.Min(1.0f, _fadeStep + FADE_STEP);
+					FadeColours();
+				}
+				this.AddLayer(_background, OX, OY)
+					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, OX + 161, OY + 3, TextAlign.Center);
+				if (_fadeStep >= 1.0f && gameTick % 3 == 0 && ++_x > 25)
 				{
 					Destroy();
 					return true;
 				}
-				FadeColours();
-			}
-			if (_founded && (gameTick % 3 == 0))
-			{
-				this.AddLayer(_background, OX, OY)
-					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, OX + 161, OY + 3, TextAlign.Center);
-
-				int frame = (_x % 4);
-				this.AddLayer(Resources["SETTLERS"][1, 1 + (16 * frame), 48, 15], OX + _x, OY + 120)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 2) % 4)), 48, 15], OX + _x + 27, OY + 125)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 3) % 4)), 48, 15], OX + _x + 14, OY + 131)
-					.AddLayer(Resources["SETTLERS"][1, 1 + (16 * ((frame + 1) % 4)), 48, 15], OX + _x + 40, OY + 135);
-
-				_x++;
 				return true;
 			}
 
@@ -738,8 +729,6 @@ namespace CivOne.Screens
 			
 			Palette = _background.Palette;
 			_overlay = new Picture(_background);
-			
-			if (founded) return;
 
 			DrawBuildings();
 			this.AddLayer(_background, OX, OY);
@@ -899,7 +888,14 @@ namespace CivOne.Screens
 			}
 
 			if (captured) return;
-			
+
+			if (founded)
+			{
+				_fadeStep = 0.0f;
+				FadeColours();
+				return;
+			}
+
 			this.DrawText(_city.Name, 5, 5, OX + 161, OY + 3, TextAlign.Center)
 				.DrawText(_city.Name, 5, 15, OX + 160, OY + 2, TextAlign.Center)
 				.DrawText(Game.GameYear, 5, 5, OX + 161, OY + 16, TextAlign.Center)
