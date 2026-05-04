@@ -29,8 +29,6 @@ namespace CivOne.Screens
 		private const int NOISE_COUNT = 64;
 		private int _noiseCounter;
 		private readonly byte[,] _noiseMap;
-		private bool _update = true;
-
 		private readonly Enemy[] _enemies;
 
 		private int _enemy = 0;
@@ -117,18 +115,27 @@ namespace CivOne.Screens
 					break;
 			}
 
-			if (_update) return false;
-			_update = false;
 			return true;
 		}
-		
-		public override bool KeyDown(KeyboardEventArgs args)
+
+		private void SkipStep()
 		{
 			if (_step < 1)
 			{
 				_timer = NOISE_COUNT;
 				_step = 1;
 			}
+		}
+
+		public override bool KeyDown(KeyboardEventArgs args)
+		{
+			SkipStep();
+			return true;
+		}
+
+		public override bool MouseDown(ScreenEventArgs args)
+		{
+			SkipStep();
 			return true;
 		}
 		
@@ -155,6 +162,12 @@ namespace CivOne.Screens
 					Civilization = Common.Civilizations.First(c => c.Id == x.DestroyedId)
 				}
 			).ToArray();
+
+			if (_enemies.Length == 0)
+			{
+				Destroy();
+				return;
+			}
 
 			SetPalette();
 		}
