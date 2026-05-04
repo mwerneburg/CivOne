@@ -197,6 +197,7 @@ namespace CivOne
 					SpaceshipModule      = SpaceshipModule.ToArray(),
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					MapRevealedNotified  = MapRevealedNotified,
+					SETISignalTurn       = SETISignalTurn,
 					ReplayData           = replay
 				},
 				Map     = Map.Instance.SaveToCos(),
@@ -299,6 +300,7 @@ namespace CivOne
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
 
 			MapRevealedNotified = g.MapRevealedNotified;
+			SETISignalTurn      = g.SETISignalTurn;
 
 			// Exploration credits
 			if (!string.IsNullOrEmpty(g.FirstExplorer))

@@ -45,6 +45,9 @@ namespace CivOne
 		// True once the satellite-coverage intelligence report has fired
 		internal bool MapRevealedNotified;
 
+		// Turn on which the SETI signal transmission should fire (0 = not scheduled)
+		internal uint SETISignalTurn;
+
 		// Exploration: byte[x, y] = player index who first revealed that tile; 255 = unvisited
 		private byte[,] _firstExplorer;
 		internal byte[,] FirstExplorer
@@ -329,6 +332,15 @@ namespace CivOne
 							"A classified expedition has been dispatched. Details: EYES ONLY."
 						};
 					GameTask.Enqueue(Message.Advisor(Advisor.Science, false, intelLines));
+				}
+
+				// Fire the SETI signal transmission 5 turns after SETI Program is built
+				if (SETISignalTurn > 0 && _gameTurn >= SETISignalTurn)
+				{
+					SETISignalTurn = 0; // clear so it only fires once
+					SETISignalTransmission.EnsureConfigFile();
+					string gameDate = GameYear;
+					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
 				}
 
 				// Check for spaceship launches (any player now has minimum parts)

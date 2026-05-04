@@ -1065,6 +1065,8 @@ namespace CivOne
 							string gameYear = Game.GameYear;
 							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
 						}
+						if (wonder is Wonders.SETIProgram)
+							Game.SETISignalTurn = (uint)(Game.GameTurn + 5);
 						GameTask.Enqueue(impTask);
 					}
 					else

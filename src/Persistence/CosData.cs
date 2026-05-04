@@ -47,6 +47,7 @@ namespace CivOne.Persistence
 		// base64-encoded byte array, Width*Height bytes; value = player index who first explored (255 = unvisited)
 		public string FirstExplorer { get; set; }
 		public bool MapRevealedNotified { get; set; }
+		public uint SETISignalTurn { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
 	}
 
