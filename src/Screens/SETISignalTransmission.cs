@@ -31,7 +31,7 @@ namespace CivOne.Screens
 
 		private static readonly string[] _defaultTransmission = new[]
 		{
-			"CLASSIFIED: EYES ONLY – WAYLAND-YUTANI CORPORATE ARCHIVE",
+			"CLASSIFIED: EYES ONLY",
 			"TRANSMISSION TIMESTAMP: 04 MAY {game date} / 14:30 UTC",
 			"STATUS: PRIORITY THETA",
 			"",
