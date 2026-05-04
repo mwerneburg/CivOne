@@ -106,7 +106,7 @@ namespace CivOne.Units
 			{
 				if (!tile.IsOcean && !(tile.Irrigation) && ((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)))
 				{
-					BuildingIrrigation = 3;
+					BuildingIrrigation = (tile is Plains || tile is Grassland) ? 2 : 3;
 					MovesLeft = 0;
 					PartMoves = 0;
 					return true;
@@ -198,6 +198,9 @@ namespace CivOne.Units
 					Map[X, Y].Road = true;
 					MovesLeft = 0;
 					PartMoves = 0;
+					// Plains and grassland roads complete in 1 turn
+					if (BuildingRoad == 1 && !Map[X, Y].RailRoad && (Map[X, Y] is Plains || Map[X, Y] is Grassland))
+						BuildingRoad = 0;
 				}
 			}
 			else if (BuildingIrrigation > 0)
