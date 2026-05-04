@@ -338,14 +338,8 @@ namespace CivOne
 				{
 					MapRevealedNotified = true;
 					SouthPoleExpeditionLog.EnsureConfigFile();
-					string[] intelLines = SouthPoleExpeditionLog.LoadIntelLines()
-						?? new[]
-						{
-							"Satellite imagery has revealed an anomalous formation at the South Pole.",
-							"Norwegian scientists confirm the structure is of non-terrestrial origin.",
-							"A classified expedition has been dispatched. Details: EYES ONLY."
-						};
-					GameTask.Enqueue(Message.Advisor(Advisor.Science, false, intelLines));
+					string gameYear = GameYear;
+					GameTask.Enqueue(Show.Screen(new SouthPoleIntelReport(gameYear)));
 				}
 
 				// Fire the SETI signal transmission 5 turns after SETI Program is built
