@@ -8,8 +8,11 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System.Linq;
+using CivOne.Buildings;
+using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
@@ -25,6 +28,13 @@ namespace CivOne.Screens.Reports
 		private bool _update = true;
 		private int _page = 0;
 
+		private static bool ProductionInvalid(City city)
+		{
+			if (city.CurrentProduction is IBuilding b) return city.HasBuilding(b);
+			if (city.CurrentProduction is IWonder   w) return Game.Instance.WonderBuilt(w);
+			return false;
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
@@ -33,17 +43,29 @@ namespace CivOne.Screens.Reports
 
 			int fontHeight = Resources.GetFontHeight(FONT_ID);
 			int yy = 32;
+
+			// Column x-positions (within the 320-wide centred content area)
+			int colName    = OX + 8;    // city name
+			int colStats   = OX + 82;   // size / food / shield / trade
+			int colProd    = OX + 172;  // production name (clipped to colProgress - gap)
+			int colProgress = OX + 310; // shields progress, right-aligned
+
 			for (int i = (_page++ * 20); i < _cities.Length && i < (_page * 20); i++)
 			{
 				City city = _cities[i];
 
+				bool   invalid    = ProductionInvalid(city);
 				string production = (city.CurrentProduction as ICivilopedia).Name;
-				int productionWidth = Resources.GetTextSize(1, production).Width;
+				string progress   = $"{city.Shields}/{city.CurrentProduction.Price * 10}";
 
-				this.DrawText(city.Name, FONT_ID, CassetteTheme.PHOS, OX + 8, yy)
-					.DrawText($"{city.Size}-{city.FoodTotal}{FOOD} {city.ShieldTotal}{SHIELD} {city.TradeTotal}{TRADE}", FONT_ID, CassetteTheme.INK_HIGH, OX + 80, yy)
-					.DrawText(production, FONT_ID, CassetteTheme.INK_MID, OX + 172, yy)
-					.DrawText($"({city.Shields}/{city.CurrentProduction.Price * 10})", FONT_ID, CassetteTheme.INK_LOW, OX + 172 + productionWidth + 7, yy);
+				byte prodColor = invalid ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
+				byte progColor = invalid ? CassetteTheme.ALERT : CassetteTheme.INK_LOW;
+
+				this.DrawText(city.Name, FONT_ID, CassetteTheme.PHOS, colName, yy)
+				    .DrawText($"{city.Size}-{city.FoodTotal}{FOOD} {city.ShieldTotal}{SHIELD} {city.TradeTotal}{TRADE}", FONT_ID, CassetteTheme.INK_HIGH, colStats, yy)
+				    .DrawText(production, FONT_ID, prodColor, colProd, yy)
+				    .DrawText(progress, FONT_ID, progColor, colProgress, yy, TextAlign.Right);
+
 				yy += fontHeight;
 			}
 
