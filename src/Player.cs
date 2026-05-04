@@ -475,15 +475,11 @@ namespace CivOne
 				while (xx >= Map.WIDTH) xx -= Map.WIDTH;
 				if (sea && !Map[xx, yy].IsOcean && (Math.Abs(relX) > 1 || Math.Abs(relY) > 1))
 					continue;
-				if (!_visible[xx, yy])
+				if (!_visible[xx, yy] && Game.Started)
 				{
 					var gameInst = Game.Instance;
-					if (gameInst != null)
-					{
-						byte pNum = gameInst.PlayerNumber(this);
-						if (gameInst.ClaimTile(xx, yy, pNum))
-							ExplorationCredits++;
-					}
+					if (gameInst.ClaimTile(xx, yy, gameInst.PlayerNumber(this)))
+						ExplorationCredits++;
 				}
 				_visible[xx, yy] = true;
 			}
