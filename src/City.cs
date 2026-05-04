@@ -121,7 +121,7 @@ namespace CivOne
 		public bool HasWonder<T>() where T : IWonder => _wonders.Any(w => w is T);
 
 		// True when a friendly city on the same continent holds the Hoover Dam
-		private bool HooverDamActive => Tile != null
+		private bool HooverDamActive => Tile != null && Game.Started
 			&& Map.ContentCities(Tile.ContinentId).Any(c => c.Owner == Owner && c.HasWonder<HooverDam>());
 
 		public int HappyCitizens => Citizens.Count(c => c == Citizen.HappyMale || c == Citizen.HappyFemale);
