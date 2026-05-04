@@ -40,9 +40,12 @@ namespace CivOne.Screens.Reports
 			{
 				City city = _cities[i];
 
+				int lux = Math.Max(0, (int)city.Luxuries);
+				int tax = Math.Max(0, (int)city.Taxes);
+				int sci = Math.Max(0, (int)city.Science);
 				this.DrawText(city.Name, 0, CassetteTheme.BG0, OX + 16, yy + 1)
 					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, OX + 16, yy)
-					.DrawText($"{city.Luxuries}{LUXURIES}/{city.Taxes}{GOLD}/{city.Science}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy);
+					.DrawText($"{lux}{LUXURIES}/{tax}{GOLD}/{sci}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy);
 
 				yy += Resources.GetFontHeight(0);
 			}

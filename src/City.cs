@@ -340,9 +340,11 @@ namespace CivOne
 			get
 			{
 				short science = TradeScience;
-				if (HasBuilding<Library>()) science += (short)Math.Floor((double)science * 0.5);
-				if (HasBuilding<UniversityBuilding>()) science += (short)Math.Floor((double)science * 0.5);
-				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += (short)Math.Floor((double)science * 1.0);
+				bool newtonActive = !Game.WonderObsolete<IsaacNewtonsCollege>() && Player.HasWonder<IsaacNewtonsCollege>() && !Player.HasWonder<SETIProgram>();
+				double libUniBonus = newtonActive ? (2.0 / 3.0) : 0.5;
+				if (HasBuilding<Library>()) science += (short)Math.Floor(science * libUniBonus);
+				if (HasBuilding<UniversityBuilding>()) science += (short)Math.Floor(science * libUniBonus);
+				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
 				if (Player.HasWonder<SETIProgram>()) science += (short)Math.Floor((double)science * 0.5);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
 				return science;
@@ -678,7 +680,13 @@ namespace CivOne
 						unhappyCount -= 2;
 					}
 					if (HasBuilding<Colosseum>()) unhappyCount -= 3;
-					if (HasBuilding<Cathedral>()) unhappyCount -= 4;
+					bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
+						Tile != null &&
+						Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());
+					if (HasBuilding<Cathedral>())
+						unhappyCount -= chapelOnContinent ? 6 : 4;
+					else if (chapelOnContinent)
+						unhappyCount -= 4;
 				}
 
 				int content = 0;
