@@ -42,6 +42,19 @@ namespace CivOne
 		internal readonly int[] SpaceshipComponent  = new int[8];
 		internal readonly int[] SpaceshipModule     = new int[8];
 
+		// Per-turn score snapshots: each int[] is [gameTurn, score0, score1, ..., scoreN]
+		private readonly List<int[]> _scoreHistory = new List<int[]>();
+		internal IReadOnlyList<int[]> ScoreHistory => _scoreHistory;
+
+		internal void RecordScoreSnapshot()
+		{
+			var snap = new int[_players.Length + 1];
+			snap[0] = _gameTurn;
+			for (int i = 0; i < _players.Length; i++)
+				snap[i + 1] = _players[i].Score;
+			_scoreHistory.Add(snap);
+		}
+
 		// True once the satellite-coverage intelligence report has fired
 		internal bool MapRevealedNotified;
 
@@ -318,6 +331,7 @@ namespace CivOne
 				_currentPlayer = 0;
 				HandleGlobalWarming();
 				GameTurn++;
+				RecordScoreSnapshot();
 
 				// Fire the satellite-anomaly intelligence report once Apollo is built
 				if (!MapRevealedNotified && WonderBuilt<ApolloProgram>())

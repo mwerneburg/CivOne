@@ -198,6 +198,7 @@ namespace CivOne
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					MapRevealedNotified  = MapRevealedNotified,
 					SETISignalTurn       = SETISignalTurn,
+					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay
 				},
 				Map     = Map.Instance.SaveToCos(),
@@ -301,6 +302,9 @@ namespace CivOne
 
 			MapRevealedNotified = g.MapRevealedNotified;
 			SETISignalTurn      = g.SETISignalTurn;
+			if (g.ScoreHistory != null)
+				foreach (var entry in g.ScoreHistory)
+					_scoreHistory.Add(entry.ToArray());
 
 			// Exploration credits
 			if (!string.IsNullOrEmpty(g.FirstExplorer))
