@@ -320,6 +320,10 @@ namespace CivOne
 			}
 
 			GameTurn     = (ushort)g.Turn;
+			// Ensure a pending SETI signal fires at least 5 full turns from the loaded state,
+			// preventing a save made mid-countdown from firing sooner than expected on reload.
+			if (SETISignalTurn > 0)
+				SETISignalTurn = Math.Max(SETISignalTurn, (uint)(_gameTurn + 5));
 			CityNames    = g.CityNames;
 			HumanPlayer  = _players[g.HumanPlayer];
 			HumanPlayer.CurrentResearch = null; // set below after advances loaded
