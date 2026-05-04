@@ -166,6 +166,7 @@ namespace CivOne
 
 		internal ReplayData[] GetReplayData() => _replayData.ToArray();
 		internal T[] GetReplayData<T>() where T : ReplayData => _replayData.Where(x => x is T).Select(x => (x as T)).ToArray();
+		internal void AddReplayEvent(ReplayData entry) => _replayData.Add(entry);
 
 		private void PlayerDestroyed(object sender, EventArgs args)
 		{
@@ -580,11 +581,15 @@ namespace CivOne
 			}
 			_cities.Add(city);
 			Game.UpdateResources(city.Tile);
+			if (Game.Started)
+				_replayData.Add(new ReplayData.CityBuilt(_gameTurn, city.Owner, _cities.Count - 1, nameId, x, y));
 			return city;
 		}
 
 		public void DestroyCity(City city)
 		{
+			int cityIdx = _cities.IndexOf(city);
+			_replayData.Add(new ReplayData.CityDestroyed(_gameTurn, cityIdx, city.NameId, city.X, city.Y));
 			foreach (IUnit unit in _units.Where(u => u.Home == city).ToArray())
 				_units.Remove(unit);
 			_cities.Remove(city);

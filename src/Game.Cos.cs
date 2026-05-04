@@ -159,8 +159,14 @@ namespace CivOne
 						return new CosReplayEntry { Type = "CivilizationDestroyed", Turn = r.Turn, DestroyedId = cd.DestroyedId, DestroyedById = cd.DestroyedById };
 					case ReplayData.CityBuilt cb:
 						return new CosReplayEntry { Type = "CityBuilt", Turn = r.Turn, OwnerId = cb.OwnerId, CityId = cb.CityId, CityNameId = cb.CityNameId, X = cb.X, Y = cb.Y };
+					case ReplayData.CityCaptured cc:
+						return new CosReplayEntry { Type = "CityCaptured", Turn = r.Turn, OwnerId = cc.NewOwnerId, CityId = cc.CityId, CityNameId = cc.CityNameId, X = cc.X, Y = cc.Y };
 					case ReplayData.CityDestroyed cd2:
 						return new CosReplayEntry { Type = "CityDestroyed", Turn = r.Turn, CityId = cd2.CityId, CityNameId = cd2.CityNameId, X = cd2.X, Y = cd2.Y };
+					case ReplayData.WonderBuilt wb:
+						return new CosReplayEntry { Type = "WonderBuilt", Turn = r.Turn, OwnerId = wb.OwnerId, X = wb.X, Y = wb.Y, WonderName = wb.WonderName };
+					case ReplayData.TechDiscovered td:
+						return new CosReplayEntry { Type = "TechDiscovered", Turn = r.Turn, OwnerId = td.OwnerId, TechName = td.TechName };
 					default:
 						return null;
 				}
@@ -456,8 +462,17 @@ namespace CivOne
 					case "CityBuilt":
 						_replayData.Add(new ReplayData.CityBuilt(re.Turn, (byte)re.OwnerId, re.CityId, re.CityNameId, re.X, re.Y));
 						break;
+					case "CityCaptured":
+						_replayData.Add(new ReplayData.CityCaptured(re.Turn, re.CityId, re.CityNameId, re.X, re.Y, (byte)re.OwnerId));
+						break;
 					case "CityDestroyed":
 						_replayData.Add(new ReplayData.CityDestroyed(re.Turn, re.CityId, re.CityNameId, re.X, re.Y));
+						break;
+					case "WonderBuilt":
+						_replayData.Add(new ReplayData.WonderBuilt(re.Turn, (byte)re.OwnerId, re.WonderName ?? "", re.X, re.Y));
+						break;
+					case "TechDiscovered":
+						_replayData.Add(new ReplayData.TechDiscovered(re.Turn, (byte)re.OwnerId, re.TechName ?? ""));
 						break;
 				}
 			}

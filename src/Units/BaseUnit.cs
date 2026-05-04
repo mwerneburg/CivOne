@@ -281,6 +281,11 @@ namespace CivOne.Units
 						while (capturedCity.Units.Length > 0)
 							Game.DisbandUnit(capturedCity.Units[0]);
 						capturedCity.Owner = Owner;
+						{
+							City[] cities = Game.Instance.GetCities();
+							int cIdx = System.Array.IndexOf(cities, capturedCity);
+							Game.Instance.AddReplayEvent(new ReplayData.CityCaptured(Game.GameTurn, cIdx, capturedCity.NameId, capturedCity.X, capturedCity.Y, Owner));
+						}
 
 						if (!capturedCity.HasBuilding<CityWalls>()
 						    && !(previousOwner.HasWonder<Wonders.GreatWall>() && !Game.WonderObsolete<Wonders.GreatWall>()))

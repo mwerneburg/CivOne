@@ -72,12 +72,16 @@ namespace CivOne.Persistence
 		// CivilizationDestroyed
 		public int DestroyedId { get; set; }
 		public int DestroyedById { get; set; }
-		// CityBuilt / CityDestroyed
+		// CityBuilt / CityCaptured / CityDestroyed
 		public int CityId { get; set; }
 		public int CityNameId { get; set; }
 		public int X { get; set; }
 		public int Y { get; set; }
 		public int OwnerId { get; set; }
+		// WonderBuilt
+		public string WonderName { get; set; }
+		// TechDiscovered
+		public string TechName { get; set; }
 	}
 
 	public class CosPlayer

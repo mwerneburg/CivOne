@@ -247,6 +247,8 @@ namespace CivOne
 			if (Game.Started && Game.CurrentPlayer.CurrentResearch?.Id == advance.Id)
 				GameTask.Enqueue(new TechSelect(Game.CurrentPlayer));
 			_advances.Add(advance.Id);
+			if (Game.Started)
+				Game.Instance.AddReplayEvent(new ReplayData.TechDiscovered(Game.GameTurn, Game.PlayerNumber(this), (advance as ICivilopedia).Name));
 			if (!setOrigin) return;
 			Game.Instance.SetAdvanceOrigin(advance, this);
 		}

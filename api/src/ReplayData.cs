@@ -28,10 +28,25 @@ namespace CivOne
 			}
 		}
 
+		public class CityCaptured : ReplayData
+		{
+			public readonly int CityId, CityNameId, X, Y;
+			public readonly byte NewOwnerId;
+
+			public CityCaptured(int turn, int cityId, int cityNameId, int x, int y, byte newOwnerId) : base(turn)
+			{
+				CityId = cityId;
+				CityNameId = cityNameId;
+				X = x;
+				Y = y;
+				NewOwnerId = newOwnerId;
+			}
+		}
+
 		public class CityDestroyed : ReplayData
 		{
 			public readonly int CityId, CityNameId, X, Y;
-			
+
 			public CityDestroyed(int turn, int cityId, int cityNameId, int x, int y) : base(turn)
 			{
 				CityId = cityId;
@@ -49,6 +64,33 @@ namespace CivOne
 			{
 				DestroyedId = destroyedId;
 				DestroyedById = destroyedById;
+			}
+		}
+
+		public class WonderBuilt : ReplayData
+		{
+			public readonly byte OwnerId;
+			public readonly string WonderName;
+			public readonly int X, Y;
+
+			public WonderBuilt(int turn, byte ownerId, string wonderName, int x, int y) : base(turn)
+			{
+				OwnerId = ownerId;
+				WonderName = wonderName;
+				X = x;
+				Y = y;
+			}
+		}
+
+		public class TechDiscovered : ReplayData
+		{
+			public readonly byte OwnerId;
+			public readonly string TechName;
+
+			public TechDiscovered(int turn, byte ownerId, string techName) : base(turn)
+			{
+				OwnerId = ownerId;
+				TechName = techName;
 			}
 		}
 

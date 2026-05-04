@@ -1085,6 +1085,7 @@ namespace CivOne
 					{
 						Shields = 0;
 						AddWonder(wonder);
+						Game.Instance.AddReplayEvent(new ReplayData.WonderBuilt(Game.GameTurn, Owner, (wonder as ICivilopedia).Name, X, Y));
 						var impTask = new ImprovementBuilt(this, wonder);
 						if (wonder is Wonders.SouthPoleExpedition && Player == Human)
 						{

@@ -9,20 +9,23 @@ Almost all rules are retained from the original.
 
 As for rule changes:
  + The "settler cheat" was not present in this open-source project and I left it that way.
+ + In the repo as I found it, barracks never expire, so you don't have to rebuild. I kept it.
  + No more building roads and rail on water (which I can't believe I never tried in the original).
  + Rivers have the same 'move' as roads. This code was optionally present in the <2017 repo.
  + Caravans have the same 'move' as diplomats. The code for Civ 2 "Freight" units was present in the <2017 repo but not active.
  + Improved bonuses to river mouths and coastlines, to reflect the gains of trade and rebalance what happens to inland cities at scale.
  + Cities have roads (and rail) by default; no more losing 1/3 move when you steam out of town.
  + Other civilizations can start diplomatic discussions.
- + Upgradable military units (like Civ 2).
+ + Upgradable military units (like Civ 2). Want not, waste not.
  + Autosave always on. I think the crash scenarios are fixed, but let's be reasonable.
  + AI with real strategy. Yes, that includes stacking units. Watch out!
  + If WLTKD can't grow a city, it spawns a free caravan.
- + A mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (cornerstone of a modern city).
- + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits.
+ + A city's mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (cornerstone of a modern city).
+ + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits and implications.
  + Five years after the creation of the SETI wonder, a signal is detected with a warning.
  + Settlers may auto-clean of pollution for all friendly cities.
+ + The Civilization Score chart is a bit different and also does not cap annoyingly like the original.
+ + I added the instant replay, but it came out a bit differently.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
@@ -47,6 +50,5 @@ Known issues
  + The SpaceRace works (is winable) but still being tested.
  + The unit graphics in the garrison (city view) are badly downscaled/upscaled; also, the citizens are barely two-legged sticks. Bear with me, folks.
  + Battle animations are a bit herky-jerky, it was this way in the code repo from 2017 that I cloned.
- + Lots and lots of natural disasters.
+ + There are lots and lots of natural disasters.
  + Otherwise, seems a bit too easy.
- + Some of the wonders seem to lack any effect on the game
