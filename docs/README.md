@@ -21,7 +21,8 @@ As for rule changes:
  + If WLTKD can't grow a city, it spawns a free caravan.
  + A mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (cornerstone of a modern city).
  + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits.
- + Five years after the creation of the SETI wonder, a signal is detected.
+ + Five years after the creation of the SETI wonder, a signal is detected with a warning.
+ + Settlers may auto-clean of pollution for all friendly cities.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)

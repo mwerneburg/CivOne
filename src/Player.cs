@@ -544,6 +544,17 @@ namespace CivOne
 			}
 			if (_anarchy > 0) _anarchy--;
 
+			// Great Library: auto-acquire any advance that 2+ other civs already possess
+			if (HasWonder<Wonders.GreatLibrary>() && !Game.WonderObsolete<Wonders.GreatLibrary>())
+			{
+				Player[] others = Game.Players.Where(p => p != this && !p.IsDestroyed() && !(p.Civilization is Barbarian)).ToArray();
+				foreach (IAdvance advance in Common.Advances.Where(a => !(a is FutureTech) && !HasAdvance(a)))
+				{
+					if (others.Count(p => p.HasAdvance(advance)) >= 2)
+						AddAdvance(advance, false);
+				}
+			}
+
 			AI?.ConsiderGovernment();
 			AI?.ConsiderWar();
 			AI?.ConsiderDiplomacy();

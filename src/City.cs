@@ -120,6 +120,10 @@ namespace CivOne
 		public bool HasWonder(Type type) => _wonders.Any(w => w.GetType() == type);
 		public bool HasWonder<T>() where T : IWonder => _wonders.Any(w => w is T);
 
+		// True when a friendly city on the same continent holds the Hoover Dam
+		private bool HooverDamActive => Tile != null
+			&& Map.ContentCities(Tile.ContinentId).Any(c => c.Owner == Owner && c.HasWonder<HooverDam>());
+
 		public int HappyCitizens => Citizens.Count(c => c == Citizen.HappyMale || c == Citizen.HappyFemale);
 		public int UnhappyCitizens => Citizens.Count(c => c == Citizen.UnhappyMale || c == Citizen.UnhappyFemale);
 
@@ -212,7 +216,7 @@ namespace CivOne
 			{
 				int shields = ResourceTiles.Sum(t => ShieldValue(t));
 				if (HasBuilding<Buildings.MassTransit>()) shields = (int)(shields * 1.2);
-				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant)) ? 1.0 : 0.5));
+				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant)) || HooverDamActive ? 1.0 : 0.5));
 				if (_buildings.Any(b => (b is MfgPlant))) shields += (short)Math.Floor((double)shields * 1.0);
 				return shields;
 			}
@@ -659,6 +663,7 @@ namespace CivOne
 				if (Player.RepublicDemocratic)
 				{
 					int penalty = Player.Government is Governments.Democracy ? 2 : 1;
+					if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
 					int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
 					unhappyCount += militaryAway * penalty;
 				}
@@ -808,7 +813,7 @@ namespace CivOne
 			{
 				int industrial = ShieldTotal;
 				if (HasBuilding<Buildings.RecyclingCenter>()) industrial /= 3;
-				else if (HasBuilding<Buildings.HydroPlant>() || HasBuilding<Buildings.NuclearPlant>()) industrial /= 2;
+				else if (HasBuilding<Buildings.HydroPlant>() || HasBuilding<Buildings.NuclearPlant>() || HooverDamActive) industrial /= 2;
 
 				int popMult = 100;
 				if (HasBuilding<Buildings.MassTransit>())       popMult = 0;

@@ -151,8 +151,11 @@ namespace CivOne.Units
 
 		private int DefendStrength(IUnit defendUnit, IUnit attackUnit)
 		{
-			// Check City Walls for step 5
-			bool cityWalls = (defendUnit.Tile.City != null && defendUnit.Tile.City.HasBuilding<CityWalls>());
+			// Check City Walls for step 5 (Great Wall acts as City Walls for all owner cities until Gunpowder)
+			bool cityWalls = defendUnit.Tile.City != null
+				&& (defendUnit.Tile.City.HasBuilding<CityWalls>()
+				    || (!Game.WonderObsolete<Wonders.GreatWall>()
+				        && Game.GetPlayer(defendUnit.Tile.City.Owner)?.HasWonder<Wonders.GreatWall>() == true));
 
 			// Step 1: Determine the nominal defense value of defending unit.
 			int defendStrength = (int)defendUnit.Defense;
@@ -279,7 +282,8 @@ namespace CivOne.Units
 							Game.DisbandUnit(capturedCity.Units[0]);
 						capturedCity.Owner = Owner;
 
-						if (!capturedCity.HasBuilding<CityWalls>())
+						if (!capturedCity.HasBuilding<CityWalls>()
+						    && !(previousOwner.HasWonder<Wonders.GreatWall>() && !Game.WonderObsolete<Wonders.GreatWall>()))
 						{
 							capturedCity.Size--;
 						}
@@ -378,10 +382,12 @@ namespace CivOne.Units
 					Movement = null;
 					if (Map[X, Y][relX, relY].City != null)
 					{
-						if (!Map[X, Y][relX, relY].City.HasBuilding<CityWalls>())
-						{
-							Map[X, Y][relX, relY].City.Size--;
-						}
+						City cc = Map[X, Y][relX, relY].City;
+						bool wallProtected = cc.HasBuilding<CityWalls>()
+							|| (!Game.WonderObsolete<Wonders.GreatWall>()
+							    && Game.GetPlayer(cc.Owner)?.HasWonder<Wonders.GreatWall>() == true);
+						if (!wallProtected)
+							cc.Size--;
 					}
 				};
 			}

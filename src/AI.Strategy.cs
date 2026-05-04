@@ -214,6 +214,7 @@ namespace CivOne
 				if (enemy == Player || enemy.IsDestroyed()) continue;
 				if (Player.IsAtWar(enemy)) continue;
 				if (!IsNeighbor(enemy)) continue;
+				if (enemy.HasWonder<UnitedNations>()) continue;
 
 				int their = MilitaryScore(enemy);
 
