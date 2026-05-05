@@ -169,6 +169,13 @@ namespace CivOne.Screens.GamePlayPanels
 				{
 					dx *= 16; dy *= 16;
 
+					if (_fullRedraw)
+					{
+						_fullRedraw = false;
+						this.Clear(5)
+							.AddLayer(Tiles.ToBitmap(player: renderPlayer), dispose: true);
+					}
+
 					MoveUnit movement = movingUnit.Movement;
 					this.FillRectangle(dx - 16, dy - 16, 48, 48, 5)
 						.AddLayer(Map[movingUnit.X - 1, movingUnit.Y - 1, 3, 3].ToBitmap(player: renderPlayer), dx - 16, dy - 16, dispose: true);
