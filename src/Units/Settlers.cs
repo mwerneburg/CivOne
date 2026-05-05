@@ -96,14 +96,17 @@ namespace CivOne.Units
 			{
 				if ((tile is River) && !Game.CurrentPlayer.HasAdvance<BridgeBuilding>())
 					return false;
-				BuildingRoad = 2;
+				if (tile is Plains || tile is Grassland)
+					tile.Road = true;  // instant on easy terrain
+				else
+					BuildingRoad = 1;
 				MovesLeft = 0;
 				PartMoves = 0;
 				return true;
 			}
 			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && !tile.RailRoad && tile.City == null)
 			{
-				BuildingRoad = 3;
+				BuildingRoad = 2;
 				MovesLeft = 0;
 				PartMoves = 0;
 				return true;
@@ -204,28 +207,25 @@ namespace CivOne.Units
 			if (BuildingRoad > 0)
 			{
 				BuildingRoad--;
-				if (BuildingRoad > 0)
+				if (Map[X, Y].Road)
 				{
-					if (Map[X, Y].Road)
+					if (Human.HasAdvance<RailRoad>())
 					{
-						if (Human.HasAdvance<RailRoad>())
+						Map[X, Y].RailRoad = true;
+					}
+					else if (BuildingRoad > 0)
+					{
+						foreach (Settlers settlers in Map[X, Y].Units.Where(u => (u is Settlers) && (u as Settlers).BuildingRoad > 0).Select(u => (u as Settlers)))
 						{
-							Map[X, Y].RailRoad = true;
-						}
-						else
-						{
-							foreach (Settlers settlers in Map[X, Y].Units.Where(u => (u is Settlers) && (u as Settlers).BuildingRoad > 0).Select(u => (u as Settlers)))
-							{
-								settlers.BuildingRoad = 0;
-							}
+							settlers.BuildingRoad = 0;
 						}
 					}
-					Map[X, Y].Road = true;
+				}
+				Map[X, Y].Road = true;
+				if (BuildingRoad > 0)
+				{
 					MovesLeft = 0;
 					PartMoves = 0;
-					// Plains and grassland roads complete in 1 turn
-					if (BuildingRoad == 1 && !Map[X, Y].RailRoad && (Map[X, Y] is Plains || Map[X, Y] is Grassland))
-						BuildingRoad = 0;
 				}
 			}
 			else if (BuildingIrrigation > 0)

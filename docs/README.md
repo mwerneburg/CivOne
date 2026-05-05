@@ -26,6 +26,7 @@ As for rule changes:
  + Settlers may auto-clean of pollution for all friendly cities.
  + The Civilization Score chart is a bit different and also does not cap annoyingly like the original.
  + I added the instant replay, but it came out a bit differently.
+ + Roads and railways are much quicker to build.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
