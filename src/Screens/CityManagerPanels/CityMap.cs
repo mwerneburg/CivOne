@@ -60,56 +60,57 @@ namespace CivOne.Screens.CityManagerPanels
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_update)
+			if (!_update) return false;
+			_update = false;
+
+			// Cassette dark background with CRT scanline effect visible in corner dead-zones
+			int bw = Bitmap.Width, bh = Bitmap.Height;
+			this.FillRectangle(0, 0, bw, bh, CassetteTheme.BG0);
+			for (int scanY = 0; scanY < bh; scanY += 2)
+				this.FillRectangle(0, scanY, bw, 1, CassetteTheme.BG1);
+			this.FillRectangle(0,      0,      bw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(0,      bh - 1, bw, 1, CassetteTheme.BORDER);
+			this.FillRectangle(0,      0,      1,  bh, CassetteTheme.BORDER);
+			this.FillRectangle(bw - 1, 0,      1,  bh, CassetteTheme.BORDER);
+
+			ITile[,] tiles = _city.CityRadius;
+			// Snapshot ResourceTiles once to avoid repeated CityRadius allocations per tile check
+			var resourceSet = new System.Collections.Generic.HashSet<ITile>(_city.ResourceTiles);
+			int scale = _tileSize / 16;
+			using (IBitmap rawMap = tiles.ToBitmap(TileSettings.CityManager, Settings.RevealWorld ? null : Game.GetPlayer(_city.Owner)))
 			{
-					// Cassette dark background with CRT scanline effect visible in corner dead-zones
-				int bw = Bitmap.Width, bh = Bitmap.Height;
-				this.FillRectangle(0, 0, bw, bh, CassetteTheme.BG0);
-				for (int scanY = 0; scanY < bh; scanY += 2)
-					this.FillRectangle(0, scanY, bw, 1, CassetteTheme.BG1);
-				this.FillRectangle(0,      0,      bw, 1, CassetteTheme.BORDER);
-				this.FillRectangle(0,      bh - 1, bw, 1, CassetteTheme.BORDER);
-				this.FillRectangle(0,      0,      1,  bh, CassetteTheme.BORDER);
-				this.FillRectangle(bw - 1, 0,      1,  bh, CassetteTheme.BORDER);
-
-				ITile[,] tiles = _city.CityRadius;
-				int scale = _tileSize / 16;
-				using (IBitmap rawMap = tiles.ToBitmap(TileSettings.CityManager, Settings.RevealWorld ? null : Game.GetPlayer(_city.Owner)))
+				if (scale > 1)
 				{
-					if (scale > 1)
-					{
-						using (Bytemap scaled = rawMap.Bitmap.Scale(scale))
-							this.AddLayer(scaled, 1, 1);
-					}
-					else
-					{
-						this.AddLayer(rawMap, 1, 1, dispose: true);
-					}
+					using (Bytemap scaled = rawMap.Bitmap.Scale(scale))
+						this.AddLayer(scaled, 1, 1);
 				}
-
-				for (int xx = 0; xx < 5; xx++)
-				for (int yy = 0; yy < 5; yy++)
+				else
 				{
-					ITile tile = tiles[xx, yy];
-					if (tile == null) continue;
-
-					int px = (xx * _tileSize) + 1;
-					int py = (yy * _tileSize) + 1;
-
-					if (_city.OccupiedTile(tile))
-					{
-						this.FillRectangle(px, py, _tileSize, 1, 12)
-							.FillRectangle(px, py + 1, 1, _tileSize - 2, 12)
-							.FillRectangle(px, py + _tileSize - 1, _tileSize, 1, 12)
-							.FillRectangle(px + _tileSize - 1, py + 1, 1, _tileSize - 2, 12);
-					}
-
-					if (_city.ResourceTiles.Contains(tile))
-						DrawResources(tile, px + (_tileSize - 16) / 2, py + (_tileSize - 16) / 2);
+					this.AddLayer(rawMap, 1, 1, dispose: true);
 				}
-
-				_update = false;
 			}
+
+			for (int xx = 0; xx < 5; xx++)
+			for (int yy = 0; yy < 5; yy++)
+			{
+				ITile tile = tiles[xx, yy];
+				if (tile == null) continue;
+
+				int px = (xx * _tileSize) + 1;
+				int py = (yy * _tileSize) + 1;
+
+				if (_city.OccupiedTile(tile))
+				{
+					this.FillRectangle(px, py, _tileSize, 1, 12)
+						.FillRectangle(px, py + 1, 1, _tileSize - 2, 12)
+						.FillRectangle(px, py + _tileSize - 1, _tileSize, 1, 12)
+						.FillRectangle(px + _tileSize - 1, py + 1, 1, _tileSize - 2, 12);
+				}
+
+				if (resourceSet.Contains(tile))
+					DrawResources(tile, px + (_tileSize - 16) / 2, py + (_tileSize - 16) / 2);
+			}
+
 			return true;
 		}
 
