@@ -72,7 +72,7 @@ namespace CivOne
 					Wonders        = wonders,
 					ResourceTiles  = city.GetResourceTiles().Select(b => (int)b).ToArray(),
 					TradeRoutes    = tradeRoutes,
-					WasInDisorder  = city.WasInDisorder  ? (bool?)true : null,
+					DisorderTurns  = city.DisorderTurns  > 0 ? (int?)city.DisorderTurns : null,
 					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null
 				});
 			}
@@ -383,7 +383,7 @@ namespace CivOne
 					_units.Add(unit);
 				}
 
-				city.WasInDisorder = cd.WasInDisorder ?? false;
+				city.DisorderTurns = cd.DisorderTurns ?? ((cd.WasInDisorder ?? false) ? 1 : 0);
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
 				cityById[cd.Id] = city;
 				_cities.Add(city);

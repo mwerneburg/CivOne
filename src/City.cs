@@ -129,7 +129,8 @@ namespace CivOne
 
 		public int ContentCitizens => Citizens.Count(c => c == Citizen.ContentFemale || c == Citizen.ContentMale);
  		public bool IsInDisorder => _size > 0 && UnhappyCitizens > HappyCitizens;
-		public bool WasInDisorder {get; set;} = false;
+		public int  DisorderTurns {get; set;} = 0;
+		public bool WasInDisorder { get => DisorderTurns > 0; set { if (value && DisorderTurns == 0) DisorderTurns = 1; else if (!value) DisorderTurns = 0; } }
 		public bool WasWeLoveKing {get; set;} = false;
 
 		internal int ShieldCosts
@@ -852,6 +853,38 @@ namespace CivOne
 				GameTask.Enqueue(Message.Newspaper(this, "Pollution in", $"{Name}!", "Health problems feared."));
 		}
 
+		private void ExecuteMeltdown()
+		{
+			// Destroy the Nuclear Plant
+			RemoveBuilding<NuclearPlant>();
+
+			// Reduce population
+			if (Size > 1) Size = (byte)Math.Max(1, Size - 2);
+
+			// Spread fallout across entire city radius
+			foreach (ITile tile in CityTiles.Where(t => !t.Pollution && !t.IsOcean && t.City == null))
+				tile.Pollution = true;
+
+			// Disband all units in the 3×3 blast zone
+			foreach (ITile tile in Map.QueryMapPart(X - 1, Y - 1, 3, 3))
+			{
+				IUnit[] victims = tile.Units.ToArray();
+				foreach (IUnit u in victims)
+					Game.DisbandUnit(u);
+			}
+
+			if (Player == Human)
+			{
+				Common.GamePlay?.CenterOnPoint(X, Y);
+				int px = (X - (Common.GamePlay?.X ?? 0)) * 16;
+				int py = (Y - (Common.GamePlay?.Y ?? 0)) * 16;
+				GameTask.Insert(Show.Nuke(px, py));
+				GameTask.Insert(Message.Newspaper(this, $"Meltdown in {Name}!", "Radioactive fallout", "contaminates region!"));
+			}
+
+			Log($"Nuclear meltdown in {Name} (owned by {Player.TribeName})");
+		}
+
 		public void NewTurn()
 		{
 			UpdateResources();
@@ -869,39 +902,67 @@ namespace CivOne
 			if (inDisorder)
 			{
 				if (Common.Random.Next(20) == 1 && HasBuilding<Buildings.NuclearPlant>() && !Player.HasAdvance<Advances.FusionPower>())
-				{
-					// todo: meltdown
-				}
- 				if (WasInDisorder)
+					ExecuteMeltdown();
+
+				if (DisorderTurns == 0)
 				{
 					if (Player == Human)
-						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Civil Disorder in", $"{Name}! Mayor", "flees in panic."));
+					{
+						Show disorderCity = Show.DisorderCity(this);
+						GameTask.Insert(disorderCity);
+					}
+					Log($"City {Name} belonging to {Player.TribeName} has gone into disorder");
 				}
 				else
 				{
 					if (Player == Human)
-						{
-							Show disorderCity = Show.DisorderCity(this);
- 							GameTask.Insert(disorderCity);
-						}
-					
-					Log($"City {Name} belonging to {Player.TribeName} has gone into disorder");
+						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Civil Disorder in", $"{Name}! Mayor", "flees in panic."));
+
+					switch (DisorderTurns)
+					{
+						case 1:
+							if (HasBuilding<Buildings.MarketPlace>())
+							{
+								RemoveBuilding<Buildings.MarketPlace>();
+								if (Player == Human)
+									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Marketplace burned", "by angry citizens!"));
+							}
+							break;
+						case 2:
+							if (HasBuilding<Bank>())
+							{
+								RemoveBuilding<Bank>();
+								if (Player == Human)
+									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Bank looted", "by angry citizens!"));
+							}
+							else if (HasBuilding<Cathedral>())
+							{
+								RemoveBuilding<Cathedral>();
+								if (Player == Human)
+									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Cathedral burned", "by angry citizens!"));
+							}
+							break;
+						case 3:
+							if (Player.Government is Governments.Republic || Player.Government is Governments.Democracy)
+							{
+								Player.Revolt();
+								if (Player == Human)
+									GameTask.Insert(Message.Newspaper(null, "The government has", "COLLAPSED due to", "widespread disorder!"));
+							}
+							break;
+					}
 				}
- 				if (WasInDisorder && Player.Government is Advances.Democracy)
-				{
-					// todo: Force revolution
-				}
- 				WasInDisorder = true;
+				DisorderTurns++;
 			}
 			else
 			{
-				if (WasInDisorder)
+				if (DisorderTurns > 0)
 				{
 					if (Player == Human)
 						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Order restored", $" in {Name}."));
- 					Log($"City {Name} belonging to {Player.TribeName} is no longer in disorder");
+					Log($"City {Name} belonging to {Player.TribeName} is no longer in disorder");
 				}
- 				WasInDisorder = false;
+				DisorderTurns = 0;
 			}
  			if (unhappyCit == 0 && happyCit >= contentCit && Size >= 3)
 			{

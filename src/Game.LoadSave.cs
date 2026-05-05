@@ -321,7 +321,7 @@ namespace CivOne
 
 				/*if (city.IsInDisorder)
 				{
-					city.WasInDisorder = true;
+					city.DisorderTurns = 1;
 				}*/
 
 				}
