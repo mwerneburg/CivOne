@@ -1078,16 +1078,16 @@ namespace CivOne
 				{
 					Shields = 0;
 					IUnit unit = Game.Instance.CreateUnit((CurrentProduction as IUnit).Type, X, Y, Owner);
-					unit.SetHome();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)));
 					if (CurrentProduction is Settlers)
 					{
 						if (Size == 1 && Player.Cities.Length == 1) Size++;
-						if (Size == 1)
-						{
-							unit.SetHome(null);
-						}
+						if (Size > 1) unit.SetHome();
 						Size--;
+					}
+					else
+					{
+						unit.SetHome();
 					}
 					if (Human == Owner && (unit is Settlers || unit is Diplomat || unit is Caravan))
 					{
