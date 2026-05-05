@@ -8,257 +8,240 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Persistence;
-using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
 	[Modal, Expand]
 	internal class LoadGame : BaseScreen
 	{
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
+		private const int MANUAL_SLOTS = 8;
+		private const int SLOT_COUNT   = 9; // 8 manual + 1 autosave
 
-		private class SaveGameFile
+		// ── layout ───────────────────────────────────────────────────────────────
+		private int RowH    => Resources.GetFontHeight(0) + 2;
+		private int PanelW  => Math.Min(Width - 40, 300);
+		private int HeaderH => Resources.GetFontHeight(1) + 10;
+		private int FooterH => Resources.GetFontHeight(0) + 8;
+		private int ListH   => SLOT_COUNT * RowH + 4;
+		private int PanelH  => HeaderH + ListH + FooterH;
+		private int PanelX  => (Width  - PanelW) / 2;
+		private int PanelY  => (Height - PanelH) / 2;
+
+		// ── state ────────────────────────────────────────────────────────────────
+		public bool Cancel { get; private set; }
+
+		private int  _selection = 0;
+		private bool _update    = true;
+
+		// ── slot metadata ────────────────────────────────────────────────────────
+		private struct SlotInfo
 		{
-			public bool ValidFile { get; private set; }
-			public bool IsCos { get; private set; }
-			public string CosFile { get; private set; }
-			public string SveFile { get; private set; }
-			public string MapFile { get; private set; }
+			public string CosFile;
+			public string SveFile;
+			public string MapFile;
+			public string Label;
+			public string Year;
+			public bool   Exists;
+			public bool   IsCos;
+			public bool   IsAuto;
+		}
 
-			public string Name { get; private set; }
+		private SlotInfo[] _slots;
 
-			private ushort ReadUShort(BinaryReader reader, int position)
-				=> Common.BinaryReadUShort(reader, position);
+		private SlotInfo[] LoadSlots()
+		{
+			string dir   = Path.Combine(Settings.SavesDirectory, "c");
+			var    slots = new SlotInfo[SLOT_COUNT];
 
-			private string[] ReadStrings(BinaryReader reader, int position, int length, int itemLength)
-				=> Common.BinaryReadStrings(reader, position, length, itemLength);
-
-			public SaveGameFile(string filename)
+			for (int i = 0; i < MANUAL_SLOTS; i++)
 			{
-				ValidFile = false;
-				Name = "(EMPTY)";
-				CosFile = $"{filename}.cos";
-				SveFile = $"{filename}.SVE";
-				MapFile = $"{filename}.MAP";
+				string basePath = Path.Combine(dir, $"CIVIL{i}");
+				slots[i].CosFile = basePath + ".cos";
+				slots[i].SveFile = basePath + ".SVE";
+				slots[i].MapFile = basePath + ".MAP";
+				slots[i].Label   = "(empty)";
+				slots[i].Year    = "";
 
-				if (File.Exists(CosFile))
+				if (File.Exists(slots[i].CosFile))
 				{
 					try
 					{
-						var meta = CosSerializer.DeserializeMeta(File.ReadAllText(CosFile));
+						var meta = CosSerializer.DeserializeMeta(File.ReadAllText(slots[i].CosFile));
 						if (meta != null)
 						{
-							Name = meta.Name ?? "(UNKNOWN)";
-							IsCos = true;
-							ValidFile = true;
+							slots[i].Exists = true;
+							slots[i].IsCos  = true;
+							slots[i].Label  = meta.Name ?? "(unknown)";
+							slots[i].Year   = Common.YearString((ushort)meta.Turn);
 						}
 					}
-					catch (Exception ex)
-					{
-						Log($"Could not read .cos file: {ex.Message}");
-						Name = "(COULD NOT READ SAVE FILE)";
-					}
+					catch { slots[i].Label = "(unreadable)"; }
 				}
-				else if (File.Exists(SveFile) && File.Exists(MapFile))
+				else if (File.Exists(slots[i].SveFile) && File.Exists(slots[i].MapFile))
 				{
 					try
 					{
-						using (FileStream fs = new FileStream(SveFile, FileMode.Open))
-						using (BinaryReader br = new BinaryReader(fs))
+						using (var fs = new FileStream(slots[i].SveFile, FileMode.Open))
+						using (var br = new BinaryReader(fs))
 						{
-							if (fs.Length != 37856)
+							if (fs.Length == 37856)
 							{
-								Name = "(INCORRECT FILE SIZE)";
-								return;
+								ushort humanPlayer = Common.BinaryReadUShort(br, 2);
+								slots[i].Exists = true;
+								slots[i].Label  = Common.BinaryReadStrings(br, 16, 112, 14)[humanPlayer];
+								slots[i].Year   = Common.YearString(Common.BinaryReadUShort(br, 0));
 							}
-							string turn = Common.YearString(ReadUShort(br, 0));
-							ushort humanPlayer = ReadUShort(br, 2);
-							ushort difficultyLevel = ReadUShort(br, 10);
-							string leaderName = ReadStrings(br, 16, 112, 14)[humanPlayer];
-							string civName = ReadStrings(br, 128, 96, 12)[humanPlayer];
-							string title = Common.DifficultyName(difficultyLevel);
-							Name = $"{title} {leaderName}, {civName}/{turn}";
 						}
-						ValidFile = true;
 					}
-					catch (Exception ex)
-					{
-						Log($"Could not open .SVE file: {ex.InnerException}");
-						Name = "(COULD NOT READ SAVE FILE HEADER)";
-					}
+					catch { slots[i].Label = "(unreadable)"; }
 				}
 			}
-		}
 
-		private MouseCursor _cursor = MouseCursor.None;
-		public override MouseCursor Cursor => _cursor;
-		
-		private char _driveLetter = 'C';
-		private bool _update = true;
-		private Menu _menu;
-		
-		public bool Cancel { get; private set; }
-		
-		private IEnumerable<SaveGameFile> GetSaveGames()
-		{
-			string path = Path.Combine(Settings.SavesDirectory, char.ToLower(_driveLetter).ToString());
-			for (int i = 0; i < 4; i++)
+			// AutoSave slot
+			string autoPath = Settings.Instance.AutoSavePath;
+			slots[8].CosFile = autoPath;
+			slots[8].IsAuto  = true;
+			slots[8].Label   = "AutoSave";
+			slots[8].Year    = "";
+			if (File.Exists(autoPath))
 			{
-				string filename = Path.Combine(path, string.Format("CIVIL{0}", i));
-				yield return new SaveGameFile(filename);
+				try
+				{
+					var meta = CosSerializer.DeserializeMeta(File.ReadAllText(autoPath));
+					if (meta != null)
+					{
+						slots[8].Exists = true;
+						slots[8].IsCos  = true;
+						slots[8].Label  = $"AUTO: {meta.Name ?? "autosave"}";
+						slots[8].Year   = Common.YearString((ushort)meta.Turn);
+					}
+				}
+				catch { slots[8].Label = "AUTO: (unreadable)"; }
 			}
-			// AutoSave slot — fixed path, always shown last
-			yield return new SaveGameFile(Settings.Instance.AutoSavePath.Replace(".cos", ""));
+
+			return slots;
 		}
 
-		private void LoadSaveFile(object sender, MenuItemEventArgs<int> args)
-		{
-			int item = args.Value;
-			SaveGameFile file = GetSaveGames().ToArray()[item];
-			SaveGame.SelectedGame = Math.Min(item, 3);
-			Log("Load game: {0}", file.Name);
-			Destroy();
-			if (file.IsCos)
-				Game.LoadCos(file.CosFile);
-			else
-				Game.LoadGame(file.SveFile, file.MapFile);
-			if (Game.Started)
-				Common.AddScreen(new GamePlay());
-		}
-		
-		private void LoadEmptyFile(object sender, MenuItemEventArgs<int> args)
-		{
-			Log("Empty save file, cancel");
-			Cancel = true;
-			_update = true;
-		}
-
-		private MenuItemEventHandler<int> LoadFileHandler(SaveGameFile file)
-		{
-			if (file.ValidFile)
-				return LoadSaveFile;
-			return LoadEmptyFile;
-		}
-		
-		private void DrawDriveQuestion()
-		{
-			this.Clear(0)
-				.FillRectangle(OX, OY, 320, 200, 15)
-				.DrawText("Which drive contains your", 0, 5, OX + 92, OY + 72, TextAlign.Left)
-				.DrawText("saved game files?", 0, 5, OX + 104, OY + 80, TextAlign.Left)
-				.DrawText($"{_driveLetter}:", 0, 5, OX + 146, OY + 96, TextAlign.Left)
-				.DrawText("Press drive letter and", 0, 5, OX + 104, OY + 112, TextAlign.Left)
-				.DrawText("Return when disk is inserted", 0, 5, OX + 80, OY + 120, TextAlign.Left)
-				.DrawText("Press Escape to cancel", 0, 5, OX + 104, OY + 128, TextAlign.Left);
-		}
-		
+		// ── draw ─────────────────────────────────────────────────────────────────
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_menu != null)
+			if (!_update) return false;
+			_update = false;
+
+			int px = PanelX, py = PanelY, pw = PanelW;
+
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
+			this.DrawCassettePanel(px, py, pw, PanelH);
+
+			// Header
+			this.DrawText("LOAD GAME", 1, CassetteTheme.PHOS, px + 6, py + 4);
+			this.DrawCassetteDivider(px + 2, py + HeaderH - 1, pw - 4);
+
+			// Slot list
+			int listTop = py + HeaderH + 2;
+			for (int i = 0; i < SLOT_COUNT; i++)
 			{
-				if (_menu.Update(gameTick))
-				{
-					this.Clear(0)
-						.FillRectangle(OX, OY, 320, 200, 15)
-						.AddLayer(_menu, OX, OY);
-					return true;
-				}
-				return Cancel;
+				SlotInfo s   = _slots[i];
+				int      ry  = listTop + i * RowH;
+				bool     sel = (i == _selection);
+
+				if (sel)
+					this.FillRectangle(px + 2, ry, pw - 4, RowH, CassetteTheme.PHOS_FAINT);
+
+				byte numCol  = sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_MID;
+				byte namCol  = sel ? CassetteTheme.PHOS_GLOW : (s.Exists ? CassetteTheme.INK_HIGH : CassetteTheme.INK_LOW);
+				byte yearCol = sel ? CassetteTheme.PHOS_DIM  : CassetteTheme.INK_LOW;
+
+				string prefix = s.IsAuto ? " A." : $"{i + 1}.";
+				this.DrawText(prefix,  0, numCol,  px + 5,      ry);
+				this.DrawText(s.Label, 0, namCol,  px + 20,     ry);
+				if (s.Year.Length > 0)
+					this.DrawText(s.Year, 0, yearCol, px + pw - 5, ry, TextAlign.Right);
 			}
-			else if (_update)
-			{
-				DrawDriveQuestion();
-				_update = false;
-				return true;
-			}
-			return Cancel;
+
+			// Footer
+			int footerY = py + HeaderH + ListH + 2;
+			this.DrawCassetteDivider(px + 2, footerY - 1, pw - 4);
+			this.DrawText("↑↓ MOVE  ENTER LOAD  ESC CANCEL",
+				0, CassetteTheme.INK_LOW, px + pw / 2, footerY + 2, TextAlign.Center);
+
+			return true;
 		}
-		
+
+		// ── input ────────────────────────────────────────────────────────────────
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			if (Cancel) return false;
-			
-			char c = Char.ToUpper(args.KeyChar);
-			if (args.Key == Key.Escape)
+			switch (args.Key)
 			{
-				Log("Cancel");
-				Cancel = true;
-				_update = true;
-				return true;
-			}
-			else if (_menu != null)
-			{
-				return _menu.KeyDown(args);
-			}
-			else if (args.Key == Key.Enter)
-			{
-				_menu = new Menu(Palette)
-				{
-					Title = "Select Load File...",
-					X = 51,
-					Y = 70,
-					MenuWidth = 217,
-					TitleColour = 12,
-					ActiveColour = 11,
-					TextColour = 5,
-					FontId = 0,
-					IndentTitle = 2,
-					RowHeight = 8
-				};
-				
-				int i = 0;
-				foreach (SaveGameFile file in GetSaveGames())
-				{
-					bool isAuto = (i == 4);
-					string label = isAuto ? $"AUTO: {file.Name}" : file.Name;
-					_menu.Items.Add(label, i++).OnSelect(LoadFileHandler(file));
-				}
-				_cursor = MouseCursor.Pointer;
-			}
-			else if (c >= 'A' && c <= 'Z')
-			{
-				_driveLetter = c;
-				_update = true;
-				return true;
+				case Key.Up:
+				case Key.NumPad8:
+					if (_selection > 0) { _selection--; _update = true; }
+					return true;
+				case Key.Down:
+				case Key.NumPad2:
+					if (_selection < SLOT_COUNT - 1) { _selection++; _update = true; }
+					return true;
+				case Key.Enter:
+					DoLoad();
+					return true;
+				case Key.Escape:
+					Cancel = true;
+					Destroy();
+					return true;
 			}
 			return false;
 		}
-		
-		private ScreenEventArgs LocalArgs(ScreenEventArgs args) =>
-			new ScreenEventArgs(args.X - OX, args.Y - OY, args.Buttons);
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_menu != null)
-				return _menu.MouseDown(LocalArgs(args));
-			return false;
+			int listTop = PanelY + HeaderH + 2;
+			if (args.X >= PanelX + 2 && args.X < PanelX + PanelW - 2
+				&& args.Y >= listTop && args.Y < listTop + SLOT_COUNT * RowH)
+			{
+				int row = (args.Y - listTop) / RowH;
+				if (row < 0 || row >= SLOT_COUNT) return true;
+				if (row == _selection) { DoLoad(); return true; }
+				_selection = row;
+				_update    = true;
+				return true;
+			}
+
+			// click outside panel — cancel
+			Cancel = true;
+			Destroy();
+			return true;
 		}
 
-		public override bool MouseUp(ScreenEventArgs args)
+		private void DoLoad()
 		{
-			if (_menu != null)
-				return _menu.MouseUp(LocalArgs(args));
-			return false;
+			SlotInfo s = _slots[_selection];
+			if (!s.Exists) return;
+
+			SaveGame.SelectedGame = Math.Min(_selection, MANUAL_SLOTS - 1);
+			Log($"Load game: {s.Label}");
+			Destroy();
+			if (s.IsCos)
+				Game.LoadCos(s.CosFile);
+			else
+				Game.LoadGame(s.SveFile, s.MapFile);
+			if (Game.Started)
+				Common.AddScreen(new GamePlay());
 		}
 
-		public override bool MouseDrag(ScreenEventArgs args)
-		{
-			if (_menu != null)
-				return _menu.MouseDrag(LocalArgs(args));
-			return false;
-		}
-		
+		// ── constructor ──────────────────────────────────────────────────────────
 		public LoadGame(Palette palette)
 		{
-			Palette = palette;
+			Palette p = Common.DefaultPalette;
+			using (Palette c = CassetteTheme.CreatePalette())
+				p.MergePalette(c, 1, 17);
+			Palette = p;
+
+			_slots = LoadSlots();
 		}
 	}
 }
