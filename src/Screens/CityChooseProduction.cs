@@ -135,7 +135,7 @@ namespace CivOne.Screens
 			// Footer
 			int footerY = py + HeaderH + ListH + 2;
 			this.DrawCassetteDivider(px + 2, footerY - 1, pw - 4);
-			this.DrawText("UP/DN MOVE  LETTER JUMP  TAB FILTER  ENTER SELECT  ESC CANCEL",
+			this.DrawText("LETTER JUMP  TAB FILTER  ENTER SELECT",
 				0, CassetteTheme.INK_LOW, px + pw / 2, footerY + 2, TextAlign.Center);
 
 			_update = false;

@@ -38,6 +38,10 @@ namespace CivOne.Screens
 		private readonly Dictionary<(int x, int y), (byte owner, string name)> _cities
 			= new Dictionary<(int x, int y), (byte owner, string name)>();
 
+		// territory ownership: NO_OWNER = neutral
+		private const byte NO_OWNER = 255;
+		private readonly byte[,] _territory = new byte[Map.WIDTH, Map.HEIGHT];
+
 		// event log (most-recent last)
 		private readonly List<string> _log = new List<string>();
 		private const int LOG_LINES = 9;
@@ -71,6 +75,30 @@ namespace CivOne.Screens
 			}
 		}
 
+		private void PaintTerritory(int cx, int cy, byte owner)
+		{
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				int tx = (cx + dx + Map.WIDTH) % Map.WIDTH;
+				int ty = cy + dy;
+				if (ty >= 0 && ty < Map.HEIGHT)
+					_territory[tx, ty] = owner;
+			}
+		}
+
+		private void ClearTerritory(int cx, int cy)
+		{
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				int tx = (cx + dx + Map.WIDTH) % Map.WIDTH;
+				int ty = cy + dy;
+				if (ty >= 0 && ty < Map.HEIGHT)
+					_territory[tx, ty] = NO_OWNER;
+			}
+		}
+
 		private void Draw(uint gameTick)
 		{
 			string yearStr = _turnIdx >= 0 && _turnIdx < _eventTurns.Length
@@ -80,8 +108,20 @@ namespace CivOne.Screens
 			// ── terrain ──────────────────────────────────────────────────────
 			this.AddLayer(_terrain, 0, 0);
 
-			// ── city dots ────────────────────────────────────────────────────
 			int tw = TileW, th = TileH, ox = OX, oy = OY;
+
+			// ── territory overlay
+			for (int x = 0; x < Map.WIDTH; x++)
+			for (int y = 0; y < Map.HEIGHT; y++)
+			{
+				if (_territory[x, y] == NO_OWNER) continue;
+				int dx = ox + x * tw;
+				int dy = oy + y * th;
+				byte col = Common.ColourDark[_territory[x, y] % Common.ColourDark.Length];
+				this.FillRectangle(dx, dy, tw, th, col);
+			}
+
+			// ── city dots ────────────────────────────────────────────────────
 			foreach (var kv in _cities)
 			{
 				int dx = ox + kv.Key.x * tw;
@@ -156,6 +196,7 @@ namespace CivOne.Screens
 					{
 						string cname = cb.CityNameId < Game.CityNames.Length ? Game.CityNames[cb.CityNameId] : "?";
 						_cities[(cb.X, cb.Y)] = (cb.OwnerId, cname);
+						PaintTerritory(cb.X, cb.Y, cb.OwnerId);
 						string tribe = PlayerTribeName(cb.OwnerId);
 						_log.Add($"{tribe}: {cname} founded");
 						break;
@@ -165,6 +206,7 @@ namespace CivOne.Screens
 						string cname = cc.CityNameId < Game.CityNames.Length ? Game.CityNames[cc.CityNameId] : "?";
 						if (_cities.ContainsKey((cc.X, cc.Y)))
 							_cities[(cc.X, cc.Y)] = (cc.NewOwnerId, cname);
+						PaintTerritory(cc.X, cc.Y, cc.NewOwnerId);
 						string tribe = PlayerTribeName(cc.NewOwnerId);
 						_log.Add($"{tribe} captures {cname}");
 						break;
@@ -172,6 +214,7 @@ namespace CivOne.Screens
 					case ReplayData.CityDestroyed cd:
 					{
 						string cname = cd.CityNameId < Game.CityNames.Length ? Game.CityNames[cd.CityNameId] : "?";
+						ClearTerritory(cd.X, cd.Y);
 						_cities.Remove((cd.X, cd.Y));
 						_log.Add($"{cname} destroyed");
 						break;
@@ -260,6 +303,9 @@ namespace CivOne.Screens
 						int target = _turnIdx - 1;
 						_cities.Clear();
 						_log.Clear();
+						for (int xi = 0; xi < Map.WIDTH; xi++)
+						for (int yi = 0; yi < Map.HEIGHT; yi++)
+							_territory[xi, yi] = NO_OWNER;
 						_turnIdx = -1;
 						while (_turnIdx < target)
 							AdvanceTurn();
@@ -287,6 +333,9 @@ namespace CivOne.Screens
 				Palette.MergePalette(cassette, 1, 17);
 
 			_terrain = new Picture(Width, Height, Palette);
+			for (int x = 0; x < Map.WIDTH; x++)
+			for (int y = 0; y < Map.HEIGHT; y++)
+				_territory[x, y] = NO_OWNER;
 			BuildTerrain();
 
 			ReplayData[] allData = Game.GetReplayData();
