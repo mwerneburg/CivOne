@@ -167,6 +167,25 @@ namespace CivOne.Screens
 			}
 		}
 		
+		// Clockwise positions on a radius-4 circle (screen y-down)
+		private static readonly (int dx, int dy)[] _spinDots =
+		{
+			(0, -4), (3, -3), (4, 0), (3, 3), (0, 4), (-3, 3), (-4, 0), (-3, -3)
+		};
+
+		private void DrawSpinner(uint gameTick)
+		{
+			int cx = OffsetX + 308, cy = OffsetY + 190;
+			int frame = (int)(gameTick / 3) % 8;
+			this.FillRectangle(cx - 6, cy - 6, 13, 13, 11)
+				.DrawRectangle3D(cx - 6, cy - 6, 13, 13);
+			for (int i = 0; i < 8; i++)
+			{
+				(int dx, int dy) = _spinDots[i];
+				this.FillRectangle(cx + dx, cy + dy, 1, 1, i == frame ? (byte)0 : (byte)8);
+			}
+		}
+
 		private void DrawInputBox(string text)
 		{
 			this.FillRectangle(OffsetX + 158, OffsetY + 88, 161, 33, 11)
@@ -187,7 +206,7 @@ namespace CivOne.Screens
 			else if (!_done)
 			{
 				if (_showIntroText) return false;
-				if (!Map.Instance.Ready) return false;
+				if (!Map.Instance.Ready) { DrawSpinner(gameTick); return true; }
 
 				ICivilization civ = _tribesAvailable[_tribe];
 				Game.CreateGame(_difficulty, _competition, civ, _leaderName, _tribeName, _tribeNamePlural);
