@@ -216,7 +216,7 @@ namespace CivOne
 			{
 				int shields = ResourceTiles.Sum(t => ShieldValue(t));
 				if (HasBuilding<Buildings.MassTransit>()) shields = (int)(shields * 1.2);
-				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant)) || HooverDamActive ? 1.0 : 0.5));
+				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant || b is PowerPlant || b is HydroPlant)) || HooverDamActive ? 1.0 : 0.5));
 				if (_buildings.Any(b => (b is MfgPlant))) shields += (short)Math.Floor((double)shields * 1.0);
 				return shields;
 			}
