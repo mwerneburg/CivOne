@@ -276,9 +276,9 @@ namespace CivOne
 		private int TradeRouteBonus => _tradeRoutes.Sum(r => RouteBonus(r.Partner));
 
 		internal int TradeTotal => BaseTrade + TradeRouteBonus;
-		private short TradeScience => (short)(TradeTotal - TradeLuxuries - TradeTaxes);
-		private short TradeLuxuries => (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero);
-		private short TradeTaxes => (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero);
+		internal short TradeScience => (short)(TradeTotal - TradeLuxuries - TradeTaxes);
+		internal short TradeLuxuries => (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero);
+		internal short TradeTaxes => (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero);
 
 		internal int Corruption
 		{

@@ -13,6 +13,7 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Graphics.Sprites;
+using CivOne.Tiles;
 using CivOne.Units;
 
 namespace CivOne.Screens.CityManagerPanels
@@ -53,22 +54,22 @@ namespace CivOne.Screens.CityManagerPanels
 		{
 			get
 			{
-				//TODO: Draw happiness data/stats
-				Picture output = new Picture(144, 83)
-					.FillRectangle(5, 15, 122, 1, 1)
-					.FillRectangle(5, 31, 122, 1, 1)
-					.As<Picture>();
-				
-				for (int yy = 1; yy < 30; yy+= 16)
-				for (int i = 0; i < _city.Size; i++)
+				Picture output = new Picture(144, 83);
+				Citizen[] citizens = _city.Citizens.ToArray();
+				int x = 2;
+				foreach (Citizen c in citizens)
 				{
-					if (i < _city.ResourceTiles.Count() - 1)
-					{
-						output.AddLayer(Icons.Citizen((i % 2 == 0) ? Citizen.ContentMale : Citizen.ContentFemale), 7 + (8 * i), yy);
-						continue;
-					}
-					output.AddLayer(Icons.Citizen(Citizen.Entertainer), 7 + (8 * i), yy);
+					output.DrawCitizenToken(c, x, 2);
+					x += 9;
 				}
+
+				// Income breakdown
+				int fh = Resources.GetFontHeight(0);
+				int ly = 18;
+				output.DrawText($"Food:    {_city.FoodIncome:+#;-#;0}", 0, 15, 4, ly); ly += fh + 1;
+				output.DrawText($"Shields: {_city.ShieldIncome:+#;-#;0}", 0, 15, 4, ly); ly += fh + 1;
+				output.DrawText($"Trade:   {_city.TradeTotal}", 0, 15, 4, ly); ly += fh + 1;
+				output.DrawText($"Lux/Tax/Sci: {_city.TradeLuxuries}/{_city.TradeTaxes}/{_city.TradeScience}", 0, 9, 4, ly);
 				return output;
 			}
 		}
@@ -77,14 +78,38 @@ namespace CivOne.Screens.CityManagerPanels
 		{
 			get
 			{
-				//TODO: Draw map
-				Picture output = new Picture(144, 83)
-					.FillRectangle(5, 2, 122, 1, 9)
-					.FillRectangle(5, 3, 1, 74, 9)
-					.FillRectangle(126, 3, 1, 74, 9)
-					.FillRectangle(5, 77, 122, 1, 9)
-					.FillRectangle(6, 3, 120, 74, 5)
-					.As<Picture>();
+				const int TW = 16, TH = 16; // tile size in the mini-map
+				const int OX = 8, OY = 3;   // offset so the 5×5 grid is centred in the 144×83 frame
+				Picture output = new Picture(144, 83);
+
+				ITile[,] radius = _city.CityRadius;
+				var worked = new System.Collections.Generic.HashSet<(int, int)>(
+					_city.ResourceTiles.Select(t => (t.X, t.Y)));
+
+				for (int rx = 0; rx < 5; rx++)
+				for (int ry = 0; ry < 5; ry++)
+				{
+					ITile tile = radius[rx, ry];
+					if (tile == null) continue;
+
+					int px = OX + rx * TW;
+					int py = OY + ry * TH;
+
+					// Terrain colour from the world-map tile sheet
+					Terrain type = tile.Type;
+					if (type == Terrain.Grassland2) type = Terrain.Grassland1;
+					bool alt = ((tile.X + tile.Y) % 2 == 1);
+					byte colour = Resources.WorldMapTiles.Bitmap[((int)type) * 4, alt ? 4 : 0];
+					output.FillRectangle(px, py, TW, TH, colour);
+
+					// Highlight worked tiles with a 1-px inner border
+					if (worked.Contains((tile.X, tile.Y)))
+						output.DrawRectangle(px, py, TW, TH, 15);
+
+					// City-centre marker
+					if (tile.X == _city.X && tile.Y == _city.Y)
+						output.FillRectangle(px + 5, py + 5, 6, 6, 15);
+				}
 				return output;
 			}
 		}

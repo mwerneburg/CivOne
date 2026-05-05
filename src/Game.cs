@@ -451,6 +451,16 @@ namespace CivOne
 							CreateUnit(unitType, tile.X, tile.Y, 0, false);
 					}
 				}
+
+				if (Barbarian.IsLandSpawnTurn)
+				{
+					ITile tile = Barbarian.LandSpawnPosition;
+					if (tile != null)
+					{
+						foreach (UnitType unitType in Barbarian.LandSpawnUnits)
+							CreateUnit(unitType, tile.X, tile.Y, 0, false);
+					}
+				}
 			}
 
 			if (!_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))

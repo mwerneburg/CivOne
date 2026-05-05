@@ -61,16 +61,9 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			else if (_gameOver != null)
+			else if (_gameOver != null && _gameOver.IsHuman)
 			{
-				if (_gameOver.IsHuman)
-				{
-					Common.AddScreen(new GameOver());
-				}
-				else
-				{
-					// TODO: Spawn barbarians or respawn civilization
-				}
+				Common.AddScreen(new GameOver());
 			}
 			EndTask();
 			return;

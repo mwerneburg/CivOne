@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Tasks;
@@ -32,8 +33,8 @@ namespace CivOne.Units
 			
 			int cost = (cityToIncite.Player.Gold + 1000) / (distance + 3);
 
-			// todo: if city is in disorder need to halve the cost
-			return cost;
+			if (cityToIncite.IsInDisorder) cost /= 2;
+			return Math.Max(1, cost);
 		}
 
 		public IAdvance GetAdvanceToSteal(Player victim)

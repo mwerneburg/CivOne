@@ -72,9 +72,9 @@ namespace CivOne.Leaders
 				case FaceState.Angry:
 					output.AddLayer(_picture[1, 151, 59, 49], _overlayX, _overlayY);
 					break;
+				case FaceState.Neutral:
 				default:
-					// TODO: Add other states
-					break;
+					break; // base portrait is already the neutral expression
 			}
 			return output;
 		}

@@ -282,12 +282,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 				GamePlay.CenterOnPoint(xx, yy);
 			}
-			if (args.Y > 50 && args.Y < 62)
-			{
-				Log("Sidebar: Palace View");
-				Common.AddScreen(new PalaceView());
-			}
-			else if (args.Y >= 62)
+			if (args.Y >= 62)
 			{
 				if (Game.CurrentPlayer == Human && Game.ActiveUnit == null)
 				{
