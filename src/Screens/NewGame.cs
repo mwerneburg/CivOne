@@ -292,14 +292,14 @@ namespace CivOne.Screens
 				}
 				return false;
 			}
-			if (_difficulty > -1 && _competition > -1 && _tribe > -1 && !_done)
+			if (_showIntroText && !_done)
 				_done = true;
 			return _done;
 		}
-		
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_difficulty > -1 && _competition > -1 && _tribe > -1 && !_done)
+			if (_showIntroText && !_done)
 				_done = true;
 			return _done;
 		}
