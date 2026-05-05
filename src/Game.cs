@@ -394,7 +394,7 @@ namespace CivOne
 					if (humanWins)
 					{
 						PlaySound("wintune");
-						GameTask.Enqueue(Message.Newspaper(null, "Our spaceship has", "reached Alpha Centauri!", $"Score: {HumanPlayer.Score}"));
+						GameTask.Enqueue(Message.Newspaper(null, "Spaceship reaches", "Alpha Centauri!", $"Score: {HumanPlayer.Score}"));
 						GameTask conquest;
 						GameTask.Enqueue(conquest = Show.Screen<CivilizationScore>());
 						conquest.Done += (s, a) => Runtime.Quit();
