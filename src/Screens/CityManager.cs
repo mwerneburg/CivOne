@@ -17,7 +17,6 @@ using CivOne.Graphics;
 using CivOne.IO;
 using CivOne.Screens.CityManagerPanels;
 using CivOne.Screens.Dialogs;
-using CivOne.Tiles;
 using CivOne.Units;
 using CivOne.Wonders;
 
@@ -33,7 +32,6 @@ namespace CivOne.Screens
 		private bool _update = true;
 		private bool _mouseDown = false;
 		private int _buildingsPage = 0;
-		private int _centerTab = 0;
 
 		// ─── layout ──────────────────────────────────────────────────────────────
 
@@ -280,7 +278,8 @@ namespace CivOne.Screens
 
 		private void DrawMapColumn()
 		{
-			// Panel wrapping the map
+			int fh0 = Resources.GetFontHeight(0);
+
 			int px = ColCenterX;
 			int py = BodyY;
 			int pw = ColCenterW;
@@ -288,55 +287,18 @@ namespace CivOne.Screens
 			this.DrawCassettePanel(px, py, pw, mapPanelH, "TILES");
 			this.AddLayer(_cityMap, px + 1, py + 7);
 
-			DrawTabPanel();
-		}
+			int rateY = py + mapPanelH + ColGap;
+			int rateH = BodyY + BodyH - rateY;
+			if (rateH < 14) return;
+			this.DrawCassettePanel(px, rateY, pw, rateH, "RATES");
 
-		private int TabPanelY => BodyY + ColCenterW + 8 + ColGap;
-		private int TabPanelH => BodyY + BodyH - TabPanelY;
-
-		private static readonly string[] _tabNames = { "INFO", "MAP" };
-
-		private void DrawTabPanel()
-		{
-			int fh0 = Resources.GetFontHeight(0);
-			int px  = ColCenterX;
-			int pw  = ColCenterW;
-			int ph  = TabPanelH;
-			if (ph < 14) return;
-
-			this.DrawCassettePanel(px, TabPanelY, pw, ph);
-
-			int tabRowH = fh0 + 2;  // text + 1px gap + 1px divider
-			int cx = px + 4;
-			int cw = pw - 8;
-			int ty = TabPanelY + 2;
-
-			for (int i = 0; i < _tabNames.Length; i++)
-			{
-				bool active = (i == _centerTab);
-				if (active)
-					this.FillRectangle(px + 1, ty - 1, 2, tabRowH, CassetteTheme.PHOS_DIM);
-				byte col = active ? CassetteTheme.PHOS : CassetteTheme.INK_LOW;
-				this.DrawText(_tabNames[i], 0, col, cx + 2, ty);
-				this.DrawCassetteDivider(cx, ty + fh0 + 1, cw);
-				ty += tabRowH;
-			}
-
-			int contentY = ty + 1;
-			int contentH = TabPanelY + ph - contentY - 2;
-			if (contentH < 4) return;
-
-			if (_centerTab == 0)
-				DrawTabContent_Info(cx, contentY, cw, contentH, fh0);
-			else
-				DrawTabContent_Map(cx, contentY, cw, contentH);
-		}
-
-		private void DrawTabContent_Info(int x, int y, int w, int h, int fh0)
-		{
 			int taxRate = _city.Player?.TaxesRate   ?? 0;
 			int luxRate = _city.Player?.LuxuriesRate ?? 0;
 			int sciRate = 10 - taxRate - luxRate;
+
+			int rowX = px + 4;
+			int rowW = pw - 8;
+			int rowY = rateY + 8;
 
 			(string label, int rate, byte color)[] rows =
 			{
@@ -344,70 +306,16 @@ namespace CivOne.Screens
 				("SCIENCE", sciRate * 10, CassetteTheme.OK),
 				("LUXURY",  luxRate * 10, CassetteTheme.CYAN),
 			};
-			int ry = y;
 			foreach (var (label, rate, color) in rows)
 			{
-				if (ry + fh0 > y + h) break;
-				this.DrawText(label,      0, CassetteTheme.INK_MID, x,     ry);
-				this.DrawText($"{rate}%", 0, color,                  x + w, ry, TextAlign.Right);
-				ry += fh0 + 1;
-			}
-		}
-
-		private void DrawTabContent_Map(int x, int y, int w, int h)
-		{
-			if (w < 4 || h < 4) return;
-
-			int mw = Map.WIDTH, mh = Map.HEIGHT;
-			int renderW = Math.Min(w, mw);
-			int renderH = renderW * mh / mw;
-			if (renderH > h) { renderH = h; renderW = renderH * mw / mh; }
-
-			int ox = x + (w - renderW) / 2;
-			int oy = y + (h - renderH) / 2;
-
-			for (int py = 0; py < renderH; py++)
-			for (int px = 0; px < renderW; px++)
-			{
-				int tx = px * mw / renderW;
-				int ty = py * mh / renderH;
-				ITile tile = Map[tx, ty];
-				if (tile == null) continue;
-				this.FillRectangle(ox + px, oy + py, 1, 1, MinimapTerrainColor(tile.Type));
+				if (rowY + fh0 > rateY + rateH - 13) break;
+				this.DrawText(label,      0, CassetteTheme.INK_MID, rowX,        rowY);
+				this.DrawText($"{rate}%", 0, color,                  rowX + rowW, rowY, TextAlign.Right);
+				rowY += fh0 + 1;
 			}
 
-			// City dot
-			int cdx = _city.X * renderW / mw;
-			int cdy = _city.Y * renderH / mh;
-			this.FillRectangle(ox + cdx, oy + cdy, 2, 2, CassetteTheme.PHOS_GLOW);
-
-			// Supported unit dots
-			foreach (IUnit unit in _city.Units)
-			{
-				int udx = unit.X * renderW / mw;
-				int udy = unit.Y * renderH / mh;
-				int dotW = Math.Min(2, renderW - udx);
-				int dotH = Math.Min(2, renderH - udy);
-				if (dotW > 0 && dotH > 0)
-					this.FillRectangle(ox + udx, oy + udy, dotW, dotH, CassetteTheme.PHOS);
-			}
-		}
-
-		private static byte MinimapTerrainColor(Terrain terrain)
-		{
-			switch (terrain)
-			{
-				case Terrain.Ocean:
-				case Terrain.River:      return CassetteTheme.CYAN;
-				case Terrain.Forest:
-				case Terrain.Jungle:     return CassetteTheme.OK;
-				case Terrain.Desert:     return CassetteTheme.PHOS_DIM;
-				case Terrain.Mountains:
-				case Terrain.Hills:      return CassetteTheme.INK_HIGH;
-				case Terrain.Arctic:
-				case Terrain.Tundra:     return CassetteTheme.INK_MID;
-				default:                 return CassetteTheme.INK_LOW;
-			}
+			DrawButton("MAP", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
+				px + pw - 36, rateY + rateH - 13, 34, 11);
 		}
 
 		private void DrawNowBuilding(uint gameTick)
@@ -611,8 +519,16 @@ namespace CivOne.Screens
 
 		private Rectangle RenameRect    => new Rectangle(Margin, Margin, BodyW / 2, HeaderH);
 		private Rectangle MapRect       => new Rectangle(ColCenterX + 1, BodyY + 7, ColCenterW, ColCenterW);
-		private Rectangle TabPanelRect  => new Rectangle(ColCenterX, TabPanelY, ColCenterW, TabPanelH);
 		private Rectangle HeaderRect    => new Rectangle(Margin, Margin, BodyW, HeaderH);
+		private Rectangle MapButtonRect
+		{
+			get
+			{
+				int rateY = BodyY + ColCenterW + 8 + ColGap;
+				int rateH = BodyY + BodyH - rateY;
+				return new Rectangle(ColCenterX + ColCenterW - 36, rateY + rateH - 13, 34, 11);
+			}
+		}
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
@@ -764,23 +680,8 @@ namespace CivOne.Screens
 				return true;  // consume click in buildings panel
 			}
 
-			// Tab panel: switch INFO / MAP view
-			if (TabPanelRect.Contains(args.Location))
-			{
-				int fh0 = Resources.GetFontHeight(0);
-				int tabRowH = fh0 + 2;
-				int ty = TabPanelY + 2;
-				for (int i = 0; i < _tabNames.Length; i++)
-				{
-					if (args.Y >= ty && args.Y < ty + tabRowH)
-					{
-						if (_centerTab != i) { _centerTab = i; _update = true; }
-						return true;
-					}
-					ty += tabRowH;
-				}
-				return true;
-			}
+			// MAP button in RATES panel
+			if (MapButtonRect.Contains(args.Location)) return true;
 
 			// Consume clicks in the left and center columns (no close action there)
 			if (new Rectangle(BodyX, BodyY, BodyW, BodyH).Contains(args.Location))
@@ -800,6 +701,13 @@ namespace CivOne.Screens
 				ScreenEventArgs local = new ScreenEventArgs(args.X - (ColCenterX + 1), args.Y - (BodyY + 7), args.Buttons);
 				_cityMap.MouseDown(local);
 				_update = true;
+				return true;
+			}
+
+			// MAP button → full-screen unit map
+			if (MapButtonRect.Contains(args.Location))
+			{
+				Common.AddScreen(new CityUnitMap(_city));
 				return true;
 			}
 
