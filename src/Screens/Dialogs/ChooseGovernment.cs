@@ -29,6 +29,9 @@ namespace CivOne.Screens.Dialogs
 			Cancel();
 		}
 
+		public override bool KeyDown(KeyboardEventArgs args) => true;
+		public override bool MouseDown(ScreenEventArgs args) => true;
+
 		protected override void FirstUpdate()
 		{
 			Menu<IGovernment> menu = new Menu<IGovernment>("ChooseGovernment", Palette, Selection(3, 20, 84, (_availableGovernments.Length * Resources.GetFontHeight(0))))
@@ -44,6 +47,7 @@ namespace CivOne.Screens.Dialogs
 			{
 				menu.Items.Add($"{government.NameAdjective}", government).OnSelect(GovernmentChoice);
 			}
+			menu.MissClick += (s, a) => { };
 			AddMenu(menu);
 		}
 

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
+using CivOne.Governments;
 using CivOne.Screens;
 using CivOne.Screens.Dialogs;
 using CivOne.Units;
@@ -97,7 +98,9 @@ namespace CivOne.Tasks
 			{
 				ChooseGovernment chooseGovernment = new ChooseGovernment();
 				chooseGovernment.Closed += (s, a) => {
-					Human.Government = (s as ChooseGovernment).Result;
+					IGovernment result = (s as ChooseGovernment).Result;
+					if (result == null) return;
+					Human.Government = result;
 					GameTask.Insert(Message.NewGoverment(null, $"{Human.TribeName} government", $"changed to {Human.Government.Name}!"));
 				};
 				return new Show(chooseGovernment);
