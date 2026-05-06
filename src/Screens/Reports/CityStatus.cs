@@ -95,6 +95,19 @@ namespace CivOne.Screens.Reports
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
+			int fh       = Resources.GetFontHeight(FONT_ID);
+			int pageSize = (Height - 32) / fh;
+			if (args.Y >= 32)
+			{
+				int rowIdx  = (args.Y - 32) / fh;
+				int cityIdx = (_page - 1) * pageSize + rowIdx;
+				if (cityIdx >= 0 && cityIdx < _cities.Length)
+				{
+					Destroy();
+					Common.AddScreen(new CityManager(_cities[cityIdx]));
+					return true;
+				}
+			}
 			return NextPage();
 		}
 
