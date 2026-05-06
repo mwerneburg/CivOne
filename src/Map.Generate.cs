@@ -81,7 +81,8 @@ namespace CivOne
 		private bool TileHasHut(int x, int y)
 		{
 			if (y < 2 || y > (HEIGHT - 3)) return false;
-			return ModGrid(x, y) == ((x / 4) * 13 + (y / 4) * 11 + _terrainMasterWord + 8) % 32;
+			//return ModGrid(x, y) == ((x / 4) * 13 + (y / 4) * 11 + _terrainMasterWord + 8) % 32;
+			return ModGrid(x, y) == ((x / 4) * 26 + (y / 4) * 22 + _terrainMasterWord + 8) % 50;
 		}
 
 		private int[,] GenerateLandMass()
@@ -190,11 +191,12 @@ namespace CivOne
 				{
 					case 0: _tiles[x, y] = new Ocean(x, y, special); break;
 					case 1:
-						switch (latitude[x, y])
+						switch (latitude[x, y]) // these are bands from the equator
 						{
-							case 0: _tiles[x, y] = new Desert(x, y, special); break;
-							case 1: _tiles[x, y] = new Plains(x, y, special); break;
-							case 2: _tiles[x, y] = highLatitude ? (ITile)new Tundra(x, y, special) : new Plains(x, y, special); break;
+                            // experimenting with Hadley cells
+							case 0: _tiles[x, y] = new Jungle(x, y, special); break;
+							case 1: _tiles[x, y] = new Desert(x, y, special); break;
+							case 2: _tiles[x, y] = highLatitude ? (ITile)new Tundra(x, y, special) : new Forest(x, y, special); break;
 							default: _tiles[x, y] = highLatitude ? (ITile)new Arctic(x, y, special) : new Plains(x, y, special); break;
 						}
 						break;
@@ -378,15 +380,16 @@ namespace CivOne
 				bool special = TileIsSpecial(x, y);
 				switch (_tiles[x, y].Type)
 				{
-					case Terrain.Desert:
-					case Terrain.Plains:
-					case Terrain.Tundra:
-						if (Common.Random.Next(20) < bias)
-							_tiles[x, y] = new Jungle(x, y, special);
-						break;
+					// case Terrain.Desert:
+					// case Terrain.Plains:
+					// case Terrain.Tundra:
+						// if (Common.Random.Next(20) < bias)
+							// _tiles[x, y] = new Jungle(x, y, special);
+						// break;
 					case Terrain.Grassland1:
 					case Terrain.Grassland2:
-						if (Common.Random.Next(20) < bias)
+						//if (Common.Random.Next(20) < bias)
+						if (Common.Random.Next(40) < bias)
 						{
 							int roll = Common.Random.Next(20);
 							if (roll < bias / 2)
@@ -396,7 +399,8 @@ namespace CivOne
 						}
 						break;
 					case Terrain.Forest:
-						if (Common.Random.Next(20) < bias)
+						//if (Common.Random.Next(20) < bias)
+						if (Common.Random.Next(40) < bias)
 							_tiles[x, y] = new Jungle(x, y, special);
 						break;
 				}

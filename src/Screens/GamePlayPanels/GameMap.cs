@@ -28,6 +28,7 @@ namespace CivOne.Screens.GamePlayPanels
 		private Point _helperDirection = new Point(0, 0);
 		private bool _update = true;
 		private bool _fullRedraw = false;
+		private bool _reframeRequired = false;
 		private int _x, _y;
 		private IUnit _lastUnit;
 		private ushort _lastTurn;
@@ -169,8 +170,9 @@ namespace CivOne.Screens.GamePlayPanels
 				{
 					dx *= 16; dy *= 16;
 
-					if (_fullRedraw)
+					if (_reframeRequired)
 					{
+						_reframeRequired = false;
 						_fullRedraw = false;
 						this.Clear(5)
 							.AddLayer(Tiles.ToBitmap(player: renderPlayer), dispose: true);
@@ -233,8 +235,9 @@ namespace CivOne.Screens.GamePlayPanels
 			while (_y + _tilesY > Map.HEIGHT) _y--;
 			_update = true;
 			_fullRedraw = true;
+			_reframeRequired = true;
 		}
-		
+
 		private void CenterOnUnit()
 		{
 			if (Game.ActiveUnit == null) return;
