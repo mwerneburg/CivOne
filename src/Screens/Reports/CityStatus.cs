@@ -111,7 +111,7 @@ namespace CivOne.Screens.Reports
 			return NextPage();
 		}
 
-		public CityStatus() : base("CITY STATUS", 8)
+		public CityStatus() : base("CITY STATUS", 8, MouseCursor.Pointer)
 		{
 			_cities = Game.GetCities().Where(c => Human == c.Owner && c.Size > 0).ToArray();
 		}
