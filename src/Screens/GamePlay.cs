@@ -53,9 +53,9 @@ namespace CivOne.Screens
 		private void MenuBarGame(object sender, EventArgs args)
 		{
 			_gameMenu = new GameMenu("MenuBarGame", Palette.Copy());
-			_gameMenu.Items.Add("Tax Rate").OnSelect((s, a) => GameTask.Enqueue(Show.TaxRate));
+			_gameMenu.Items.Add("Science Rate").OnSelect((s, a) => GameTask.Enqueue(Show.TaxRate));
 			_gameMenu.Items.Add("Luxuries Rate").OnSelect((s, a) => GameTask.Enqueue(Show.LuxuryRate));
-			_gameMenu.Items.Add("FindCity").OnSelect((s, a) => GameTask.Enqueue(Show.Search));
+			_gameMenu.Items.Add("Find City").OnSelect((s, a) => GameTask.Enqueue(Show.Search));
 			_gameMenu.Items.Add("Options").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<GameOptions>()));
 			_gameMenu.Items.Add("Save Game").SetEnabled(Game.GameTurn > 0 && Common.AllowSaveGame).OnSelect((s, a) => GameTask.Enqueue(Show.Screen<SaveGame>()));
 			_gameMenu.Items.Add("REVOLUTION!").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<Revolution>()));
