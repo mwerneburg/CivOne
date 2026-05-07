@@ -7,13 +7,11 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-using System;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Graphics.Sprites;
 using CivOne.UserInterface;
 
 namespace CivOne.Screens
@@ -21,14 +19,8 @@ namespace CivOne.Screens
 	[Expand]
 	internal class ChooseTech : BaseScreen
 	{
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
-
-		private readonly Picture _menuGfx;
 		private readonly IAdvance[] _availableAdvances;
-		private readonly int _menuHeight;
-
-		private bool _update = true;
+		private bool _menuCreated = false;
 
 		private void AdvanceChoice(object sender, MenuItemEventArgs<IAdvance> args)
 		{
@@ -43,20 +35,53 @@ namespace CivOne.Screens
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_update)
+			int fh  = Resources.GetFontHeight(0);
+			int lh  = fh + 1;
+			const string hint = "RIGHT-CLICK ANY ITEM FOR INFO";
+
+			// Measure panel width
+			int innerW = Resources.GetTextSize(0, hint).Width;
+			foreach (IAdvance adv in _availableAdvances)
+				innerW = System.Math.Max(innerW, Resources.GetTextSize(0, adv.Name).Width);
+			innerW = System.Math.Max(innerW, 160);
+
+			int pw = innerW + 24;
+			int ph = 2 + 6                               // borders + top pad
+			       + _availableAdvances.Length * lh       // menu rows
+			       + 3 + 1 + 3                            // gap + divider + gap
+			       + fh + 6;                              // hint + bottom pad
+
+			int ox = (Width  - pw) / 2;
+			int oy = (Height - ph) / 2;
+
+			// Draw panel every frame (background for menu overlay)
+			this.Clear(CassetteTheme.BG0);
+			this.DrawCassettePanel(ox, oy, pw, ph, "CHOOSE RESEARCH");
+			this.AddScanlines(ox + 1, oy + 1, pw - 2, ph - 2);
+
+			// Draw hint at bottom (after scanlines so text is fully visible)
+			int hintY = oy + ph - fh - 6;
+			int hintX = ox + 12;
+			this.DrawCassetteDivider(hintX, hintY - 4, pw - 24);
+			this.DrawText(hint, 0, CassetteTheme.INK_LOW, ox + pw / 2, hintY, TextAlign.Center);
+
+			// Create the menu once
+			if (!_menuCreated)
 			{
-				_update = false;
+				_menuCreated = true;
 
-				IBitmap background = _menuGfx[44, 35, 156, _menuHeight].ColourReplace((7, 11), (22, 3));
+				int menuX = ox + 12;
+				int menuY = oy + 6;
 
-				Menu<IAdvance> menu = new Menu<IAdvance>("ChooseTech", Palette, background)
+				var menu = new Menu<IAdvance>("ChooseTech", Palette)
 				{
-					X = 83 + OX,
-					Y = 92 + OY,
-					MenuWidth = 156,
-					ActiveColour = 11,
-					TextColour = 5,
-					FontId = 0
+					X         = menuX,
+					Y         = menuY,
+					MenuWidth = pw - 24,
+					ActiveColour  = CassetteTheme.PHOS_FAINT,
+					TextColour    = CassetteTheme.INK_HIGH,
+					DisabledColour = CassetteTheme.INK_LOW,
+					FontId    = 0
 				};
 
 				foreach (IAdvance advance in _availableAdvances)
@@ -66,51 +91,22 @@ namespace CivOne.Screens
 						.OnContext(AdvanceContext)
 						.OnHelp(AdvanceContext);
 				}
+
 				AddMenu(menu);
-				return true;
 			}
+
 			return true;
 		}
 
 		public ChooseTech() : base(MouseCursor.Pointer)
 		{
-			TextSettings DialogText = new TextSettings() { Colour = 15 };
-			TextSettings HelpText = new TextSettings() { FontId = 1, Colour = 10, Alignment = TextAlign.Right, VerticalAlignment = VerticalAlign.Bottom };
-
 			_availableAdvances = Human.AvailableResearch.Take(8).ToArray();
-			_menuHeight = Resources.GetFontHeight(0) * _availableAdvances.Count();
-			
-			bool modernGovernment = Human.HasAdvance<Invention>();
-			IBitmap governmentPortrait = Icons.GovernmentPortrait(Human.Government, Advisor.Science, modernGovernment);
-			using (Palette palette = Common.DefaultPalette)
+
+			using (Palette cassette = CassetteTheme.CreatePalette())
 			{
-				palette.MergePalette(governmentPortrait.Palette, 144);
-				Palette = palette;
+				Palette = Common.DefaultPalette;
+				Palette.MergePalette(cassette, 1, 17);
 			}
-
-			int dialogHeight = 41 + _menuHeight;
-			if (dialogHeight < 62) dialogHeight = 62;
-
-			_menuGfx = new Picture(202, dialogHeight)
-					.Tile(Pattern.PanelGrey)
-					.AddLayer(governmentPortrait, 1, dialogHeight - 61)
-					.DrawRectangle3D()
-					.DrawText("Science Advisor:", 46, 3, DialogText)
-					.FillRectangle(46, 10, 89, 1, 11)
-					.DrawText("Which discovery should our", 46, 12, DialogText)
-					.DrawText("wise folk pursue, sire?", 46, 20, DialogText)
-					.DrawText("Pick one...", 46, 28, DialogText)
-					.DrawText($"(Help available)", 202, dialogHeight, HelpText)
-					.As<Picture>();
-
-			this.DrawRectangle(38 + OX, 56 + OY, 204, dialogHeight + 2)
-				.AddLayer(_menuGfx, 39 + OX, 57 + OY);
-		}
-
-		public override void Dispose()
-		{
-			_menuGfx.Dispose();
-			base.Dispose();
 		}
 	}
 }
