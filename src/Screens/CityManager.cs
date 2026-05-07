@@ -195,7 +195,7 @@ namespace CivOne.Screens
 
 			// Corruption field
 			string corrVal = _city.Corruption > 0 ? $"{_city.Corruption}" : "NONE";
-			byte corrColor = _city.Corruption > 0 ? CassetteTheme.WARN : CassetteTheme.INK_MID;
+			byte corrColor = _city.Corruption > 0 ? CassetteTheme.PHOS : CassetteTheme.INK_MID;
 			this.DrawCassetteField("CORRUPT", corrVal, cx, cy, cw, 0, corrColor);
 			cy += fieldH;
 
@@ -333,7 +333,7 @@ namespace CivOne.Screens
 
 			// Production name
 			string prodName = (_city.CurrentProduction as ICivilopedia)?.Name.ToUpper() ?? "???";
-			byte nameColor  = blink ? CassetteTheme.WARN : CassetteTheme.PHOS;
+			byte nameColor  = blink ? CassetteTheme.PHOS : CassetteTheme.PHOS;
 			this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
 
 			// Progress meter
@@ -347,7 +347,7 @@ namespace CivOne.Screens
 			{
 				int btnY  = py + ph - 14;
 				int btnW  = (pw - 10) / 2;
-				byte chgColor = blink ? CassetteTheme.WARN : CassetteTheme.PHOS_DIM;
+				byte chgColor = blink ? CassetteTheme.PHOS : CassetteTheme.PHOS_DIM;
 				DrawButton("CHANGE", 0, chgColor, CassetteTheme.BG3, px + 2, btnY, btnW, 11);
 				DrawButton("BUY",    0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3, px + 4 + btnW, btnY, btnW, 11);
 			}

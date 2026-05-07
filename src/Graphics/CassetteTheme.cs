@@ -27,7 +27,7 @@ namespace CivOne.Graphics
 		public const byte PHOS       = 12;  // #f0a030 phosphor accent (amber)
 		public const byte PHOS_GLOW  = 13;  // #f8c060 bright amber
 		public const byte OK         = 14;  // #5db536 green status
-		public const byte WARN       = 15;  // #d0541a orange warning
+		public const byte WHITE      = 15;  // #f8f4ec near-white (unit icon white player; keep at 15 to match ColourLight)
 		public const byte ALERT      = 16;  // #c42820 red alert
 		public const byte CYAN       = 17;  // #3aaccc info / cold accent
 
@@ -50,7 +50,7 @@ namespace CivOne.Graphics
 			p[PHOS]       = new Colour(240, 160,  48);
 			p[PHOS_GLOW]  = new Colour(248, 192,  96);
 			p[OK]         = new Colour( 93, 181,  54);
-			p[WARN]       = new Colour(208,  84,  26);
+			p[WHITE]      = new Colour(248, 244, 236);
 			p[ALERT]      = new Colour(196,  40,  32);
 			p[CYAN]       = new Colour( 58, 172, 204);
 			return p;

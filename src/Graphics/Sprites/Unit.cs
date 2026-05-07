@@ -52,8 +52,7 @@ namespace CivOne.Graphics.Sprites
 				}
 			}
 			
-			if (colourLight == 15) output.ColourReplace((15, 11), (10, colourLight), (2, colourDark));
-			else if (colourDark == 8) output.ColourReplace((7, 3), (10, colourLight), (2, colourDark));
+			if (colourDark == 8) output.ColourReplace((7, 3), (10, colourLight), (2, colourDark));
 			else output.ColourReplace((10, colourLight), (2, colourDark));
 			
 			return output;

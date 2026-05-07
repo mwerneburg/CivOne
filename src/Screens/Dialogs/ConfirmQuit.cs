@@ -37,7 +37,7 @@ namespace CivOne.Screens.Dialogs
 			// Title band
 			this.FillRectangle(px + 1, py + 1, pw - 2, 14, CassetteTheme.BG3);
 			this.FillRectangle(px + 1, py + 14, pw - 2, 1, CassetteTheme.BORDER);
-			this.DrawText("QUIT GAME", 0, CassetteTheme.WARN, px + pw / 2, py + 4, TextAlign.Center);
+			this.DrawText("QUIT GAME", 0, CassetteTheme.PHOS, px + pw / 2, py + 4, TextAlign.Center);
 
 			int fh = Resources.GetFontHeight(0);
 			this.DrawText("Are you sure you want to quit?", 0, CassetteTheme.INK_HIGH,
