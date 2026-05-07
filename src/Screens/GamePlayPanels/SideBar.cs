@@ -95,7 +95,8 @@ namespace CivOne.Screens.GamePlayPanels
 				.FillRectangle(0, 0, 80, 39, CassetteTheme.BG1)
 				.FillRectangle(0, 38, 80, 1, CassetteTheme.BORDER)
 				.FillRectangle(3, 2, 74, 11, CassetteTheme.BG3)
-				.FillRectangle(3, 13, 74, 1, CassetteTheme.BORDER);
+				.FillRectangle(3, 13, 74, 1, CassetteTheme.BORDER)
+				.AddScanlines();
 
 			string govName = Human.Government?.Name ?? "";
 			_demographics.DrawText(govName.ToUpper(), 0, CassetteTheme.PHOS, 39, 4, TextAlign.Center);
@@ -135,7 +136,8 @@ namespace CivOne.Screens.GamePlayPanels
 
 			_gameInfo
 				.FillRectangle(0, 0, _gameInfo.Width, _gameInfo.Height, CassetteTheme.BG1)
-				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER);
+				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER)
+				.AddScanlines();
 
 			if (Game.CurrentPlayer != Human || (unit != null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
@@ -254,8 +256,6 @@ namespace CivOne.Screens.GamePlayPanels
 				DrawDemographics();
 				DrawGameInfo(gameTick);
 				DrawNotifications();
-				_demographics.AddScanlines();
-				_gameInfo.AddScanlines();
 
 				this.AddLayer(_miniMap, 0, 0)
 					.AddLayer(_demographics, 0, 50)
