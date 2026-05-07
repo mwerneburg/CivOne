@@ -13,8 +13,8 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.IO;
 using CivOne.Graphics.Sprites;
+using CivOne.IO;
 using CivOne.Tasks;
 using CivOne.Tiles;
 using CivOne.Units;
@@ -30,8 +30,8 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		private void DrawMiniMap(uint gameTick = 0)
 		{
-			_miniMap.Clear(5);
-			
+			_miniMap.Clear(CassetteTheme.BG0);
+
 			if (GamePlay != null)
 			{
 				IUnit activeUnit = Game.ActiveUnit;
@@ -45,35 +45,30 @@ namespace CivOne.Screens.GamePlayPanels
 					// Flash active unit
 					if (activeUnit != null && Human == activeUnit.Owner && (tile.X == activeUnit.X && tile.Y == activeUnit.Y))
 					{
-						if (gameTick % 4 <= 1)
-						{
-							_miniMap[xx + 1, yy + 1] = 15;
-						}
-						else
-						{
-							_miniMap[xx + 1, yy + 1] = (byte)(tile.IsOcean ? 1 : 2);
-						}
+						_miniMap[xx + 1, yy + 1] = (gameTick % 4 <= 1)
+							? CassetteTheme.PHOS_GLOW
+							: (byte)(tile.IsOcean ? CassetteTheme.CYAN : CassetteTheme.OK);
 						continue;
 					}
 
 					if (Settings.RevealWorld)
 					{
-						byte colour = 5;
+						byte colour = CassetteTheme.BORDER;
 						switch (tile.Type)
 						{
-							case Terrain.Ocean: colour = 1; break;
-							case Terrain.Forest: colour = 2; break;
-							case Terrain.Swamp: colour = 3; break;
-							case Terrain.Plains: colour = 6; break;
-							case Terrain.Tundra: colour = 7; break;
-							case Terrain.River: colour = 9; break;
+							case Terrain.Ocean:  colour = CassetteTheme.CYAN;    break;
+							case Terrain.Forest: colour = CassetteTheme.OK;      break;
+							case Terrain.Swamp:  colour = CassetteTheme.INK_LOW; break;
+							case Terrain.Plains: colour = CassetteTheme.OK;      break;
+							case Terrain.Tundra: colour = CassetteTheme.INK_MID; break;
+							case Terrain.River:  colour = CassetteTheme.CYAN;    break;
 							case Terrain.Grassland1:
-							case Terrain.Grassland2: colour = 10; break;
-							case Terrain.Jungle: colour = 11; break;
-							case Terrain.Hills: colour = 12; break;
-							case Terrain.Mountains: colour = 13; break;
-							case Terrain.Desert: colour = 14; break;
-							case Terrain.Arctic: colour = 15; break;
+							case Terrain.Grassland2: colour = CassetteTheme.OK;  break;
+							case Terrain.Jungle:     colour = CassetteTheme.OK;  break;
+							case Terrain.Hills:      colour = CassetteTheme.INK_MID;  break;
+							case Terrain.Mountains:  colour = CassetteTheme.INK_HIGH; break;
+							case Terrain.Desert:     colour = CassetteTheme.PHOS_DIM; break;
+							case Terrain.Arctic:     colour = CassetteTheme.INK_HIGH; break;
 						}
 						_miniMap[xx + 1, yy + 1] = colour;
 					}
@@ -85,38 +80,38 @@ namespace CivOne.Screens.GamePlayPanels
 						}
 						else
 						{
-							if (tile.IsOcean) _miniMap[xx + 1, yy + 1] = 1;
-							else _miniMap[xx + 1, yy + 1] = 2;
+							_miniMap[xx + 1, yy + 1] = tile.IsOcean ? CassetteTheme.CYAN : CassetteTheme.OK;
 						}
 					}
 				}
 			}
-			_miniMap.DrawRectangle(31, 18, 18, 11, 15)
-				.DrawRectangle3D();
+			_miniMap.DrawRectangle(31, 18, 18, 11, CassetteTheme.PHOS)
+				.DrawRectangle(0, 0, 80, 50, CassetteTheme.BORDER);
 		}
 
 		private void DrawDemographics()
 		{
-			_demographics.Tile(Pattern.PanelGrey)
-				.DrawRectangle3D()
-				.FillRectangle(3, 2, 74, 11, 11)
-				.FillRectangle(3, 13, 74, 1, 2);
+			_demographics
+				.FillRectangle(0, 0, 80, 39, CassetteTheme.BG1)
+				.FillRectangle(0, 38, 80, 1, CassetteTheme.BORDER)
+				.FillRectangle(3, 2, 74, 11, CassetteTheme.BG3)
+				.FillRectangle(3, 13, 74, 1, CassetteTheme.BORDER);
 
 			string govName = Human.Government?.Name ?? "";
-			_demographics.DrawText(govName.ToUpper(), 0, 5, 39, 4, TextAlign.Center);
+			_demographics.DrawText(govName.ToUpper(), 0, CassetteTheme.PHOS, 39, 4, TextAlign.Center);
 
 			if (Human.Population > 0)
 			{
 				string population = Common.NumberSeperator(Human.Population);
-				_demographics.DrawText($"{population}#", 0, 5, 2, 15, TextAlign.Left);
+				_demographics.DrawText($"{population}#", 0, CassetteTheme.INK_HIGH, 2, 15, TextAlign.Left);
 			}
-			_demographics.DrawText(Game.GameYear, 0, 5, 2, 23, TextAlign.Left);
+			_demographics.DrawText(Game.GameYear, 0, CassetteTheme.INK_HIGH, 2, 23, TextAlign.Left);
 
 			int width = Resources.GetTextSize(0, Game.GameYear).Width;
 			int stage = (int)Math.Floor(((double)Human.Science / Human.ScienceCost) * 4);
 			_demographics.AddLayer(Icons.Lamp(stage), 4 + width, 22);
 
-			_demographics.DrawText($"{Human.Gold}$ {Human.LuxuriesRate}.{Human.TaxesRate}.{Human.ScienceRate}", 0, 5, 2, 31, TextAlign.Left);
+			_demographics.DrawText($"{Human.Gold}$ {Human.LuxuriesRate}.{Human.TaxesRate}.{Human.ScienceRate}", 0, CassetteTheme.INK_MID, 2, 31, TextAlign.Left);
 
 			// Warming indicator: a small coloured dot in the bottom-right corner
 			int indicator = Game.WarmingIndicator;
@@ -124,64 +119,66 @@ namespace CivOne.Screens.GamePlayPanels
 			{
 				byte dotColour = indicator switch
 				{
-					1 => 4,  // dark red
-					2 => 12, // light red
-					3 => 14, // yellow
-					_ => 15  // white
+					1 => CassetteTheme.ALERT,
+					2 => CassetteTheme.ALERT,
+					3 => CassetteTheme.PHOS_GLOW,
+					_ => CassetteTheme.PHOS_GLOW
 				};
 				_demographics.FillRectangle(70, 30, 7, 7, dotColour)
-				             .DrawRectangle(70, 30, 7, 7, 0);
+				             .DrawRectangle(70, 30, 7, 7, CassetteTheme.BG0);
 			}
 		}
 		
 		private void DrawGameInfo(uint gameTick = 0)
 		{
 			IUnit unit = Game.ActiveUnit;
-			
-			_gameInfo.Tile(Pattern.PanelGrey)
-				.DrawRectangle3D();
-			
+
+			_gameInfo
+				.FillRectangle(0, 0, _gameInfo.Width, _gameInfo.Height, CassetteTheme.BG1)
+				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER);
+
 			if (Game.CurrentPlayer != Human || (unit != null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
-				_gameInfo.FillRectangle(2, _gameInfo.Height - 8, 6, 6, (byte)((gameTick % 4 < 2) ? 15 : 8));
+				byte dotColour = (gameTick % 4 < 2) ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
+				_gameInfo.FillRectangle(2, _gameInfo.Height - 8, 6, 6, dotColour);
 				return;
 			}
 
 			if (unit != null)
 			{
 				int yy = 2;
-				_gameInfo.DrawText(Human.TribeName, 0, 5, 4, 2, TextAlign.Left);
-				_gameInfo.DrawText(unit.Name, 0, 5, 4, (yy += 8), TextAlign.Left);
-				
+				_gameInfo.DrawText(Human.TribeName, 0, CassetteTheme.PHOS_DIM, 4, 2, TextAlign.Left);
+				_gameInfo.DrawText(unit.Name, 0, CassetteTheme.INK_HIGH, 4, (yy += 8), TextAlign.Left);
+
 				if (unit.Veteran)
 				{
-					_gameInfo.DrawText("Veteran", 0, 5, 8, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText("Veteran", 0, CassetteTheme.PHOS, 8, (yy += 8), TextAlign.Left);
 				}
 
 				if (unit is BaseUnitAir)
 				{
-					_gameInfo.DrawText($"Moves: {unit.MovesLeft}({(unit as BaseUnitAir).FuelLeft})", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText($"Moves: {unit.MovesLeft}({(unit as BaseUnitAir).FuelLeft})", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
 				else if (unit.PartMoves > 0)
 				{
-					_gameInfo.DrawText($"Moves: {unit.MovesLeft}.{unit.PartMoves}", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText($"Moves: {unit.MovesLeft}.{unit.PartMoves}", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
 				else
 				{
-					_gameInfo.DrawText($"Moves: {unit.MovesLeft}", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText($"Moves: {unit.MovesLeft}", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
-				_gameInfo.DrawText((unit.Home == null ? "NONE" : unit.Home.Name), 0, 5, 4, (yy += 8), TextAlign.Left);
-				_gameInfo.DrawText($"({Map[unit.X, unit.Y].Name})", 0, 5, 4, (yy += 8), TextAlign.Left);
-				
+				_gameInfo.DrawText((unit.Home == null ? "NONE" : unit.Home.Name), 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+				_gameInfo.DrawText($"({Map[unit.X, unit.Y].Name})", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+
 				if (Map[unit.X, unit.Y].RailRoad)
-					_gameInfo.DrawText("(RailRoad)", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText("(RailRoad)", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
 				else if (Map[unit.X, unit.Y].Road)
-					_gameInfo.DrawText("(Road)", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText("(Road)", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
 				if (Map[unit.X, unit.Y].Irrigation)
-					_gameInfo.DrawText("(Irrigation)", 0, 5, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText("(Irrigation)", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
 				else if (Map[unit.X, unit.Y].Mine)
-					_gameInfo.DrawText("(Mining)", 0, 5, 4, (yy += 8), TextAlign.Left);
-				
+					_gameInfo.DrawText("(Mining)", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+
 				yy += 11;
 
 				IUnit[] units = Map[unit.X, unit.Y].Units.Where(u => u != unit).Take(8).ToArray();
@@ -195,15 +192,16 @@ namespace CivOne.Screens.GamePlayPanels
 			else
 			{
 				if (gameTick % 4 < 2)
-					_gameInfo.DrawText($"End of Turn", 0, 5, 4, 26, TextAlign.Left);
-				_gameInfo.DrawText($"Press Enter", 0, 5, 4, 42, TextAlign.Left);
-				_gameInfo.DrawText($"to continue", 0, 5, 4, 50, TextAlign.Left);
+					_gameInfo.DrawText("End of Turn", 0, CassetteTheme.PHOS, 4, 26, TextAlign.Left);
+				_gameInfo.DrawText("Press Enter", 0, CassetteTheme.INK_MID, 4, 42, TextAlign.Left);
+				_gameInfo.DrawText("to continue", 0, CassetteTheme.INK_MID, 4, 50, TextAlign.Left);
 			}
 		}
 		
 		// ─── WLTK notification strip ──────────────────────────────────────────
-		private const int NotifLineH = 16;
 		private const int NotifMaxLines = 5;
+
+		private int NotifLineH => Resources.GetFontHeight(0) + 2;
 
 		private int NotifPanelH
 		{
@@ -211,38 +209,34 @@ namespace CivOne.Screens.GamePlayPanels
 			{
 				int n = WLTKNotifications.Cities.Count;
 				if (n == 0) return 0;
-				return Math.Min(n, NotifMaxLines) * NotifLineH + 4; // entries + padding
+				int lh = NotifLineH;
+				return (1 + Math.Min(n, NotifMaxLines)) * lh + 3; // header + city rows + padding
 			}
 		}
 
 		private void DrawNotifications()
 		{
 			var cities = WLTKNotifications.Cities;
-			int gameInfoH = _gameInfo.Height;
+			if (cities.Count == 0) return;
+
+			int lh = NotifLineH;
 			int ph = NotifPanelH;
-
-			if (ph == 0)
-			{
-				_gameInfo.FillRectangle(0, gameInfoH - NotifMaxLines * NotifLineH - 4,
-					80, NotifMaxLines * NotifLineH + 4, 0);
-				return;
-			}
-
-			int py = gameInfoH - ph;
+			int py = _gameInfo.Height - ph;
 
 			// Divider above strip
-			_gameInfo.FillRectangle(2, py, 76, 1, 5);
-			py++;
+			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
+			py += 2;
 
-			// City entries (no title header)
-			int shown = 0;
-			foreach (string city in cities)
+			// Header
+			_gameInfo.DrawText("LOVE THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
+			py += lh;
+
+			// Show the most recently added cities (up to NotifMaxLines)
+			int skip = Math.Max(0, cities.Count - NotifMaxLines);
+			foreach (string city in cities.Skip(skip))
 			{
-				if (shown >= NotifMaxLines) break;
-				_gameInfo.FillRectangle(2, py, 76, NotifLineH, 0);
-				_gameInfo.DrawText($"  {city.ToUpper()}", 0, 8, 3, py + (NotifLineH - 7) / 2, TextAlign.Left);
-				py += NotifLineH;
-				shown++;
+				_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
+				py += lh;
 			}
 		}
 
@@ -260,6 +254,8 @@ namespace CivOne.Screens.GamePlayPanels
 				DrawDemographics();
 				DrawGameInfo(gameTick);
 				DrawNotifications();
+				_demographics.AddScanlines();
+				_gameInfo.AddScanlines();
 
 				this.AddLayer(_miniMap, 0, 0)
 					.AddLayer(_demographics, 0, 50)

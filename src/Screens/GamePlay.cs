@@ -117,7 +117,7 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("World Map (F10)").OnSelect((s, a) => Common.AddScreen(new WorldMap()));
 			_gameMenu.Items.Add("History Replay").OnSelect((s, a) => Common.AddScreen(new GameReplay()));
 			_gameMenu.Items.Add("Demographics").OnSelect((s, a) => Common.AddScreen(new Demographics()));
-			_gameMenu.Items.Add("SpaceShips").OnSelect((s, a) => Common.AddScreen(new SpaceShips()));
+			_gameMenu.Items.Add("Spaceships").OnSelect((s, a) => Common.AddScreen(new SpaceShips()));
 			
 			_menuX = 144;
 			_menuY = 8;
@@ -381,7 +381,9 @@ namespace CivOne.Screens
 			OnResize += Resize;
 			
 			Palette = Resources["SP257"].Palette;
-			
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				Palette.MergePalette(cassette, 1, 17);
+
 			_rightSideBar = Settings.RightSideBar;
 
 			_menuBar = new MenuBar(Palette);

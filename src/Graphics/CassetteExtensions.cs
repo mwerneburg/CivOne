@@ -64,6 +64,17 @@ namespace CivOne.Graphics
 			return bitmap;
 		}
 
+		// Overlay dark horizontal stripes on every odd row — simulates CRT scanlines.
+		// Call this last, after all content has been drawn into the bitmap.
+		public static IBitmap AddScanlines(this IBitmap bitmap, int x = 0, int y = 0, int w = -1, int h = -1)
+		{
+			int bw = (w < 0) ? bitmap.Width() : w;
+			int bh = (h < 0) ? bitmap.Height() : h;
+			for (int row = y + 1; row < y + bh; row += 2)
+				bitmap.FillRectangle(x, row, bw, 1, CassetteTheme.BG0);
+			return bitmap;
+		}
+
 		// Map a Citizen enum value to a Cassette palette color.
 		public static byte CitizenTokenColor(Citizen citizen)
 		{
