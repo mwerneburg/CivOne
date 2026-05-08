@@ -72,7 +72,7 @@ namespace CivOne.Graphics
 			{
 				if (_panelGrey == null)
 				{
-					_panelGrey = new Bytemap(16, 16).FromByteArray(GenerateNoise(7, 22).Take(16 * 16).ToArray());
+					_panelGrey = new Bytemap(16, 16).FromByteArray(GenerateNoise(3, 4).Take(16 * 16).ToArray());
 				}
 				return _panelGrey;
 			}

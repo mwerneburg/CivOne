@@ -14,6 +14,7 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using static CivOne.Graphics.CassetteTheme;
 using CivOne.IO;
 using CivOne.Graphics.Sprites;
 using CivOne.UserInterface;
@@ -54,13 +55,17 @@ namespace CivOne.Screens
 
 		private int MaxItemWidth => Items.Select(x => ItemWidth(x)).Max();
 
-		private void MenuItemDraw(MenuItem<int> menuItem, int x, int y)
+		private void MenuItemDraw(MenuItem<int> menuItem, int x, int y, bool active = false)
 		{
 			if (menuItem == null || menuItem.Text == null) return;
-			this.DrawText(menuItem.Text, 0, (byte)(menuItem.Enabled ? 5 : 3), x, y, TextAlign.Left);
+			byte colour = !menuItem.Enabled
+				? CassetteTheme.INK_LOW
+				: active ? CassetteTheme.INK_HIGH : CassetteTheme.INK_MID;
+			this.DrawText(menuItem.Text, 0, colour, x, y, TextAlign.Left);
 			if (menuItem.Shortcut == null) return;
 			int textWidth = Resources.GetTextSize(0, menuItem.Text).Width;
-			this.DrawText(menuItem.Shortcut, 0, 15, x + textWidth + 8, y, TextAlign.Left);
+			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_LOW;
+			this.DrawText(menuItem.Shortcut, 0, shortcutColour, x + textWidth + 8, y, TextAlign.Left);
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
@@ -80,12 +85,10 @@ namespace CivOne.Screens
 			int yy = 5;
 			foreach (MenuItem<int> menuItem in Items)
 			{
-				if (i == _activeItem)
-				{
-					this.ColourReplace(7, 11, 3, yy - 1, MaxItemWidth + 11, Resources.GetFontHeight(0))
-						.ColourReplace(22, 3, 3, yy - 1, MaxItemWidth + 11, Resources.GetFontHeight(0));
-				}
-				MenuItemDraw(menuItem, 11, yy);
+				bool active = i == _activeItem;
+				if (active)
+					this.FillRectangle(3, yy - 1, MaxItemWidth + 11, Resources.GetFontHeight(0), CassetteTheme.PHOS_FAINT);
+				MenuItemDraw(menuItem, 11, yy, active);
 				yy += Resources.GetFontHeight(0);
 				i++;
 			}
