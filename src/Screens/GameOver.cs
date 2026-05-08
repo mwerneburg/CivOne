@@ -8,8 +8,10 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.IO;
+using CivOne.Screens.Reports;
 
 namespace CivOne.Screens
 {
@@ -33,7 +35,15 @@ namespace CivOne.Screens
 
 			if (_textLines.Length <= _currentLine)
 			{
-				Runtime.Quit();
+				var score = new CivilizationScore();
+				score.Closed += (s, a) =>
+				{
+					var replay = new GameReplay();
+					replay.Closed += (s2, a2) => Runtime.Quit();
+					Common.AddScreen(replay);
+				};
+				Common.AddScreen(score);
+				Destroy();
 				return true;
 			}
 
