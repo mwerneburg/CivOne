@@ -29,7 +29,7 @@ namespace CivOne.Tiles
 		
 		private static bool GFX256 => (Settings.GraphicsMode == GraphicsMode.Graphics256);
 
-		private static TextSettings CityLabel = TextSettings.ShadowText(11, 5);
+		private static TextSettings CityLabel = TextSettings.ShadowText(15, 5);
 
 		public static bool DrawRoad(this ITile tile) => (tile.Road || tile.RailRoad) && (!tile.RailRoad || (tile.RailRoad && tile.BorderRoads() != tile.BorderRailRoads()));
 		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad;

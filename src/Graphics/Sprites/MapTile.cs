@@ -37,6 +37,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetOceanBase()
 		{
+			return Free.OceanBase;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
 				return Free.OceanBase;
@@ -125,6 +126,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetOceanLayer((Direction Land, Direction Rivers) directions)
 		{
+			return null;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
 				return null;
@@ -149,6 +151,12 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetTileLayer<T>(Direction directions) where T : ITile, new()
 		{
+			if (typeof(T) == typeof(Plains))
+				return Free.PlainsTexture();
+			if (typeof(T) == typeof(Grassland))
+				return Free.GrasslandTexture();
+			if (typeof(T) == typeof(Hills))
+				return null;
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -184,13 +192,12 @@ namespace CivOne.Graphics.Sprites
 				return Free.Special(Terrain.Mountains);
 			if (typeof(T) == typeof(Desert))
 				return Free.Special(Terrain.Desert);
+			if (typeof(T) == typeof(Grassland))
+				return Free.HayBale();
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
 				return Free.Special(new T().Type);
-			if (typeof(T) == typeof(Grassland))
-				return new Bytemap(16, 16)
-					.AddLayer(Resources[picFile].Bitmap[152, 40, 8, 8].ColourReplace(3, 0), 4, 4);
 			return Resources[picFile].Bitmap[terrainId * 16, 112, 16, 16].ColourReplace(3, 0);
 		}
 
@@ -255,10 +262,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetIrrigation()
 		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return null;
-			return Resources[picFile].Bitmap[64, 32, 16, 16];
+			return Free.Irrigation();
 		}
 
 		private static Bytemap GetMine()
