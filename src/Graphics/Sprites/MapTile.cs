@@ -126,16 +126,12 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetOceanLayer((Direction Land, Direction Rivers) directions)
 		{
-			string picFile = (GFX256 ? "TER257" : "SPRITES");
-			if (!Resources.Exists(picFile))
+			if (directions.Land == Direction.None && directions.Rivers == Direction.None)
 				return null;
-			if (!GFX256)
-				return Resources[picFile].Bitmap[((int)directions.Land & 0xF) * 16, 64, 16, 16];
 
 			Bytemap output = new Bytemap(16, 16);
-			if (!DrawCoastCorners(ref output, directions.Land))
-				DrawCoastSegments(ref output, directions.Land);
-			DrawCoastDiagonal(ref output, directions.Land);
+			if (directions.Land != Direction.None)
+				output.AddLayer(Free.CoastLayer(directions.Land));
 			DrawRiverMouths(ref output, directions.Rivers);
 			return output;
 		}

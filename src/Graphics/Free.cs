@@ -560,6 +560,10 @@ namespace CivOne.Graphics
 		// Irrigation overlay: channels (CYAN/14) + 2×2 soil patches (BORDER/5, INK_LOW/6) in each field cell
 		public Bytemap Irrigation()
 		{
+			byte[] loaded = TryLoadTile("irrigation");
+			if (loaded != null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
 			return new Bytemap(16, 16).FromByteArray(
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
 				 0,  0,  5,  5,  0,  0,  0,  0,  0,  0,  6,  6,  0,  0,  0,  0,
@@ -578,6 +582,42 @@ namespace CivOne.Graphics
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 			);
+		}
+
+		// Coastline strip painted on ocean tiles that border land.
+		// Two-pixel depth: foam (INK_HIGH/8) at the waterline + wiggly sand (INK_MID/7) behind it.
+		// Separate wiggle patterns for horizontal (N/S) and vertical (E/W) edges.
+		public Bytemap CoastLayer(Direction land)
+		{
+			const byte foam = 8;  // INK_HIGH — surf/foam
+			const byte sand = 7;  // INK_MID  — wet sand / shallows
+
+			bool[] wH = { true, false, false, true, false, true, false, false,
+			              true, false, false, true, true, false, false, true };
+			bool[] wV = { false, true, false, false, true, true, false, true,
+			              false, false, true, false, true, false, false, true };
+
+			Bytemap output = new Bytemap(16, 16);
+
+			if (land.And(North))
+				for (int x = 0; x < 16; x++) { output[x, 0] = foam; if (wH[x]) output[x, 1] = sand; }
+
+			if (land.And(South))
+				for (int x = 0; x < 16; x++) { output[x, 15] = foam; if (wH[x]) output[x, 14] = sand; }
+
+			if (land.And(East))
+				for (int y = 0; y < 16; y++) { output[15, y] = foam; if (wV[y]) output[14, y] = sand; }
+
+			if (land.And(West))
+				for (int y = 0; y < 16; y++) { output[0, y] = foam; if (wV[y]) output[1, y] = sand; }
+
+			// Isolated diagonal corners — small sand patch where no cardinal edge was drawn
+			if (land.And(NorthWest) && land.Not(North | West)) { output[0, 0] = foam; output[1, 0] = sand; output[0, 1] = sand; }
+			if (land.And(NorthEast) && land.Not(North | East)) { output[15, 0] = foam; output[14, 0] = sand; output[15, 1] = sand; }
+			if (land.And(SouthWest) && land.Not(South | West)) { output[0, 15] = foam; output[1, 15] = sand; output[0, 14] = sand; }
+			if (land.And(SouthEast) && land.Not(South | East)) { output[15, 15] = foam; output[14, 15] = sand; output[15, 14] = sand; }
+
+			return output;
 		}
 
 		public Bytemap River(Direction directions)
