@@ -38,7 +38,7 @@ namespace CivOne.Graphics.Sprites
 		private static Bytemap GetOceanBase()
 		{
 			return Free.OceanBase;
-			string picFile = (GFX256 ? "TER257" : "SPRITES");
+			string picFile = (GFX256 ? "TER257" : "SPRITES");  // unreachable, kept for reference
 			if (!Resources.Exists(picFile))
 				return Free.OceanBase;
 			if (!GFX256)
@@ -126,7 +126,6 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetOceanLayer((Direction Land, Direction Rivers) directions)
 		{
-			return null;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
 				return null;
@@ -156,7 +155,7 @@ namespace CivOne.Graphics.Sprites
 			if (typeof(T) == typeof(Grassland))
 				return Free.GrasslandTexture();
 			if (typeof(T) == typeof(Hills))
-				return null;
+				return Free.HillTexture(directions);
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
