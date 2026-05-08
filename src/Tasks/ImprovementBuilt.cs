@@ -10,6 +10,7 @@
 using System;
 using CivOne.Buildings;
 using CivOne.Screens;
+using CivOne.Units;
 using CivOne.Wonders;
 
 namespace CivOne.Tasks
@@ -18,6 +19,7 @@ namespace CivOne.Tasks
 	{
 		private readonly City _city;
 		private readonly IProduction _improvement;
+		private readonly string _unitName;
 
 		private void ClosedCityView(object sender, EventArgs args)
 		{
@@ -37,17 +39,19 @@ namespace CivOne.Tasks
 
 		public override void Run()
 		{
+			string name = _unitName ?? (_improvement as ICivilopedia)?.Name;
+
 			if (Human != _city.Owner)
 			{
-				Log($"{_city.Name} builds {(_improvement as ICivilopedia).Name}.");
+				Log($"{_city.Name} builds {name}.");
 				EndTask();
 				return;
 			}
 
 			IScreen cityView;
-			if (!Game.Animations)
+			if (_unitName != null || !Game.Animations)
 			{
-				cityView = new Newspaper(_city, new string[] { $"{_city.Name} builds", $"{(_improvement as ICivilopedia).Name}." }, showGovernment: false);
+				cityView = new Newspaper(_city, new string[] { $"{_city.Name} builds", $"{name}." }, showGovernment: false);
 			}
 			else if (_improvement is IBuilding)
 			{
@@ -76,6 +80,12 @@ namespace CivOne.Tasks
 		{
 			_city = city;
 			_improvement = wonder;
+		}
+
+		public ImprovementBuilt(City city, IUnit unit)
+		{
+			_city = city;
+			_unitName = (unit as ICivilopedia)?.Name ?? unit.GetType().Name;
 		}
 	}
 }

@@ -1091,9 +1091,7 @@ namespace CivOne
 					}
 					if (Human == Owner && (unit is Settlers || unit is Diplomat || unit is Caravan))
 					{
-						GameTask advisorMessage = Message.Advisor(Advisor.Defense, true, $"{this.Name} builds {unit.Name}.");
-						advisorMessage.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
-						GameTask.Enqueue(advisorMessage);
+						GameTask.Enqueue(new ImprovementBuilt(this, unit));
 					}
 				}
 				if (CurrentProduction is ISpaceShip)
