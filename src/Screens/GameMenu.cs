@@ -59,12 +59,12 @@ namespace CivOne.Screens
 		{
 			if (menuItem == null || menuItem.Text == null) return;
 			byte colour = !menuItem.Enabled
-				? CassetteTheme.INK_LOW
-				: active ? CassetteTheme.INK_HIGH : CassetteTheme.INK_MID;
+				? CassetteTheme.INK_MID
+				: active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
 			this.DrawText(menuItem.Text, 0, colour, x, y, TextAlign.Left);
 			if (menuItem.Shortcut == null) return;
 			int textWidth = Resources.GetTextSize(0, menuItem.Text).Width;
-			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_LOW;
+			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_MID;
 			this.DrawText(menuItem.Shortcut, 0, shortcutColour, x + textWidth + 8, y, TextAlign.Left);
 		}
 		
