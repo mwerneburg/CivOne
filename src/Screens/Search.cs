@@ -16,6 +16,7 @@ using static CivOne.Graphics.CassetteTheme;
 
 namespace CivOne.Screens
 {
+	[OwnPalette]
 	internal class Search : BaseScreen
 	{
 		private readonly Input _input;
@@ -84,7 +85,10 @@ namespace CivOne.Screens
 
 		public Search()
 		{
-			Palette = Common.Screens.Last().OriginalColours;
+			Palette p = Common.GamePlayPalette;
+			using (Palette c = CassetteTheme.CreatePalette())
+				p.MergePalette(c, 1, 17);
+			Palette = p;
 
 			this.FillRectangle(64, 78, 225, 25, BORDER)
 				.FillRectangle(65, 79, 223, 23, BG2)

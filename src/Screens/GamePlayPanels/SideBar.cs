@@ -230,7 +230,7 @@ namespace CivOne.Screens.GamePlayPanels
 			py += 2;
 
 			// Header
-			_gameInfo.DrawText("♥️ THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
+			_gameInfo.DrawText("♡ the king", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
 			py += lh;
 
 			// Show the most recently added cities (up to NotifMaxLines)
