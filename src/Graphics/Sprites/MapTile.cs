@@ -346,6 +346,25 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Oil = new CachedSprite(GetSpecial<Swamp>);
 		public static readonly ISprite TundraGame = new CachedSprite(GetSpecial<Tundra>);
 
+		public static Bytemap LandCoastErosion(ITile tile)
+		{
+			if (tile.IsOcean) return null;
+			bool N = tile[0, -1]?.IsOcean == true;
+			bool E = tile[1,  0]?.IsOcean == true;
+			bool S = tile[0,  1]?.IsOcean == true;
+			bool W = tile[-1, 0]?.IsOcean == true;
+			int count = (N ? 1 : 0) + (E ? 1 : 0) + (S ? 1 : 0) + (W ? 1 : 0);
+			if (count < 3) return null;
+			const byte water = 17;  // CYAN
+			const byte foam  =  8;  // INK_HIGH
+			Bytemap output = new Bytemap(16, 16);
+			if (N && W) { output[0, 0] = water; output[1, 0] = foam; output[0, 1] = foam; }
+			if (N && E) { output[15, 0] = water; output[14, 0] = foam; output[15, 1] = foam; }
+			if (S && W) { output[0, 15] = water; output[1, 15] = foam; output[0, 14] = foam; }
+			if (S && E) { output[15, 15] = water; output[14, 15] = foam; output[15, 14] = foam; }
+			return output;
+		}
+
 		public static ISprite TileBase(ITile tile) => tile.IsOcean ? OceanBase : LandBase;
 		public static ISprite TileLayer(ITile tile)
 		{

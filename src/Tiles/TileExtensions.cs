@@ -185,6 +185,8 @@ namespace CivOne.Tiles
 			if (GFX256 && settings.Improvements && tile.DrawIrrigation()) output.AddLayer(MapTile.Irrigation);
 			output.AddLayer(MapTile.TileLayer(tile));
 			output.AddLayer(MapTile.TileSpecial(tile));
+			Bytemap erosion = MapTile.LandCoastErosion(tile);
+			if (erosion != null) output.AddLayer(erosion, dispose: true);
 			
 			// Add tile improvements
 			if (tile.Type != Terrain.River && settings.Improvements)
