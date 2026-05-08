@@ -12,6 +12,7 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
+using static CivOne.Graphics.CassetteTheme;
 
 namespace CivOne.Screens
 {
@@ -50,10 +51,10 @@ namespace CivOne.Screens
 			_done = true;
 			if (City == null)
 			{
-				this.FillRectangle(64, 78, 224, 10, 15)
-					.DrawText("Unknown city.", 0, 5, 82, 80)
-					.FillRectangle(67, 89, 135, 12, 15)
-					.DrawText(_input.Text, 0, 5, 68, 91);
+				this.FillRectangle(64, 78, 224, 10, BG2)
+					.DrawText("Unknown city.", 0, ALERT, 82, 80)
+					.FillRectangle(67, 89, 135, 12, PHOS_FAINT)
+					.DrawText(_input.Text, 0, INK_MID, 68, 91);
 				((Input)sender).Close();
 				return;
 			}
@@ -83,17 +84,15 @@ namespace CivOne.Screens
 
 		public Search()
 		{
-			Palette = Common.Screens.Last().OriginalColours; // does this work? is white/black the palette?
+			Palette = Common.Screens.Last().OriginalColours;
 
-			this.FillRectangle(64, 78, 225, 25, 5) // x, y, r, g, b?
-				.FillRectangle(65, 79, 223, 23, 15)
-				.DrawText("Where in the heck is ... (city name)", 0, 5, 66, 80)
-				.FillRectangle(66, 88, 137, 14, 5)
-				.FillRectangle(67, 89, 135, 12, 15);
+			this.FillRectangle(64, 78, 225, 25, BORDER)
+				.FillRectangle(65, 79, 223, 23, BG2)
+				.DrawText("Where in the heck is ... (city name)", 0, INK_HIGH, 66, 80)
+				.FillRectangle(66, 88, 137, 14, BORDER)
+				.FillRectangle(67, 89, 135, 12, PHOS_FAINT);
 
-			_input = new Input(Palette, string.Empty, 0, 5, 11, 68, 90, 133, 10, 16);
-            //                                                  X    Y
-			//_input = new Input(Palette, string.Empty, 0, 5, 11, 196, 170, 133, 10, 16);
+			_input = new Input(Palette, string.Empty, 0, INK_HIGH, PHOS, 68, 90, 133, 10, 16);
 			_input.Accept += Search_Accept;
 			_input.Cancel += Search_Cancel;
 		}
