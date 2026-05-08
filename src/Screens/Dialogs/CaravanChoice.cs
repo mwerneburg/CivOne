@@ -8,6 +8,8 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Tiles;
 using CivOne.Units;
@@ -16,72 +18,98 @@ using CivOne.Wonders;
 
 namespace CivOne.Screens.Dialogs
 {
-	internal class CaravanChoice : BaseDialog
+	[OwnPalette]
+	internal class CaravanChoice : BaseScreen
 	{
 		private const int FONT_ID = 0;
 
 		private readonly Caravan _unit;
 		private readonly City _city;
+		private bool _update = true;
 
 		private void KeepMoving(object sender, EventArgs args)
 		{
 			_unit.KeepMoving(_city);
-			Cancel();
+			Destroy();
 		}
 
 		private void EstablishTradeRoute(object sender, EventArgs args)
 		{
 			_unit.EstablishTradeRoute(_city);
-			Cancel();
+			Destroy();
 		}
 
 		private void HelpBuildWonder(object sender, EventArgs args)
 		{
 			_unit.HelpBuildWonder(_city);
-			Cancel();
+			Destroy();
 		}
 
 		private bool AllowEstablishTradeRoute => (_unit.Home == null) || (_unit.Home.Tile.DistanceTo(_city) >= 10);
 
-		protected override void FirstUpdate()
-		{
-			int choices = 2;
-			if (_city.CurrentProduction is IWonder) choices++;
+		private int ChoiceCount => (_city.CurrentProduction is IWonder) ? 3 : 2;
 
-			Menu menu = new Menu(Palette, Selection(3, 12, 130, (choices * Resources.GetFontHeight(FONT_ID)) + 4))
+		protected override bool HasUpdate(uint gameTick)
+		{
+			if (!_update) return false;
+			_update = false;
+
+			int fh    = Resources.GetFontHeight(FONT_ID);
+			int pw    = 140;
+			int ph    = 16 + (ChoiceCount * (fh + 2));
+			int px    = 100;
+			int py    = 80;
+
+			// Outer border
+			this.FillRectangle(px,          py,          pw, ph, CassetteTheme.BORDER);
+			// Body fill
+			this.FillRectangle(px + 1,      py + 1,      pw - 2, ph - 2, CassetteTheme.BG1);
+			// Title band
+			this.FillRectangle(px + 1,      py + 1,      pw - 2, 13, CassetteTheme.BG3);
+			this.FillRectangle(px + 1,      py + 13,     pw - 2, 1, CassetteTheme.BORDER);
+			this.DrawText("Will you?", FONT_ID, CassetteTheme.PHOS, px + pw / 2, py + 3, TextAlign.Center);
+
+			Menu menu = new Menu(Palette)
 			{
-				X = 103,
-				Y = 92,
-				MenuWidth = 130,
-				ActiveColour = 11,
-				TextColour = 5,
-				FontId = FONT_ID
+				X          = px + 1,
+				Y          = py + 15,
+				MenuWidth  = pw - 2,
+				ActiveColour   = CassetteTheme.PHOS_FAINT,
+				TextColour     = CassetteTheme.INK_HIGH,
+				DisabledColour = CassetteTheme.INK_LOW,
+				FontId     = FONT_ID
 			};
 
 			menu.Items.Add("Keep moving").OnSelect(KeepMoving);
 			menu.Items.Add("Establish trade route").OnSelect(EstablishTradeRoute).SetEnabled(AllowEstablishTradeRoute);
-
 			if (_city.CurrentProduction is IWonder)
-			{
 				menu.Items.Add("Help build WONDER.").OnSelect(HelpBuildWonder);
-			}
-			
+
 			AddMenu(menu);
+			return true;
 		}
 
-		private static int DialogHeight(Caravan unit, City city)
+		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			int choices = 2;
-			if (city.CurrentProduction is IWonder) choices++;
-			return (choices * Resources.GetFontHeight(FONT_ID)) + 17;
+			Destroy();
+			return true;
 		}
 
-		internal CaravanChoice(Caravan unit, City city) : base(100, 80, 136, DialogHeight(unit, city))
+		public override bool MouseDown(ScreenEventArgs args)
 		{
-			_city = city;
+			Destroy();
+			return true;
+		}
+
+		internal CaravanChoice(Caravan unit, City city) : base(MouseCursor.Pointer)
+		{
 			_unit = unit;
+			_city = city;
 
-			DialogBox.DrawText($"Will you?", 0, 15, 5, 5);
+			Palette p = Common.GamePlayPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }
