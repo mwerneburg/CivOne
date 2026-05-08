@@ -60,7 +60,7 @@ namespace CivOne.Screens.GamePlayPanels
 							case Terrain.Forest: colour = CassetteTheme.OK;      break;
 							case Terrain.Swamp:  colour = CassetteTheme.INK_LOW; break;
 							case Terrain.Plains: colour = CassetteTheme.OK;      break;
-							case Terrain.Tundra: colour = CassetteTheme.INK_MID; break;
+							case Terrain.Tundra: colour = CassetteTheme.INK_HIGH; break;
 							case Terrain.River:  colour = CassetteTheme.CYAN;    break;
 							case Terrain.Grassland1:
 							case Terrain.Grassland2: colour = CassetteTheme.OK;  break;

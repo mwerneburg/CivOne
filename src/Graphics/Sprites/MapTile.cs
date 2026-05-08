@@ -174,8 +174,30 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[(int)directions * 16, terrainId * 16, 16, 16];
 		}
 
+		private static Bytemap GetFishSpecial() =>
+			new Bytemap(16, 16).FromByteArray(
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  5,  7,  5,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  5,  7,  7,  7,  5,  5,  0,  0,  0,  0,  0,
+				0,  0,  5,  5,  5,  7,  7,  7,  7,  7,  7,  5,  0,  5,  0,  0,
+				0,  5,  7,  1,  7,  7,  7,  7,  7,  7,  7,  7,  5,  7,  5,  0,
+				0,  5,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  5,  7,  5,
+				0,  5,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  5,  7,  5,
+				0,  0,  5,  5,  5,  7,  7,  7,  7,  7,  7,  5,  0,  5,  0,  0,
+				0,  0,  0,  0,  0,  5,  7,  7,  7,  5,  5,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+			);
+
 		private static Bytemap GetSpecial<T>() where T : ITile, new()
 		{
+			if (typeof(T) == typeof(Ocean))
+				return GetFishSpecial();
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
