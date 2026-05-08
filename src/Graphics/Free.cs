@@ -617,6 +617,13 @@ namespace CivOne.Graphics
 			if (land.And(SouthWest) && land.Not(South | West)) { output[0, 15] = foam; output[1, 15] = sand; output[0, 14] = sand; }
 			if (land.And(SouthEast) && land.Not(South | East)) { output[15, 15] = foam; output[14, 15] = sand; output[15, 14] = sand; }
 
+			// Corner fill — water squeezed to a point (both cardinals + diagonal all land)
+			// The cardinal strips already draw foam on the two edges; add a sand pixel one step inward
+			if (land.And(North) && land.And(West)  && land.And(NorthWest)) { output[1, 1] = sand; }
+			if (land.And(North) && land.And(East)  && land.And(NorthEast)) { output[14, 1] = sand; }
+			if (land.And(South) && land.And(West)  && land.And(SouthWest)) { output[1, 14] = sand; }
+			if (land.And(South) && land.And(East)  && land.And(SouthEast)) { output[14, 14] = sand; }
+
 			return output;
 		}
 

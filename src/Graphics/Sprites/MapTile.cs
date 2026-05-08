@@ -349,19 +349,28 @@ namespace CivOne.Graphics.Sprites
 		public static Bytemap LandCoastErosion(ITile tile)
 		{
 			if (tile.IsOcean) return null;
-			bool N = tile[0, -1]?.IsOcean == true;
-			bool E = tile[1,  0]?.IsOcean == true;
-			bool S = tile[0,  1]?.IsOcean == true;
-			bool W = tile[-1, 0]?.IsOcean == true;
-			int count = (N ? 1 : 0) + (E ? 1 : 0) + (S ? 1 : 0) + (W ? 1 : 0);
-			if (count < 3) return null;
-			const byte water = 17;  // CYAN
-			const byte foam  =  8;  // INK_HIGH
+			bool N  = tile[0,  -1]?.IsOcean == true;
+			bool E  = tile[1,   0]?.IsOcean == true;
+			bool S  = tile[0,   1]?.IsOcean == true;
+			bool W  = tile[-1,  0]?.IsOcean == true;
+			bool NW = tile[-1, -1]?.IsOcean == true;
+			bool NE = tile[1,  -1]?.IsOcean == true;
+			bool SW = tile[-1,  1]?.IsOcean == true;
+			bool SE = tile[1,   1]?.IsOcean == true;
+
+			bool nibbleNW = N && W && NW;
+			bool nibbleNE = N && E && NE;
+			bool nibbleSW = S && W && SW;
+			bool nibbleSE = S && E && SE;
+
+			if (!nibbleNW && !nibbleNE && !nibbleSW && !nibbleSE) return null;
+
+			const byte water = 17;  // CYAN — just water, no second foam line
 			Bytemap output = new Bytemap(16, 16);
-			if (N && W) { output[0, 0] = water; output[1, 0] = foam; output[0, 1] = foam; }
-			if (N && E) { output[15, 0] = water; output[14, 0] = foam; output[15, 1] = foam; }
-			if (S && W) { output[0, 15] = water; output[1, 15] = foam; output[0, 14] = foam; }
-			if (S && E) { output[15, 15] = water; output[14, 15] = foam; output[15, 14] = foam; }
+			if (nibbleNW) { output[0, 0] = water; output[1, 0] = water; output[0, 1] = water; }
+			if (nibbleNE) { output[15, 0] = water; output[14, 0] = water; output[15, 1] = water; }
+			if (nibbleSW) { output[0, 15] = water; output[1, 15] = water; output[0, 14] = water; }
+			if (nibbleSE) { output[15, 15] = water; output[14, 15] = water; output[15, 14] = water; }
 			return output;
 		}
 
