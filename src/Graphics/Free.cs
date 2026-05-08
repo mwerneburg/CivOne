@@ -7,7 +7,9 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CivOne.Enums;
 using CivOne.IO;
@@ -337,24 +339,24 @@ namespace CivOne.Graphics
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 					);
 
-				// Palm frond crown; tips=8(INK_HIGH) body=7(INK_MID) base=6(INK_LOW) shadow=5(BORDER) at +1,+1
+				// Palm tree: trunk=INK_MID(7)/INK_LOW(6), fronds=OK(14), crown shadows=BORDER(5)
 				case Terrain.Desert:
 					return new Bytemap(16, 16).FromByteArray(
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  8,  0,  0,  0,  0,  8,  0,  0,  0,  0,  8,  0,  0,  0,
-						0,  0,  0,  7,  0,  0,  0,  7,  5,  0,  0,  7,  0,  5,  0,  0,
-						0,  0,  0,  0,  7,  0,  0,  7,  5,  0,  7,  0,  5,  0,  0,  0,
-						0,  0,  0,  0,  0,  7,  0,  7,  5,  7,  0,  5,  0,  0,  0,  0,
-						0,  0,  0,  0,  0,  0,  6,  7,  6,  0,  5,  0,  0,  0,  0,  0,
-						0,  0,  8,  7,  7,  7,  7,  6,  7,  7,  7,  7,  8,  0,  0,  0,
-						0,  0,  0,  5,  5,  5,  6,  7,  6,  5,  5,  5,  5,  5,  0,  0,
-						0,  0,  0,  0,  0,  7,  0,  7,  5,  7,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  0,  7,  0,  5,  7,  5,  0,  7,  0,  0,  0,  0,  0,
-						0,  0,  0,  7,  0,  5,  0,  7,  5,  0,  0,  7,  0,  0,  0,  0,
-						0,  0,  8,  0,  5,  0,  0,  8,  5,  0,  0,  0,  8,  0,  0,  0,
-						0,  0,  0,  5,  0,  0,  0,  0,  5,  0,  0,  0,  0,  5,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0, 14,  0,  0,  0,  0,  0, 14,  0,  0,  0,  0,  0, 14,  0,  0,
+						0,  0, 14,  0,  0,  0, 14,  0, 14,  0,  0,  0, 14,  0,  0,  0,
+						0,  0,  0, 14,  0, 14,  0,  0,  0, 14,  0, 14,  0,  0,  0,  0,
+						0,  0,  0,  0, 14,  0, 14,  0, 14,  0, 14,  0,  0,  0,  0,  0,
+						0, 14, 14, 14,  5,  5,  5,  7,  5,  5,  5, 14, 14, 14,  0,  0,
+						0,  0, 14, 14,  5,  0,  0,  7,  6,  0,  0, 14, 14,  0,  0,  0,
+						0,  0,  0, 14, 14,  0,  0,  7,  6,  0,  0, 14,  0,  0,  0,  0,
+						0,  0,  0,  0, 14,  0,  0,  7,  6,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  7,  6,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  7,  6,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  7,  6,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 					);
 			}
@@ -379,11 +381,70 @@ namespace CivOne.Graphics
 			);
 		}
 
+		// ── Tile file loader ─────────────────────────────────────────────────────
+		// Reads named 16×16 tile sections from free_tiles.txt in the working directory.
+		// Format:  [section_name]  followed by 16 rows of 16 space/comma-separated palette indices.
+		// Lines starting with # are comments.  Missing sections fall back to hardcoded values.
+
+		private static readonly string TilesFilePath =
+			Path.Combine(Environment.CurrentDirectory, "free_tiles.txt");
+
+		private Dictionary<string, byte[]> _tileOverrides;
+
+		private byte[] TryLoadTile(string name)
+		{
+			if (_tileOverrides == null)
+				_tileOverrides = ParseTilesFile();
+			return _tileOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		private Dictionary<string, byte[]> ParseTilesFile()
+		{
+			var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+			if (!File.Exists(TilesFilePath))
+				return result;
+
+			string currentSection = null;
+			var pixels = new List<byte>();
+
+			foreach (string raw in File.ReadAllLines(TilesFilePath))
+			{
+				string line = raw.Trim();
+				if (line.Length == 0 || line.StartsWith("#")) continue;
+
+				if (line.StartsWith("[") && line.EndsWith("]"))
+				{
+					if (currentSection != null && pixels.Count == 256)
+						result[currentSection] = pixels.ToArray();
+					currentSection = line.Substring(1, line.Length - 2);
+					pixels = new List<byte>();
+				}
+				else if (currentSection != null)
+				{
+					foreach (string tok in line.Split(new[] { ' ', '\t', ',' },
+						StringSplitOptions.RemoveEmptyEntries))
+					{
+						if (byte.TryParse(tok, out byte v))
+							pixels.Add(v);
+					}
+				}
+			}
+			if (currentSection != null && pixels.Count == 256)
+				result[currentSection] = pixels.ToArray();
+
+			return result;
+		}
+
 		// Hills: single SW-NE ridge, 2px lit (OK/14) + 3px transparent hilltop + 2px shadow (INK_LOW/6)
 		// Standalone: ridge centered in tile (rows 1–12).
 		// Connected (directions != None): ridge extends to tile edges (rows 0–15) for visual continuity.
 		public Bytemap HillTexture(Direction directions)
 		{
+			string section = directions == None ? "hill_standalone" : "hill_connected";
+			byte[] loaded = TryLoadTile(section);
+			if (loaded != null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
 			if (directions == None)
 			{
 				return new Bytemap(16, 16).FromByteArray(
@@ -496,24 +557,24 @@ namespace CivOne.Graphics
 			);
 		}
 
-		// Irrigation overlay: CYAN dashed cross + dark-green (OK/14) horizontal stripes offset at rows 3 and 11
+		// Irrigation overlay: channels (CYAN/14) + 2×2 soil patches (BORDER/5, INK_LOW/6) in each field cell
 		public Bytemap Irrigation()
 		{
 			return new Bytemap(16, 16).FromByteArray(
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
+				 0,  0,  5,  5,  0,  0,  0,  0,  0,  0,  6,  6,  0,  0,  0,  0,
+				 0,  0,  5,  5,  0,  0,  0, 17,  0,  0,  6,  6,  0,  0,  0,  0,
 				14,  0, 14,  0, 14,  0, 14, 14, 14,  0, 14,  0, 14,  0, 14,  0,
-				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				 0,  0,  6,  6,  0,  0,  0, 17,  0,  0,  5,  5,  0,  0,  0,  0,
+				 0,  0,  6,  6,  0,  0,  0,  0,  0,  0,  5,  5,  0,  0,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
 				17,  0, 17,  0, 17,  0, 17, 17, 17,  0, 17,  0, 17,  0, 17,  0,
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
+				 0,  0,  5,  5,  0,  0,  0,  0,  0,  0,  6,  6,  0,  0,  0,  0,
+				 0,  0,  5,  5,  0,  0,  0, 17,  0,  0,  6,  6,  0,  0,  0,  0,
 				14,  0, 14,  0, 14,  0, 14, 14, 14,  0, 14,  0, 14,  0, 14,  0,
-				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
-				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+				 0,  0,  6,  6,  0,  0,  0, 17,  0,  0,  5,  5,  0,  0,  0,  0,
+				 0,  0,  6,  6,  0,  0,  0,  0,  0,  0,  5,  5,  0,  0,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 			);
