@@ -200,51 +200,73 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 		}
 		
-		// ─── WLTK notification strip ──────────────────────────────────────────
+		// ─── notification strip (disorder takes priority over WLTK) ──────────
 		private const int NotifMaxLines = 5;
 
 		private int NotifLineH => Resources.GetFontHeight(0) + 2;
 
-		private int NotifPanelH
+		private string[] DisorderCities()
 		{
-			get
-			{
-				int n = WLTKNotifications.Cities.Count;
-				if (n == 0) return 0;
-				int lh = NotifLineH;
-				return (1 + Math.Min(n, NotifMaxLines)) * lh + 3; // header + city rows + padding
-			}
+			if (Human == null) return System.Array.Empty<string>();
+			byte humanId = Game.PlayerNumber(Human);
+			return Game.GetCities()
+				.Where(c => c.Owner == humanId && c.IsInDisorder)
+				.Select(c => c.Name)
+				.ToArray();
+		}
+
+		private int NotifPanelH(int cityCount)
+		{
+			if (cityCount == 0) return 0;
+			int lh = NotifLineH;
+			return (1 + Math.Min(cityCount, NotifMaxLines)) * lh + 3;
 		}
 
 		private void DrawNotifications()
 		{
-			var cities = WLTKNotifications.Cities;
-			if (cities.Count == 0) return;
+			string[] disorder = DisorderCities();
+			bool showDisorder = disorder.Length > 0;
 
-			int lh = NotifLineH;
-			int ph = NotifPanelH;
-			int py = _gameInfo.Height - ph;
+			var wltkCities = WLTKNotifications.Cities;
+			int count = showDisorder ? disorder.Length : wltkCities.Count;
+			if (count == 0) return;
 
-			// Divider above strip
+			int lh   = NotifLineH;
+			int ph   = NotifPanelH(count);
+			int py   = _gameInfo.Height - ph;
+
 			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
 			py += 2;
 
-			// Header
-			_gameInfo.DrawText("♡ the king", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
-			py += lh;
-
-			// Show the most recently added cities (up to NotifMaxLines)
-			int skip = Math.Max(0, cities.Count - NotifMaxLines);
-			foreach (string city in cities.Skip(skip))
+			if (showDisorder)
 			{
-				_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
+				_gameInfo.DrawText("DISORDER", 0, CassetteTheme.ALERT, 3, py, TextAlign.Left);
 				py += lh;
+				int skip = Math.Max(0, disorder.Length - NotifMaxLines);
+				foreach (string city in disorder.Skip(skip))
+				{
+					_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
+					py += lh;
+				}
+			}
+			else
+			{
+				_gameInfo.DrawText("♡ THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
+				py += lh;
+				int skip = Math.Max(0, wltkCities.Count - NotifMaxLines);
+				foreach (string city in wltkCities.Skip(skip))
+				{
+					_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
+					py += lh;
+				}
 			}
 		}
 
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (WLTKNotifications.ConsumedDirty())
+				_update = true;
+			if (gameTick % 4 == 0)  // recheck disorder status each second
 				_update = true;
 
 			if (_update || (gameTick % 2 == 0))
