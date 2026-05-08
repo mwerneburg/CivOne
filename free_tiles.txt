@@ -1,0 +1,49 @@
+# CivOne free tile overrides
+# Loaded at startup from the working directory (project root when using build.sh).
+# Each section is a 16×16 grid of palette indices (0–17).
+# Edit and re-run — no recompile needed.
+#
+# Cassette palette quick reference:
+#  0 = transparent   1 = BG0 (near-black)   5 = BORDER (dark brown)
+#  6 = INK_LOW       7 = INK_MID            8 = INK_HIGH (near-white)
+# 14 = OK (green)   17 = CYAN
+
+# ─── Standalone hill (no adjacent hill neighbours) ────────────────────────────
+# Single SW-NE ridge: 2px lit (14) + 3px transparent hilltop + 2px shadow (6)
+[hill_standalone]
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0 14  0  0  0  0  0
+ 0  0  0  0  0  0  0  0 14 14 14  0  0  0  0  0
+ 0  0  0  0  0  0  0 14 14 14  0  0  0  6  0  0
+ 0  0  0  0  0  0 14 14  0  0  0  0  6  6  0  0
+ 0  0  0  0  0  0 14  0  0  0  0  6  6  6  6  0
+ 0  0  0  0  0 14 14  0  0  0  6  6  6  6  0  0
+ 0  0  0  0 14 14  0  0  0  0  6  6  6  0  0  0
+ 0  0  0 14 14  0  0  0  0  6  6  6  0  0  0  0
+ 0  0 14 14  0  0  0  0  6  6  6  0  0  0  0  0
+ 0  0 14  0  0  0  0  6  6  6  0  0  0  0  0  0
+ 0  0  0  0  0  6  6  6  6  0  0  0  0  0  0  0
+ 0  0  0  0  6  6  6  6  0  0  0  0  0  0  0  0
+ 0  0  0  6  6  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+
+# ─── Connected hill (one or more adjacent hill neighbours) ────────────────────
+# Same ridge extended to tile edges so adjacent hill tiles flow together
+[hill_connected]
+ 0  0  0  0  0  0  0  0  0  0  0 14  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0 14 14  0  0  0  0
+ 0  0  0  0  0  0  0  0  0 14 14  0  0  0  0  0
+ 0  0  0  0  0  0 14 14 14 14  0  0  0  6  0  0
+ 0  0  0  0  0 14 14  0  0  0  0  0  6  6  0  0
+ 0  0  0  0 14 14  0  0  0  0  0  6  6  6  0  0
+ 0  0  0  0 14  0  0  0  0  0  6  6  6  0  0  0
+ 0  0  0 14 14  0  0  0  0  6  6  6  0  0  0  0
+ 0  0  0 14  0  0  0  0  6  6  6  0  0  0  0  0
+ 0  0 14 14  0  0  0  6  6  6  0  0  0  0  0  0
+ 0  0 14  0  0  0  6  6  6  0  0  0  0  0  0  0
+ 0  0  0  0  0  6  6  6  0  0  0  0  0  0  0  0
+ 0  0  0  0  6  6  6  0  0  0  0  0  0  0  0  0
+ 0  0  0  6  6  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  6  6  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
