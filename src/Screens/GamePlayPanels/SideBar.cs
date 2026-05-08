@@ -80,7 +80,7 @@ namespace CivOne.Screens.GamePlayPanels
 						}
 						else
 						{
-							_miniMap[xx + 1, yy + 1] = tile.IsOcean ? CassetteTheme.CYAN : CassetteTheme.OK;
+							_miniMap[xx + 1, yy + 1] = tile.IsOcean ? CassetteTheme.CYAN : CassetteTheme.INK_LOW;
 						}
 					}
 				}
