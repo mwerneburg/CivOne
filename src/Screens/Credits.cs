@@ -83,7 +83,7 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			if (_done && (_overlay == null || !_overlay.Update(gameTick))) return false;
+			if (_done && _overlay == null) return false;
 
 			if ((gameTick % 3) == 0 && _overlay == null) return false;
 			
@@ -152,16 +152,6 @@ namespace CivOne.Screens
 				this.AddLayer(_pictures[2], cx, cy);
 				this.ResetPalette();
 				_done = true;
-				
-				if (_overlay != null)
-				{
-					this.AddLayer(_overlay);
-					if (_overlay.GetType() == typeof(LoadGame) && ((LoadGame)_overlay).Cancel)
-					{
-						CreateMenu();
-					}
-					if (!HasMenu) return true;
-				}
 				
 				// Draw menu background
 				int mx = ((Width - 120) / 2), my = Height - 59;
@@ -241,9 +231,16 @@ namespace CivOne.Screens
 			_overlay = null;
 			Log("Main Menu: Load a Saved Game");
 			CloseMenus();
-			
+
 			_overlay = new LoadGame(this.Palette);
-			_overlay.Closed += (s, a) => Destroy();
+			_overlay.Closed += (s, a) =>
+			{
+				_overlay = null;
+				if (!((LoadGame)s).Cancel)
+					Destroy(); // game loaded — credits no longer needed
+				// on cancel: _overlay is null, Credits will redraw the menu normally
+			};
+			Common.AddScreen(_overlay);
 		}
 		
 		private void Earth(object sender, EventArgs args)
