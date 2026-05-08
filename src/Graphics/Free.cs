@@ -108,8 +108,8 @@ namespace CivOne.Graphics
 			{
 				if (_seaBase == null)
 				{
-					// CYAN (17) base with sparse near-black (BG1/2) depth specks
-					_seaBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 2).Take(16 * 16).ToArray());
+					// CYAN(17) dominant + OK green(14) shimmer + BORDER(5)/BG3(4) depth specks
+					_seaBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(17, 17, 17, 17, 17, 17, 17, 17, 14, 14, 5, 4).Take(16 * 16).ToArray());
 				}
 				return _seaBase;
 			}
