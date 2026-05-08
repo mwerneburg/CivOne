@@ -207,12 +207,18 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private string[] DisorderCities()
 		{
-			if (Human == null) return System.Array.Empty<string>();
+			if (!Game.Started) return System.Array.Empty<string>();
 			byte humanId = Game.PlayerNumber(Human);
 			return Game.GetCities()
-				.Where(c => c.Owner == humanId && c.IsInDisorder)
+				.Where(c => c.Owner == humanId && SafeIsInDisorder(c))
 				.Select(c => c.Name)
 				.ToArray();
+		}
+
+		private static bool SafeIsInDisorder(CivOne.City c)
+		{
+			try { return c.IsInDisorder; }
+			catch (Exception ex) { Log($"[SideBar] IsInDisorder failed for {c.Name}: {ex.GetType().Name}: {ex.Message}"); return false; }
 		}
 
 		private int NotifPanelH(int cityCount)
