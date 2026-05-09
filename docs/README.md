@@ -22,7 +22,7 @@ As for rule changes:
  + Autosave always on. I think the crash scenarios are fixed, but let's be reasonable.
  + AI with real strategy. Yes, that includes stacking units. Watch out!
  + If WLTKD can't grow a city, it spawns a free caravan.
- + A city's mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (cornerstone of a modern city).
+ + A city's mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (as a cornerstone of a modern city).
  + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits and implications.
  + Five years after the creation of the SETI wonder, a signal is detected with a warning.
  + Settlers may auto-clean of pollution for all friendly cities.
@@ -33,6 +33,9 @@ As for rule changes:
  + Check box in options for Barricades (allows City Walls and SDI)
  + Add city improvement shipyard (allows transports, submarine, carrier, and battleship)
  + Overlays such as hills, swamps, and irrigation now load from a text file so you can redraw these to your liking.
+ + Some wonders that historically happened on or near the sea can now only happen in a sea town (Colossus, Lighthouse, Magellan's Voyage, Darwin's Voyage)
+ + You need a Shipyard (new city improvement) to make any ship larger than the ironside
+ + Has a production queue, like other 4x games
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
@@ -54,7 +57,6 @@ Known issues
 
 2. Less serious
  + Units moving under GoTo don't always get a map refresh (though the prior tearing is mostly gone).
- + The SpaceRace works (is winable) but still being tested.
  + The unit graphics in the garrison (city view) are badly downscaled/upscaled; also, the citizens are barely two-legged sticks. Bear with me, folks.
  + Battle animations are a bit herky-jerky, it was this way in the code repo from 2017 that I cloned.
  + There are lots and lots of natural disasters.
