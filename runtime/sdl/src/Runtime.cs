@@ -8,8 +8,11 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.IO;
@@ -81,11 +84,36 @@ namespace CivOne
 		void IRuntime.StopSound() => StopSound?.Invoke();
 		void IRuntime.Quit() => SignalQuit = true;
 
+		private static readonly Dictionary<string, string[]> _defaultAssets = new Dictionary<string, string[]>
+		{
+			["CivOne.Resources.defaults.splash.png"]                           = new[] { "splash.png" },
+			["CivOne.Resources.defaults.data.seti_signal.txt"]                = new[] { "data", "seti_signal.txt" },
+			["CivOne.Resources.defaults.data.south_pole_expedition.txt"]      = new[] { "data", "south_pole_expedition.txt" },
+		};
+
+		private static void InstallDefaults(string storageDir)
+		{
+			Assembly asm = Assembly.GetExecutingAssembly();
+			foreach (var pair in _defaultAssets)
+			{
+				string targetPath = Path.Combine(new[] { storageDir }.Concat(pair.Value).ToArray());
+				if (File.Exists(targetPath)) continue;
+				using (Stream src = asm.GetManifestResourceStream(pair.Key))
+				{
+					if (src == null) continue;
+					Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+					using (FileStream dst = File.Create(targetPath))
+						src.CopyTo(dst);
+				}
+			}
+		}
+
 		public Runtime(RuntimeSettings settings)
 		{
 			Settings = settings;
 			Profile = Profile.Get(this, settings.Get<string>("profile-name"));
 			CoreRes.SpacedockImage = Resources.GetSpacedock();
+			InstallDefaults(((IRuntime)this).StorageDirectory);
 			string splashPath = Path.Combine(((IRuntime)this).StorageDirectory, "splash.png");
 			CoreRes.SplashRawImage = PngDecoder.Load(splashPath);
 			RuntimeHandler.Register(this);
