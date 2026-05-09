@@ -116,6 +116,8 @@ namespace CivOne
 
 		public bool EnemyMoves { get; set; }
 		public bool Palace { get; set; }
+		public bool Circuses { get; set; } = true;
+		public bool Barricades { get; set; } = true;
 
 		public void SetAdvanceOrigin(IAdvance advance, Player player)
 		{

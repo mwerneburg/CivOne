@@ -71,6 +71,18 @@ namespace CivOne.Screens
 			Update();
 		}
 
+		private void MenuCircuses(object sender, EventArgs args)
+		{
+			Game.Circuses = !Game.Circuses;
+			Update();
+		}
+
+		private void MenuBarricades(object sender, EventArgs args)
+		{
+			Game.Barricades = !Game.Barricades;
+			Update();
+		}
+
 		private void Update()
 		{
 			CloseMenus();
@@ -115,6 +127,8 @@ namespace CivOne.Screens
 				menu.Items.Add($"{(Game.EnemyMoves ? '^' : ' ')}Enemy Moves").OnSelect(MenuEnemyMoves);
 				menu.Items.Add($"{(Game.CivilopediaText ? '^' : ' ')}Civilopedia Text").OnSelect(MenuCivilopediaText);
 				// menu.Items.Add($"{(Game.Palace ? '^' : ' ')}Palace").OnSelect(MenuPalace);
+				menu.Items.Add($"{(Game.Circuses ? '^' : ' ')}Circuses").OnSelect(MenuCircuses);
+				menu.Items.Add($"{(Game.Barricades ? '^' : ' ')}Barricades").OnSelect(MenuBarricades);
 
 				AddMenu(menu);
 			}

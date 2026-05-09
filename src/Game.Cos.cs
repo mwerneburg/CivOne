@@ -194,7 +194,9 @@ namespace CivOne
 						Sound          = Sound,
 						EnemyMoves     = EnemyMoves,
 						CivilopediaText = CivilopediaText,
-						Palace         = Palace
+						Palace         = Palace,
+						Circuses       = Circuses,
+					Barricades     = Barricades
 					},
 					SpaceshipLaunch      = SpaceshipLaunchTurn.ToArray(),
 					SpaceshipArrival     = SpaceshipArrivalTurn.ToArray(),
@@ -486,6 +488,8 @@ namespace CivOne
 			EnemyMoves     = (Settings.EnemyMoves     != GameOption.Off) && (Settings.EnemyMoves     != GameOption.Default || opt.EnemyMoves);
 			CivilopediaText= (Settings.CivilopediaText!= GameOption.Off) && (Settings.CivilopediaText!= GameOption.Default || opt.CivilopediaText);
 			Palace         = (Settings.Palace         != GameOption.Off) && (Settings.Palace         != GameOption.Default || opt.Palace);
+			Circuses       = opt.Circuses   ?? true;
+			Barricades     = opt.Barricades ?? true;
 
 			// Active unit
 			for (int i = 0; i < _units.Count; i++)
