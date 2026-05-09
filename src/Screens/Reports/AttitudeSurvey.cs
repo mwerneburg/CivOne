@@ -25,15 +25,6 @@ namespace CivOne.Screens.Reports
 		private bool _update = true;
 		private int _page = 0;
 
-		private void DrawBuilding<T>(City city, ref int x, int y) where T : IBuilding
-		{
-			IBuilding building;
-			if ((building = city.Buildings.FirstOrDefault(b => b is T)) == null) return;
-
-			this.AddLayer(building.SmallIcon, x, y - 1);
-			x += 18;
-		}
-
 		private void DrawCitizens(City city, int x, int y)
 		{
 			int group = -1;
@@ -52,13 +43,22 @@ namespace CivOne.Screens.Reports
 
 		private void DrawBuildings(City city, int y)
 		{
-			int x = OX + 212;
-			this.FillRectangle(x, y - 1, 90, 10, 11);
-			DrawBuilding<Temple>(city, ref x, y);
-			DrawBuilding<MarketPlace>(city, ref x, y);
-			DrawBuilding<Bank>(city, ref x, y);
-			DrawBuilding<Cathedral>(city, ref x, y);
-			DrawBuilding<Colosseum>(city, ref x, y);
+			int x = OX + 214;
+			this.FillRectangle(OX + 212, y - 1, 90, 10, 11);
+			var slots = new (System.Type type, string abbr)[]
+			{
+				(typeof(Temple), "Tmp"),
+				(typeof(MarketPlace), "Mkt"),
+				(typeof(Bank), "Bnk"),
+				(typeof(Cathedral), "Cat"),
+				(typeof(Colosseum), "Col"),
+			};
+			foreach (var (type, abbr) in slots)
+			{
+				if (!city.Buildings.Any(b => b.GetType() == type)) continue;
+				this.DrawText(abbr, FONT_ID, CassetteTheme.INK_HIGH, x, y);
+				x += 18;
+			}
 		}
 		
 		protected override bool HasUpdate(uint gameTick)

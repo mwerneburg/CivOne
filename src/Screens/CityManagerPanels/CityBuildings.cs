@@ -33,36 +33,22 @@ namespace CivOne.Screens.CityManagerPanels
 
 		private void DrawWonder(IWonder wonder, int offset)
 		{
-			int xx = (offset % 2 == 0) ? 21 : 1;
-			int yy = -1 + (6 * offset);
-			if (yy < 0)
-				this.AddLayer(wonder.SmallIcon.Crop(0, Math.Abs(yy), wonder.SmallIcon.Width(), wonder.SmallIcon.Height() + yy), xx, 0);
-			else
-				this.AddLayer(wonder.SmallIcon, xx, yy);
-			
-			string name = wonder.Name;
-			while (Resources.GetTextSize(1, name).Width > 62)
+			string name = "★ " + wonder.Name;
+			while (Resources.GetTextSize(1, name).Width > 96)
 			{
 				name = $"{name.Substring(0, name.Length - 2)}.";
 			}
-			this.DrawText(name, 1, 15, 42, 3 + (6 * offset));
+			this.DrawText(name, 1, 15, 4, 3 + (6 * offset));
 		}
 
 		private void DrawBuilding(IBuilding building, int offset)
 		{
-			int xx = (offset % 2 == 0) ? 21 : 1;
-			int yy = -1 + (6 * offset);
-			if (yy < 0)
-				this.AddLayer(building.SmallIcon.Crop(0, Math.Abs(yy), building.SmallIcon.Width(), building.SmallIcon.Height() + yy), xx, 0);
-			else
-				this.AddLayer(building.SmallIcon, xx, yy);
-
 			string name = building.Name;
-			while (Resources.GetTextSize(1, name).Width > 54)
+			while (Resources.GetTextSize(1, name).Width > 80)
 			{
 				name = $"{name.Substring(0, name.Length - 1)}";
 			}
-			this.DrawText(name, 1, 15, 42, 3 + (6 * offset))
+			this.DrawText(name, 1, 15, 4, 3 + (6 * offset))
 				.AddLayer(Icons.SellButton, Width - 10, 2 + (6 * offset));
 		}
 

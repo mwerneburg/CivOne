@@ -54,8 +54,7 @@ namespace CivOne.Screens.Reports
 					colour = Common.ColourLight[city.Owner];
 				this.FillRectangle(xx, yy, ww, hh, colour)
 					.FillRectangle(xx + 1, yy + 1, ww - 2, hh - 2, 3)
-					.AddLayer(wonder.SmallIcon, xx + 8, yy + 3)
-					.DrawText(wonder.FormatWorldWonder(city), 0, CassetteTheme.INK_HIGH, xx + 32, yy + 5);
+					.DrawText(wonder.FormatWorldWonder(city), 0, CassetteTheme.INK_HIGH, xx + 8, yy + 5);
 			}
 
 			_update = false;
