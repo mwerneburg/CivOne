@@ -38,7 +38,7 @@ namespace CivOne.Screens
 		private readonly bool _disorder;
 		private readonly bool _weLovePresidentDay;
 		private readonly byte[,] _noiseMap;
-		
+
 		private int _noiseCounter = NOISE_COUNT + 15;
 
 		private int OX => (Width - 320) / 2;
@@ -68,225 +68,346 @@ namespace CivOne.Screens
 			= new System.Collections.Generic.List<SmokeParticle>();
 		private (int X, int Y)[] _smokeSources;
 
-		private string _buildingFile = null;
-
 		public event EventHandler Skipped;
-		
-		private Colour FadeColour(Colour colour1, Colour colour2)
-		{
-			int r = (int)(((float)colour1.R * (1.0F - _fadeStep)) + ((float)colour2.R * _fadeStep));
-			int g = (int)(((float)colour1.G * (1.0F - _fadeStep)) + ((float)colour2.G * _fadeStep));
-			int b = (int)(((float)colour1.B * (1.0F - _fadeStep)) + ((float)colour2.B * _fadeStep));
-			return new Colour(r, g, b);
-		}
-		
-		private void FadeColours()
-		{
-			if (Settings.GraphicsMode != GraphicsMode.Graphics256) return;
-			
-			Palette palette = _background.Palette;
-			for (int i = 1; i < 256; i++)
-				palette[i] = FadeColour(new Colour(0, 0, 0), _background.OriginalColours[i]);
-			this.SetPalette(palette);
-		}
-		
-		private static readonly byte[] _fireworkCols
-			= { CassetteTheme.PHOS_GLOW, CassetteTheme.CYAN, CassetteTheme.OK, CassetteTheme.PHOS };
 
-		private void DrawBurstRing(int cx, int cy, int r, byte col)
+		// ── native palette / background ──────────────────────────────────────
+
+		private static Palette BuildNativePalette()
 		{
-			int d = Math.Max(1, r * 7 / 10);
-			int[,] pts = { {cx, cy-r}, {cx, cy+r}, {cx-r, cy}, {cx+r, cy},
-			               {cx-d, cy-d}, {cx+d, cy-d}, {cx-d, cy+d}, {cx+d, cy+d} };
-			for (int i = 0; i < 8; i++)
-				this.FillRectangle(OX + pts[i, 0], OY + pts[i, 1], 1, 1, col);
+			Palette p = Common.DefaultPalette;
+			using (Palette c = CassetteTheme.CreatePalette())
+				p.MergePalette(c, 1, 17);
+			return p;
 		}
 
-		private void UpdateFireworks(uint gameTick)
+		private static Picture NativeBackground()
 		{
-			if (gameTick % 18 == 0)
-				_bursts.Add(new FireworkBurst
+			Palette pal = BuildNativePalette();
+			var pic = new Picture(320, 200, pal);
+
+			// Sky
+			pic.FillRectangle(0, 0, 320, 74, CassetteTheme.BG0);
+			// Horizon band
+			pic.FillRectangle(0, 74, 320, 4, CassetteTheme.BG1);
+			// Ground
+			pic.FillRectangle(0, 78, 320, 122, CassetteTheme.BG2);
+
+			// Deterministic stars and ground pebbles
+			var rng = new System.Random(0x4A3C);
+			for (int i = 0; i < 25; i++)
+				pic.FillRectangle(rng.Next(320), rng.Next(55), 1, 1, CassetteTheme.PHOS_GHOST);
+			for (int i = 0; i < 80; i++)
+				pic.FillRectangle(rng.Next(320), 78 + rng.Next(122), 2, 1, CassetteTheme.BG1);
+
+			return pic;
+		}
+
+		// ── native house tiles (31×31, index 0 = transparent) ────────────────
+
+		private static Picture NativeHouse(int stage, int houseType)
+		{
+			var p = new Picture(31, 31);
+			if (stage < 2)
+			{
+				// Ancient hut
+				p.FillRectangle(6, 14, 19, 17, CassetteTheme.BG3);
+				// Roof triangle
+				for (int row = 0; row < 6; row++)
 				{
-					X   = Common.Random.Next(240) + 40,
-					Y   = Common.Random.Next(42) + 6,
-					Age = 0,
-					Col = _fireworkCols[Common.Random.Next(_fireworkCols.Length)]
-				});
-
-			for (int i = _bursts.Count - 1; i >= 0; i--)
-			{
-				var b = _bursts[i];
-				int r = b.Age + 1;
-				DrawBurstRing(b.X, b.Y, r, b.Col);
-				if (b.Age > 2) DrawBurstRing(b.X, b.Y, r - 2, CassetteTheme.PHOS_DIM);
-				_bursts[i] = new FireworkBurst { X = b.X, Y = b.Y, Age = b.Age + 1, Col = b.Col };
-				if (_bursts[i].Age >= 14) _bursts.RemoveAt(i);
-			}
-		}
-
-		private void UpdateSmoke(uint gameTick)
-		{
-			if (gameTick % 3 == 0)
-				foreach (var src in _smokeSources)
-					_smokeParticles.Add(new SmokeParticle { X = src.X, Y = src.Y, Age = 0 });
-
-			for (int i = _smokeParticles.Count - 1; i >= 0; i--)
-			{
-				var p = _smokeParticles[i];
-				float nx = p.X + (Common.Random.Next(3) - 1) * 0.6f;
-				float ny = p.Y - 0.7f;
-				int   na = p.Age + 1;
-				byte  col = na < 8 ? CassetteTheme.INK_MID : CassetteTheme.INK_LOW;
-				this.FillRectangle(OX + (int)nx, OY + (int)ny, na < 6 ? 2 : 1, na < 6 ? 2 : 1, col);
-				_smokeParticles[i] = new SmokeParticle { X = nx, Y = ny, Age = na };
-				if (na > 22 || (int)ny < 2) _smokeParticles.RemoveAt(i);
-			}
-		}
-
-		protected override bool HasUpdate(uint gameTick)
-		{
-			if (gameTick % 4 == 0)
-			{
-				this.Cycle(64, 79);
-				_update = true;
-			}
-
-			if (_viewOnly)
-			{
-				this.AddLayer(_background, OX, OY);
-				if (_viewCelebrate) UpdateFireworks(gameTick);
-				if (_viewDisorder)  UpdateSmoke(gameTick);
-				return true;
-			}
-
-			if (_captured || _disorder)
-			{
-				this.AddLayer(_background, OX, OY);
-				int frame = ((_x % 30) + 30) % 30 / 3;
-				for (int i = 7; i >= 0; i--)
-				{
-					int xx = (_x - 65) - (48 * i);
-					if (xx + 78 <= 0) continue;
-					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
+					int left = 10 - row;
+					int w    = 11 + row * 2;
+					p.FillRectangle(left, 8 + row, w, 1, CassetteTheme.BORDER);
 				}
-				_x++;
-				return true;
+				// Door
+				p.FillRectangle(13, 22, 5, 9, CassetteTheme.BG0);
 			}
-
-			if (_weLovePresidentDay)
+			else if (stage < 8)
 			{
-				this.AddLayer(_background, OX, OY);
-				int frame = (((_x + 600) % 30) + 30) % 30 / 3;
-				for (int i = 0; i <= 7; i++)
+				// Classical house
+				p.FillRectangle(4, 12, 23, 19, CassetteTheme.BORDER);
+				// Roof triangle
+				for (int row = 0; row < 8; row++)
 				{
-					int xx = (_x + 65) + (48 * i);
-					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
+					int left = 15 - row;
+					int w    = row * 2 + 1;
+					p.FillRectangle(left, 4 + row, w, 1, CassetteTheme.INK_LOW);
 				}
-				_x--;
-
-				return true;
+				// Windows
+				p.FillRectangle(7, 14, 4, 4, CassetteTheme.PHOS_GHOST);
+				p.FillRectangle(18, 14, 4, 4, CassetteTheme.PHOS_GHOST);
+				// Door
+				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
-
-			if (_noiseMap != null)
+			else if (stage < 16)
 			{
-				if (_noiseCounter > 0)
+				// Merchant house — houseType gives slight colour variation
+				byte body = houseType == 0 ? CassetteTheme.INK_LOW : CassetteTheme.BORDER;
+				p.FillRectangle(2, 8, 27, 23, body);
+				// Roof
+				for (int row = 0; row < 6; row++)
 				{
-					_overlay.ApplyNoise(_noiseMap, _noiseCounter--);
-					this.AddLayer(_background, OX, OY)
-						.AddLayer(_overlay, OX, OY);
-					return true;
+					int left = 15 - row * 2;
+					int w    = row * 4 + 1;
+					if (left < 0) { w += left * 2; left = 0; }
+					p.FillRectangle(left, 2 + row, w, 1, CassetteTheme.BORDER);
 				}
-				return false;
+				// Windows (two rows)
+				p.FillRectangle(5,  10, 5, 5, CassetteTheme.PHOS_FAINT);
+				p.FillRectangle(19, 10, 5, 5, CassetteTheme.PHOS_FAINT);
+				p.FillRectangle(5,  18, 5, 5, CassetteTheme.PHOS_FAINT);
+				p.FillRectangle(19, 18, 5, 5, CassetteTheme.PHOS_FAINT);
+				// Door
+				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
-
-			if (_founded)
+			else if (stage < 20)
 			{
-				if (_fadeStep < 1.0f)
-				{
-					_fadeStep = Math.Min(1.0f, _fadeStep + FADE_STEP);
-					FadeColours();
-				}
-				this.AddLayer(_background, OX, OY)
-					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, OX + 161, OY + 3, TextAlign.Center);
-				if (_fadeStep >= 1.0f && gameTick % 3 == 0 && ++_x > 25)
-				{
-					Destroy();
-					return true;
-				}
-				return true;
+				// Industrial flat
+				p.FillRectangle(0, 6, 31, 25, CassetteTheme.INK_LOW);
+				// Roof bar
+				p.FillRectangle(0, 4, 31, 2, CassetteTheme.BORDER);
+				// Chimney
+				p.FillRectangle(22, 0, 5, 6, CassetteTheme.INK_MID);
+				// Windows
+				p.FillRectangle(3,  10, 5, 6, CassetteTheme.PHOS_FAINT);
+				p.FillRectangle(11, 10, 5, 6, CassetteTheme.PHOS_FAINT);
+				p.FillRectangle(19, 10, 5, 6, CassetteTheme.PHOS_FAINT);
+				// Door
+				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
-
-			if (_firstView && _fadeStep < 1.0f)
-			{
-				_fadeStep += FADE_STEP;
-				if (_fadeStep > 1.0f) _fadeStep = 1.0f;
-				FadeColours();
-			}
-
-			if (_update)
-				_update = false;
-			return true;
-		}
-
-		private bool SkipAction()
-		{
-			if (_viewOnly) { Destroy(); return true; }
-			if (_fadeStep != 0.0F && _fadeStep != 1.0F) return false;
-			if (_noiseCounter > 0 && _noiseCounter < NOISE_COUNT) return false;
-
-			Destroy();
-			if (Skipped != null)
-				Skipped(this, null);
 			else
-				HandleClose();
-			return true;
+			{
+				// Glass tower
+				p.FillRectangle(4, 0, 23, 31, CassetteTheme.BG3);
+				// Vertical dividers
+				p.FillRectangle(4,  0, 1, 31, CassetteTheme.BORDER);
+				p.FillRectangle(12, 0, 1, 31, CassetteTheme.BORDER);
+				p.FillRectangle(19, 0, 1, 31, CassetteTheme.BORDER);
+				p.FillRectangle(26, 0, 1, 31, CassetteTheme.BORDER);
+				// Horizontal bands
+				p.FillRectangle(4, 0,  23, 1, CassetteTheme.BORDER);
+				p.FillRectangle(4, 6,  23, 1, CassetteTheme.BORDER);
+				p.FillRectangle(4, 12, 23, 1, CassetteTheme.BORDER);
+				p.FillRectangle(4, 18, 23, 1, CassetteTheme.BORDER);
+				p.FillRectangle(4, 24, 23, 1, CassetteTheme.BORDER);
+				p.FillRectangle(4, 30, 23, 1, CassetteTheme.BORDER);
+				// Window glass cells
+				for (int col = 0; col < 3; col++)
+				for (int row = 0; row < 5; row++)
+					p.FillRectangle(5 + col * 7, 1 + row * 6, 6, 5, CassetteTheme.PHOS_FAINT);
+				// Dark ground-floor door
+				p.FillRectangle(12, 24, 7, 7, CassetteTheme.BG0);
+			}
+			return p;
 		}
-		
-		public override bool KeyDown(KeyboardEventArgs args)
+
+		// ── native tree sprite (24×8) ─────────────────────────────────────────
+
+		private static Picture NativeTree()
 		{
-			return SkipAction();
+			var p = new Picture(24, 8);
+			// Foliage blob
+			p.FillRectangle(4, 0, 16, 5, CassetteTheme.OK);
+			// Trim corners for oval-ish look
+			p.FillRectangle(4, 0, 2, 2, 0);
+			p.FillRectangle(18, 0, 2, 2, 0);
+			p.FillRectangle(4, 3, 2, 2, 0);
+			p.FillRectangle(18, 3, 2, 2, 0);
+			// Trunk
+			p.FillRectangle(10, 5, 4, 3, CassetteTheme.INK_LOW);
+			return p;
 		}
-		
-		public override bool MouseDown(ScreenEventArgs args)
+
+		// ── native road sprite (24×8) ─────────────────────────────────────────
+
+		private static Picture NativeRoad(Direction road)
 		{
-			return SkipAction();
+			var p = new Picture(24, 8);
+			p.FillRectangle(0, 0, 24, 8, CassetteTheme.BG2);
+			// Center strip
+			p.FillRectangle(0, 3, 24, 2, CassetteTheme.BORDER);
+			if ((road & Direction.North) != 0) p.FillRectangle(10, 0, 4, 3, CassetteTheme.BORDER);
+			if ((road & Direction.South) != 0) p.FillRectangle(10, 5, 4, 3, CassetteTheme.BORDER);
+			if ((road & Direction.East)  != 0) p.FillRectangle(14, 3, 10, 2, CassetteTheme.BORDER);
+			if ((road & Direction.West)  != 0) p.FillRectangle(0,  3, 10, 2, CassetteTheme.BORDER);
+			return p;
 		}
+
+		// ── glyph drawing helper for 15×15 centered in 49×49 ─────────────────
+
+		private static void DrawGlyph(Picture p, int bx, int by, string glyph, byte col)
+		{
+			// glyph area: bx+17 .. bx+31, by+17 .. by+31
+			int ox = bx + 17;
+			int oy = by + 17;
+			switch (glyph)
+			{
+				case "+":
+					p.FillRectangle(ox,     oy + 6, 15, 3, col);
+					p.FillRectangle(ox + 6, oy,     3, 15, col);
+					break;
+				case "o":
+					p.FillRectangle(ox,     oy,     15, 3, col);
+					p.FillRectangle(ox,     oy + 12, 15, 3, col);
+					p.FillRectangle(ox,     oy,     3, 15, col);
+					p.FillRectangle(ox + 12, oy,    3, 15, col);
+					break;
+				case "oo":
+					// double concentric ring
+					p.FillRectangle(ox,     oy,     15, 2, col);
+					p.FillRectangle(ox,     oy + 13, 15, 2, col);
+					p.FillRectangle(ox,     oy,     2, 15, col);
+					p.FillRectangle(ox + 13, oy,    2, 15, col);
+					p.FillRectangle(ox + 3, oy + 3, 9, 2, col);
+					p.FillRectangle(ox + 3, oy + 10, 9, 2, col);
+					p.FillRectangle(ox + 3, oy + 3, 2, 9, col);
+					p.FillRectangle(ox + 10, oy + 3, 2, 9, col);
+					break;
+				case "X":
+					p.DrawLine(ox, oy, ox + 14, oy + 14, col);
+					p.DrawLine(ox + 14, oy, ox, oy + 14, col);
+					break;
+				case "$":
+					p.FillRectangle(ox + 6, oy,      3, 15, col);
+					p.FillRectangle(ox + 1, oy + 1,  13, 3, col);
+					p.FillRectangle(ox + 1, oy + 11, 13, 3, col);
+					break;
+				case "$$":
+					// bank double-dollar
+					p.FillRectangle(ox + 3, oy,     3, 15, col);
+					p.FillRectangle(ox + 9, oy,     3, 15, col);
+					p.FillRectangle(ox,     oy + 1, 7, 2, col);
+					p.FillRectangle(ox + 8, oy + 1, 7, 2, col);
+					p.FillRectangle(ox,     oy + 12, 7, 2, col);
+					p.FillRectangle(ox + 8, oy + 12, 7, 2, col);
+					break;
+				case "L":
+					p.FillRectangle(ox + 1, oy,     3, 15, col);
+					p.FillRectangle(ox + 1, oy + 12, 13, 3, col);
+					break;
+				case "#":
+					p.FillRectangle(ox,     oy + 3, 15, 3, col);
+					p.FillRectangle(ox,     oy + 9, 15, 3, col);
+					p.FillRectangle(ox + 3, oy,     3, 15, col);
+					p.FillRectangle(ox + 9, oy,     3, 15, col);
+					break;
+				case "^":
+					p.FillRectangle(ox + 6, oy,      3, 3, col);
+					p.FillRectangle(ox + 4, oy + 3,  7, 3, col);
+					p.FillRectangle(ox + 2, oy + 6, 11, 3, col);
+					p.FillRectangle(ox,     oy + 9, 15, 3, col);
+					break;
+				case "*":
+					p.FillRectangle(ox,     oy + 6, 15, 3, col);
+					p.FillRectangle(ox + 6, oy,     3, 15, col);
+					p.DrawLine(ox, oy, ox + 14, oy + 14, col);
+					p.DrawLine(ox + 14, oy, ox, oy + 14, col);
+					break;
+				case "~":
+					p.FillRectangle(ox,     oy + 4, 15, 2, col);
+					p.FillRectangle(ox,     oy + 9, 15, 2, col);
+					break;
+				case "T":
+					p.FillRectangle(ox,     oy,     15, 3, col);
+					p.FillRectangle(ox + 6, oy + 3, 3, 12, col);
+					break;
+			}
+		}
+
+		// ── native special-building drawing (49×49 onto picture at x,y) ───────
+
+		private static void DrawNativeBuilding(Picture picture, int x, int y,
+		                                        byte bodyCol, byte accentCol, string glyph,
+		                                        byte chimneyCol = 0, int chimneys = 0)
+		{
+			// Body fill
+			picture.FillRectangle(x, y, 49, 49, bodyCol);
+			// Outline
+			picture.DrawRectangle(x, y, 49, 49, CassetteTheme.BORDER);
+			// Chimney(s) above building
+			if (chimneys == 1)
+				picture.FillRectangle(x + 22, y - 10, 5, 12, chimneyCol);
+			else if (chimneys == 2)
+			{
+				picture.FillRectangle(x + 13, y - 10, 5, 12, chimneyCol);
+				picture.FillRectangle(x + 31, y - 10, 5, 12, chimneyCol);
+			}
+			// Glyph
+			DrawGlyph(picture, x, y, glyph, accentCol);
+		}
+
+		// ── native wonder drawing onto picture ────────────────────────────────
 
 		private void DrawWonder<T>(Picture picture = null, int x = -1, int y = -1) where T : IWonder
 		{
 			if (picture == null) picture = _background;
+
 			if (typeof(T) == typeof(Pyramids))
 			{
-				picture.AddLayer(Resources["WONDERS2"][131, 54, 187, 29], 133, 0);
-				picture.AddLayer(Resources["WONDERS2"][318, 54, 1, 29], 0, 0);
+				// Two pyramid triangles near top centre
+				for (int row = 0; row < 28; row++)
+				{
+					int leftW = row * 7;
+					picture.FillRectangle(160 - leftW / 2, row, leftW / 2,     1, CassetteTheme.INK_MID);
+					picture.FillRectangle(165,             row, leftW / 2 + 1, 1, CassetteTheme.BORDER);
+				}
 			}
-			if (typeof(T) == typeof(Colossus))
+			else if (typeof(T) == typeof(Colossus))
 			{
-				picture.AddLayer(Resources["WONDERS2"][88, 97, 124, 39], 170, 0);
+				// Tall figure silhouette on right
+				picture.FillRectangle(280, 0,  30, 60, CassetteTheme.BORDER);
+				picture.FillRectangle(270, 55, 10, 25, CassetteTheme.INK_LOW);
+				picture.FillRectangle(300, 55, 10, 25, CassetteTheme.INK_LOW);
 			}
-			if (typeof(T) == typeof(GreatWall))
+			else if (typeof(T) == typeof(GreatWall))
 			{
-				picture.AddLayer(Resources["WONDERS2"][1, 38, 66, 81], 0, 0);
+				picture.FillRectangle(0, 0, 66, 80, CassetteTheme.INK_LOW);
+				for (int xx = 0; xx < 66; xx += 6)
+					picture.FillRectangle(xx, 0, 3, 4, CassetteTheme.BORDER);
 			}
-			if (typeof(T) == typeof(HooverDam))
+			else if (typeof(T) == typeof(HooverDam))
 			{
-				picture.AddLayer(Resources["WONDERS2"][1, 14, 147, 20], 1, 9);
+				picture.FillRectangle(1, 9, 147, 20, CassetteTheme.INK_MID);
+				picture.FillRectangle(1, 28, 147, 2, CassetteTheme.CYAN);
 			}
-			if (typeof(T) == typeof(Lighthouse))
+			else if (typeof(T) == typeof(Lighthouse))
 			{
-				picture.AddLayer(Resources["WONDERS"][229, 116, 40, 83], x, y);
+				if (x < 0 || y < 0) return;
+				// Tower
+				picture.FillRectangle(x + 20, y, 8, 48, CassetteTheme.BORDER);
+				// Beacon
+				picture.FillRectangle(x + 17, y, 14, 6, CassetteTheme.PHOS_GLOW);
 			}
-			if (typeof(T) == typeof(HangingGardens))
+			else if (typeof(T) == typeof(HangingGardens))
 			{
-				picture.AddLayer(Resources["WONDERS"][159, 149, 69, 50], x, y);
+				if (x < 0 || y < 0) return;
+				// Three tiered terraces
+				picture.FillRectangle(x,      y + 30, 60, 8, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 5,  y + 20, 50, 8, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 10, y + 10, 40, 8, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 2,  y + 24, 56, 6, CassetteTheme.OK);
+				picture.FillRectangle(x + 7,  y + 14, 46, 6, CassetteTheme.OK);
+				picture.FillRectangle(x + 12, y + 4,  36, 6, CassetteTheme.OK);
 			}
-			if (typeof(T) == typeof(Oracle))
+			else if (typeof(T) == typeof(Oracle))
 			{
-				picture.AddLayer(Resources["WONDERS"][164, 97, 64, 51], x, y);
+				if (x < 0 || y < 0) return;
+				// Three columns with pediment
+				picture.FillRectangle(x + 2,  y + 2, 2, 46, CassetteTheme.WHITE);
+				picture.FillRectangle(x + 20, y + 2, 2, 46, CassetteTheme.WHITE);
+				picture.FillRectangle(x + 38, y + 2, 2, 46, CassetteTheme.WHITE);
+				// Pediment cap
+				picture.FillRectangle(x, y, 44, 4, CassetteTheme.BG3);
+				// Base
+				picture.FillRectangle(x, y + 44, 44, 4, CassetteTheme.BG3);
 			}
-			if (typeof(T) == typeof(DarwinsVoyage))
+			else if (typeof(T) == typeof(DarwinsVoyage))
 			{
-				picture.AddLayer(Resources["WONDERS"][40, 69, 62, 47], x, y);
+				if (x < 0 || y < 0) return;
+				// Globe outline (oval) + equator
+				picture.DrawRectangle(x + 5, y + 5, 52, 38, CassetteTheme.CYAN);
+				picture.FillRectangle(x + 5, y + 22, 52, 2, CassetteTheme.INK_MID);
+				// Prime meridian
+				picture.FillRectangle(x + 30, y + 5, 2, 38, CassetteTheme.INK_MID);
 			}
 		}
 
@@ -297,61 +418,90 @@ namespace CivOne.Screens
 				DrawWonder<T>(_overlay, x, y + offset);
 		}
 
+		// ── native building drawing ───────────────────────────────────────────
+
 		private void DrawBuilding<T>(Picture picture = null, int x = -1, int y = -1) where T : IBuilding
 		{
-			if (_buildingFile == null)
-			{
-				_buildingFile = Game.GetPlayer(_city.Owner).HasAdvance<Invention>() ? "CITYPIX3" : "CITYPIX2";
-			}
-
 			if (picture == null) picture = _background;
+
 			if (typeof(T) == typeof(Aqueduct))
 			{
-				picture.AddLayer(Resources[_buildingFile][51, 151, 49, 49], 0, 72);
+				// Row of arches at y=72
+				for (int i = 0; i < 5; i++)
+				{
+					int ax = 10 + i * 60;
+					picture.FillRectangle(ax,      72, 4, 20, CassetteTheme.BORDER);
+					picture.FillRectangle(ax + 16, 72, 4, 20, CassetteTheme.BORDER);
+					picture.FillRectangle(ax,      72, 20, 4, CassetteTheme.BORDER);
+					picture.FillRectangle(ax + 2,  76, 16, 12, CassetteTheme.BG3);
+				}
+				return;
 			}
 
 			if (typeof(T) == typeof(CityWalls))
 			{
-				Picture wall = Resources[_buildingFile][251, 101, 43, 49];
-				Picture door = Resources[_buildingFile][51, 101, 49, 49];
-
-				for (int xx = 0; xx < 142; xx += 43)
-					picture.AddLayer(wall, xx, 108);
-				picture.AddLayer(door, 142, 108);
-				for (int xx = 191; xx < 320; xx += 43)
-					picture.AddLayer(wall, xx, 108);
+				// Wall sections on either side of gate
+				picture.FillRectangle(0,   108, 142, 12, CassetteTheme.INK_LOW);
+				picture.FillRectangle(191, 108, 129, 12, CassetteTheme.INK_LOW);
+				// Battlements
+				for (int xx = 0; xx < 142; xx += 8)
+					picture.FillRectangle(xx, 108, 3, 4, CassetteTheme.BORDER);
+				for (int xx = 192; xx < 320; xx += 8)
+					picture.FillRectangle(xx, 108, 3, 4, CassetteTheme.BORDER);
+				// Gate arch
+				picture.FillRectangle(142, 108, 49, 12, CassetteTheme.BG3);
+				picture.FillRectangle(155, 108, 6,  8,  CassetteTheme.BG0);
+				picture.FillRectangle(161, 108, 6,  8,  CassetteTheme.BG0);
+				return;
 			}
 
+			if (x < 0 || y < 0) return;
+
 			if (typeof(T) == typeof(Barracks))
-				picture.AddLayer(Resources[_buildingFile][1, 1, 49, 49], x, y);
-			if (typeof(T) == typeof(Granary))
-				picture.AddLayer(Resources[_buildingFile][1, 51, 49, 49], x, y);
-			if (typeof(T) == typeof(Temple))
-				picture.AddLayer(Resources[_buildingFile][1, 101, 49, 49], x, y);
-			if (typeof(T) == typeof(MarketPlace))
-				picture.AddLayer(Resources[_buildingFile][1, 151, 49, 49], x, y);
-			if (typeof(T) == typeof(Library))
-				picture.AddLayer(Resources[_buildingFile][51, 1, 49, 49], x, y);
-			if (typeof(T) == typeof(Courthouse))
-				picture.AddLayer(Resources[_buildingFile][51, 51, 49, 49], x, y);
-			if (typeof(T) == typeof(Bank))
-				picture.AddLayer(Resources[_buildingFile][101, 1, 49, 49], x, y);
-			if (typeof(T) == typeof(Cathedral))
-				picture.AddLayer(Resources[_buildingFile][101, 51, 49, 49], x, y);
-			if (typeof(T) == typeof(UniversityBuilding))
-				picture.AddLayer(Resources[_buildingFile][101, 101, 49, 49], x, y);
-			if (typeof(T) == typeof(Colosseum))
-				picture.AddLayer(Resources[_buildingFile][151, 1, 49, 49], x, y);
-			if (typeof(T) == typeof(Factory))
-				picture.AddLayer(Resources[_buildingFile][151, 51, 49, 49], x, y);
-			if (typeof(T) == typeof(MfgPlant))
-				picture.AddLayer(Resources[_buildingFile][151, 101, 49, 49], x, y);
-			if (typeof(T) == typeof(SdiDefense))
-				picture.AddLayer(Resources[_buildingFile][151, 151, 49, 49], x, y);
-			if (typeof(T) == typeof(RecyclingCenter))
-				picture.AddLayer(Resources[_buildingFile][201, 1, 49, 49], x, y);
-			if (typeof(T) == typeof(NuclearPlant))
-				picture.AddLayer(Resources[_buildingFile][201, 151, 49, 49], x, y);
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.ALERT, "+");
+			else if (typeof(T) == typeof(Granary))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BORDER, CassetteTheme.OK, "o");
+			else if (typeof(T) == typeof(Temple))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.PHOS_GLOW, "*");
+			else if (typeof(T) == typeof(MarketPlace))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.PHOS_DIM, "$");
+			else if (typeof(T) == typeof(Library))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.CYAN, "L");
+			else if (typeof(T) == typeof(Courthouse))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BORDER, CassetteTheme.WHITE, "T");
+			else if (typeof(T) == typeof(Bank))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.PHOS_GLOW, "$$");
+			else if (typeof(T) == typeof(Cathedral))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.WHITE, "^");
+			else if (typeof(T) == typeof(UniversityBuilding))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.CYAN, "#");
+			else if (typeof(T) == typeof(Colosseum))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.INK_MID, "oo");
+			else if (typeof(T) == typeof(Factory))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.INK_MID, "~",
+				                   CassetteTheme.INK_MID, 1);
+			else if (typeof(T) == typeof(MfgPlant))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG1, CassetteTheme.INK_MID, "~",
+				                   CassetteTheme.INK_MID, 2);
+			else if (typeof(T) == typeof(SdiDefense))
+			{
+				// Dome shape
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG2, CassetteTheme.PHOS_GLOW, "o");
+				// Beacon highlight
+				picture.FillRectangle(x + 22, y + 4, 5, 5, CassetteTheme.PHOS_GLOW);
+			}
+			else if (typeof(T) == typeof(RecyclingCenter))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.OK, "X");
+			else if (typeof(T) == typeof(NuclearPlant))
+			{
+				DrawNativeBuilding(picture, x, y, CassetteTheme.BG1, CassetteTheme.CYAN, "oo",
+				                   CassetteTheme.INK_MID, 2);
+				// Inner accent ring: ALERT
+				picture.FillRectangle(x + 20, y + 20, 9, 2, CassetteTheme.ALERT);
+				picture.FillRectangle(x + 20, y + 27, 9, 2, CassetteTheme.ALERT);
+				picture.FillRectangle(x + 20, y + 20, 2, 9, CassetteTheme.ALERT);
+				picture.FillRectangle(x + 27, y + 20, 2, 9, CassetteTheme.ALERT);
+			}
 		}
 
 		private void DrawBuildingOverlay<T>(int x, int y, int offset = -18) where T : IBuilding
@@ -361,6 +511,8 @@ namespace CivOne.Screens
 				DrawBuilding<T>(_overlay, x, y + offset);
 		}
 
+		// ── city map (unchanged) ──────────────────────────────────────────────
+
 		private CityViewMap[,] GetCityMap
 		{
 			get
@@ -368,7 +520,7 @@ namespace CivOne.Screens
 				Common.SetRandomSeedFromName(_city.Name);
 				_houseType = Common.Random.Next(2);
 
-				CityViewMap[,] cityMap = new CityViewMap[18,11];
+				CityViewMap[,] cityMap = new CityViewMap[18, 11];
 				for (int yy = 0; yy < 11; yy++)
 				for (int xx = 0; xx < 18; xx++)
 				{
@@ -377,8 +529,7 @@ namespace CivOne.Screens
 					if ((xx < 2 && yy < 3) || (xx > 16 && yy > 8))
 						cityMap[xx, yy] = CityViewMap.Occupied;
 				}
-				
-				// This is experimental code, not the same as the original game
+
 				int ww = 4 + _city.Size;
 				int hh = 4 + (_city.Size - 1);
 				if (ww > 18) ww = 18;
@@ -423,7 +574,7 @@ namespace CivOne.Screens
 						}
 					}
 				}
-				
+
 				for (int yy = 0; yy < 11; yy++)
 				for (int xx = 0; xx < 18; xx++)
 				{
@@ -432,7 +583,8 @@ namespace CivOne.Screens
 						if ((xx == 0 || (cityMap[xx - 1, yy] != CityViewMap.House && cityMap[xx - 1, yy] != CityViewMap.Tree)) &&
 							(xx == 17 || (cityMap[xx + 1, yy] != CityViewMap.House && cityMap[xx + 1, yy] != CityViewMap.Tree)) &&
 							(yy == 0 || (cityMap[xx, yy - 1] != CityViewMap.House && cityMap[xx, yy - 1] != CityViewMap.Tree)) &&
-							(yy == 10 || (cityMap[xx, yy + 1] != CityViewMap.House && cityMap[xx, yy + 1] != CityViewMap.Tree))) cityMap[xx, yy] = CityViewMap.Empty;
+							(yy == 10 || (cityMap[xx, yy + 1] != CityViewMap.House && cityMap[xx, yy + 1] != CityViewMap.Tree)))
+							cityMap[xx, yy] = CityViewMap.Empty;
 					}
 					if (cityMap[xx, yy] != CityViewMap.Road) continue;
 					if ((xx == 0 || (int)cityMap[xx - 1, yy] > 1) ||
@@ -441,7 +593,7 @@ namespace CivOne.Screens
 						(yy == 10 || (int)cityMap[xx, yy + 1] > 1)) continue;
 					cityMap[xx, yy] = CityViewMap.Empty;
 				}
-				
+
 				for (int yy = 0; yy < 11; yy++)
 				for (int xx = 0; xx < 18; xx++)
 				{
@@ -454,33 +606,36 @@ namespace CivOne.Screens
 					cityMap[xx, yy] = CityViewMap.Road;
 				}
 
-				
-				foreach (Type type in new Type[] { typeof(Barracks), typeof(Granary), typeof(Temple), typeof(MarketPlace), typeof(Library), typeof(Courthouse), typeof(Bank), typeof(Cathedral), typeof(UniversityBuilding), typeof(Colosseum), typeof(Factory), typeof(MfgPlant), typeof(SdiDefense), typeof(RecyclingCenter), typeof(NuclearPlant), typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage) })
+				foreach (Type type in new Type[] {
+					typeof(Barracks), typeof(Granary), typeof(Temple), typeof(MarketPlace),
+					typeof(Library), typeof(Courthouse), typeof(Bank), typeof(Cathedral),
+					typeof(UniversityBuilding), typeof(Colosseum), typeof(Factory), typeof(MfgPlant),
+					typeof(SdiDefense), typeof(RecyclingCenter), typeof(NuclearPlant),
+					typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage) })
 				{
 					if (_city.HasBuilding(type) || _city.HasWonder(type))
 					{
 						int sizeX = 2, sizeY = 2;
-
 						CityViewMap id;
-						if (type == typeof(Barracks)) id = CityViewMap.Barracks;
-						else if (type == typeof(Granary)) id = CityViewMap.Granary;
-						else if (type == typeof(Temple)) id = CityViewMap.Temple;
-						else if (type == typeof(MarketPlace)) id = CityViewMap.MarketPlace;
-						else if (type == typeof(Library)) id = CityViewMap.Library;
-						else if (type == typeof(Courthouse)) id = CityViewMap.Courthouse;
-						else if (type == typeof(Bank)) id = CityViewMap.Bank;
-						else if (type == typeof(Cathedral)) id = CityViewMap.Cathedral;
+						if      (type == typeof(Barracks))         id = CityViewMap.Barracks;
+						else if (type == typeof(Granary))          id = CityViewMap.Granary;
+						else if (type == typeof(Temple))           id = CityViewMap.Temple;
+						else if (type == typeof(MarketPlace))      id = CityViewMap.MarketPlace;
+						else if (type == typeof(Library))          id = CityViewMap.Library;
+						else if (type == typeof(Courthouse))       id = CityViewMap.Courthouse;
+						else if (type == typeof(Bank))             id = CityViewMap.Bank;
+						else if (type == typeof(Cathedral))        id = CityViewMap.Cathedral;
 						else if (type == typeof(UniversityBuilding)) id = CityViewMap.University;
-						else if (type == typeof(Colosseum)) id = CityViewMap.Colosseum;
-						else if (type == typeof(Factory)) id = CityViewMap.Factory;
-						else if (type == typeof(MfgPlant)) id = CityViewMap.MfgPlant;
-						else if (type == typeof(SdiDefense)) id = CityViewMap.SdiDefense;
-						else if (type == typeof(RecyclingCenter)) id = CityViewMap.RecyclingCenter;
-						else if (type == typeof(NuclearPlant)) id = CityViewMap.NuclearPlant;
-						else if (type == typeof(Lighthouse)) id = CityViewMap.Lighthouse;
-						else if (type == typeof(HangingGardens)) { id = CityViewMap.HangingGardens; sizeX = 3; sizeY = 3; }
-						else if (type == typeof(Oracle)) { id = CityViewMap.Oracle; sizeX = 3; sizeY = 3; }
-						else if (type == typeof(DarwinsVoyage)) { id = CityViewMap.DarwinsVoyage; sizeX = 3; sizeY = 3; }
+						else if (type == typeof(Colosseum))        id = CityViewMap.Colosseum;
+						else if (type == typeof(Factory))          id = CityViewMap.Factory;
+						else if (type == typeof(MfgPlant))         id = CityViewMap.MfgPlant;
+						else if (type == typeof(SdiDefense))       id = CityViewMap.SdiDefense;
+						else if (type == typeof(RecyclingCenter))  id = CityViewMap.RecyclingCenter;
+						else if (type == typeof(NuclearPlant))     id = CityViewMap.NuclearPlant;
+						else if (type == typeof(Lighthouse))       id = CityViewMap.Lighthouse;
+						else if (type == typeof(HangingGardens))  { id = CityViewMap.HangingGardens; sizeX = 3; sizeY = 3; }
+						else if (type == typeof(Oracle))           { id = CityViewMap.Oracle;         sizeX = 3; sizeY = 3; }
+						else if (type == typeof(DarwinsVoyage))    { id = CityViewMap.DarwinsVoyage;  sizeX = 3; sizeY = 3; }
 						else continue;
 
 						for (int i = 0; i < 1000; i++)
@@ -497,10 +652,9 @@ namespace CivOne.Screens
 							{
 								if ((int)cityMap[xx + ox, yy + oy] <= 3) continue;
 								invalid = true;
-								break; 
+								break;
 							}
 							if (invalid) continue;
-
 							cityMap[xx, yy] = id;
 							for (int oy = 0; oy < sizeY; oy++)
 							for (int ox = 0; ox < sizeX; ox++)
@@ -512,10 +666,11 @@ namespace CivOne.Screens
 						}
 					}
 				}
-
 				return cityMap;
 			}
 		}
+
+		// ── DrawBuildings ─────────────────────────────────────────────────────
 
 		private void DrawBuildings()
 		{
@@ -524,33 +679,28 @@ namespace CivOne.Screens
 			if (_city.Wonders.Any(b => b is Pyramids))
 			{
 				DrawWonder<Pyramids>();
-				if (!(_production is Pyramids))
-					DrawWonder<Pyramids>(_overlay);
+				if (!(_production is Pyramids)) DrawWonder<Pyramids>(_overlay);
 			}
 			if (_city.Wonders.Any(b => b is Colossus))
 			{
 				DrawWonder<Colossus>();
-				if (!(_production is Colossus))
-					DrawWonder<Colossus>(_overlay);
+				if (!(_production is Colossus)) DrawWonder<Colossus>(_overlay);
 			}
 			if (_city.Wonders.Any(b => b is GreatWall))
 			{
 				DrawWonder<GreatWall>();
-				if (!(_production is GreatWall))
-					DrawWonder<GreatWall>(_overlay);
+				if (!(_production is GreatWall)) DrawWonder<GreatWall>(_overlay);
 			}
 			if (_city.Wonders.Any(b => b is HooverDam))
 			{
 				DrawWonder<HooverDam>();
-				if (!(_production is HooverDam))
-					DrawWonder<HooverDam>(_overlay);
+				if (!(_production is HooverDam)) DrawWonder<HooverDam>(_overlay);
 			}
 
 			if (_city.Buildings.Any(b => b is Aqueduct))
 			{
 				DrawBuilding<Aqueduct>();
-				if (!(_production is Aqueduct))
-					DrawBuilding<Aqueduct>(_overlay);
+				if (!(_production is Aqueduct)) DrawBuilding<Aqueduct>(_overlay);
 			}
 
 			int stage = (int)Math.Floor((double)(Game.GetPlayer(_city.Owner).Advances.Count() - 9) / 2);
@@ -563,206 +713,45 @@ namespace CivOne.Screens
 				switch (cityMap[xx, yy])
 				{
 					case CityViewMap.House:
-						int centerDistance = Math.Max(Math.Abs(9 - xx), yy);
-						if (stage >= 20)
-						{
-							if (_city.Size > 8 && Common.Random.Next((_city.Size - 7) * 2) > centerDistance)
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 8), (Common.Random.Next(10) > 5) ? 1 : 33, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 9), (Common.Random.Next(10) > 5) ? 1 : 33, 31, 31];
-								}
-							}
-							else
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 6), 33, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 7), 33, 31, 31];
-								}
-							}
-						}
-						else if (stage >= 16)
-						{
-							if (Common.Random.Next(stage - 16) > centerDistance)
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 6), 1, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 7), 1, 31, 31];
-								}
-							}
-							else
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 4), 33, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 5), 33, 31, 31];
-								}
-							}
-						}
-						else if (stage >= 7)
-						{
-							if (Common.Random.Next(stage - 7) > centerDistance)
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 4), 1, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 5), 1, 31, 31];
-								}
-							}
-							else
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 2), 33, 31, 31];
-								}
-								else
-								{
-									building = Resources["CITYPIX1"][1 + (32 * 3), 33, 31, 31];
-								}
-							}
-						}
-						else if (stage >= 1)
-						{
-							if (Common.Random.Next(stage) > centerDistance)
-							{
-								if (Common.Random.Next(10) > 5)
-								{
-									if (Common.Random.Next((stage - 5) * 4) > centerDistance)
-									{
-										building = Resources["CITYPIX1"][1 + (32 * 2), 33, 31, 31];
-									}
-									else
-									{
-										building = Resources["CITYPIX1"][1 + (32 * 2), 1, 31, 31];
-									}
-								}
-								else
-								{
-									if (Common.Random.Next((stage - 5) * 4) > centerDistance)
-									{
-										building = Resources["CITYPIX1"][1 + (32 * 3), 33, 31, 31];
-									}
-									else
-									{
-										building = Resources["CITYPIX1"][1 + (32 * 3), 1, 31, 31];
-									}
-								}
-							}
-							else
-							{
-								building = Resources["CITYPIX1"][1 + (32 * _houseType), 33, 31, 31];
-							}
-						}
-						else
-						{
-							if (Common.Random.Next((-3 - stage)) > centerDistance)
-							{
-								building = Resources["CITYPIX1"][1 + (32 * _houseType), 33, 31, 31];
-							}
-							else
-							{
-								building = Resources["CITYPIX1"][1 + (32 * _houseType), 1, 31, 31];
-							}
-						}
+						building = NativeHouse(stage, _houseType);
 						break;
 					case CityViewMap.Tree:
-						building = Resources["CITYPIX1"][0, 65, 24, 8];
+						building = NativeTree();
 						dx -= 5;
 						dy += 24;
 						break;
 					case CityViewMap.Road:
+					{
 						Direction road = 0;
 						if (yy < cityMap.GetUpperBound(1) && cityMap[xx, yy + 1] == CityViewMap.Road) road |= Direction.North;
 						if (xx < cityMap.GetUpperBound(0) && cityMap[xx + 1, yy] == CityViewMap.Road) road |= Direction.East;
-						if (yy > 0 && cityMap[xx, yy - 1] == CityViewMap.Road) road |= Direction.South;
-						if (xx > 0 && cityMap[xx - 1, yy] == CityViewMap.Road) road |= Direction.West;
-
-						int sx = (int)road;
-						int sy = 65;
-						if (sx == 0) continue;
-						if (sx > 7) sy += 8;
-						sx = (sx % 8) * 24;
-						if (Game.GetPlayer(_city.Owner).HasAdvance<Automobile>()) sy += 16;
-						building = Resources["CITYPIX1"][sx, sy, 24, 8];
+						if (yy > 0 && cityMap[xx, yy - 1] == CityViewMap.Road)                        road |= Direction.South;
+						if (xx > 0 && cityMap[xx - 1, yy] == CityViewMap.Road)                        road |= Direction.West;
+						if (road == 0) continue;
+						building = NativeRoad(road);
 						dx -= 5;
 						dy += 24;
 						break;
-					case CityViewMap.Barracks:
-						DrawBuildingOverlay<Barracks>(dx, dy);
-						continue;
-					case CityViewMap.Granary:
-						DrawBuildingOverlay<Granary>(dx, dy);
-						continue;
-					case CityViewMap.Temple:
-						DrawBuildingOverlay<Temple>(dx, dy);
-						continue;
-					case CityViewMap.MarketPlace:
-						DrawBuildingOverlay<MarketPlace>(dx, dy);
-						continue;
-					case CityViewMap.Library:
-						DrawBuildingOverlay<Library>(dx, dy);
-						continue;
-					case CityViewMap.Courthouse:
-						DrawBuildingOverlay<Courthouse>(dx, dy);
-						continue;
-					case CityViewMap.Bank:
-						DrawBuildingOverlay<Bank>(dx, dy);
-						continue;
-					case CityViewMap.Cathedral:
-						DrawBuildingOverlay<Cathedral>(dx, dy);
-						continue;
-					case CityViewMap.University:
-						DrawBuildingOverlay<UniversityBuilding>(dx, dy);
-						continue;
-					case CityViewMap.Colosseum:
-						DrawBuildingOverlay<Colosseum>(dx, dy);
-						continue;
-					case CityViewMap.Factory:
-						DrawBuildingOverlay<Factory>(dx, dy);
-						continue;
-					case CityViewMap.MfgPlant:
-						DrawBuildingOverlay<MfgPlant>(dx, dy);
-						continue;
-					case CityViewMap.SdiDefense:
-						DrawBuildingOverlay<SdiDefense>(dx, dy);
-						continue;
-					case CityViewMap.RecyclingCenter:
-						DrawBuildingOverlay<RecyclingCenter>(dx, dy);
-						continue;
-					case CityViewMap.NuclearPlant:
-						DrawBuildingOverlay<NuclearPlant>(dx, dy);
-						continue;
-					case CityViewMap.Lighthouse:
-						DrawWonderOverlay<Lighthouse>(dx, dy, -52);
-						continue;
-					//
-					case CityViewMap.HangingGardens:
-						DrawWonderOverlay<HangingGardens>(dx, dy, -19);
-						continue;
-					case CityViewMap.Oracle:
-						DrawWonderOverlay<Oracle>(dx, dy, -20);
-						continue;
-					case CityViewMap.DarwinsVoyage:
-						DrawWonderOverlay<DarwinsVoyage>(dx, dy, -16);
-						continue;
+					}
+					case CityViewMap.Barracks:      DrawBuildingOverlay<Barracks>(dx, dy);         continue;
+					case CityViewMap.Granary:        DrawBuildingOverlay<Granary>(dx, dy);          continue;
+					case CityViewMap.Temple:         DrawBuildingOverlay<Temple>(dx, dy);           continue;
+					case CityViewMap.MarketPlace:    DrawBuildingOverlay<MarketPlace>(dx, dy);      continue;
+					case CityViewMap.Library:        DrawBuildingOverlay<Library>(dx, dy);          continue;
+					case CityViewMap.Courthouse:     DrawBuildingOverlay<Courthouse>(dx, dy);       continue;
+					case CityViewMap.Bank:           DrawBuildingOverlay<Bank>(dx, dy);             continue;
+					case CityViewMap.Cathedral:      DrawBuildingOverlay<Cathedral>(dx, dy);        continue;
+					case CityViewMap.University:     DrawBuildingOverlay<UniversityBuilding>(dx, dy); continue;
+					case CityViewMap.Colosseum:      DrawBuildingOverlay<Colosseum>(dx, dy);        continue;
+					case CityViewMap.Factory:        DrawBuildingOverlay<Factory>(dx, dy);          continue;
+					case CityViewMap.MfgPlant:       DrawBuildingOverlay<MfgPlant>(dx, dy);         continue;
+					case CityViewMap.SdiDefense:     DrawBuildingOverlay<SdiDefense>(dx, dy);       continue;
+					case CityViewMap.RecyclingCenter: DrawBuildingOverlay<RecyclingCenter>(dx, dy); continue;
+					case CityViewMap.NuclearPlant:   DrawBuildingOverlay<NuclearPlant>(dx, dy);     continue;
+					case CityViewMap.Lighthouse:     DrawWonderOverlay<Lighthouse>(dx, dy, -52);    continue;
+					case CityViewMap.HangingGardens: DrawWonderOverlay<HangingGardens>(dx, dy, -19); continue;
+					case CityViewMap.Oracle:         DrawWonderOverlay<Oracle>(dx, dy, -20);        continue;
+					case CityViewMap.DarwinsVoyage:  DrawWonderOverlay<DarwinsVoyage>(dx, dy, -16); continue;
 					default: continue;
 				}
 				_background.AddLayer(building, dx, dy);
@@ -772,49 +761,290 @@ namespace CivOne.Screens
 			if (_city.Buildings.Any(b => b is CityWalls))
 			{
 				DrawBuilding<CityWalls>();
-				if (!(_production is CityWalls))
-					DrawBuilding<CityWalls>( _overlay);
+				if (!(_production is CityWalls)) DrawBuilding<CityWalls>(_overlay);
 			}
 		}
 
-		public static CityView Capture(City city)
+		// ── native animation frames ───────────────────────────────────────────
+
+		private static void DrawStickFigure(Picture p, int x, int y, int frame, byte col)
 		{
-			return new CityView(city, captured: true);
-		}
-		
-		public static CityView Disorder(City city)
-		{
-			return new CityView(city, disorder: true);
+			// Head
+			p.FillRectangle(x + 5, y,     4, 4, CassetteTheme.INK_MID);
+			// Body
+			p.FillRectangle(x + 6, y + 5, 2, 10, col);
+			// Arms
+			if (frame % 2 == 0)
+			{
+				p.FillRectangle(x + 2, y + 7, 4, 2, col);
+				p.FillRectangle(x + 8, y + 7, 4, 2, col);
+			}
+			else
+			{
+				p.FillRectangle(x + 2, y + 9, 4, 2, col);
+				p.FillRectangle(x + 8, y + 9, 4, 2, col);
+			}
+			// Legs
+			if (frame % 2 == 0)
+			{
+				p.FillRectangle(x + 4, y + 15, 2, 10, col);
+				p.FillRectangle(x + 8, y + 15, 2, 10, col);
+			}
+			else
+			{
+				p.FillRectangle(x + 3, y + 15, 2, 10, col);
+				p.FillRectangle(x + 9, y + 15, 2, 10, col);
+			}
 		}
 
-		public static CityView WeLovePresidentDay(City city)
+		private static Picture NativeAnimFrame(int frameIndex, bool isCapture, bool isLove)
 		{
-			return new CityView(city, weLovePresidentDay: true);
+			byte col = isCapture ? CassetteTheme.ALERT
+			         : isLove    ? CassetteTheme.PHOS_GLOW
+			                     : CassetteTheme.PHOS_DIM;
+			var p = new Picture(78, 65);
+			p.FillRectangle(0, 0, 78, 65, CassetteTheme.BG0);
+			for (int i = 0; i < 4; i++)
+				DrawStickFigure(p, 4 + i * 18, 30, frameIndex, col);
+			return p;
 		}
 
-		public CityView(City city, bool founded = false, bool firstView = false, IProduction production = null, bool captured = false, bool disorder = false, bool weLovePresidentDay = false, bool viewOnly = false)
-		{
-			_dialogText = TextSettings.ShadowText(15, 5);
-			_dialogText.FontId = 5;
+		// ── palette / fade helpers ────────────────────────────────────────────
 
-			_city = city;
+		private Colour FadeColour(Colour colour1, Colour colour2)
+		{
+			int r = (int)(colour1.R * (1.0F - _fadeStep) + colour2.R * _fadeStep);
+			int g = (int)(colour1.G * (1.0F - _fadeStep) + colour2.G * _fadeStep);
+			int b = (int)(colour1.B * (1.0F - _fadeStep) + colour2.B * _fadeStep);
+			return new Colour(r, g, b);
+		}
+
+		private void FadeColours()
+		{
+			if (Settings.GraphicsMode != GraphicsMode.Graphics256) return;
+			Palette palette = _background.Palette;
+			for (int i = 1; i < 256; i++)
+				palette[i] = FadeColour(new Colour(0, 0, 0), _background.OriginalColours[i]);
+			this.SetPalette(palette);
+		}
+
+		// ── firework / smoke helpers ──────────────────────────────────────────
+
+		private static readonly byte[] _fireworkCols
+			= { CassetteTheme.PHOS_GLOW, CassetteTheme.CYAN, CassetteTheme.OK, CassetteTheme.PHOS };
+
+		private void DrawBurstRing(int cx, int cy, int r, byte col)
+		{
+			int d = Math.Max(1, r * 7 / 10);
+			int[,] pts = { {cx,cy-r},{cx,cy+r},{cx-r,cy},{cx+r,cy},
+			               {cx-d,cy-d},{cx+d,cy-d},{cx-d,cy+d},{cx+d,cy+d} };
+			for (int i = 0; i < 8; i++)
+				this.FillRectangle(OX + pts[i, 0], OY + pts[i, 1], 1, 1, col);
+		}
+
+		private void UpdateFireworks(uint gameTick)
+		{
+			if (gameTick % 18 == 0)
+				_bursts.Add(new FireworkBurst
+				{
+					X   = Common.Random.Next(240) + 40,
+					Y   = Common.Random.Next(42) + 6,
+					Age = 0,
+					Col = _fireworkCols[Common.Random.Next(_fireworkCols.Length)]
+				});
+			for (int i = _bursts.Count - 1; i >= 0; i--)
+			{
+				var b = _bursts[i];
+				int r = b.Age + 1;
+				DrawBurstRing(b.X, b.Y, r, b.Col);
+				if (b.Age > 2) DrawBurstRing(b.X, b.Y, r - 2, CassetteTheme.PHOS_DIM);
+				_bursts[i] = new FireworkBurst { X = b.X, Y = b.Y, Age = b.Age + 1, Col = b.Col };
+				if (_bursts[i].Age >= 14) _bursts.RemoveAt(i);
+			}
+		}
+
+		private void UpdateSmoke(uint gameTick)
+		{
+			if (gameTick % 3 == 0)
+				foreach (var src in _smokeSources)
+					_smokeParticles.Add(new SmokeParticle { X = src.X, Y = src.Y, Age = 0 });
+			for (int i = _smokeParticles.Count - 1; i >= 0; i--)
+			{
+				var p = _smokeParticles[i];
+				float nx = p.X + (Common.Random.Next(3) - 1) * 0.6f;
+				float ny = p.Y - 0.7f;
+				int   na = p.Age + 1;
+				byte  col = na < 8 ? CassetteTheme.INK_MID : CassetteTheme.INK_LOW;
+				this.FillRectangle(OX + (int)nx, OY + (int)ny, na < 6 ? 2 : 1, na < 6 ? 2 : 1, col);
+				_smokeParticles[i] = new SmokeParticle { X = nx, Y = ny, Age = na };
+				if (na > 22 || (int)ny < 2) _smokeParticles.RemoveAt(i);
+			}
+		}
+
+		// ── native citizens ───────────────────────────────────────────────────
+
+		private void DrawNativeCitizen(uint gameTick, Citizen citizen, int dx, int dy)
+		{
+			byte col;
+			switch (citizen)
+			{
+				case Citizen.HappyMale:
+				case Citizen.HappyFemale:
+					col = CassetteTheme.PHOS_GLOW; break;
+				case Citizen.UnhappyMale:
+				case Citizen.UnhappyFemale:
+					col = CassetteTheme.ALERT; break;
+				default:
+					col = CassetteTheme.INK_MID; break;
+			}
+			// Head
+			this.FillRectangle(OX + dx + 6, OY + dy + 1, 4, 4, col);
+			// Body
+			this.FillRectangle(OX + dx + 5, OY + dy + 6, 6, 10, col);
+			// Legs (animated)
+			bool phase = (gameTick / 4) % 2 == 0;
+			this.FillRectangle(OX + dx + 4, OY + dy + 17, 2, 8, col);
+			this.FillRectangle(OX + dx + 9, OY + dy + (phase ? 17 : 18), 2, 8, col);
+		}
+
+		// ── HasUpdate ─────────────────────────────────────────────────────────
+
+		protected override bool HasUpdate(uint gameTick)
+		{
+			if (gameTick % 4 == 0)
+			{
+				this.Cycle(64, 79);
+				_update = true;
+			}
+
+			if (_viewOnly)
+			{
+				this.AddLayer(_background, OX, OY);
+				if (_viewCelebrate) UpdateFireworks(gameTick);
+				if (_viewDisorder)  UpdateSmoke(gameTick);
+				return true;
+			}
+
+			if (_captured || _disorder)
+			{
+				this.AddLayer(_background, OX, OY);
+				int frame = ((_x % 30) + 30) % 30 / 3;
+				for (int i = 7; i >= 0; i--)
+				{
+					int xx = (_x - 65) - (48 * i);
+					if (xx + 78 <= 0) continue;
+					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
+				}
+				_x++;
+				return true;
+			}
+
+			if (_weLovePresidentDay)
+			{
+				this.AddLayer(_background, OX, OY);
+				int frame = (((_x + 600) % 30) + 30) % 30 / 3;
+				for (int i = 0; i <= 7; i++)
+				{
+					int xx = (_x + 65) + (48 * i);
+					this.AddLayer(_invadersOrRevolters[frame], OX + xx, OY + _y);
+				}
+				_x--;
+				return true;
+			}
+
+			if (_noiseMap != null)
+			{
+				if (_noiseCounter > 0)
+				{
+					_overlay.ApplyNoise(_noiseMap, _noiseCounter--);
+					this.AddLayer(_background, OX, OY)
+						.AddLayer(_overlay, OX, OY);
+					return true;
+				}
+				return false;
+			}
+
+			if (_founded)
+			{
+				if (_fadeStep < 1.0f)
+				{
+					_fadeStep = Math.Min(1.0f, _fadeStep + FADE_STEP);
+					FadeColours();
+				}
+				this.AddLayer(_background, OX, OY)
+					.DrawText($"{_city.Name} founded: {Game.GameYear}.", 5, 5, OX + 161, OY + 3, TextAlign.Center);
+				if (_fadeStep >= 1.0f && gameTick % 3 == 0 && ++_x > 25)
+				{
+					Destroy();
+					return true;
+				}
+				return true;
+			}
+
+			if (_firstView && _fadeStep < 1.0f)
+			{
+				_fadeStep += FADE_STEP;
+				if (_fadeStep > 1.0f) _fadeStep = 1.0f;
+				FadeColours();
+			}
+
+			if (_update) _update = false;
+			return true;
+		}
+
+		// ── input ─────────────────────────────────────────────────────────────
+
+		private bool SkipAction()
+		{
+			if (_viewOnly) { Destroy(); return true; }
+			if (_fadeStep != 0.0F && _fadeStep != 1.0F) return false;
+			if (_noiseCounter > 0 && _noiseCounter < NOISE_COUNT) return false;
+			Destroy();
+			if (Skipped != null)
+				Skipped(this, null);
+			else
+				HandleClose();
+			return true;
+		}
+
+		public override bool KeyDown(KeyboardEventArgs args)  => SkipAction();
+		public override bool MouseDown(ScreenEventArgs args)  => SkipAction();
+
+		// ── static factory methods ────────────────────────────────────────────
+
+		public static CityView Capture(City city)           => new CityView(city, captured: true);
+		public static CityView Disorder(City city)          => new CityView(city, disorder: true);
+		public static CityView WeLovePresidentDay(City city) => new CityView(city, weLovePresidentDay: true);
+
+		// ── constructor ───────────────────────────────────────────────────────
+
+		public CityView(City city, bool founded = false, bool firstView = false,
+		                IProduction production = null, bool captured = false,
+		                bool disorder = false, bool weLovePresidentDay = false,
+		                bool viewOnly = false)
+		{
+			_dialogText         = TextSettings.ShadowText(15, 5);
+			_dialogText.FontId  = 5;
+
+			_city       = city;
 			_production = production;
-			_background = new Picture(Resources["HILL"]);
-			_founded = founded;
-			_firstView = firstView;
+			_founded    = founded;
+			_firstView  = firstView;
 
-			Palette = _background.Palette;
-			_overlay = new Picture(_background);
+			// Native background — no original game assets
+			_background = NativeBackground();
+			Palette     = _background.Palette;
+			_overlay    = new Picture(_background);
 
 			DrawBuildings();
 			this.AddLayer(_background, OX, OY);
 
+			// ── view-only panorama ────────────────────────────────────────────
 			if (_viewOnly = viewOnly)
 			{
 				_viewCelebrate = city.WasWeLoveKing && !city.IsInDisorder;
 				_viewDisorder  = city.IsInDisorder;
-				// Pick 3 smoke-source positions in the building band
-				_smokeSources = new[]
+				_smokeSources  = new[]
 				{
 					(Common.Random.Next(60) + 70,  Common.Random.Next(12) + 68),
 					(Common.Random.Next(60) + 140, Common.Random.Next(12) + 72),
@@ -822,54 +1052,32 @@ namespace CivOne.Screens
 				};
 				return;
 			}
-			
+
+			// ── capture ───────────────────────────────────────────────────────
 			if (_captured = captured)
 			{
-				Picture invaders;
-				int xx = 0, yy = 2, ww = 78, hh = 60;
-				if (Game.CurrentPlayer.HasAdvance<Conscription>())
-				{
-					invaders = Resources["INVADERS"];
-				}
-				else if (Game.CurrentPlayer.HasAdvance<Gunpowder>())
-				{
-					invaders = Resources["INVADER2"];
-				}
-				else
-				{
-					invaders = Resources["INVADER3"];
-					xx = 1;
-					yy = 1;
-					ww = 78;
-					hh = 65;
-					_y = 133;
-				}
-
 				_invadersOrRevolters = new Picture[10];
 				for (int ii = 0; ii < 10; ii++)
-				{
-					int frameX = (ii % 4);
-					int frameY = (ii - frameX) / 4;
-					_invadersOrRevolters[ii] = invaders[xx + (frameX * (ww + 1)), yy + (frameY * (hh + 1)), ww, hh];
-				}
+					_invadersOrRevolters[ii] = NativeAnimFrame(ii, true, false);
 				_x = 0;
 
 				int totalLuxuries = Game.GetPlayer(_city.Owner).Cities.Sum(x => x.Luxuries);
-				int totalGold = Game.GetPlayer(_city.Owner).Gold;
-				int cityLuxuries = _city.Luxuries;
+				int totalGold     = Game.GetPlayer(_city.Owner).Gold;
+				int cityLuxuries  = _city.Luxuries;
 				if (cityLuxuries == 0) cityLuxuries = 1;
-				int captureGold = (totalLuxuries > 0)
+				int captureGold   = (totalLuxuries > 0)
 					? (int)Math.Floor(((float)totalGold / totalLuxuries) * cityLuxuries)
 					: totalGold;
 				if (captureGold < 0) captureGold = 0;
 				if (captureGold > totalGold) captureGold = totalGold;
 
-				Game.GetPlayer(_city.Owner).Gold = (short)Math.Max(0, (int)Game.GetPlayer(_city.Owner).Gold - captureGold);
-				Game.CurrentPlayer.Gold = (short)Math.Min(30000, (int)Game.CurrentPlayer.Gold + captureGold);
-				
-				string[] lines =  new [] { $"{Game.CurrentPlayer.TribeNamePlural} capture", $"{city.Name}. {captureGold} gold", "pieces plundered." };
+				Game.GetPlayer(_city.Owner).Gold = (short)Math.Max(0, Game.GetPlayer(_city.Owner).Gold - captureGold);
+				Game.CurrentPlayer.Gold          = (short)Math.Min(30000, Game.CurrentPlayer.Gold + captureGold);
+
+				string[] lines = { $"{Game.CurrentPlayer.TribeNamePlural} capture",
+				                   $"{city.Name}. {captureGold} gold", "pieces plundered." };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;
-				Picture dialog = new Picture(width, 54)
+				var dialog = new Picture(width, 54)
 					.Tile(Pattern.PanelGrey, 1, 1)
 					.DrawRectangle()
 					.DrawRectangle3D(1, 1, width - 2, 52)
@@ -877,37 +1085,20 @@ namespace CivOne.Screens
 					.DrawText(lines[1], 5, 21, _dialogText)
 					.DrawText(lines[2], 5, 36, _dialogText)
 					.As<Picture>();
-
 				_background.AddLayer(dialog, 80, 8);
 			}
 
+			// ── disorder ──────────────────────────────────────────────────────
 			if (_disorder = disorder)
 			{
-				Picture revolters;
-				int xx = 1, yy = 1, ww, hh;
-				if (Game.CurrentPlayer.HasAdvance<Conscription>())
-				{
-					ww = 78;
-					hh = 63;
-					revolters = Resources["RIOT"];
-				}
-				else
-				{
-					ww = 74;
-					hh = 65;
-					revolters = Resources["RIOT2"];
-				}
- 				_invadersOrRevolters = new Picture[10];
+				_invadersOrRevolters = new Picture[10];
 				for (int ii = 0; ii < 10; ii++)
-				{
-					int frameX = (ii % 4);
-					int frameY = (ii - frameX) / 4;
-					_invadersOrRevolters[ii] = revolters[xx + (frameX * (ww + 1)), yy + (frameY * (hh + 1)), ww, hh];
-				}
+					_invadersOrRevolters[ii] = NativeAnimFrame(ii, false, false);
 				_x = 0;
- 				string[] lines =  new [] { $"Civil disorder in", $"{city.Name}! Mayor", "flees in panic." };
+
+				string[] lines = { "Civil disorder in", $"{city.Name}! Mayor", "flees in panic." };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;
-				Picture dialog = new Picture(width, 54)
+				var dialog = new Picture(width, 54)
 					.Tile(Pattern.PanelGrey, 1, 1)
 					.DrawRectangle()
 					.DrawRectangle3D(1, 1, width - 2, 52)
@@ -915,32 +1106,20 @@ namespace CivOne.Screens
 					.DrawText(lines[1], 5, 21, _dialogText)
 					.DrawText(lines[2], 5, 36, _dialogText)
 					.As<Picture>();
- 				_background.AddLayer(dialog, 80, 8);
+				_background.AddLayer(dialog, 80, 8);
 			}
 
- 			if (_weLovePresidentDay = weLovePresidentDay)
+			// ── we love president day ─────────────────────────────────────────
+			if (_weLovePresidentDay = weLovePresidentDay)
 			{
-				Picture marchers;
-				int xx = 1, yy = 1, ww = 78, hh = 65;
-				if (Game.CurrentPlayer.HasAdvance<Conscription>())
-				{
-					marchers = Resources["LOVE2"];
-				}
-				else
-				{
-					marchers = Resources["LOVE1"];
-				}
- 				_invadersOrRevolters = new Picture[10];
+				_invadersOrRevolters = new Picture[10];
 				for (int ii = 0; ii < 10; ii++)
-				{
-					int frameX = (ii % 4);
-					int frameY = (ii - frameX) / 4;
-					_invadersOrRevolters[ii] = marchers[xx + (frameX * (ww + 1)), yy + (frameY * (hh + 1)), ww, hh];
-				}
+					_invadersOrRevolters[ii] = NativeAnimFrame(ii, false, true);
 				_x = 240;
- 				string[] lines =  new [] { $"'We Love the President'", $"day celebrated in", $"{city.Name}!" };
+
+				string[] lines = { "'We Love the President'", "day celebrated in", $"{city.Name}!" };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;
-				Picture dialog = new Picture(width, 54)
+				var dialog = new Picture(width, 54)
 					.Tile(Pattern.PanelGrey, 1, 1)
 					.DrawRectangle()
 					.DrawRectangle3D(1, 1, width - 2, 52)
@@ -948,32 +1127,28 @@ namespace CivOne.Screens
 					.DrawText(lines[1], 5, 21, _dialogText)
 					.DrawText(lines[2], 5, 36, _dialogText)
 					.As<Picture>();
- 				_background.AddLayer(dialog, 80, 8);
+				_background.AddLayer(dialog, 80, 8);
 			}
 
+			// ── production complete noise wipe ────────────────────────────────
 			if (production != null)
 			{
 				_noiseMap = new byte[320, 200];
 				for (int x = 0; x < 320; x++)
 				for (int y = 0; y < 200; y++)
-				{
 					_noiseMap[x, y] = (byte)Common.Random.Next(1, NOISE_COUNT);
-				}
 
-				string[] lines =  new [] { $"{_city.Name} builds", $"{(production as ICivilopedia).Name}." };
+				string[] lines = { $"{_city.Name} builds", $"{(production as ICivilopedia).Name}." };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;
-				Picture dialog = new Picture(width, 39)
+				var dialog = new Picture(width, 39)
 					.Tile(Pattern.PanelGrey, 1, 1)
 					.DrawRectangle()
 					.DrawRectangle3D(1, 1, width - 2, 37)
 					.DrawText(lines[0], 5, 6, _dialogText)
 					.DrawText(lines[1], 5, 21, _dialogText)
 					.As<Picture>();
-
-				foreach (Picture picture in new[] { _background, _overlay })
-				{
-					picture.AddLayer(dialog, 80, 10);
-				}
+				foreach (var pic in new[] { _background, _overlay })
+					pic.AddLayer(dialog, 80, 10);
 				return;
 			}
 
@@ -986,11 +1161,11 @@ namespace CivOne.Screens
 				return;
 			}
 
-			this.DrawText(_city.Name, 5, 5, OX + 161, OY + 3, TextAlign.Center)
-				.DrawText(_city.Name, 5, 15, OX + 160, OY + 2, TextAlign.Center)
-				.DrawText(Game.GameYear, 5, 5, OX + 161, OY + 16, TextAlign.Center)
+			this.DrawText(_city.Name, 5, 5,  OX + 161, OY + 3,  TextAlign.Center)
+				.DrawText(_city.Name, 5, 15, OX + 160, OY + 2,  TextAlign.Center)
+				.DrawText(Game.GameYear, 5, 5,  OX + 161, OY + 16, TextAlign.Center)
 				.DrawText(Game.GameYear, 5, 15, OX + 160, OY + 15, TextAlign.Center);
-			
+
 			if (firstView)
 			{
 				_fadeStep = 0.0f;
@@ -998,18 +1173,15 @@ namespace CivOne.Screens
 				return;
 			}
 
-			int i = 0;
+			// ── citizens ──────────────────────────────────────────────────────
+			int ci = 0;
 			int group = -1;
 			int offsetX = 24;
-			bool modern = Human.HasAdvance<Industrialization>();
 			foreach (Citizen citizen in _city.Citizens)
 			{
 				if (group != (group = Common.CitizenGroup(citizen)) && group > 0) offsetX += 8;
-
-				int sx = ((int)(citizen) * 35) + 1, sy = (modern ? 1 : 52);
-				int sw = 34, sh = (modern ? 50 : 52);
-				int dx = (int)(citizen) + offsetX + (11 * i++), dy = 140;
-				this.AddLayer(Resources["POP"][sx, sy, sw, sh], OX + dx, OY + dy);
+				int dx = (int)citizen + offsetX + (11 * ci++);
+				DrawNativeCitizen(0, citizen, dx, 140);
 			}
 		}
 	}
