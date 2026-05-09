@@ -314,6 +314,8 @@ namespace CivOne.Screens
 				rowY += fh0 + 1;
 			}
 
+			DrawButton("VIEW", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
+				px + pw - 72, rateY + rateH - 13, 34, 11);
 			DrawButton("MAP", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
 				px + pw - 36, rateY + rateH - 13, 34, 11);
 		}
@@ -529,6 +531,15 @@ namespace CivOne.Screens
 				return new Rectangle(ColCenterX + ColCenterW - 36, rateY + rateH - 13, 34, 11);
 			}
 		}
+		private Rectangle ViewButtonRect
+		{
+			get
+			{
+				int rateY = BodyY + ColCenterW + 8 + ColGap;
+				int rateH = BodyY + BodyH - rateY;
+				return new Rectangle(ColCenterX + ColCenterW - 72, rateY + rateH - 13, 34, 11);
+			}
+		}
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
@@ -680,8 +691,9 @@ namespace CivOne.Screens
 				return true;  // consume click in buildings panel
 			}
 
-			// MAP button in RATES panel
-			if (MapButtonRect.Contains(args.Location)) return true;
+			// MAP / VIEW buttons in RATES panel
+			if (MapButtonRect.Contains(args.Location))  return true;
+			if (ViewButtonRect.Contains(args.Location)) return true;
 
 			// Consume clicks in the left and center columns (no close action there)
 			if (new Rectangle(BodyX, BodyY, BodyW, BodyH).Contains(args.Location))
@@ -708,6 +720,13 @@ namespace CivOne.Screens
 			if (MapButtonRect.Contains(args.Location))
 			{
 				Common.AddScreen(new CityUnitMap(_city));
+				return true;
+			}
+
+			// VIEW button → cityscape panorama
+			if (ViewButtonRect.Contains(args.Location))
+			{
+				Common.AddScreen(new CityView(_city, viewOnly: true));
 				return true;
 			}
 

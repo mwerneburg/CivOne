@@ -50,9 +50,23 @@ namespace CivOne.Screens
 		private readonly Picture[] _invadersOrRevolters;
 
 		private bool _update = true;
-		
+
 		private int _x = 80, _y = 138;
 		private float _fadeStep = 1.0f;
+
+		// ── view-only panorama mode ───────────────────────────────────────────
+		private readonly bool _viewOnly;
+		private readonly bool _viewCelebrate;
+		private readonly bool _viewDisorder;
+
+		private struct FireworkBurst { public int X, Y, Age; public byte Col; }
+		private readonly System.Collections.Generic.List<FireworkBurst> _bursts
+			= new System.Collections.Generic.List<FireworkBurst>();
+
+		private struct SmokeParticle { public float X, Y; public int Age; }
+		private readonly System.Collections.Generic.List<SmokeParticle> _smokeParticles
+			= new System.Collections.Generic.List<SmokeParticle>();
+		private (int X, int Y)[] _smokeSources;
 
 		private string _buildingFile = null;
 
@@ -76,12 +90,73 @@ namespace CivOne.Screens
 			this.SetPalette(palette);
 		}
 		
+		private static readonly byte[] _fireworkCols
+			= { CassetteTheme.PHOS_GLOW, CassetteTheme.CYAN, CassetteTheme.OK, CassetteTheme.PHOS };
+
+		private void DrawBurstRing(int cx, int cy, int r, byte col)
+		{
+			int d = Math.Max(1, r * 7 / 10);
+			int[,] pts = { {cx, cy-r}, {cx, cy+r}, {cx-r, cy}, {cx+r, cy},
+			               {cx-d, cy-d}, {cx+d, cy-d}, {cx-d, cy+d}, {cx+d, cy+d} };
+			for (int i = 0; i < 8; i++)
+				this.FillRectangle(OX + pts[i, 0], OY + pts[i, 1], 1, 1, col);
+		}
+
+		private void UpdateFireworks(uint gameTick)
+		{
+			if (gameTick % 18 == 0)
+				_bursts.Add(new FireworkBurst
+				{
+					X   = Common.Random.Next(240) + 40,
+					Y   = Common.Random.Next(42) + 6,
+					Age = 0,
+					Col = _fireworkCols[Common.Random.Next(_fireworkCols.Length)]
+				});
+
+			for (int i = _bursts.Count - 1; i >= 0; i--)
+			{
+				var b = _bursts[i];
+				int r = b.Age + 1;
+				DrawBurstRing(b.X, b.Y, r, b.Col);
+				if (b.Age > 2) DrawBurstRing(b.X, b.Y, r - 2, CassetteTheme.PHOS_DIM);
+				_bursts[i] = new FireworkBurst { X = b.X, Y = b.Y, Age = b.Age + 1, Col = b.Col };
+				if (_bursts[i].Age >= 14) _bursts.RemoveAt(i);
+			}
+		}
+
+		private void UpdateSmoke(uint gameTick)
+		{
+			if (gameTick % 3 == 0)
+				foreach (var src in _smokeSources)
+					_smokeParticles.Add(new SmokeParticle { X = src.X, Y = src.Y, Age = 0 });
+
+			for (int i = _smokeParticles.Count - 1; i >= 0; i--)
+			{
+				var p = _smokeParticles[i];
+				float nx = p.X + (Common.Random.Next(3) - 1) * 0.6f;
+				float ny = p.Y - 0.7f;
+				int   na = p.Age + 1;
+				byte  col = na < 8 ? CassetteTheme.INK_MID : CassetteTheme.INK_LOW;
+				this.FillRectangle(OX + (int)nx, OY + (int)ny, na < 6 ? 2 : 1, na < 6 ? 2 : 1, col);
+				_smokeParticles[i] = new SmokeParticle { X = nx, Y = ny, Age = na };
+				if (na > 22 || (int)ny < 2) _smokeParticles.RemoveAt(i);
+			}
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (gameTick % 4 == 0)
 			{
 				this.Cycle(64, 79);
 				_update = true;
+			}
+
+			if (_viewOnly)
+			{
+				this.AddLayer(_background, OX, OY);
+				if (_viewCelebrate) UpdateFireworks(gameTick);
+				if (_viewDisorder)  UpdateSmoke(gameTick);
+				return true;
 			}
 
 			if (_captured || _disorder)
@@ -155,6 +230,7 @@ namespace CivOne.Screens
 
 		private bool SkipAction()
 		{
+			if (_viewOnly) { Destroy(); return true; }
 			if (_fadeStep != 0.0F && _fadeStep != 1.0F) return false;
 			if (_noiseCounter > 0 && _noiseCounter < NOISE_COUNT) return false;
 
@@ -716,22 +792,36 @@ namespace CivOne.Screens
 			return new CityView(city, weLovePresidentDay: true);
 		}
 
-		public CityView(City city, bool founded = false, bool firstView = false, IProduction production = null, bool captured = false, bool disorder = false, bool weLovePresidentDay = false)
+		public CityView(City city, bool founded = false, bool firstView = false, IProduction production = null, bool captured = false, bool disorder = false, bool weLovePresidentDay = false, bool viewOnly = false)
 		{
 			_dialogText = TextSettings.ShadowText(15, 5);
 			_dialogText.FontId = 5;
-			
+
 			_city = city;
 			_production = production;
 			_background = new Picture(Resources["HILL"]);
 			_founded = founded;
 			_firstView = firstView;
-			
+
 			Palette = _background.Palette;
 			_overlay = new Picture(_background);
 
 			DrawBuildings();
 			this.AddLayer(_background, OX, OY);
+
+			if (_viewOnly = viewOnly)
+			{
+				_viewCelebrate = city.WasWeLoveKing && !city.IsInDisorder;
+				_viewDisorder  = city.IsInDisorder;
+				// Pick 3 smoke-source positions in the building band
+				_smokeSources = new[]
+				{
+					(Common.Random.Next(60) + 70,  Common.Random.Next(12) + 68),
+					(Common.Random.Next(60) + 140, Common.Random.Next(12) + 72),
+					(Common.Random.Next(60) + 185, Common.Random.Next(12) + 66),
+				};
+				return;
+			}
 			
 			if (_captured = captured)
 			{
