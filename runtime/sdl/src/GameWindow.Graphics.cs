@@ -96,22 +96,43 @@ namespace CivOne
 			if (Settings.AspectRatio != AspectRatio.Expand)
 				return new Size(320, 200);
 
-			// In fullscreen the window is much larger; keep the canvas fixed so all
-			// UI elements stay at their designed positions and scale evenly fills it.
-			if (Fullscreen)
-				return CanvasWidth > 0 ? new Size(CanvasWidth, CanvasHeight) : DefaultCanvasSize;
+			int cw = ClientRectangle.Width, ch = ClientRectangle.Height;
 
-			// In windowed mode derive canvas as half the actual window size so scale is
-			// always exactly 2. Rounding down to multiples of 8 keeps pixel art clean.
-			int cw = (ClientRectangle.Width  / 2 / 8) * 8;
-			int ch = (ClientRectangle.Height / 2 / 8) * 8;
-			return new Size(Math.Max(320, cw), Math.Max(200, ch));
+			// If the user has set an explicit canvas size, honour it directly.
+			bool hasExplicitSize = Settings.ExpandWidth > 0 && Settings.ExpandHeight > 0;
+			if (hasExplicitSize)
+			{
+				cw = Settings.ExpandWidth;
+				ch = Settings.ExpandHeight;
+			}
+			else
+			{
+				// Compute the largest integer pixel scale that fits the classic 320×200
+				// inside the current window, then derive the canvas from that.
+				int scaleX = cw / 320;
+				int scaleY = ch / 200;
+				int scale  = Math.Max(1, Math.Min(scaleX, scaleY));
+				cw /= scale;
+				ch /= scale;
+			}
+
+			// Keep canvas resolution a multiple of 8 for clean pixel art.
+			cw -= cw % 8;
+			ch -= ch % 8;
+
+			// Cap to avoid the game's tile counts overrunning map queries.
+			int maxW = hasExplicitSize ? Settings.MaxExpandWidth  : Settings.AutoExpandMaxWidth;
+			int maxH = hasExplicitSize ? Settings.MaxExpandHeight : Settings.AutoExpandMaxHeight;
+			cw = Math.Max(320, Math.Min(cw, maxW));
+			ch = Math.Max(200, Math.Min(ch, maxH));
+
+			return new Size(cw, ch);
 		}
 
-		private static int InitialCanvasWidth => DefaultCanvasSize.Width;
-		private static int InitialCanvasHeight => DefaultCanvasSize.Height;
+		private static int InitialCanvasWidth  => 320;
+		private static int InitialCanvasHeight => 200;
 
-		private static int InitialWidth => InitialCanvasWidth * Settings.Scale;
+		private static int InitialWidth  => InitialCanvasWidth  * Settings.Scale;
 		private static int InitialHeight => InitialCanvasHeight * Settings.Scale;
 
 		private Size ClientRectangle => new Size(Width, Height);
@@ -132,8 +153,8 @@ namespace CivOne
 						int scaleX = (ClientRectangle.Width - (ClientRectangle.Width % cw)) / cw;
 						int scaleY = (ClientRectangle.Height - (ClientRectangle.Height % ch)) / ch;
 						if (scaleX > scaleY)
-							return scaleY;
-						return scaleX;
+							return Math.Max(1, scaleY);
+						return Math.Max(1, scaleX);
 					default:
 						return (ClientRectangle.Width - (ClientRectangle.Width % cw)) / cw;
 				}
@@ -156,8 +177,8 @@ namespace CivOne
 						int scaleX = (ClientRectangle.Width - (ClientRectangle.Width % cw)) / cw;
 						int scaleY = (ClientRectangle.Height - (ClientRectangle.Height % ch)) / ch;
 						if (scaleY > scaleX)
-							return scaleX;
-						return scaleY;
+							return Math.Max(1, scaleX);
+						return Math.Max(1, scaleY);
 					default:
 						return (ClientRectangle.Height - (ClientRectangle.Height % ch)) / ch;
 				}

@@ -20,6 +20,14 @@ namespace CivOne
 		private static IRuntime Runtime => RuntimeHandler.Runtime;
 		private static void Log(string text, params object[] parameters) => RuntimeHandler.Runtime.Log(text, parameters);
 
+		// Maximum canvas size used when ExpandWidth/ExpandHeight are explicitly set.
+		public const int MaxExpandWidth  = 7680;
+		public const int MaxExpandHeight = 4320;
+
+		// Conservative canvas cap for auto-expand (when no explicit size is configured).
+		public const int AutoExpandMaxWidth  = 1280;
+		public const int AutoExpandMaxHeight =  720;
+
 		// Set default settings
 		private string _windowTitle = "CivOne";
 		private GraphicsMode _graphicsMode = GraphicsMode.Graphics256;
@@ -411,10 +419,10 @@ namespace CivOne
 			GetSetting<GraphicsMode>("GraphicsMode", ref _graphicsMode);
 			GetSetting("FullScreen", ref _fullScreen);
 			GetSetting("SideBar", ref _rightSideBar);
-			GetSetting("Scale", ref _scale, 1, 4);
+			GetSetting("Scale", ref _scale, 1, 8);
 			// AspectRatio is always Expand; ignore any stored value.
 			GetSetting("Sound", ref _sound);
-			if (!GetSetting("ExpandWidth", ref _expandWidth, 320, 2560) || !GetSetting("ExpandHeight", ref _expandHeight, 200, 1600))
+			if (!GetSetting("ExpandWidth", ref _expandWidth, 320, MaxExpandWidth) || !GetSetting("ExpandHeight", ref _expandHeight, 200, MaxExpandHeight))
 			{
 				_expandWidth = -1;
 				_expandHeight = -1;

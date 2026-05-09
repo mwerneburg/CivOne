@@ -683,9 +683,12 @@ namespace CivOne
 
 		public bool Buy()
 		{
-			if (Game.CurrentPlayer.Gold < BuyPrice) return false;
+			int buyPrice = BuyPrice;
+			if (buyPrice <= 0) return false;
+			if (IsInDisorder && CurrentProduction is IBuilding) return false;
+			if (Game.CurrentPlayer.Gold < buyPrice) return false;
 
-			Game.CurrentPlayer.Gold -= BuyPrice;
+			Game.CurrentPlayer.Gold -= (short)buyPrice;
 			Shields = (int)CurrentProduction.Price * 10;
 			return true;
 		}
