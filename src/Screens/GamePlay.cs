@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Drawing;
 using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
@@ -201,6 +202,13 @@ namespace CivOne.Screens
 		
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
+			// Cancel an active GoTo order on any keypress, even mid-move animation.
+			if (Game.CurrentPlayer == Human && Game.ActiveUnit != null && !Game.ActiveUnit.Goto.IsEmpty)
+			{
+				Game.ActiveUnit.Goto = Point.Empty;
+				return true;
+			}
+
 			if (GameTask.Any()) return true;
 
 			if (CheckShift56(args))
@@ -274,6 +282,13 @@ namespace CivOne.Screens
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			if (Cursor == MouseCursor.None) return true;
+
+			// Cancel an active GoTo order on any click.
+			if (Game.CurrentPlayer == Human && Game.ActiveUnit != null && !Game.ActiveUnit.Goto.IsEmpty)
+			{
+				Game.ActiveUnit.Goto = Point.Empty;
+				return true;
+			}
 			if (_gameMenu != null && _gameMenu.KeepOpen)
 			{
 				MouseArgsOffset(ref args, _menuX, _menuY);
