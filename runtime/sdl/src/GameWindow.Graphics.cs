@@ -22,10 +22,12 @@ namespace CivOne
 		{
 			get
 			{
-				if (Settings.AspectRatio == AspectRatio.Expand
-				    && Settings.ExpandWidth > 0 && Settings.ExpandHeight > 0)
+				if (Settings.AspectRatio != AspectRatio.Expand)
+					return new Size(320, 200);
+				if (Settings.ExpandWidth > 0 && Settings.ExpandHeight > 0)
 					return new Size(Settings.ExpandWidth, Settings.ExpandHeight);
-				return new Size(320, 200);
+				// Default expand canvas: 576×360 gives a comfortable 2× window on startup.
+				return new Size(576, 360);
 			}
 		}
 
@@ -92,41 +94,25 @@ namespace CivOne
 			if (Settings.AspectRatio != AspectRatio.Expand)
 				return new Size(320, 200);
 
-			int cw = ClientRectangle.Width, ch = ClientRectangle.Height;
-
-			// If the user has set an explicit canvas size, honour it directly.
-			bool hasExplicitSize = Settings.ExpandWidth > 0 && Settings.ExpandHeight > 0;
-			if (hasExplicitSize)
+			// Explicit canvas size: honour it directly, clamped and rounded.
+			if (Settings.ExpandWidth > 0 && Settings.ExpandHeight > 0)
 			{
-				cw = Settings.ExpandWidth;
-				ch = Settings.ExpandHeight;
-			}
-			else
-			{
-				// Compute the largest integer pixel scale that fits the classic 320×200
-				// inside the current window, then derive the canvas from that.
-				int scaleX = cw / 320;
-				int scaleY = ch / 200;
-				int scale  = Math.Max(1, Math.Min(scaleX, scaleY));
-				cw /= scale;
-				ch /= scale;
+				int ew = (Math.Min(Settings.ExpandWidth,  Settings.MaxExpandWidth)  / 8) * 8;
+				int eh = (Math.Min(Settings.ExpandHeight, Settings.MaxExpandHeight) / 8) * 8;
+				return new Size(Math.Max(320, ew), Math.Max(200, eh));
 			}
 
-			// Keep canvas resolution a multiple of 8 for clean pixel art.
-			cw -= cw % 8;
-			ch -= ch % 8;
-
-			// Cap to avoid the game's tile counts overrunning map queries.
-			int maxW = hasExplicitSize ? Settings.MaxExpandWidth  : Settings.AutoExpandMaxWidth;
-			int maxH = hasExplicitSize ? Settings.MaxExpandHeight : Settings.AutoExpandMaxHeight;
-			cw = Math.Max(320, Math.Min(cw, maxW));
-			ch = Math.Max(200, Math.Min(ch, maxH));
-
+			// Default: canvas = half the window, rounded to multiples of 8 (always 2× pixel zoom).
+			// Cap at AutoExpandMax to keep tile counts within safe map-query bounds.
+			int cw = (ClientRectangle.Width  / 2 / 8) * 8;
+			int ch = (ClientRectangle.Height / 2 / 8) * 8;
+			cw = Math.Max(320, Math.Min(cw, Settings.AutoExpandMaxWidth));
+			ch = Math.Max(200, Math.Min(ch, Settings.AutoExpandMaxHeight));
 			return new Size(cw, ch);
 		}
 
-		private static int InitialCanvasWidth  => 320;
-		private static int InitialCanvasHeight => 200;
+		private static int InitialCanvasWidth  => DefaultCanvasSize.Width;
+		private static int InitialCanvasHeight => DefaultCanvasSize.Height;
 
 		private static int InitialWidth  => InitialCanvasWidth  * Settings.Scale;
 		private static int InitialHeight => InitialCanvasHeight * Settings.Scale;

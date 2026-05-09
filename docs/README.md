@@ -1,6 +1,8 @@
 # CivOne
 
-*** Note that I am replacing all of the original game's IP that is still in use, and that some graphics/colors are off.
+*** Note:
+ 1. I am replacing all of the original game's IP that is still in use, and that some graphics/colors are off.
+ 2. This port uses the original game's display dimensions. Please see below for display configuration.
 
 This is a fork of the CivOne project, which has had various homes over many years. I have finished the various victory cases, added features and rules that were not complete, and re-focused on a larger screen size than the original 15x12 playable area (31x22). GoTo actually works. The main screen tells you what your form of government is.
 
@@ -63,3 +65,47 @@ Known issues
  + Battle animations are a bit herky-jerky, it was this way in the code repo from 2017 that I cloned.
  + There are lots and lots of natural disasters.
  + Otherwise, seems a bit too easy.
+
+Display
+
+The game runs in Expand mode by default, meaning the window and canvas grow to fill whatever space you give them. Each game pixel is always rendered at 2× on screen, so more screen real-estate means more of the map is visible — not just a stretched image.
+
+The display is configured through your profile file at:
+
+  - macOS: ~/Library/Application Support/CivOne/default.profile
+  - Linux: ~/.config/CivOne/default.profile (or ~/.local/share/CivOne/default.profile)
+
+A minimal profile looks like this:
+
+  <?xml version="1.0" encoding="utf-8"?>
+  <CivOneProfile>
+    <AspectRatio>4</AspectRatio>
+  </CivOneProfile>
+
+AspectRatio value 4 is Expand mode. Without any other settings the window opens at 1152×720 with a 576×360 canvas.
+
+Showing more of the map on a large display
+
+Add ExpandWidth and ExpandHeight to set a fixed canvas size. The window will be sized so that the canvas fills it at the largest whole-number pixel scale that fits:
+
+  <CivOneProfile>
+    <AspectRatio>4</AspectRatio>
+    <ExpandWidth>640</ExpandWidth>
+    <ExpandHeight>400</ExpandHeight>
+  </CivOneProfile>
+
+On a 2560×1600 display this gives a 640×400 canvas rendered at 4× — chunky pixels and roughly twice the map area of the classic 320×200 view.
+
+  Useful canvas sizes:
+
+  ┌───────────────────┬──────────────────┬────────────────────────────────────────┐
+  │      Canvas       │     Good for     │ Approx. pixel scale on common displays │
+  ├───────────────────┼──────────────────┼────────────────────────────────────────┤
+  │ 576×360 (default) │ 1920×1080 and up │ 3×                                     │
+  ├───────────────────┼──────────────────┼────────────────────────────────────────┤
+  │ 640×400           │ 2560×1600 / 2K   │ 4×                                     │
+  ├───────────────────┼──────────────────┼────────────────────────────────────────┤
+  │ 960×600           │ 3840×2160 / 4K   │ 4×                                     │
+  └───────────────────┴──────────────────┴────────────────────────────────────────┘
+
+The Scale setting (integer, 1–8) controls the initial window size hint. Set <Scale>4</Scale> if you want the window to open large before you resize it, but the canvas and pixel zoom are otherwise determined by the window size and any explicit ExpandWidth/ExpandHeight you provide.
