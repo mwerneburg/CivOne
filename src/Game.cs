@@ -396,10 +396,11 @@ namespace CivOne
 					if (humanWins)
 					{
 						PlaySound("wintune");
+						int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
 						GameTask.Enqueue(Message.Newspaper(null, "Spaceship reaches", "Alpha Centauri!", $"Score: {HumanPlayer.Score}"));
-						GameTask conquest;
-						GameTask.Enqueue(conquest = Show.Screen<CivilizationScore>());
-						conquest.Done += (s, a) => Runtime.Quit();
+						GameTask spaceFt;
+						GameTask.Enqueue(spaceFt = Show.Screen(new FinalScore("Space Race Victory")));
+						spaceFt.Done += (s, a) => EndSequence.ChainAfterFinal(spaceFame, () => Runtime.Quit());
 					}
 					else
 					{
@@ -426,10 +427,11 @@ namespace CivOne
 					if (winner == HumanPlayer)
 					{
 						PlaySound("wintune");
+						int scoreFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Score Victory");
 						GameTask.Enqueue(Message.Newspaper(null, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
-						GameTask scoreTask;
-						GameTask.Enqueue(scoreTask = Show.Screen<CivilizationScore>());
-						scoreTask.Done += (s, a) => Runtime.Quit();
+						GameTask scoreFt;
+						GameTask.Enqueue(scoreFt = Show.Screen(new FinalScore("Score Victory")));
+						scoreFt.Done += (s, a) => EndSequence.ChainAfterFinal(scoreFame, () => Runtime.Quit());
 					}
 					else
 					{
@@ -468,11 +470,16 @@ namespace CivOne
 			if (!_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
 			{
 				PlaySound("wintune");
-
+				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;
 				GameTask.Enqueue(Message.Newspaper(null, "Your civilization", "has conquered", "the entire planet!"));
 				GameTask.Enqueue(conquest = Show.Screen<Conquest>());
-				conquest.Done += (s, a) => Runtime.Quit();
+				conquest.Done += (s, a) =>
+				{
+					var final = new FinalScore("Conquest Victory");
+					final.Closed += (s2, a2) => EndSequence.ChainAfterFinal(conquestFame, () => Runtime.Quit());
+					Common.AddScreen(final);
+				};
 			}
 
 			foreach (IUnit unit in _units.Where(u => u.Owner == _currentPlayer))

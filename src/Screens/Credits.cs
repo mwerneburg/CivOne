@@ -199,7 +199,7 @@ namespace CivOne.Screens
 			menu.Items.Add("Load a Saved Game").OnSelect(LoadSavedGame);
 			menu.Items.Add("EARTH").OnSelect(Earth);
 			menu.Items.Add("Customize World").OnSelect(CustomizeWorld);
-			menu.Items.Add("View Hall of Fame").Disable();
+			menu.Items.Add("View Hall of Fame").OnSelect(ViewHallOfFame);
 			
 			AddMenu(menu);
 		}
@@ -219,6 +219,12 @@ namespace CivOne.Screens
 			}
 		}
 		
+		private void ViewHallOfFame(object sender, EventArgs args)
+		{
+			Log("Main Menu: View Hall of Fame");
+			Common.AddScreen(new CivOne.Screens.Reports.HallOfFameScreen());
+		}
+
 		private void StartNewGame(object sender, EventArgs args)
 		{
 			Log("Main Menu: Start a New Game");

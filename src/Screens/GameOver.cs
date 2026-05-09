@@ -11,7 +11,6 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.IO;
-using CivOne.Screens.Reports;
 
 namespace CivOne.Screens
 {
@@ -35,14 +34,7 @@ namespace CivOne.Screens
 
 			if (_textLines.Length <= _currentLine)
 			{
-				var score = new CivilizationScore();
-				score.Closed += (s, a) =>
-				{
-					var replay = new GameReplay();
-					replay.Closed += (s2, a2) => Runtime.Quit();
-					Common.AddScreen(replay);
-				};
-				Common.AddScreen(score);
+				EndSequence.Run("Defeated", () => Runtime.Quit());
 				Destroy();
 				return true;
 			}
