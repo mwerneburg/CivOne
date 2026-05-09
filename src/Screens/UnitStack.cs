@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Drawing;
 using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
@@ -83,8 +84,10 @@ namespace CivOne.Screens
 						return true;
 					
 					IUnit waking = _units[uid];
+					bool wasAsleep = waking.Busy;
 					waking.Busy = false;
-					waking.MovesLeft = waking.Move;
+					if (wasAsleep) waking.MovesLeft = waking.Move;
+					waking.Goto = Point.Empty;
 					Game.ActiveUnit = waking;
 					return true;
 				}
