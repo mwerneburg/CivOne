@@ -80,13 +80,20 @@ namespace CivOne.Units
 			IUnit[] units = Map[X, Y].Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable).Cargo).ToArray();
 			if (units.Length == 0)
 				return false;
-			
+
 			foreach (IUnit unit in units)
 			{
 				unit.Sentry = false;
 			}
 			MovesLeft = 0;
 			PartMoves = 0;
+
+			// Activate the first land unit so the player can direct it ashore.
+			// IsAboard is tile-based so the unit is still "aboard" until it steps off;
+			// the explicit flag in Game.ActiveUnit bypasses that guard for one unit at a time.
+			// Chaining to subsequent units happens in BaseUnitLand.MovementDone.
+			Game.Instance.ActiveUnit = units[0];
+
 			return true;
 		}
 

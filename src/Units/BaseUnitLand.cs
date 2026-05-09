@@ -29,6 +29,15 @@ namespace CivOne.Units
 				PartMoves = 0;
 			}
 
+			// Stepped off a ship onto land — activate the next unit still waiting aboard.
+			if (previousTile.IsOcean && !Tile.IsOcean)
+			{
+				IUnit next = previousTile.Units
+					.FirstOrDefault(u => u != this && u.Class == UnitClass.Land && !u.Sentry && (u.MovesLeft > 0 || u.PartMoves > 0));
+				if (next != null)
+					Game.Instance.ActiveUnit = next;
+			}
+
 			Tile.Visit(Owner);
 
 			if (Tile.Hut)
