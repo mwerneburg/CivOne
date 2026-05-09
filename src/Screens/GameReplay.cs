@@ -20,36 +20,40 @@ namespace CivOne.Screens
 	[Expand]
 	internal class GameReplay : BaseScreen
 	{
-		// ── map geometry ─────────────────────────────────────────────────────
-		private int TileW => Math.Max(1, Width  / Map.WIDTH);
+		// ── layout (set once in constructor) ─────────────────────────────────
+		private readonly int _panW;   // width of right-hand log column
+		private readonly int _mapW;   // width of left-hand map area  (= Width - _panW)
+
+		// ── map geometry (relative to _mapW) ─────────────────────────────────
+		private int TileW => Math.Max(1, _mapW / Map.WIDTH);
 		private int TileH => Math.Max(1, Height / Map.HEIGHT);
-		private int OX    => (Width  - Map.WIDTH  * TileW) / 2;
+		private int OX    => (_mapW - Map.WIDTH  * TileW) / 2;
 		private int OY    => (Height - Map.HEIGHT * TileH) / 2;
 
 		// ── replay state ─────────────────────────────────────────────────────
-		private readonly int[] _eventTurns;     // sorted unique turns with events
-		private int _turnIdx  = -1;             // index into _eventTurns (-1 = not started)
+		private readonly int[] _eventTurns;
+		private int _turnIdx  = -1;
 		private bool _paused  = false;
 		private bool _done    = false;
 		private int  _ticksHeld = 0;
-		private const int TICKS_PER_STEP = 20; // ~0.6 s at 30 fps per event-turn
+		private const int TICKS_PER_STEP = 20;
 
 		// city dot state: map position → (ownerIndex, cityName)
 		private readonly Dictionary<(int x, int y), (byte owner, string name)> _cities
 			= new Dictionary<(int x, int y), (byte owner, string name)>();
 
-		// territory ownership: NO_OWNER = neutral
+		// territory ownership
 		private const byte NO_OWNER = 255;
 		private readonly byte[,] _territory = new byte[Map.WIDTH, Map.HEIGHT];
 
 		// event log (most-recent last)
 		private readonly List<string> _log = new List<string>();
-		private const int LOG_LINES = 9;
+		private const int LOG_LINES = 12;
 
-		// ── terrain backdrop ─────────────────────────────────────────────────
+		// ── terrain backdrop (sized to the map column only) ───────────────────
 		private readonly Picture _terrain;
 
-		// ── replay data grouped by turn ──────────────────────────────────────
+		// ── replay data ──────────────────────────────────────────────────────
 		private readonly ILookup<int, ReplayData> _byTurn;
 		private readonly int _finalTurn;
 
@@ -105,12 +109,11 @@ namespace CivOne.Screens
 				? Common.YearString((ushort)_eventTurns[_turnIdx])
 				: (_done ? Common.YearString((ushort)_finalTurn) : "…");
 
-			// ── terrain ──────────────────────────────────────────────────────
+			// ── map column ───────────────────────────────────────────────────
 			this.AddLayer(_terrain, 0, 0);
 
 			int tw = TileW, th = TileH, ox = OX, oy = OY;
 
-			// ── territory overlay
 			for (int x = 0; x < Map.WIDTH; x++)
 			for (int y = 0; y < Map.HEIGHT; y++)
 			{
@@ -121,7 +124,6 @@ namespace CivOne.Screens
 				this.FillRectangle(dx, dy, tw, th, col);
 			}
 
-			// ── city dots ────────────────────────────────────────────────────
 			foreach (var kv in _cities)
 			{
 				int dx = ox + kv.Key.x * tw;
@@ -130,28 +132,33 @@ namespace CivOne.Screens
 				this.FillRectangle(dx, dy, tw, th, col);
 			}
 
-			// ── right-side log panel ──────────────────────────────────────────
-			int panW  = Math.Min(120, Width / 3);
-			int panX  = Width - panW;
-			int fh    = Resources.GetFontHeight(0);
-			int panH  = LOG_LINES * fh + fh + 8;
-			int panY  = (Height - panH) / 2;
+			// ── log column ───────────────────────────────────────────────────
+			int panX = _mapW;
+			int fh   = Resources.GetFontHeight(0);
 
-			this.FillRectangle(panX - 1, panY, panW + 1, panH, CassetteTheme.BG0);
-			this.DrawRectangle(panX - 1, panY, panW + 1, panH, CassetteTheme.BORDER);
+			// panel background
+			this.FillRectangle(panX, 0, _panW, Height, CassetteTheme.BG0);
+			this.FillRectangle(panX, 0, 1, Height, CassetteTheme.BORDER);
 
 			// year heading
-			this.DrawText(yearStr, 0, CassetteTheme.PHOS_GLOW, panX + panW / 2, panY + 3, TextAlign.Center);
+			int headY = 4;
+			this.FillRectangle(panX + 1, 0, _panW - 1, fh + 6, CassetteTheme.BG3);
+			this.FillRectangle(panX + 1, fh + 6, _panW - 1, 1, CassetteTheme.BORDER);
+			this.DrawText(yearStr, 0, CassetteTheme.PHOS_GLOW,
+			              panX + 1 + (_panW - 1) / 2, headY, TextAlign.Center);
 
-			int maxChars = (panW - 6) / Math.Max(1, fh / 2); // rough char-width estimate
-			int ly = panY + fh + 6;
-			int start = Math.Max(0, _log.Count - LOG_LINES);
+			// log lines
+			int textX   = panX + 4;
+			int textW   = _panW - 8;
+			int maxChars = textW / Math.Max(1, fh - 2);
+			int ly      = fh + 10;
+			int start   = Math.Max(0, _log.Count - LOG_LINES);
 			for (int i = start; i < _log.Count; i++)
 			{
 				string line = _log[i];
 				if (line.Length > maxChars) line = line.Substring(0, maxChars);
-				this.DrawText(line, 0, CassetteTheme.INK_MID, panX + 3, ly);
-				ly += fh;
+				this.DrawText(line, 0, CassetteTheme.INK_MID, textX, ly);
+				ly += fh + 2;
 			}
 
 			// ── bottom hint ──────────────────────────────────────────────────
@@ -159,17 +166,17 @@ namespace CivOne.Screens
 				? "[ ANY KEY — EXIT ]"
 				: (_paused ? "[ SPACE — play   ← → — step   ESC — exit ]"
 				           : "[ SPACE — pause  ESC — exit ]");
-			this.DrawText(hint, 0, CassetteTheme.INK_LOW, Width / 2, Height - fh - 2, TextAlign.Center);
+			this.FillRectangle(0, Height - fh - 4, _mapW, fh + 4, CassetteTheme.BG0);
+			this.DrawText(hint, 0, CassetteTheme.INK_LOW,
+			              _mapW / 2, Height - fh - 2, TextAlign.Center);
 
 			// ── progress bar ─────────────────────────────────────────────────
 			if (_eventTurns.Length > 1 && !_done)
 			{
-				int barW  = Width - 4;
-				int barX  = 2;
-				int barY  = Height - fh - 6;
-				int fill  = (_turnIdx + 1) * barW / _eventTurns.Length;
-				this.FillRectangle(barX,        barY, barW, 2, CassetteTheme.BG2);
-				this.FillRectangle(barX,        barY, fill, 2, CassetteTheme.PHOS);
+				int barY  = Height - fh - 4;
+				int fill  = (_turnIdx + 1) * _mapW / _eventTurns.Length;
+				this.FillRectangle(0, barY, _mapW, 2, CassetteTheme.BG2);
+				this.FillRectangle(0, barY, fill,  2, CassetteTheme.PHOS);
 			}
 
 			_dirty = false;
@@ -186,7 +193,6 @@ namespace CivOne.Screens
 			}
 
 			int turn = _eventTurns[_turnIdx];
-			string year = Common.YearString((ushort)turn);
 
 			foreach (ReplayData r in _byTurn[turn])
 			{
@@ -297,7 +303,6 @@ namespace CivOne.Screens
 					return true;
 				case Key.Left:
 				case Key.NumPad4:
-					// step back: rebuild state from beginning to (_turnIdx - 1)
 					if (_paused && _turnIdx > 0)
 					{
 						int target = _turnIdx - 1;
@@ -332,7 +337,11 @@ namespace CivOne.Screens
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				Palette.MergePalette(cassette, 1, 17);
 
-			_terrain = new Picture(Width, Height, Palette);
+			// divide screen: right column is the log panel
+			_panW = Math.Max(130, Math.Min(220, Width / 3));
+			_mapW = Width - _panW;
+
+			_terrain = new Picture(_mapW, Height, Palette);
 			for (int x = 0; x < Map.WIDTH; x++)
 			for (int y = 0; y < Map.HEIGHT; y++)
 				_territory[x, y] = NO_OWNER;

@@ -87,15 +87,14 @@ namespace CivOne.Tasks
 
 		private void CreateCity(int nameId)
 		{
-			_city = Game.AddCity(_player, nameId, _x, _y); 
+			_city = Game.AddCity(_player, nameId, _x, _y);
 			if (_city != null)
 			{
 				if (_player.IsHuman)
 				{
-					CityView cityView = new CityView(_city, founded: true);
-					cityView.Closed += CityFounded;
-					cityView.Skipped += CityViewed;
-					Common.AddScreen(cityView);
+					CityManager cityManager = new CityManager(_city);
+					cityManager.Closed += CityManagerClosed;
+					Common.AddScreen(cityManager);
 					return;
 				}
 				if (_unit != null)

@@ -552,6 +552,7 @@ namespace CivOne
 				foreach (IWonder wonder in Reflect.GetWonders().Where(b => Player.ProductionAvailable(b)))
 				{
 					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus)) continue;
+					if (wonder is Wonders.SETIProgram && !HasBuilding<UniversityBuilding>()) continue;
 					yield return wonder;
 				}
 			}
