@@ -64,13 +64,13 @@ namespace CivOne.Screens.Dialogs
 
 			if (_canBribe)
 			{
-				Menu menu = new Menu(Palette, Selection(3, 5 + (3 * Resources.GetFontHeight(FONT_ID)), 130, ((2 * Resources.GetFontHeight(FONT_ID)) + (choices * Resources.GetFontHeight(FONT_ID)) + 9)))
+				Menu menu = new Menu(Palette)
 				{
 					X = 103,
 					Y = 110,
 					MenuWidth = 130,
-					ActiveColour = 11,
-					TextColour = 5,
+					ActiveColour = CassetteTheme.PHOS_FAINT,
+					TextColour = CassetteTheme.INK_HIGH,
 					FontId = FONT_ID
 				};
 

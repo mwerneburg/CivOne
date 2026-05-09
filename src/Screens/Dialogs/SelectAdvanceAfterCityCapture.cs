@@ -34,15 +34,15 @@ namespace CivOne.Screens.Dialogs
 
 		protected override void FirstUpdate()
 		{
-			Menu menu = new Menu(Palette, Selection(3, 5 + (1 * Resources.GetFontHeight(FONT_ID)), 130, ((2 * Resources.GetFontHeight(FONT_ID)) + (_advances.Count * Resources.GetFontHeight(FONT_ID)) + 9)))
+			Menu menu = new Menu(Palette)
 			{
 				// X = 103,
 				// Y = 95,
 				X = 231,
 				Y = 174,
 				MenuWidth = 130,
-				ActiveColour = 11,
-				TextColour = 5,
+				ActiveColour = CassetteTheme.PHOS_FAINT,
+				TextColour = CassetteTheme.INK_HIGH,
 				FontId = FONT_ID
 			};
 

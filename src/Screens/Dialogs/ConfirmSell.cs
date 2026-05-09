@@ -28,13 +28,13 @@ namespace CivOne.Screens.Dialogs
 
 		protected override void FirstUpdate()
 		{
-			Menu menu = new Menu(Palette, Selection(3, 20, TextWidth + 5, 20))
+			Menu menu = new Menu(Palette)
 			{
 				X = 259,
 				Y = 182,
 				MenuWidth = TextWidth + 5,
-				ActiveColour = 11,
-				TextColour = 5,
+				ActiveColour = CassetteTheme.PHOS_FAINT,
+				TextColour = CassetteTheme.INK_HIGH,
 				FontId = 0
 			};
 			int i = 0;

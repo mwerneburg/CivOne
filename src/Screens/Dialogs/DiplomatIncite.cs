@@ -75,13 +75,13 @@ namespace CivOne.Screens.Dialogs
 
 			if (_canIncite)
 			{
-				Menu menu = new Menu(Palette, Selection(45, 5 + (3 * Resources.GetFontHeight(FONT_ID)), 130, ((2 * Resources.GetFontHeight(FONT_ID)) + (choices * Resources.GetFontHeight(FONT_ID)) + 9)))
+				Menu menu = new Menu(Palette)
 				{
 					X = 143,
 					Y = 110,
 					MenuWidth = 130,
-					ActiveColour = 11,
-					TextColour = 5,
+					ActiveColour = CassetteTheme.PHOS_FAINT,
+					TextColour = CassetteTheme.INK_HIGH,
 					FontId = FONT_ID
 				};
 
@@ -104,6 +104,8 @@ namespace CivOne.Screens.Dialogs
 			IBitmap spyPortrait = Icons.Spy;
 
 			Palette palette = Common.DefaultPalette;
+			using (Palette cass = CassetteTheme.CreatePalette())
+				palette.MergePalette(cass, 1, 17);
 			for (int i = 144; i < 256; i++)
 			{
 				palette[i] = spyPortrait.Palette[i];

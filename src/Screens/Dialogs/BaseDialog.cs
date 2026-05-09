@@ -12,7 +12,6 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Graphics.Sprites;
 
 namespace CivOne.Screens.Dialogs
 {
@@ -44,7 +43,7 @@ namespace CivOne.Screens.Dialogs
 		
 		protected IBitmap Selection(int left, int top, int width, int height)
 		{
-			return DialogBox[left, top, width, height].ColourReplace((7, 11), (22, 3));
+			return DialogBox[left, top, width, height];
 		}
 
 		protected virtual void Cancel(object sender = null, EventArgs args = null)
@@ -85,18 +84,19 @@ namespace CivOne.Screens.Dialogs
 
 		private void Initialize(int left, int top, int width, int height)
 		{
-			Palette = Common.DefaultPalette;
+			Palette p = Common.DefaultPalette;
+			using (Palette c = CassetteTheme.CreatePalette())
+				p.MergePalette(c, 1, 17);
+			Palette = p;
 
-			// We expand the size to add space for the black border
 			left -= 1;
 			top -= 1;
 			width += 2;
 			height += 2;
-			
+
 			DialogBox = new Picture(width, height)
-				.Tile(Pattern.PanelGrey, 1, 1)
-				.DrawRectangle3D(1, 1, width - 2, height - 2)
-				.DrawRectangle()
+				.FillRectangle(0, 0, width, height, CassetteTheme.BG1)
+				.DrawRectangle(0, 0, width, height, CassetteTheme.BORDER)
 				.As<Picture>();
 		}
 

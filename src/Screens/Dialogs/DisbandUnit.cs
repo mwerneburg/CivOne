@@ -23,13 +23,13 @@ namespace CivOne.Screens.Dialogs
 		protected override void FirstUpdate()
 		{
 			int menuWidth = _textLines.Max(b => b.Width) + 5;
-			Menu menu = new Menu(Palette, Selection(45, 28, menuWidth, 10))
+			Menu menu = new Menu(Palette)
 			{
 				X = 103,
 				Y = 100,
 				MenuWidth = menuWidth,
-				ActiveColour = 11,
-				TextColour = 5,
+				ActiveColour = CassetteTheme.PHOS_FAINT,
+				TextColour = CassetteTheme.INK_HIGH,
 				FontId = 0
 			};
 			menu.Items.Add("Unit Disbanded.").OnSelect(Cancel);
@@ -53,6 +53,8 @@ namespace CivOne.Screens.Dialogs
 			IBitmap governmentPortrait = Icons.GovernmentPortrait(Human.Government, Advisor.Defense, modernGovernment);
 			
 			Palette palette = Common.DefaultPalette;
+			using (Palette cass = CassetteTheme.CreatePalette())
+				palette.MergePalette(cass, 1, 17);
 			for (int i = 144; i < 256; i++)
 			{
 				palette[i] = governmentPortrait.Palette[i];

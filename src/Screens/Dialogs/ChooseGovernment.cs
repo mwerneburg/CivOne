@@ -34,13 +34,13 @@ namespace CivOne.Screens.Dialogs
 
 		protected override void FirstUpdate()
 		{
-			Menu<IGovernment> menu = new Menu<IGovernment>("ChooseGovernment", Palette, Selection(3, 20, 84, (_availableGovernments.Length * Resources.GetFontHeight(0))))
+			Menu<IGovernment> menu = new Menu<IGovernment>("ChooseGovernment", Palette)
 			{
 				X = 103,
 				Y = 84,
 				MenuWidth = 82,
-				ActiveColour = 11,
-				TextColour = 5,
+				ActiveColour = CassetteTheme.PHOS_FAINT,
+				TextColour = CassetteTheme.INK_HIGH,
 				FontId = 0
 			};
 			foreach (IGovernment government in _availableGovernments)

@@ -41,6 +41,8 @@ namespace CivOne.Screens.Dialogs
 			IBitmap governmentPortrait = Icons.GovernmentPortrait(Human.Government, advisor, modernGovernment);
 			
 			Palette palette = Common.DefaultPalette;
+			using (Palette cass = CassetteTheme.CreatePalette())
+				palette.MergePalette(cass, 1, 17);
 			for (int i = 144; i < 256; i++)
 			{
 				palette[i] = governmentPortrait.Palette[i];
