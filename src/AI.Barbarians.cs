@@ -50,9 +50,12 @@ namespace CivOne
 				// Only try to disembark when there are enemy-free land tiles to land on.
 				// If every adjacent land tile is occupied by a non-barbarian, fall through
 				// to the Goto navigation so the ship can seek a better landing spot.
-				if (unit.Tile.GetBorderTiles().Any(x => !x.IsOcean && !IsPolarTile(x) && !x.Units.Any(u => u.Owner != 0)))
+				ITile[] landingZones = unit.Tile.GetBorderTiles()
+					.Where(x => !x.IsOcean && !IsPolarTile(x) && !x.Units.Any(u => u.Owner != 0))
+					.ToArray();
+				if (landingZones.Length > 0)
 				{
-					if (Game.GetCities().Any(x => x.Owner != 0) && unit.Tile.GetBorderTiles().Any(x => !x.IsOcean && !IsPolarTile(x) && !x.Units.Any(u => u.Owner != 0)))
+					if (Game.GetCities().Any(x => x.Owner != 0))
 					{
 						City nearestCity = Game.GetCities().Where(x => x.Owner != 0).OrderBy(x => Common.DistanceToTile(x.X, x.Y, unit.X, unit.Y)).ThenBy(x => x.Player == Human ? 0 : 1).First();
 						if (nearestCity.Player == Human && Human.Visible(unit.Tile))
@@ -61,14 +64,15 @@ namespace CivOne
 						}
 					}
 
-					foreach (IUnit landUnit in unit.Tile.Units.Where(x => x.Class == UnitClass.Land && x.Sentry))
+					// Aboard units are invisible to ActiveUnit so UnitWait can never unblock.
+					// Move each land unit directly to a landing tile instead.
+					foreach (IUnit landUnit in unit.Tile.Units.Where(x => x.Class == UnitClass.Land).ToList())
 					{
 						landUnit.Sentry = false;
+						ITile dest = landingZones[Common.Random.Next(landingZones.Length)];
+						landUnit.MoveTo(dest.X - landUnit.X, dest.Y - landUnit.Y);
 					}
-					if (unit.Tile.Units.Any(x => x.Class == UnitClass.Land && x.MovesLeft > 0))
-						Game.UnitWait();
-					else
-						unit.SkipTurn();
+					unit.SkipTurn();
 					return;
 				}
 
