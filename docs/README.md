@@ -36,6 +36,8 @@ As for rule changes:
  + Some wonders that historically happened on or near the sea can now only happen in a sea town (Colossus, Lighthouse, Magellan's Voyage, Darwin's Voyage)
  + You need a Shipyard (new city improvement) to make any ship larger than the ironside
  + Has a production queue, like other 4x games
+ + Modifies Copernicus's Observatory to have Civ-2 style unexpiring benefit.
+ + Lowers the size a city can attain without an aqueduct from 9 to 7 (as in Civ 2).
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)

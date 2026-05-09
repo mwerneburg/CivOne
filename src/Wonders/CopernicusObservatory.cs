@@ -18,7 +18,7 @@ namespace CivOne.Wonders
 		{
 			Name = "Copernicus' Observatory";
 			RequiredTech = new Astronomy();
-			ObsoleteTech = new Automobile();
+			ObsoleteTech = null;
 			SetSmallIcon(6, 0);
 			Type = Wonder.CopernicusObservatory;
 		}
