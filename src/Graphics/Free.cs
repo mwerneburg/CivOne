@@ -177,6 +177,10 @@ namespace CivOne.Graphics
 		{
 			get
 			{
+				byte[] loaded = TryLoadTile("mountains");
+				if (loaded != null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+
 				return new Bytemap(16, 16).FromByteArray(
 					0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 					0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,

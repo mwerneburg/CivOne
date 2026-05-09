@@ -152,6 +152,10 @@ namespace CivOne.Graphics.Sprites
 				return Free.GrasslandTexture();
 			if (typeof(T) == typeof(Hills))
 				return Free.HillTexture(directions);
+			if (typeof(T) == typeof(Mountains))
+				return Free.Mountains;
+			if (typeof(T) == typeof(Swamp))
+				return Free.Swamp;
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))

@@ -8,9 +8,9 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using CivOne.Advances;
 using CivOne.Buildings;
 using CivOne.Concepts;
@@ -43,6 +43,13 @@ namespace CivOne.Screens
 
 		private int OX => (Width - 320) / 2;
 
+		private struct PageLink
+		{
+			public int X, Y, W;
+			public ICivilopedia Target;
+		}
+		private readonly List<PageLink> _links = new List<PageLink>();
+
 		private static Palette BuildPalette()
 		{
 			Palette p = Common.DefaultPalette;
@@ -74,6 +81,21 @@ namespace CivOne.Screens
 			if (_singlePage is IConcept)
 				return Resources.GetCivilopediaText("BLURB4/" + _singlePage.Name.ToUpper() + suffix);
 			return new string[0];
+		}
+
+		// Draw a linked text item in CYAN and record its hit region.
+		private void DrawLink(int x, int y, string text, ICivilopedia target)
+		{
+			this.DrawText(text, 0, CassetteTheme.CYAN, x, y);
+			_links.Add(new PageLink { X = x, Y = y, W = Resources.GetTextSize(0, text).Width, Target = target });
+		}
+
+		// Draw a "Label: " prefix in INK_MID, then the linked value in CYAN on the same line.
+		private void DrawLabelLink(int x, int y, string label, string value, ICivilopedia target)
+		{
+			this.DrawText(label, 0, CassetteTheme.INK_MID, x, y);
+			int offset = Resources.GetTextSize(0, label).Width;
+			DrawLink(x + offset, y, value, target);
 		}
 
 		private void DrawHeader()
@@ -124,23 +146,32 @@ namespace CivOne.Screens
 		{
 			if (_singlePage is IBuilding b)
 			{
-				string tech = b.RequiredTech?.Name ?? "(none)";
-				this.DrawText($"Requires: {tech}", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
+				if (b.RequiredTech != null)
+					DrawLabelLink(OX + 12, yy, "Requires: ", b.RequiredTech.Name, b.RequiredTech as ICivilopedia);
+				else
+					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
+				yy += 9;
 				this.DrawText($"Cost: {b.Price * 10} shields", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
 				this.DrawText($"Maintenance: ${b.Maintenance}/turn", 0, CassetteTheme.INK_MID, OX + 12, yy);
 				return;
 			}
 			if (_singlePage is BaseWonder w)
 			{
-				string tech = w.RequiredTech?.Name ?? "(none)";
-				this.DrawText($"Requires: {tech}", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
+				if (w.RequiredTech != null)
+					DrawLabelLink(OX + 12, yy, "Requires: ", w.RequiredTech.Name, w.RequiredTech as ICivilopedia);
+				else
+					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
+				yy += 9;
 				this.DrawText($"Cost: {w.Price * 10} shields", 0, CassetteTheme.INK_MID, OX + 12, yy);
 				return;
 			}
 			if (_singlePage is IUnit u)
 			{
-				string tech = u.RequiredTech?.Name ?? "(none)";
-				this.DrawText($"Requires: {tech}", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
+				if (u.RequiredTech != null)
+					DrawLabelLink(OX + 12, yy, "Requires: ", u.RequiredTech.Name, u.RequiredTech as ICivilopedia);
+				else
+					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
+				yy += 9;
 				this.DrawText($"Cost: {u.Price * 10} resources", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
 				this.DrawText($"Attack: {u.Attack}   Defense: {u.Defense}   Move: {u.Move}", 0, CassetteTheme.INK_MID, OX + 12, yy);
 				return;
@@ -149,30 +180,40 @@ namespace CivOne.Screens
 			{
 				if (adv.RequiredTechs.Length > 0)
 				{
-					var sb = new StringBuilder();
-					foreach (IAdvance req in adv.RequiredTechs) { if (sb.Length > 0) sb.Append(" and "); sb.Append(req.Name); }
-					this.DrawText($"Requires: {sb}", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
+					this.DrawText("Requires:", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
+					foreach (IAdvance req in adv.RequiredTechs)
+					{
+						DrawLink(OX + 20, yy, req.Name, req as ICivilopedia);
+						yy += 9;
+					}
 				}
 				yy += 4;
 				this.DrawText("Allows:", 0, CassetteTheme.INK_HIGH, OX + 12, yy); yy += 9;
 				foreach (IAdvance tech in Common.Advances.Where(a => a.Requires(adv.Id)))
 				{
-					string allows = tech.Name;
+					DrawLink(OX + 20, yy, tech.Name, tech as ICivilopedia);
+					// append non-clickable "(with X)" qualifiers
 					foreach (IAdvance at in tech.RequiredTechs.Where(a => a.Id != adv.Id))
-						allows += $" (with {at.Name})";
-					this.DrawText(allows, 0, CassetteTheme.INK_MID, OX + 20, yy); yy += 9;
+					{
+						int offset = Resources.GetTextSize(0, tech.Name).Width;
+						this.DrawText($" (with {at.Name})", 0, CassetteTheme.INK_LOW, OX + 20 + offset, yy);
+					}
+					yy += 9;
 				}
 				foreach (IUnit unit in Reflect.GetUnits().Where(u2 => u2.RequiredTech != null && u2.RequiredTech.Id == adv.Id))
 				{
-					this.DrawText($"{unit.Name} unit", 0, CassetteTheme.INK_MID, OX + 20, yy); yy += 9;
+					DrawLink(OX + 20, yy, $"{unit.Name} unit", unit as ICivilopedia);
+					yy += 9;
 				}
 				foreach (IBuilding building in Reflect.GetBuildings().Where(bld => bld.RequiredTech != null && bld.RequiredTech.Id == adv.Id))
 				{
-					this.DrawText($"{building.Name} improvement", 0, CassetteTheme.INK_MID, OX + 20, yy); yy += 9;
+					DrawLink(OX + 20, yy, $"{building.Name} improvement", building as ICivilopedia);
+					yy += 9;
 				}
 				foreach (IWonder wonder in Reflect.GetWonders().Where(wndr => wndr.RequiredTech != null && wndr.RequiredTech.Id == adv.Id))
 				{
-					this.DrawText($"{wonder.Name} Wonder", 0, CassetteTheme.INK_MID, OX + 20, yy); yy += 9;
+					DrawLink(OX + 20, yy, $"{wonder.Name} Wonder", wonder as ICivilopedia);
+					yy += 9;
 				}
 			}
 		}
@@ -192,6 +233,7 @@ namespace CivOne.Screens
 		{
 			if (!_update) return false;
 
+			_links.Clear();
 			this.Clear(CassetteTheme.BG0);
 			DrawHeader();
 
@@ -229,6 +271,16 @@ namespace CivOne.Screens
 		{
 			if (_singlePage != null)
 			{
+				// Check links before paging or closing
+				foreach (PageLink link in _links)
+				{
+					if (args.X >= link.X && args.X <= link.X + link.W &&
+					    args.Y >= link.Y && args.Y < link.Y + 9)
+					{
+						Common.AddScreen(new Civilopedia(link.Target));
+						return true;
+					}
+				}
 				if (!NextPage()) Destroy();
 				return true;
 			}
@@ -382,7 +434,7 @@ namespace CivOne.Screens
 			_pages = pages;
 		}
 
-		public Civilopedia(ICivilopedia page, bool discovered = false, bool icon = true)
+		public Civilopedia(ICivilopedia page, bool discovered = false, bool icon = true) : base(MouseCursor.Pointer)
 		{
 			Palette = BuildPalette();
 			_discovered = discovered;
