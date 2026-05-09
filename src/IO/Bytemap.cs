@@ -55,6 +55,7 @@ namespace CivOne.IO
 			if (top < 0) { height -= top; top = 0; }
 			if (left + width > Width) width = Width - left;
 			if (top + height > Height) height = Height - top;
+			if (width <= 0 || height <= 0) return;
 
 			byte[] buffer = new byte[width].Clear(colour);
 			for (int yy = top; yy < (top + height); yy++)
