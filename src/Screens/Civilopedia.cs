@@ -72,6 +72,8 @@ namespace CivOne.Screens
 		private string[] GetBlurb(byte pageNumber)
 		{
 			string suffix = pageNumber == 1 ? "" : "2";
+			if (_singlePage is BaseConcept bc)
+				return bc.GetPageText(pageNumber);
 			if (_singlePage is IBuilding || _singlePage is IWonder)
 				return Resources.GetCivilopediaText("BLURB1/" + _singlePage.Name.ToUpper() + suffix);
 			if (_singlePage is IUnit)

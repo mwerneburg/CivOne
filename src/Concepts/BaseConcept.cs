@@ -16,17 +16,20 @@ namespace CivOne.Concepts
 		public string Name { get; protected set; }
 		public IBitmap Icon => null;
 		public byte PageCount => 2;
+
+		public virtual string[] GetPageText(byte pageNumber)
+		{
+			string suffix = pageNumber == 1 ? "" : "2";
+			return Resources.GetCivilopediaText("BLURB4/" + Name.ToUpper() + suffix);
+		}
+
 		public Picture DrawPage(byte pageNumber)
 		{
-			string[] text = new string[0];
+			string[] text = GetPageText(pageNumber);
 			switch (pageNumber)
 			{
-				case 1:
-					text = Resources.GetCivilopediaText("BLURB4/" + Name.ToUpper());
-					break;
-				case 2:
-					text = Resources.GetCivilopediaText("BLURB4/" + Name.ToUpper() + "2");
-					break;
+				case 1: break;
+				case 2: break;
 				default:
 					Log("Invalid page number: {0}", pageNumber);
 					break;

@@ -22,8 +22,8 @@ namespace CivOne.Screens
 	internal class CityChooseProduction : BaseScreen
 	{
 		private readonly City _city;
-		private readonly IProduction[] _items;  // all items: units, buildings, wonders
-		private int _filter = 0;                // 0=All 1=Units 2=Buildings 3=Wonders
+		private readonly IProduction[] _items;
+		private int _filter = 0;   // 0=All 1=Units 2=Buildings 3=Wonders
 		private int _selection;
 		private int _scrollTop;
 		private bool _update = true;
@@ -40,22 +40,47 @@ namespace CivOne.Screens
 
 		// ─── layout ──────────────────────────────────────────────────────────────
 
-		private int RowH         => Resources.GetFontHeight(0) + 1;
-		private int PanelW       => Math.Min(Width - 20, 300);
-		private int HeaderH      => Resources.GetFontHeight(1) + 10;
-		private int FooterH      => Resources.GetFontHeight(0) + 8;
-		private int MaxVisible   => Math.Max(4, (Height - 60 - HeaderH - FooterH) / RowH);
-		private int ListH        => MaxVisible * RowH + 4;
-		private int PanelH       => HeaderH + ListH + FooterH;
-		private int PanelX       => (Width  - PanelW) / 2;
-		private int PanelY       => (Height - PanelH) / 2;
+		private int RowH       => Resources.GetFontHeight(0) + 1;
+		private int PanelW     => Math.Min(Width - 20, 300);
+		private int HeaderH    => Resources.GetFontHeight(1) + 10;
+		private int FooterH    => Resources.GetFontHeight(0) + 8;
+		private int MaxVisible => Math.Max(4, (Height - 80 - HeaderH - FooterH - QueueSectionH) / RowH);
+		private int ListH      => MaxVisible * RowH + 4;
 
-		// ─── actions ──────────────────────────────────────────────────────────────
+		// Queue section: header line + one row per queued item, capped at 5 visible
+		private int QueueRowH     => Resources.GetFontHeight(0) + 2;
+		private int QueueVisible  => Math.Min(_city.ProductionQueue.Count, 5);
+		private int QueueSectionH => _city.ProductionQueue.Count == 0 ? 0 :
+		                             FooterH + QueueVisible * QueueRowH + 4;
+
+		private int PanelH => HeaderH + ListH + FooterH + QueueSectionH;
+		private int PanelX => (Width  - PanelW) / 2;
+		private int PanelY => (Height - PanelH) / 2;
+
+		// ─── actions ─────────────────────────────────────────────────────────────
 
 		private void Confirm()
 		{
 			_city.SetProduction(Filtered[_selection]);
 			Destroy();
+		}
+
+		private void EnqueueSelected()
+		{
+			var filtered = Filtered;
+			if (filtered.Length == 0) return;
+			_city.EnqueueProduction(filtered[_selection]);
+			_update = true;
+		}
+
+		private void RemoveFromQueue(int index)
+		{
+			var queue = _city.ProductionQueue.ToList();
+			if (index < 0 || index >= queue.Count) return;
+			_city.ClearProductionQueue();
+			for (int i = 0; i < queue.Count; i++)
+				if (i != index) _city.EnqueueProduction(queue[i]);
+			_update = true;
 		}
 
 		private void EnsureVisible()
@@ -85,6 +110,7 @@ namespace CivOne.Screens
 			int px = PanelX, py = PanelY, pw = PanelW;
 			int mvr = MaxVisible;
 			var filtered = Filtered;
+			var queue = _city.ProductionQueue;
 
 			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
 			this.DrawCassettePanel(px, py, pw, PanelH);
@@ -103,19 +129,16 @@ namespace CivOne.Screens
 				int ry = listTop + (i - _scrollTop) * RowH;
 				bool sel = (i == _selection);
 
-				// Category divider when type changes (only meaningful in All view)
 				if (prev != null && ItemCategory(item) != ItemCategory(prev))
 					this.DrawCassetteDivider(px + 2, ry, pw - 4);
 
 				if (sel)
 					this.FillRectangle(px + 2, ry, pw - 4, RowH, CassetteTheme.PHOS_FAINT);
 
-				// Name
 				string name = (item as ICivilopedia)?.Name ?? "?";
 				byte nameCol = sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
 				this.DrawText(name, 0, nameCol, px + 4, ry);
 
-				// Right: turns + combat stats for units
 				int turns = TurnsFor(item);
 				string right = $"{turns}t";
 				if (item is IUnit u)
@@ -132,11 +155,33 @@ namespace CivOne.Screens
 			if (_scrollTop + mvr < filtered.Length)
 				this.DrawText("v", 0, CassetteTheme.INK_MID, px + pw - 10, listTop + (mvr - 1) * RowH);
 
-			// Footer
+			// Footer / key hints
 			int footerY = py + HeaderH + ListH + 2;
 			this.DrawCassetteDivider(px + 2, footerY - 1, pw - 4);
-			this.DrawText("LETTER JUMP  TAB FILTER  ENTER SELECT",
+			this.DrawText("TAB FILTER  ENTER=NOW  Q=QUEUE",
 				0, CassetteTheme.INK_LOW, px + pw / 2, footerY + 2, TextAlign.Center);
+
+			// Queue section
+			if (queue.Count > 0)
+			{
+				int qy = footerY + FooterH;
+				this.DrawCassetteDivider(px + 2, qy, pw - 4);
+				this.DrawText("QUEUE:", 0, CassetteTheme.PHOS_DIM, px + 4, qy + 2);
+				qy += FooterH - 2;
+				int xBtn = px + pw - 12;
+				for (int i = 0; i < QueueVisible; i++)
+				{
+					IProduction item = queue[i];
+					string name = (item as ICivilopedia)?.Name ?? "?";
+					int turns = TurnsFor(item);
+					this.DrawText($"{i + 1}. {name}", 0, CassetteTheme.INK_HIGH, px + 4, qy);
+					this.DrawText($"{turns}t", 0, CassetteTheme.INK_LOW, xBtn - 4, qy, TextAlign.Right);
+					this.DrawText("×", 0, CassetteTheme.ALERT, xBtn, qy);
+					qy += QueueRowH;
+				}
+				if (queue.Count > QueueVisible)
+					this.DrawText($"  … {queue.Count - QueueVisible} more", 0, CassetteTheme.INK_LOW, px + 4, qy);
+			}
 
 			_update = false;
 			return true;
@@ -185,8 +230,12 @@ namespace CivOne.Screens
 					return true;
 			}
 
-			// Letter cycling: find the next item whose name starts with this letter
 			char key = char.ToUpperInvariant(args.KeyChar);
+			if (key == 'Q')
+			{
+				if (filtered.Length > 0) EnqueueSelected();
+				return true;
+			}
 			if (key >= 'A' && key <= 'Z')
 			{
 				for (int i = 1; i <= filtered.Length; i++)
@@ -208,12 +257,14 @@ namespace CivOne.Screens
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
+			int px = PanelX, pw = PanelW;
 			int listTop = PanelY + HeaderH + 2;
 			int mvr     = MaxVisible;
 			var filtered = Filtered;
+			var queue    = _city.ProductionQueue;
 
-			// Click in list area: single-click selects, double-click (same row) confirms
-			if (args.X >= PanelX + 2 && args.X < PanelX + PanelW - 2
+			// Click in item list
+			if (args.X >= px + 2 && args.X < px + pw - 2
 				&& args.Y >= listTop && args.Y < listTop + mvr * RowH)
 			{
 				int row = (args.Y - listTop) / RowH;
@@ -229,6 +280,24 @@ namespace CivOne.Screens
 					}
 				}
 				return true;
+			}
+
+			// Click on queue × buttons
+			if (queue.Count > 0)
+			{
+				int footerY = PanelY + HeaderH + ListH + 2;
+				int qy = footerY + FooterH;   // past the divider+header row
+				int xBtn = px + pw - 12;
+				for (int i = 0; i < QueueVisible; i++)
+				{
+					if (args.X >= xBtn && args.X <= px + pw - 4
+						&& args.Y >= qy && args.Y < qy + QueueRowH)
+					{
+						RemoveFromQueue(i);
+						return true;
+					}
+					qy += QueueRowH;
+				}
 			}
 
 			// Click outside panel: cancel
