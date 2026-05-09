@@ -43,6 +43,7 @@ namespace CivOne.Screens.Dialogs
 			{
 				Game.DisbandUnit(_diplomat);
 				_cityToIncite.Owner = _diplomat.Owner;
+				_cityToIncite.TechStolen = false;
 
 				// remove half the buildings at random
 				foreach (IBuilding building in _cityToIncite.Buildings.Where(b => Common.Random.Next(0, 1) == 1).ToList())

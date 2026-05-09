@@ -73,7 +73,8 @@ namespace CivOne
 					ResourceTiles  = city.GetResourceTiles().Select(b => (int)b).ToArray(),
 					TradeRoutes    = tradeRoutes,
 					DisorderTurns  = city.DisorderTurns  > 0 ? (int?)city.DisorderTurns : null,
-					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null
+					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null,
+					TechStolen     = city.TechStolen     ? (bool?)true : null
 				});
 			}
 
@@ -391,6 +392,7 @@ namespace CivOne
 
 				city.DisorderTurns = cd.DisorderTurns ?? ((cd.WasInDisorder ?? false) ? 1 : 0);
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
+				city.TechStolen    = cd.TechStolen    ?? false;
 				cityById[cd.Id] = city;
 				_cities.Add(city);
 			}

@@ -132,6 +132,7 @@ namespace CivOne.Persistence
 		public bool? WasInDisorder  { get; set; }  // legacy: kept for loading old saves
 		public int?  DisorderTurns  { get; set; }
 		public bool? WasWeLoveKing  { get; set; }
+		public bool? TechStolen     { get; set; }
 	}
 
 	public class CosTradeRoute

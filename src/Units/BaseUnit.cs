@@ -281,6 +281,7 @@ namespace CivOne.Units
 						while (capturedCity.Units.Length > 0)
 							Game.DisbandUnit(capturedCity.Units[0]);
 						capturedCity.Owner = Owner;
+						capturedCity.TechStolen = false;
 						{
 							City[] cities = Game.Instance.GetCities();
 							int cIdx = System.Array.IndexOf(cities, capturedCity);

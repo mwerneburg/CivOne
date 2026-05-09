@@ -171,6 +171,8 @@ namespace CivOne
 		public int  DisorderTurns {get; set;} = 0;
 		public bool WasInDisorder { get => DisorderTurns > 0; set { if (value && DisorderTurns == 0) DisorderTurns = 1; else if (!value) DisorderTurns = 0; } }
 		public bool WasWeLoveKing {get; set;} = false;
+		// Prevents a diplomat from stealing from the same city twice until it changes hands.
+		public bool TechStolen { get; set; } = false;
 
 		internal int ShieldCosts
 		{
