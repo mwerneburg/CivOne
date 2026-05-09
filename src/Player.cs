@@ -149,6 +149,7 @@ namespace CivOne
 			{
 				if (value == null) return;
 				_government = value;
+				InvalidateCityCaches();
 			}
 		}
 
@@ -161,6 +162,7 @@ namespace CivOne
 				int diff = _luxuriesRate - value;
 				_luxuriesRate = value;
 				_scienceRate += diff;
+				InvalidateCityCaches();
 			}
 		}
 		public int TaxesRate
@@ -171,9 +173,17 @@ namespace CivOne
 				int diff = _taxesRate - value;
 				_taxesRate = value;
 				_scienceRate += diff;
+				InvalidateCityCaches();
 			}
 		}
 		public int ScienceRate => _scienceRate;
+
+		private void InvalidateCityCaches()
+		{
+			if (!Game.Started) return;
+			foreach (City city in Cities)
+				city.InvalidateCache();
+		}
 
 		public void Revolt()
 		{
@@ -248,7 +258,10 @@ namespace CivOne
 				GameTask.Enqueue(new TechSelect(Game.CurrentPlayer));
 			_advances.Add(advance.Id);
 			if (Game.Started)
+			{
 				Game.Instance.AddReplayEvent(new ReplayData.TechDiscovered(Game.GameTurn, Game.PlayerNumber(this), (advance as ICivilopedia).Name));
+				InvalidateCityCaches();
+			}
 			if (!setOrigin) return;
 			Game.Instance.SetAdvanceOrigin(advance, this);
 		}

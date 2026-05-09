@@ -518,7 +518,8 @@ namespace CivOne.Units
 				Goto = Point.Empty;
 			}
 			Movement = null;
-			
+
+			Home?.InvalidateCache();
 			Explore();
 			MovementDone(previousTile);
 		}

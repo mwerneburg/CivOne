@@ -46,6 +46,7 @@ namespace CivOne
 				}
 				_owner = value;
 				ResetResourceTiles();
+				InvalidateCache();
 			}
 		}
 		internal string Name => Game.CityNames[NameId];
@@ -61,6 +62,7 @@ namespace CivOne
 				if (X == 255 || Y == 255) return;
 
 				_size = value;
+				InvalidateCache();
 				if (_size == 0)
 				{
 					Map[X, Y].Road = false;
@@ -92,21 +94,58 @@ namespace CivOne
 		internal IEnumerable<TradeRoute> TradeRoutes => _tradeRoutes;
 		internal int TradeRouteCount => _tradeRoutes.Count;
 
+		// Cached computed values; call InvalidateCache() on any state mutation.
+		private int?          _cachedFoodRaw;
+		private int?          _cachedShieldTotal;
+		private int?          _cachedRawTrade;
+		private int?          _cachedCorruption;
+		private int?          _cachedBaseTrade;
+		private int?          _cachedTradeRouteBonus;
+		private int?          _cachedTradeTotal;
+		private short?        _cachedTradeTaxes;
+		private short?        _cachedTradeLuxuries;
+		private short?        _cachedTradeScience;
+		private short?        _cachedLuxuries;
+		private short?        _cachedTaxes;
+		private short?        _cachedScience;
+		private List<Citizen> _cachedCitizens;
+
+		internal void InvalidateCache()
+		{
+			_cachedFoodRaw        = null;
+			_cachedShieldTotal    = null;
+			_cachedRawTrade       = null;
+			_cachedCorruption     = null;
+			_cachedBaseTrade      = null;
+			_cachedTradeRouteBonus = null;
+			_cachedTradeTotal     = null;
+			_cachedTradeTaxes     = null;
+			_cachedTradeLuxuries  = null;
+			_cachedTradeScience   = null;
+			_cachedLuxuries       = null;
+			_cachedTaxes          = null;
+			_cachedScience        = null;
+			_cachedCitizens       = null;
+		}
+
 		internal void AddTradeRoute(City partner, string commodity)
 		{
 			if (partner == null) return;
 			if (_tradeRoutes.Count >= 3) _tradeRoutes.RemoveAt(0);
 			_tradeRoutes.Add(new TradeRoute(partner, commodity));
+			InvalidateCache();
 		}
 
 		internal void RemoveTradeRoutesTo(City city)
 		{
 			_tradeRoutes.RemoveAll(r => r.Partner == city);
+			InvalidateCache();
 		}
 
 		internal void RemoveTradeRoutesTo(Player enemy)
 		{
 			_tradeRoutes.RemoveAll(r => r.Partner.Owner == Game.PlayerNumber(enemy));
+			InvalidateCache();
 		}
 
 		public IBuilding[] Buildings => _buildings.OrderBy(b => b.Id).ToArray();
@@ -172,7 +211,7 @@ namespace CivOne
 			}
 		}
 
-		private int FoodRaw => ResourceTiles.Sum(t => FoodValue(t));
+		private int FoodRaw => (int)(_cachedFoodRaw ??= ResourceTiles.Sum(t => FoodValue(t)));
 		internal int FoodIncome => (HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw) - FoodCosts;
 		internal int FoodRequired => (int)(Size + 1) * 10;
 		internal int FoodTotal => HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw;
@@ -215,11 +254,12 @@ namespace CivOne
 		{
 			get
 			{
+				if (_cachedShieldTotal.HasValue) return _cachedShieldTotal.Value;
 				int shields = ResourceTiles.Sum(t => ShieldValue(t));
 				if (HasBuilding<Buildings.MassTransit>()) shields = (int)(shields * 1.2);
 				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant || b is PowerPlant || b is HydroPlant)) || HooverDamActive ? 1.0 : 0.5));
 				if (_buildings.Any(b => (b is MfgPlant))) shields += (short)Math.Floor((double)shields * 1.0);
-				return shields;
+				return (_cachedShieldTotal = shields).Value;
 			}
 		}
 
@@ -260,7 +300,9 @@ namespace CivOne
 			return output;
 		}
 
-		private int BaseTrade => ResourceTiles.Sum(t => TradeValue(t)) - Corruption;
+		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)));
+
+		private int BaseTrade => (int)(_cachedBaseTrade ??= RawTrade - Corruption);
 
 		private int RouteBonus(City partner)
 		{
@@ -273,19 +315,21 @@ namespace CivOne
 			return (int)(multiplier * (float)(distance + 10) * partner.BaseTrade / 24);
 		}
 
-		private int TradeRouteBonus => _tradeRoutes.Sum(r => RouteBonus(r.Partner));
+		private int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
 
-		internal int TradeTotal => BaseTrade + TradeRouteBonus;
-		internal short TradeScience => (short)(TradeTotal - TradeLuxuries - TradeTaxes);
-		internal short TradeLuxuries => (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero);
-		internal short TradeTaxes => (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero);
+		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
+		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
+		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));
+		internal short TradeScience => (short)(_cachedTradeScience ??= (short)(TradeTotal - TradeLuxuries - TradeTaxes));
 
 		internal int Corruption
 		{
 			get
 			{
+				if (_cachedCorruption.HasValue) return _cachedCorruption.Value;
+
 				IGovernment government = Game.GetPlayer(_owner).Government;
-				if (government.CorruptionMultiplier == 0) return 0;
+				if (government.CorruptionMultiplier == 0) return (_cachedCorruption = 0).Value;
 
 				int distance;
 				switch (government)
@@ -294,7 +338,7 @@ namespace CivOne
 						distance = 10;
 						break;
 					default:
-						if (HasBuilding<Palace>()) return 0;
+						if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
 						if (Game.GetPlayer(Owner).Cities.Any(x => x.HasBuilding<Palace>()))
 						{
 							City capital = Game.GetPlayer(Owner).Cities.First(x => x.HasBuilding<Palace>());
@@ -307,12 +351,12 @@ namespace CivOne
 						break;
 				}
 
-				int totalTrade = ResourceTiles.Sum(t => TradeValue(t));
+				int totalTrade = RawTrade;
 				int corruption = (int)Math.Round((float)(totalTrade * distance * 3) / (10 * government.CorruptionMultiplier));
 
 				if (HasBuilding<Courthouse>() || (HasBuilding<Palace>() && government is Governments.Communism)) corruption /= 2;
 
-				return corruption;
+				return (_cachedCorruption = corruption).Value;
 			}
 		}
 
@@ -320,11 +364,12 @@ namespace CivOne
 		{
 			get
 			{
+				if (_cachedLuxuries.HasValue) return _cachedLuxuries.Value;
 				short luxuries = TradeLuxuries;
 				if (HasBuilding<MarketPlace>()) luxuries += (short)Math.Floor((double)luxuries * 0.5);
 				if (HasBuilding<Bank>()) luxuries += (short)Math.Floor((double)luxuries * 0.5);
 				luxuries += (short)(_specialists.Count(c => c == Citizen.Entertainer) * 2);
-				return luxuries;
+				return (_cachedLuxuries = luxuries).Value;
 			}
 		}
 
@@ -332,11 +377,12 @@ namespace CivOne
 		{
 			get
 			{
+				if (_cachedTaxes.HasValue) return _cachedTaxes.Value;
 				short taxes = TradeTaxes;
 				if (HasBuilding<MarketPlace>()) taxes += (short)Math.Floor((double)taxes * 0.5);
 				if (HasBuilding<Bank>()) taxes += (short)Math.Floor((double)taxes * 0.5);
 				taxes += (short)(_specialists.Count(c => c == Citizen.Taxman) * 2);
-				return taxes;
+				return (_cachedTaxes = taxes).Value;
 			}
 		}
 
@@ -344,6 +390,7 @@ namespace CivOne
 		{
 			get
 			{
+				if (_cachedScience.HasValue) return _cachedScience.Value;
 				short science = TradeScience;
 				bool newtonActive = !Game.WonderObsolete<IsaacNewtonsCollege>() && Player.HasWonder<IsaacNewtonsCollege>() && !Player.HasWonder<SETIProgram>();
 				double libUniBonus = newtonActive ? (2.0 / 3.0) : 0.5;
@@ -352,7 +399,7 @@ namespace CivOne
 				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
 				if (Player.HasWonder<SETIProgram>()) science += (short)Math.Floor((double)science * 0.5);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
-				return science;
+				return (_cachedScience = science).Value;
 			}
 		}
 
@@ -389,6 +436,7 @@ namespace CivOne
 		{
 			while (_specialists.Count < (_size - ResourceTiles.Count())) _specialists.Add(Citizen.Entertainer);
 			while (_specialists.Count > 0 && _specialists.Count > (_size - ResourceTiles.Count() - 1)) _specialists.RemoveAt(_specialists.Count - 1);
+			InvalidateCache();
 		}
 
 		private void SetResourceTiles()
@@ -504,6 +552,7 @@ namespace CivOne
 			_resourceTiles.Clear();
 			for (int i = 0; i < Size; i++)
 				SetResourceTiles();
+			InvalidateCache();
 		}
 
 		public void RelocateResourceTile(ITile tile)
@@ -523,10 +572,12 @@ namespace CivOne
 			if (_resourceTiles.Contains(tile))
 			{
 				_resourceTiles.Remove(tile);
+				InvalidateCache();
 				return;
 			}
 			_resourceTiles.Add(tile);
 			UpdateSpecialists();
+			InvalidateCache();
 		}
 
 		public Player Player => Game.Instance.GetPlayer(Owner);
@@ -653,85 +704,86 @@ namespace CivOne
 		}
 
 		private readonly List<Citizen> _specialists = new List<Citizen>();
-		internal IEnumerable<Citizen> Citizens
+
+		internal IEnumerable<Citizen> Citizens => _cachedCitizens ??= ComputeCitizens().ToList();
+
+		private IEnumerable<Citizen> ComputeCitizens()
 		{
-			get
+			// Sync specialist list length with current city size and worked tiles.
+			int resourceCount = ResourceTiles.Count();
+			while (_specialists.Count < Size - (resourceCount - 1)) _specialists.Add(Citizen.Entertainer);
+			while (_specialists.Count > Size - (resourceCount - 1)) _specialists.Remove(_specialists.Last());
+
+			int happyCount = (int)Math.Floor((double)Luxuries / 2);
+			if (Player.HasWonder<HangingGardens>() && !Game.WonderObsolete<HangingGardens>()) happyCount++;
+			if (Player.HasWonder<CureForCancer>()) happyCount++;
+
+			int unhappyCount = Size - (6 - Game.Difficulty) - happyCount;
+			if (Player.RepublicDemocratic)
 			{
-				// Update specialist count
-				int resourceCount = ResourceTiles.Count();
-				while (_specialists.Count < Size - (resourceCount - 1)) _specialists.Add(Citizen.Entertainer);
-				while (_specialists.Count > Size - (resourceCount - 1)) _specialists.Remove(_specialists.Last());
-
-				int happyCount = (int)Math.Floor((double)Luxuries / 2);
-				if (Player.HasWonder<HangingGardens>() && !Game.WonderObsolete<HangingGardens>()) happyCount++;
-				if (Player.HasWonder<CureForCancer>()) happyCount++;
-
-				int unhappyCount = Size - (6 - Game.Difficulty) - happyCount;
-				if (Player.RepublicDemocratic)
+				int penalty = Player.Government is Governments.Democracy ? 2 : 1;
+				if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
+				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
+				unhappyCount += militaryAway * penalty;
+			}
+			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
+			{
+				unhappyCount = 0;
+			}
+			else
+			{
+				if (HasBuilding<Temple>())
 				{
-					int penalty = Player.Government is Governments.Democracy ? 2 : 1;
-					if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
-					int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
-					unhappyCount += militaryAway * penalty;
+					int templeEffect = 1;
+					if (Player.HasAdvance<Mysticism>()) templeEffect <<= 1;
+					if (Player.HasWonder<Oracle>() && !Game.WonderObsolete<Oracle>()) templeEffect <<= 1;
+					unhappyCount -= templeEffect;
 				}
-				if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
+				if (Tile != null && Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<JSBachsCathedral>()))
 				{
-					unhappyCount = 0;
+					unhappyCount -= 2;
 				}
-				else
-				{
-					if (HasBuilding<Temple>())
-					{
-						int templeEffect = 1;
-						if (Player.HasAdvance<Mysticism>()) templeEffect <<= 1;
-						if (Player.HasWonder<Oracle>() && !Game.WonderObsolete<Oracle>()) templeEffect <<= 1;
-						unhappyCount -= templeEffect;
-					}
-					if (Tile != null && Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<JSBachsCathedral>()))
-					{
-						unhappyCount -= 2;
-					}
-					if (HasBuilding<Colosseum>()) unhappyCount -= 3;
-					bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
-						Tile != null &&
-						Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());
-					if (HasBuilding<Cathedral>())
-						unhappyCount -= chapelOnContinent ? 6 : 4;
-					else if (chapelOnContinent)
-						unhappyCount -= 4;
-				}
+				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
+				bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
+					Tile != null &&
+					Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());
+				if (HasBuilding<Cathedral>())
+					unhappyCount -= chapelOnContinent ? 6 : 4;
+				else if (chapelOnContinent)
+					unhappyCount -= 4;
+			}
 
-				int content = 0;
-				int unhappy = 0;
-				int working = resourceCount - 1;
-				int specialist = 0;
+			int content = 0;
+			int unhappy = 0;
+			int working = resourceCount - 1;
+			int specialist = 0;
 
-				for (int i = 0; i < Size; i++)
+			for (int i = 0; i < Size; i++)
+			{
+				if (i < working)
 				{
-					if (i < working)
+					if (happyCount-- > 0)
 					{
-						if (happyCount-- > 0)
-						{
-							yield return (i % 2 == 0) ? Citizen.HappyMale : Citizen.HappyFemale;
-							continue;
-						}
-						if ((unhappyCount - (working - i)) >= 0)
-						{
-							unhappyCount--;
-							yield return ((unhappy++) % 2 == 0) ? Citizen.UnhappyMale : Citizen.UnhappyFemale;
-							continue;
-						}
-						yield return ((content++) % 2 == 0) ? Citizen.ContentMale : Citizen.ContentFemale;
+						yield return (i % 2 == 0) ? Citizen.HappyMale : Citizen.HappyFemale;
 						continue;
 					}
-					yield return _specialists[specialist++];
+					if ((unhappyCount - (working - i)) >= 0)
+					{
+						unhappyCount--;
+						yield return ((unhappy++) % 2 == 0) ? Citizen.UnhappyMale : Citizen.UnhappyFemale;
+						continue;
+					}
+					yield return ((content++) % 2 == 0) ? Citizen.ContentMale : Citizen.ContentFemale;
+					continue;
 				}
+				yield return _specialists[specialist++];
 			}
 		}
 		internal void ChangeSpecialist(int index)
 		{
 			while (_specialists.Count < (index + 1)) _specialists.Add(Citizen.Entertainer);
 			_specialists[index] = (Citizen)((((int)_specialists[index] - 5) % 3) + 6);
+			InvalidateCache();
 		}
 
 		private IEnumerable<ITile> CityTiles
@@ -775,7 +827,11 @@ namespace CivOne
 
 		public bool BuildingSold { get; private set; }
 
-		public void AddBuilding(IBuilding building) => _buildings.Add(building);
+		public void AddBuilding(IBuilding building)
+		{
+			_buildings.Add(building);
+			InvalidateCache();
+		}
 
 		public void SellBuilding(IBuilding building)
 		{
@@ -784,12 +840,22 @@ namespace CivOne
 			BuildingSold = true;
 		}
 
-		public void RemoveBuilding(IBuilding building) => _buildings.RemoveAll(b => b.Id == building.Id);
-		public void RemoveBuilding<T>() where T : IBuilding => _buildings.RemoveAll(b => b is T);
+		public void RemoveBuilding(IBuilding building)
+		{
+			_buildings.RemoveAll(b => b.Id == building.Id);
+			InvalidateCache();
+		}
+
+		public void RemoveBuilding<T>() where T : IBuilding
+		{
+			_buildings.RemoveAll(b => b is T);
+			InvalidateCache();
+		}
 
 		public void AddWonder(IWonder wonder)
 		{
 			_wonders.Add(wonder);
+			InvalidateCache();
 			if (Game.Started)
 			{
 				if (wonder is Colossus && !Game.WonderObsolete<Colossus>())
