@@ -10,136 +10,138 @@
 using System;
 using System.Linq;
 using CivOne.Enums;
+using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Graphics.Sprites;
-using CivOne.UserInterface;
 
 namespace CivOne.Screens
 {
 	[Expand]
 	internal class GameOptions : BaseScreen
 	{
-		private int OX => (Width - 320) / 2;
-		private int OY => (Height - 200) / 2;
+		private const int FONT = 0;
 
+		private readonly (string Label, Func<bool> Get, Action Toggle)[] _options;
+		private int  _cursor = 0;
 		private bool _update = true;
-		
-		private void MenuCancel(object sender, EventArgs args)
-		{
-			Destroy();
-		}
 
-		private void MenuAnimations(object sender, EventArgs args)
-		{
-			Game.Animations = !Game.Animations;
-			Update();
-		}
+		// ── layout ───────────────────────────────────────────────────────────────
+		private int Fh      => Resources.GetFontHeight(FONT);
+		private int RowH    => Fh + 2;
+		private int PanelW  => 160;
+		private int HeaderH => Fh + 8;
+		private int FooterH => Fh + 6;
+		private int ListH   => _options.Length * RowH + 4;
+		private int PanelH  => HeaderH + ListH + FooterH;
+		private int PanelX  => (Width  - PanelW) / 2;
+		private int PanelY  => (Height - PanelH) / 2;
 
-		private void MenuSound(object sender, EventArgs args)
-		{
-			Game.Sound = !Game.Sound;
-			Update();
-		}
-
-		private void MenuEnemyMoves(object sender, EventArgs args)
-		{
-			Game.EnemyMoves = !Game.EnemyMoves;
-			Update();
-		}
-
-		private void MenuCivilopediaText(object sender, EventArgs args)
-		{
-			Game.CivilopediaText = !Game.CivilopediaText;
-			Update();
-		}
-
-		private void MenuInstantAdvice(object sender, EventArgs args)
-		{
-			Game.InstantAdvice = !Game.InstantAdvice;
-			Update();
-		}
-
-		private void MenuEndOfTurn(object sender, EventArgs args)
-		{
-			Game.EndOfTurn = !Game.EndOfTurn;
-			Update();
-		}
-
-		private void MenuPalace(object sender, EventArgs args)
-		{
-			Game.Palace = !Game.Palace;
-			Update();
-		}
-
-		private void MenuCircuses(object sender, EventArgs args)
-		{
-			Game.Circuses = !Game.Circuses;
-			Update();
-		}
-
-		private void MenuBarricades(object sender, EventArgs args)
-		{
-			Game.Barricades = !Game.Barricades;
-			Update();
-		}
-
-		private void Update()
-		{
-			CloseMenus();
-			_update = true;
-		}
-
+		// ── draw ─────────────────────────────────────────────────────────────────
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_update)
+			if (!_update) return false;
+			_update = false;
+
+			int px = PanelX, py = PanelY, pw = PanelW;
+
+			this.DrawCassettePanel(px, py, pw, PanelH, "OPTIONS");
+
+			int listTop = py + HeaderH + 2;
+			for (int i = 0; i < _options.Length; i++)
 			{
-				_update = false;
+				int  ry  = listTop + i * RowH;
+				bool sel = (i == _cursor);
+				bool on  = _options[i].Get();
 
-				Picture menuGfx = new Picture(103, 79) // this appears to create the image rectangle
-					.Tile(Pattern.PanelGrey)
-					.DrawRectangle3D()
-					.DrawText("Options:", 0, 15, 4, 4)
-					.As<Picture>();
+				if (sel)
+					this.FillRectangle(px + 2, ry, pw - 4, RowH, CassetteTheme.PHOS_FAINT);
 
-				IBitmap menuBackground = menuGfx[2, 11, 100, 64]
-					.ColourReplace((7, 11), (22, 3));
+				byte checkCol = on  ? (sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.OK)
+				                    : (sel ? CassetteTheme.INK_MID   : CassetteTheme.INK_LOW);
+				byte textCol  = sel ? CassetteTheme.PHOS_GLOW
+				                    : (on  ? CassetteTheme.INK_HIGH  : CassetteTheme.INK_MID);
 
-				this.AddLayer(menuGfx, OX + 25, OY + 17); // this is the Options menu grey box, not the crazily repeated upper left corner of the screen.
-
-				Menu menu = new Menu(Palette, menuBackground)
-				{
-					X = OX + 27, // these are the confirmed text origin coordinates
-					Y = OY + 28,
-					MenuWidth = 99,
-					ActiveColour = 11,
-					TextColour = 5,
-					DisabledColour = 3,
-					FontId = 0,
-					Indent = 2
-				};
-				menu.MissClick += MenuCancel;
-				menu.Cancel += MenuCancel;
-
-				menu.Items.Add($"{(Game.InstantAdvice ? '^' : ' ')}Instant Advice").OnSelect(MenuInstantAdvice);
-				menu.Items.Add($"{(Game.EndOfTurn ? '^' : ' ')}End of Turn").OnSelect(MenuEndOfTurn);
-				menu.Items.Add($"{(Game.Animations ? '^' : ' ')}Animations").OnSelect(MenuAnimations);
-				menu.Items.Add($"{(Game.Sound ? '^' : ' ')}Sound").OnSelect(MenuSound);
-				menu.Items.Add($"{(Game.EnemyMoves ? '^' : ' ')}Enemy Moves").OnSelect(MenuEnemyMoves);
-				menu.Items.Add($"{(Game.CivilopediaText ? '^' : ' ')}Civilopedia Text").OnSelect(MenuCivilopediaText);
-				// menu.Items.Add($"{(Game.Palace ? '^' : ' ')}Palace").OnSelect(MenuPalace);
-				menu.Items.Add($"{(Game.Circuses ? '^' : ' ')}Circuses").OnSelect(MenuCircuses);
-				menu.Items.Add($"{(Game.Barricades ? '^' : ' ')}Barricades").OnSelect(MenuBarricades);
-
-				AddMenu(menu);
+				this.DrawText(on ? "^" : " ",    FONT, checkCol, px + 5,      ry);
+				this.DrawText(_options[i].Label, FONT, textCol,  px + 5 + 8,  ry);
 			}
+
+			int footerY = py + HeaderH + ListH + 2;
+			this.DrawCassetteDivider(px + 2, footerY - 1, pw - 4);
+			this.DrawText("\x18\x19 MOVE  ENTER/SPC TOGGLE  ESC CLOSE",
+				FONT, CassetteTheme.INK_LOW, px + pw / 2, footerY + 2, TextAlign.Center);
+
 			return true;
 		}
 
+		// ── input ────────────────────────────────────────────────────────────────
+		public override bool KeyDown(KeyboardEventArgs args)
+		{
+			switch (args.Key)
+			{
+				case Key.Up:
+				case Key.NumPad8:
+					if (_cursor > 0) { _cursor--; _update = true; }
+					return true;
+				case Key.Down:
+				case Key.NumPad2:
+					if (_cursor < _options.Length - 1) { _cursor++; _update = true; }
+					return true;
+				case Key.Enter:
+				case Key.Space:
+					_options[_cursor].Toggle();
+					_update = true;
+					return true;
+				case Key.Escape:
+					Destroy();
+					return true;
+			}
+			return false;
+		}
+
+		public override bool MouseDown(ScreenEventArgs args)
+		{
+			int listTop = PanelY + HeaderH + 2;
+			if (args.X >= PanelX + 2 && args.X < PanelX + PanelW - 2
+			    && args.Y >= listTop && args.Y < listTop + _options.Length * RowH)
+			{
+				int row = (args.Y - listTop) / RowH;
+				if (row < 0 || row >= _options.Length) return true;
+				if (row == _cursor)
+				{
+					_options[_cursor].Toggle();
+				}
+				else
+				{
+					_cursor = row;
+				}
+				_update = true;
+				return true;
+			}
+
+			Destroy();
+			return true;
+		}
+
+		// ── constructor ──────────────────────────────────────────────────────────
 		public GameOptions() : base(MouseCursor.Pointer)
 		{
-			Palette = Common.DefaultPalette;
-			this.AddLayer(Common.Screens.Last(), 0, 0) // this is a black box (presumably behind the menu?
-				 .FillRectangle(OX + 24, OY + 16, 105, 81, 5);
+			Palette p = Common.DefaultPalette;
+			using (Palette c = CassetteTheme.CreatePalette())
+				p.MergePalette(c, 1, 17);
+			Palette = p;
+
+			this.AddLayer(Common.Screens.Last(), 0, 0);
+
+			_options = new (string, Func<bool>, Action)[]
+			{
+				("Instant Advice",    () => Game.InstantAdvice,   () => { Game.InstantAdvice   = !Game.InstantAdvice;   }),
+				("End of Turn",       () => Game.EndOfTurn,       () => { Game.EndOfTurn       = !Game.EndOfTurn;       }),
+				("Animations",        () => Game.Animations,      () => { Game.Animations      = !Game.Animations;      }),
+				("Sound",             () => Game.Sound,           () => { Game.Sound           = !Game.Sound;           }),
+				("Enemy Moves",       () => Game.EnemyMoves,      () => { Game.EnemyMoves      = !Game.EnemyMoves;      }),
+				("Civilopedia Text",  () => Game.CivilopediaText, () => { Game.CivilopediaText = !Game.CivilopediaText; }),
+				("Circuses",          () => Game.Circuses,        () => { Game.Circuses        = !Game.Circuses;        }),
+				("Barricades",        () => Game.Barricades,      () => { Game.Barricades      = !Game.Barricades;      }),
+			};
 		}
 	}
 }
