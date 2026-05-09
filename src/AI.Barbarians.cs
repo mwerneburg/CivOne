@@ -47,7 +47,10 @@ namespace CivOne
 
 			for (int i = 0; i < 1000; i++)
 			{
-				if (unit.Tile.GetBorderTiles().Any(x => !x.IsOcean && !IsPolarTile(x)))
+				// Only try to disembark when there are enemy-free land tiles to land on.
+				// If every adjacent land tile is occupied by a non-barbarian, fall through
+				// to the Goto navigation so the ship can seek a better landing spot.
+				if (unit.Tile.GetBorderTiles().Any(x => !x.IsOcean && !IsPolarTile(x) && !x.Units.Any(u => u.Owner != 0)))
 				{
 					if (Game.GetCities().Any(x => x.Owner != 0) && unit.Tile.GetBorderTiles().Any(x => !x.IsOcean && !IsPolarTile(x) && !x.Units.Any(u => u.Owner != 0)))
 					{
@@ -111,7 +114,8 @@ namespace CivOne
 					if (landTiles.Length > 0)
 					{
 						ITile tile = landTiles[Common.Random.Next(landTiles.Length)];
-						ship.MoveTo(tile.X - unit.X, tile.Y - unit.Y);
+						if (!ship.MoveTo(tile.X - unit.X, tile.Y - unit.Y))
+							unit.SkipTurn();
 						return;
 					}
 				}
