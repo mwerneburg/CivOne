@@ -64,7 +64,7 @@ namespace CivOne.Screens
 			this.DrawText(menuItem.Text, 0, colour, x, y, TextAlign.Left);
 			if (menuItem.Shortcut == null) return;
 			int textWidth = Resources.GetTextSize(0, menuItem.Text).Width;
-			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_MID;
+			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 			this.DrawText(menuItem.Shortcut, 0, shortcutColour, x + textWidth + 8, y, TextAlign.Left);
 		}
 		
