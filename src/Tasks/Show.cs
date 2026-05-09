@@ -12,9 +12,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
+using CivOne.Enums;
 using CivOne.Governments;
 using CivOne.Screens;
 using CivOne.Screens.Dialogs;
+using CivOne.Tiles;
 using CivOne.Units;
 
 namespace CivOne.Tasks
@@ -49,6 +51,23 @@ namespace CivOne.Tasks
 			}
 		}
 
+		private static Point NearestLandTile(int x, int y)
+		{
+			// Spiral outward from (x,y) until we find a non-ocean, non-arctic tile.
+			for (int radius = 1; radius < Map.WIDTH / 2; radius++)
+			{
+				for (int dy = -radius; dy <= radius; dy++)
+				for (int dx = -radius; dx <= radius; dx++)
+				{
+					if (Math.Abs(dx) != radius && Math.Abs(dy) != radius) continue;
+					ITile t = Map[(x + dx + Map.WIDTH) % Map.WIDTH, y + dy];
+					if (t == null || t.IsOcean || t.Type == CivOne.Enums.Terrain.Arctic) continue;
+					return new Point(t.X, t.Y);
+				}
+			}
+			return new Point(x, y);
+		}
+
 		public static Show Goto
 		{
 			get
@@ -60,7 +79,14 @@ namespace CivOne.Tasks
 					if (Human != Game.CurrentPlayer) return;
 					if (Game.ActiveUnit == null) return;
 					if (gotoScreen.X == -1 || gotoScreen.Y == -1) return;
-					Game.ActiveUnit.Goto = new Point(gotoScreen.X, gotoScreen.Y);
+					int gx = gotoScreen.X, gy = gotoScreen.Y;
+					if (Game.ActiveUnit.Class == UnitClass.Land && Map[gx, gy] != null && Map[gx, gy].IsOcean)
+					{
+						Point land = NearestLandTile(gx, gy);
+						gx = land.X;
+						gy = land.Y;
+					}
+					Game.ActiveUnit.Goto = new Point(gx, gy);
 				};
 				return new Show(gotoScreen);
 			}
