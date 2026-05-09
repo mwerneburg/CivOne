@@ -134,6 +134,8 @@ namespace CivOne.Graphics
 			_characters.Add((char)125, new bool[,] { { B0, B0, B0, B1, B0, B0, B0 }, { B1, B0, B1, B0, B1, B1, B1 }, { B1, B1, B0, B0, B0, B1, B1 }, { B1, B1, B1, B0, B1, B0, B1 }, { B0, B0, B0, B1, B0, B0, B0 } });
 			_characters.Add((char)126, new bool[,] { { B0, B1, B1, B1, B0, B0, B0 }, { B1, B0, B0, B0, B1, B1, B0 }, { B1, B0, B1, B1, B1, B1, B0 }, { B1, B0, B0, B0, B1, B1, B0 }, { B0, B1, B1, B1, B0, B0, B0 } });
 			_characters.Add((char)127, new bool[,] { { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 }, { B0, B0, B0, B0, B0, B0, B0 } });
+			// ★ U+2605 — filled star (5 cols × 7 rows): top point, wide band, two bottom points
+			_characters.Add('★', new bool[,] { { B0, B1, B0, B1, B0, B0, B0 }, { B0, B1, B1, B0, B0, B0, B0 }, { B1, B1, B1, B1, B0, B0, B0 }, { B0, B1, B1, B0, B0, B0, B0 }, { B0, B1, B0, B1, B0, B0, B0 } });
 			// ♡ U+2661 — heart outline (5 cols × 7 rows)
 			_characters.Add('♡', new bool[,] { { B0, B0, B1, B1, B0, B0, B0 }, { B0, B1, B1, B1, B1, B0, B0 }, { B0, B0, B1, B1, B1, B1, B0 }, { B0, B1, B1, B1, B1, B0, B0 }, { B0, B0, B1, B1, B0, B0, B0 } });
 			// ♥ U+2665 — heart filled (same shape)

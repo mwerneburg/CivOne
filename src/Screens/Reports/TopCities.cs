@@ -11,7 +11,6 @@ using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
-using CivOne.Wonders;
 
 namespace CivOne.Screens.Reports
 {
@@ -21,7 +20,7 @@ namespace CivOne.Screens.Reports
 		private bool _update = true;
 
 		private readonly City[] _cities;
-		
+
 		private int OX => (Width - 320) / 2;
 
 		protected override bool HasUpdate(uint gameTick)
@@ -31,60 +30,47 @@ namespace CivOne.Screens.Reports
 			for (int i = 0; i < _cities.Length; i++)
 			{
 				City city = _cities[i];
-
 				if (city == null || city.Size == 0) continue;
+
 				byte colour = Common.ColourLight[city.Owner];
+				Player owner = Game.GetPlayer(city.Owner);
 
 				int xx = OX + 8;
 				int yy = 32 + (32 * i);
 				int ww = 304;
 				int hh = 26;
 
-				Player owner = Game.GetPlayer(city.Owner);
-
 				this.FillRectangle(xx, yy, ww, hh, colour)
-					.FillRectangle(xx + 1, yy + 1, ww - 2, hh - 2, 3);
-				
-				int dx = 42;
-				int group = -1;
-				Citizen[] citizens = city.Citizens.ToArray();
-				for (int j = 0; j < city.Size; j++)
-				{
-					dx += 8;
-					if (group != (group = Common.CitizenGroup(citizens[j])) && group > 0 && i > 0)
-					{
-						dx += 2;
-						if (group == 3) dx += 4;
-					}
-					this.AddLayer(Icons.Citizen(citizens[j]), dx, yy + 10);
-				}
+					.FillRectangle(xx + 1, yy + 1, ww - 2, hh - 2, CassetteTheme.BG1);
 
-				dx += 16;
-				foreach (IWonder wonder in city.Wonders)
-				{
-					this.AddLayer(wonder.SmallIcon, dx, yy + 11);
-					dx += 19;
-				}
+				// Line 1: rank, name, civilization
+				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, CassetteTheme.INK_HIGH,
+					Width / 2, yy + 4, TextAlign.Center);
 
-				this.DrawText($"{i + 1}. {city.Name} ({owner.Civilization.Name})", 0, CassetteTheme.INK_HIGH, Width / 2, yy + 3, TextAlign.Center);
+				// Line 2: population, improvements, wonder stars
+				int wonders = city.Wonders.Length;
+				int buildings = city.Buildings.Length;
+				string stars = wonders > 0 ? "  " + new string('★', wonders) : "";
+				string detail = $"Pop {city.Size}  ·  {buildings} improvement{(buildings == 1 ? "" : "s")}{stars}";
+				this.DrawText(detail, 0, CassetteTheme.INK_MID, Width / 2, yy + 14, TextAlign.Center);
 			}
 
 			_update = false;
 			return true;
 		}
-		
+
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
 			Destroy();
 			return true;
 		}
-		
+
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			Destroy();
 			return true;
 		}
-		
+
 		public TopCities()
 		{
 			Palette p = Common.DefaultPalette;
@@ -92,7 +78,6 @@ namespace CivOne.Screens.Reports
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;
 
-			// I'm not sure about the order of top 5 cities, but this is pretty close
 			_cities = Game.GetCities()
 							.Where(c => c.Size > 0)
 							.OrderByDescending(c => c.Wonders.Length)
