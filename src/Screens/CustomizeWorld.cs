@@ -58,10 +58,7 @@ namespace CivOne.Screens
 					Destroy();
 					Size sz = MapSizes[_confirmed[0]].Size;
 					Map.Generate(_confirmed[1], _confirmed[2], _confirmed[3], _confirmed[4], sz.Width, sz.Height);
-					if (!Runtime.Settings.ShowIntro)
-						Common.AddScreen(new NewGame());
-					else
-						Common.AddScreen(new Intro());
+					Common.AddScreen(new AurigaIntroScreen());
 				}
 				return true;
 			}

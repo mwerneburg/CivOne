@@ -40,6 +40,10 @@ namespace CivOne.Screens
 
 		protected abstract byte ColorFor(int lineIndex, string text);
 
+		// Called just before the screen destroys itself (typing complete + dismiss).
+		// Override in derived classes that need to launch the next screen.
+		protected virtual void OnDismiss() { }
+
 		// ── typewriter state ──────────────────────────────────────────────────
 
 		// Returns the line index and how many chars of that line have been printed.
@@ -209,6 +213,7 @@ namespace CivOne.Screens
 				return true;
 			}
 
+			OnDismiss();
 			Destroy();
 			return true;
 		}
@@ -220,6 +225,7 @@ namespace CivOne.Screens
 				SkipToEnd();
 				return true;
 			}
+			OnDismiss();
 			Destroy();
 			return true;
 		}
