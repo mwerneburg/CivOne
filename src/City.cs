@@ -542,14 +542,16 @@ namespace CivOne
 					if ((unit is Transport || unit is Submarine || unit is Carrier || unit is Battleship || unit is Cruiser) && !HasBuilding<Shipyard>()) continue;
 					yield return unit;
 				}
+				bool coastal = Map[X, Y].GetBorderTiles().Any(t => t.IsOcean);
 				foreach (IBuilding building in Reflect.GetBuildings().Where(b => Player.ProductionAvailable(b) && !_buildings.Any(x => x.Id == b.Id)))
 				{
 					if (HasBuilding<Palace>() && building is Courthouse) continue;
-					if (building is Shipyard && !Map[X, Y].GetBorderTiles().Any(t => t.IsOcean)) continue;
+					if (building is Shipyard && !coastal) continue;
 					yield return building;
 				}
 				foreach (IWonder wonder in Reflect.GetWonders().Where(b => Player.ProductionAvailable(b)))
 				{
+					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus)) continue;
 					yield return wonder;
 				}
 			}
