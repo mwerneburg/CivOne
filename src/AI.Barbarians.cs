@@ -74,11 +74,28 @@ namespace CivOne
 
 				if (unit.Goto.IsEmpty)
 				{
-					if (!Game.GetCities().Any(x => x.Owner != 0 && x.HasBuilding<Palace>())) Game.DisbandUnit(unit);
-					
-					City nearestCity = Game.GetCities().Where(x => x.Owner != 0 && x.HasBuilding<Palace>()).OrderBy(x => Common.DistanceToTile(x.X, x.Y, unit.X, unit.Y)).First();
-					if (Common.DistanceToTile(unit.X, unit.Y, nearestCity.X, nearestCity.Y) > 10) Game.DisbandUnit(unit);
-					unit.Goto = new Point(nearestCity.X, nearestCity.Y);
+					// Target a coastal ocean tile adjacent to the nearest palace city.
+					// Targeting the city tile itself would make GotoStep fail (water→land),
+					// causing an infinite re-targeting loop.
+					City nearestCity = Game.GetCities()
+						.Where(x => x.Owner != 0 && x.HasBuilding<Palace>()
+						         && x.Tile.GetBorderTiles().Any(t => t.IsOcean && !IsPolarTile(t)))
+						.OrderBy(x => Common.DistanceToTile(x.X, x.Y, unit.X, unit.Y))
+						.FirstOrDefault();
+
+					if (nearestCity == null
+					    || Common.DistanceToTile(unit.X, unit.Y, nearestCity.X, nearestCity.Y) > 10)
+					{
+						Game.DisbandUnit(unit);
+						return;
+					}
+
+					ITile approach = nearestCity.Tile.GetBorderTiles()
+						.Where(t => t.IsOcean && !IsPolarTile(t))
+						.OrderBy(t => Common.DistanceToTile(unit.X, unit.Y, t.X, t.Y))
+						.First();
+
+					unit.Goto = new Point(approach.X, approach.Y);
 					continue;
 				}
 
@@ -87,8 +104,10 @@ namespace CivOne
 					ITile next = Common.GotoStep(unit);
 					if (next == null)
 					{
+						// No path to current target — give up for this turn.
 						unit.Goto = Point.Empty;
-						continue;
+						unit.SkipTurn();
+						return;
 					}
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
 					{
@@ -101,6 +120,9 @@ namespace CivOne
 				unit.SkipTurn();
 				return;
 			}
+
+			// Safety fallback: loop exhausted without resolving — skip turn.
+			unit.SkipTurn();
 		}
 
 		private void BarbarianMoveLand(IUnit unit)
