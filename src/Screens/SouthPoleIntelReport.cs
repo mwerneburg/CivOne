@@ -8,63 +8,18 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System.Collections.Generic;
-using CivOne.Enums;
-using CivOne.Events;
 using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
-	[Expand, Modal]
-	internal class SouthPoleIntelReport : BaseScreen
+	internal class SouthPoleIntelReport : TerminalScreen
 	{
-		private const int FONT_ID = 0;
-		private const int PAD     = 10;
-
-		private readonly string[] _lines;
-		private bool _dirty = true;
-
-		private void Redraw()
+		protected override byte ColorFor(int lineIndex, string text)
 		{
-			int fh = Resources.GetFontHeight(FONT_ID);
-
-			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
-			this.DrawRectangle(2, 2, Width - 4, Height - 4, CassetteTheme.BORDER);
-
-			int y = PAD;
-			for (int i = 0; i < _lines.Length; i++)
-			{
-				if (y + fh >= Height - PAD) break;
-
-				string text = _lines[i];
-				byte color;
-				if (i == 0)
-					color = CassetteTheme.ALERT;
-				else if (i == 1)
-					color = CassetteTheme.PHOS_DIM;
-				else if (string.IsNullOrEmpty(text))
-					color = CassetteTheme.BG0;
-				else
-					color = CassetteTheme.INK_MID;
-
-				this.DrawText(text, FONT_ID, color, PAD + 4, y);
-				y += fh;
-			}
-
-			this.DrawText("[ ANY KEY OR CLICK TO DISMISS ]", FONT_ID, CassetteTheme.INK_LOW,
-			              Width / 2, Height - PAD + 1, TextAlign.Center);
-
-			_dirty = false;
+			if (lineIndex == 0) return CassetteTheme.ALERT;
+			if (lineIndex == 1) return CassetteTheme.PHOS_DIM;
+			return CassetteTheme.INK_MID;
 		}
-
-		protected override bool HasUpdate(uint gameTick)
-		{
-			if (!_dirty) return false;
-			Redraw();
-			return true;
-		}
-
-		public override bool KeyDown(KeyboardEventArgs args) { Destroy(); return true; }
-		public override bool MouseDown(ScreenEventArgs args) { Destroy(); return true; }
 
 		public SouthPoleIntelReport(string gameYear)
 		{
@@ -83,11 +38,7 @@ namespace CivOne.Screens
 			foreach (string line in intelLines)
 				lines.Add(line.Replace("{game year}", gameYear));
 			_lines = lines.ToArray();
-
-			Palette p = Common.DefaultPalette;
-			using (Palette cassette = CassetteTheme.CreatePalette())
-				p.MergePalette(cassette, 1, 17);
-			Palette = p;
+			InitTypewriter();
 		}
 	}
 }

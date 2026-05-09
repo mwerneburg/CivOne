@@ -11,24 +11,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CivOne.Enums;
-using CivOne.Events;
 using CivOne.Graphics;
 
 namespace CivOne.Screens
 {
-	[Expand, Modal]
-	internal class SouthPoleExpeditionLog : BaseScreen
+	internal class SouthPoleExpeditionLog : TerminalScreen
 	{
-		private const int FONT_ID  = 0;
-		private const int PAD      = 10;
-
-		private readonly string[] _lines;
-		private int _scrollY;
-		private bool _dirty = true;
-
-		// ── config loading ────────────────────────────────────────────────────
-
 		private static readonly string[] _defaultLog = new[]
 		{
 			"EXPEDITION LOG – SOUTH POLE MISSION",
@@ -71,8 +59,7 @@ namespace CivOne.Screens
 		internal static string[] LoadLogLines()
 		{
 			string path = ConfigPath;
-			if (!File.Exists(path))
-				return null; // caller uses defaults
+			if (!File.Exists(path)) return null;
 
 			var lines = new List<string>();
 			bool inSection = false;
@@ -84,10 +71,8 @@ namespace CivOne.Screens
 					inSection = true;
 					continue;
 				}
-				if (line.StartsWith("[") && inSection)
-					break;
-				if (inSection)
-					lines.Add(line);
+				if (line.StartsWith("[") && inSection) break;
+				if (inSection) lines.Add(line);
 			}
 			return lines.Count > 0 ? lines.ToArray() : null;
 		}
@@ -95,8 +80,7 @@ namespace CivOne.Screens
 		internal static string[] LoadIntelLines()
 		{
 			string path = ConfigPath;
-			if (!File.Exists(path))
-				return null;
+			if (!File.Exists(path)) return null;
 
 			var lines = new List<string>();
 			bool inSection = false;
@@ -108,10 +92,8 @@ namespace CivOne.Screens
 					inSection = true;
 					continue;
 				}
-				if (line.StartsWith("[") && inSection)
-					break;
-				if (inSection && line.Length > 0)
-					lines.Add(line);
+				if (line.StartsWith("[") && inSection) break;
+				if (inSection && line.Length > 0) lines.Add(line);
 			}
 			return lines.Count > 0 ? lines.ToArray() : null;
 		}
@@ -140,107 +122,23 @@ namespace CivOne.Screens
 			catch { /* non-fatal */ }
 		}
 
-		// ── drawing ───────────────────────────────────────────────────────────
-
-		private void Redraw()
+		protected override byte ColorFor(int lineIndex, string text)
 		{
-			int fh   = Resources.GetFontHeight(FONT_ID);
-			int bodyH = Height - PAD * 2;
-			int maxScroll = Math.Max(0, _lines.Length * fh - bodyH);
-			_scrollY = Math.Max(0, Math.Min(_scrollY, maxScroll));
-
-			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
-
-			// Outer border
-			this.DrawRectangle(2, 2, Width - 4, Height - 4, CassetteTheme.BORDER);
-
-			int y = PAD - _scrollY;
-			for (int i = 0; i < _lines.Length; i++)
-			{
-				if (y + fh < PAD || y >= Height - PAD) { y += fh; continue; }
-
-				string text = _lines[i];
-				byte color;
-
-				if (i == 0)
-					color = CassetteTheme.PHOS_GLOW;
-				else if (text.StartsWith("CLASSIFIED"))
-					color = CassetteTheme.ALERT;
-				else if (text.StartsWith("TRANSMISSION TIMESTAMP"))
-					color = CassetteTheme.PHOS_DIM;
-				else if (text.StartsWith("RECOVERED") || text.StartsWith("ANALYSIS") ||
-				         text.StartsWith("DISCOVERY") || text.StartsWith("DIRECTIVE") ||
-				         text.StartsWith("SUBJECT") || text.StartsWith("TRANSMISSION ENDS"))
-					color = CassetteTheme.INK_HIGH;
-				else if (text.StartsWith("1.") || text.StartsWith("2."))
-					color = CassetteTheme.PHOS;
-				else
-					color = CassetteTheme.INK_MID;
-
-				this.DrawText(text, FONT_ID, color, PAD + 4, y);
-				y += fh;
-			}
-
-			// Scroll hint
-			if (maxScroll > 0)
-			{
-				int pct = (int)(100.0 * _scrollY / maxScroll);
-				string hint = $"[ ↑↓ TO SCROLL  {pct}%  ANY KEY DISMISSES ]";
-				this.DrawText(hint, FONT_ID, CassetteTheme.INK_LOW,
-				              Width / 2, Height - PAD + 1, TextAlign.Center);
-			}
-			else
-			{
-				this.DrawText("[ ANY KEY OR CLICK TO DISMISS ]", FONT_ID, CassetteTheme.INK_LOW,
-				              Width / 2, Height - PAD + 1, TextAlign.Center);
-			}
-
-			_dirty = false;
+			if (lineIndex == 0)                                          return CassetteTheme.PHOS_GLOW;
+			if (text.StartsWith("CLASSIFIED"))                           return CassetteTheme.ALERT;
+			if (text.StartsWith("TRANSMISSION TIMESTAMP"))               return CassetteTheme.PHOS_DIM;
+			if (text.StartsWith("RECOVERED") || text.StartsWith("ANALYSIS") ||
+			    text.StartsWith("DISCOVERY") || text.StartsWith("DIRECTIVE") ||
+			    text.StartsWith("SUBJECT")   || text.StartsWith("TRANSMISSION ENDS")) return CassetteTheme.INK_HIGH;
+			if (text.StartsWith("1.") || text.StartsWith("2."))          return CassetteTheme.PHOS;
+			return CassetteTheme.INK_MID;
 		}
-
-		protected override bool HasUpdate(uint gameTick)
-		{
-			if (!_dirty) return false;
-			Redraw();
-			return true;
-		}
-
-		public override bool KeyDown(KeyboardEventArgs args)
-		{
-			int fh = Resources.GetFontHeight(FONT_ID);
-			int bodyH = Height - PAD * 2;
-			int maxScroll = Math.Max(0, _lines.Length * fh - bodyH);
-
-			if (maxScroll > 0 && (args.Key == Key.Up || args.Key == Key.NumPad8))
-			{
-				_scrollY = Math.Max(0, _scrollY - fh * 3);
-				_dirty = true;
-				return true;
-			}
-			if (maxScroll > 0 && (args.Key == Key.Down || args.Key == Key.NumPad2))
-			{
-				_scrollY = Math.Min(maxScroll, _scrollY + fh * 3);
-				_dirty = true;
-				return true;
-			}
-
-			Destroy();
-			return true;
-		}
-
-		public override bool MouseDown(ScreenEventArgs args) { Destroy(); return true; }
-
-		// ── constructor ───────────────────────────────────────────────────────
 
 		public SouthPoleExpeditionLog(string gameYear)
 		{
 			string[] raw = LoadLogLines() ?? _defaultLog;
 			_lines = raw.Select(l => l.Replace("{game year}", gameYear)).ToArray();
-
-			Palette p = Common.DefaultPalette;
-			using (Palette cassette = CassetteTheme.CreatePalette())
-				p.MergePalette(cassette, 1, 17);
-			Palette = p;
+			InitTypewriter();
 		}
 	}
 }
