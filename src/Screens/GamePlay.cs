@@ -96,6 +96,7 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("Sentiment Advisor (F4)").OnSelect((s, a) => Common.AddScreen(new AttitudeSurvey()));
 			_gameMenu.Items.Add("Trade Advisor (F5)").OnSelect((s, a) => Common.AddScreen(new TradeReport()));
 			_gameMenu.Items.Add("Science Advisor (F6)").OnSelect((s, a) => Common.AddScreen(new ScienceReport()));
+			_gameMenu.Items.Add("Communications").OnSelect((s, a) => Common.AddScreen(new CommunicationsAdvisor()));
 			
 			_menuX = 112;
 			_menuY = 8;

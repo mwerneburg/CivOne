@@ -207,7 +207,8 @@ namespace CivOne
 					MapRevealedNotified  = MapRevealedNotified,
 					SETISignalTurn       = SETISignalTurn,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
-					ReplayData           = replay
+					ReplayData           = replay,
+					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
 				},
 				Map     = Map.Instance.SaveToCos(),
 				Players = players,
@@ -310,6 +311,9 @@ namespace CivOne
 
 			MapRevealedNotified = g.MapRevealedNotified;
 			SETISignalTurn      = g.SETISignalTurn;
+			if (g.Transmissions != null)
+				foreach (var t in g.Transmissions)
+					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });
 			if (g.ScoreHistory != null)
 				foreach (var entry in g.ScoreHistory)
 					_scoreHistory.Add(entry.ToArray());

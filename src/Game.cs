@@ -61,6 +61,12 @@ namespace CivOne
 		// Turn on which the SETI signal transmission should fire (0 = not scheduled)
 		internal uint SETISignalTurn;
 
+		// Log of terminal transmissions shown during this game
+		internal readonly List<TransmissionRecord> Transmissions = new List<TransmissionRecord>();
+
+		internal void RecordTransmission(string type, string year)
+			=> Transmissions.Add(new TransmissionRecord { Type = type, Year = year });
+
 		// Exploration: byte[x, y] = player index who first revealed that tile; 255 = unvisited
 		private byte[,] _firstExplorer;
 		internal byte[,] FirstExplorer
@@ -342,6 +348,7 @@ namespace CivOne
 					MapRevealedNotified = true;
 					SouthPoleExpeditionLog.EnsureConfigFile();
 					string gameYear = GameYear;
+					RecordTransmission("SouthPoleIntel", gameYear);
 					GameTask.Enqueue(Show.Screen(new SouthPoleIntelReport(gameYear)));
 				}
 
@@ -351,6 +358,7 @@ namespace CivOne
 					SETISignalTurn = 0; // clear so it only fires once
 					SETISignalTransmission.EnsureConfigFile();
 					string gameDate = GameYear;
+					RecordTransmission("SETISignal", gameDate);
 					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
 				}
 

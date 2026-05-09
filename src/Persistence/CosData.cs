@@ -51,6 +51,13 @@ namespace CivOne.Persistence
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
+		public List<CosTransmission> Transmissions { get; set; }
+	}
+
+	public class CosTransmission
+	{
+		public string Type { get; set; }   // "SETISignal" | "SouthPoleIntel" | "SouthPoleExpedition"
+		public string Year { get; set; }   // game year string when received
 	}
 
 	public class CosOptions

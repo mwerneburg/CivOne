@@ -1154,6 +1154,7 @@ namespace CivOne
 						{
 							Game.SpaceshipComponent[Game.PlayerNumber(Player)] += 2;
 							string gameYear = Game.GameYear;
+							Game.Instance.RecordTransmission("SouthPoleExpedition", gameYear);
 							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
 						}
 						if (wonder is Wonders.SETIProgram)
