@@ -979,7 +979,7 @@ namespace CivOne
 					{
 						if (foodIncome > 0)
 						{
-							bool blocked = (Size >= 8 && !HasBuilding<Aqueduct>());
+							bool blocked = (Size >= 7 && !HasBuilding<Aqueduct>());
 							if (!blocked)
 							{
 								Size++;
@@ -1024,7 +1024,7 @@ namespace CivOne
 			{
 				Food -= FoodRequired;
 
-				if (Size == 10 && !_buildings.Any(b => b.Id == (int)Building.Aqueduct))
+				if (Size == 7 && !_buildings.Any(b => b.Id == (int)Building.Aqueduct))
 				{
 					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, $"{Name} requires an AQUEDUCT", "for further growth."));
 				}
