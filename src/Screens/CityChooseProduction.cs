@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CivOne.Buildings;
 using CivOne.Enums;
@@ -30,13 +31,21 @@ namespace CivOne.Screens
 
 		private static readonly string[] FilterNames = { "ALL", "UNITS", "BUILDINGS", "WONDERS" };
 
-		private IProduction[] Filtered => _filter switch
+		private IProduction[] Filtered
 		{
-			1 => _items.Where(x => x is IUnit).ToArray(),
-			2 => _items.Where(x => x is IBuilding).ToArray(),
-			3 => _items.Where(x => x is IWonder).ToArray(),
-			_ => _items
-		};
+			get
+			{
+				var queued = new HashSet<Type>(_city.ProductionQueue.Select(q => q.GetType()));
+				IEnumerable<IProduction> src = _filter switch
+				{
+					1 => _items.Where(x => x is IUnit),
+					2 => _items.Where(x => x is IBuilding),
+					3 => _items.Where(x => x is IWonder),
+					_ => _items
+				};
+				return src.Where(x => !queued.Contains(x.GetType())).ToArray();
+			}
+		}
 
 		// ─── layout ──────────────────────────────────────────────────────────────
 
@@ -70,6 +79,10 @@ namespace CivOne.Screens
 			var filtered = Filtered;
 			if (filtered.Length == 0) return;
 			_city.EnqueueProduction(filtered[_selection]);
+			// List just shrank; keep cursor in bounds and visible
+			int newLen = Filtered.Length;
+			if (_selection >= newLen) _selection = Math.Max(0, newLen - 1);
+			EnsureVisible();
 			_update = true;
 		}
 
