@@ -35,5 +35,6 @@ namespace CivOne.Enums
 		SSStructural = 21,
 		SSComponent = 22,
 		SSModule = 23,
+		Shipyard = 24,
 	}
 }

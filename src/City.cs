@@ -539,11 +539,13 @@ namespace CivOne
 				{
 					if (unit.Class == UnitClass.Water && !Map[X, Y].GetBorderTiles().Any(t => t.IsOcean)) continue;
 					if (unit is Nuclear && !Game.WonderBuilt<ManhattanProject>()) continue;
+					if ((unit is Transport || unit is Submarine || unit is Carrier || unit is Battleship || unit is Cruiser) && !HasBuilding<Shipyard>()) continue;
 					yield return unit;
 				}
 				foreach (IBuilding building in Reflect.GetBuildings().Where(b => Player.ProductionAvailable(b) && !_buildings.Any(x => x.Id == b.Id)))
 				{
 					if (HasBuilding<Palace>() && building is Courthouse) continue;
+					if (building is Shipyard && !Map[X, Y].GetBorderTiles().Any(t => t.IsOcean)) continue;
 					yield return building;
 				}
 				foreach (IWonder wonder in Reflect.GetWonders().Where(b => Player.ProductionAvailable(b)))

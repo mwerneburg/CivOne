@@ -29,13 +29,17 @@ As for rule changes:
  + The Civilization Score chart is a bit different and also does not cap annoyingly like the original.
  + I added the instant replay, but it came out a bit differently.
  + Roads and railways are much quicker to build.
+ + Check box in options for Circuses (allows Colosseum)
+ + Check box in options for Barricades (allows City Walls and SDI)
+ + Add city improvement shipyard (allows transports, submarine, carrier, and battleship)
+ + Overlays such as hills, swamps, and irrigation now load from a text file so you can redraw these to your liking.
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
  + If a city starts WLTK but cannot grow, you get a free caravan instead.
 
 Platforms
- + Tested on Arm Macbook Air
+ + Tested on Arm Macbook Air and Linux Mint of Intel
  + Not tested on anything else
 
 Technology
