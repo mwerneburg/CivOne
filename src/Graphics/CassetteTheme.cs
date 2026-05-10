@@ -76,5 +76,15 @@ namespace CivOne.Graphics
 			p[103] = new Colour( 10,  35,  65);  // trough deepest
 			return p;
 		}
+
+		// Merge all Cassette palette ranges (tokens 1-18 and wave cycling 96-103) into p.
+		internal static void ApplyTo(Palette p)
+		{
+			using (Palette cassette = CreatePalette())
+			{
+				p.MergePalette(cassette, 1, 18);
+				p.MergePalette(cassette, 96, 8);
+			}
+		}
 	}
 }

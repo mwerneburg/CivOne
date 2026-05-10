@@ -399,9 +399,10 @@ namespace CivOne.Screens
 			Palette = Resources["SP257"].Palette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 			{
-				Palette.MergePalette(cassette, 1, 18);      // indices 1–18 (includes static OCEAN at 18)
-				Palette.MergePalette(cassette, 96, 8);  // wave animation cycling range
+				Palette.MergePalette(cassette, 1, 18);
+				Palette.MergePalette(cassette, 96, 8);
 			}
+			SetOriginalColours(); // snapshot after Cassette merges so DefaultPalette includes all tokens
 
 			_rightSideBar = Settings.RightSideBar;
 

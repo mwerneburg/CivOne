@@ -115,7 +115,10 @@ namespace CivOne
 				IScreen themedScreen = Common.Screens
 					.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));
 				if (themedScreen != null)
-					composite.MergePalette(themedScreen.Palette, 1, 17);
+				{
+					composite.MergePalette(themedScreen.Palette, 1, 18);
+					composite.MergePalette(themedScreen.Palette, 96, 8);
+				}
 			}
 			Runtime.Palette = composite;
 			
