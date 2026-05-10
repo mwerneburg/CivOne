@@ -24,6 +24,12 @@ namespace CivOne.Buildings
 		public virtual IBitmap SmallIcon { get; protected set; }
 		public string Name { get; protected set; }
 		public byte PageCount => 2;
+
+		// Override in a derived building to supply custom Civilopedia text.
+		// Return non-empty array for page 1 (description) or page 2 (extra detail).
+		// Empty array falls through to the original BLURB1 game-data lookup.
+		public virtual string[] GetPageText(byte pageNumber) => new string[0];
+
 		public Picture DrawPage(byte pageNumber)
 		{
 			string[] text = new string[0];

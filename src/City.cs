@@ -1050,7 +1050,9 @@ namespace CivOne
 					{
 						if (foodIncome > 0)
 						{
-							bool blocked = (Size >= 7 && !HasBuilding<Aqueduct>());
+							bool blockedByAqueduct = (Size >= 7  && !HasBuilding<Aqueduct>());
+							bool blockedBySewer    = (Size >= 12 && !HasBuilding<SewerSystem>());
+							bool blocked = blockedByAqueduct || blockedBySewer;
 							if (!blocked)
 							{
 								Size++;
@@ -1060,9 +1062,13 @@ namespace CivOne
 								var caravan = Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
 								caravan.SetHome(this);
 								if (Human == Owner)
+								{
+									string reason = blockedBySewer
+										? "No room to grow without a Sewer System."
+										: "No room to grow without an Aqueduct.";
 									GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-										$"{Name} celebration: free Caravan!",
-										"No room to grow without an Aqueduct."));
+										$"{Name} celebration: free Caravan!", reason));
+								}
 							}
 						}
 					}
@@ -1098,6 +1104,10 @@ namespace CivOne
 				if (Size == 7 && !_buildings.Any(b => b.Id == (int)Building.Aqueduct))
 				{
 					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, $"{Name} requires an AQUEDUCT", "for further growth."));
+				}
+				else if (Size == 12 && !_buildings.Any(b => b.Id == (int)Building.SewerSystem))
+				{
+					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, $"{Name} requires a SEWER SYSTEM", "for further growth."));
 				}
 				else
 				{

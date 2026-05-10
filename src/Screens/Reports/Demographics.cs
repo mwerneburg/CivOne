@@ -83,9 +83,10 @@ namespace CivOne.Screens.Reports
 		{
 			var cities = p.Cities;
 			if (cities.Length == 0) return 0;
-			// Cities of size > 2 without an Aqueduct are at heightened disease risk.
-			int atRisk = cities.Count(c => c.Size > 2 && !c.HasBuilding<Aqueduct>());
-			return atRisk * 100 / cities.Length;
+			// Cities > size 2 without Aqueduct, plus cities > size 8 without Sewer System.
+			int atRisk = cities.Count(c => c.Size > 2 && !c.HasBuilding<Aqueduct>())
+			           + cities.Count(c => c.Size > 8 && !c.HasBuilding<SewerSystem>());
+			return Math.Min(100, atRisk * 100 / cities.Length);
 		}
 
 		private static int PollutionValue(Player p) => p.Pollution;

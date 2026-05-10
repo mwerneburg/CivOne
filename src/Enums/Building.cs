@@ -36,5 +36,6 @@ namespace CivOne.Enums
 		SSComponent = 22,
 		SSModule = 23,
 		Shipyard = 24,
+		SewerSystem = 25,
 	}
 }

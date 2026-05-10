@@ -75,7 +75,14 @@ namespace CivOne.Screens
 			if (_singlePage is BaseConcept bc)
 				return bc.GetPageText(pageNumber);
 			if (_singlePage is IBuilding || _singlePage is IWonder)
+			{
+				if (_singlePage is BaseBuilding bb)
+				{
+					string[] custom = bb.GetPageText(pageNumber);
+					if (custom.Length > 0) return custom;
+				}
 				return Resources.GetCivilopediaText("BLURB1/" + _singlePage.Name.ToUpper() + suffix);
+			}
 			if (_singlePage is IUnit)
 				return Resources.GetCivilopediaText("BLURB2/" + _singlePage.Name.ToUpper() + suffix);
 			if (_singlePage is IAdvance)
