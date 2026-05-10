@@ -407,105 +407,153 @@ namespace CivOne
 			}
 		}
 
+		// BFS from every ocean tile to give each land tile its exact distance to the
+		// nearest ocean.  Used by CreateRivers to steer rivers inland and to enforce
+		// the minimum coastal buffer stop condition.
+		private int[,] ComputeDistanceToOcean()
+		{
+			int[,] dist = new int[WIDTH, HEIGHT];
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+				dist[x, y] = int.MaxValue;
+
+			var queue = new Queue<(int x, int y)>();
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (_tiles[x, y].IsOcean)
+				{
+					dist[x, y] = 0;
+					queue.Enqueue((x, y));
+				}
+			}
+
+			int[] ddx = { 0, 0, -1, 1 };
+			int[] ddy = { -1, 1, 0, 0 };
+			while (queue.Count > 0)
+			{
+				var (cx, cy) = queue.Dequeue();
+				for (int d = 0; d < 4; d++)
+				{
+					int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+					int ny = cy + ddy[d];
+					if (ny < 0 || ny >= HEIGHT) continue;
+					if (dist[nx, ny] != int.MaxValue) continue;
+					dist[nx, ny] = dist[cx, cy] + 1;
+					queue.Enqueue((nx, ny));
+				}
+			}
+			return dist;
+		}
+
 		private void CreateRivers()
 		{
 			Log("Map: Stage 6 - Create rivers");
-			
-			int rivers = 0;
-			for (int i = 0; i < 256 && rivers < ((_climate + _landMass) * 2) + 6; i++)
-			{
-				ITile[,] tilesBackup = (ITile[,])_tiles.Clone();
-				
-				int riverLength = 0;
-				int varA = Common.Random.Next(4) * 2;
-				bool nearOcean = false;
-				
-				ITile tile = null;
-				while (tile == null)
-				{
-					int x = Common.Random.Next(WIDTH);
-					int y = Common.Random.Next(HEIGHT);
-					if (_tiles[x, y].Type == Terrain.Hills) tile = _tiles[x, y];
-				}
-				do
-				{
-					_tiles[tile.X, tile.Y] = new River(tile.X, tile.Y);
-					int varB = varA;
-					int varC = Common.Random.Next(2);
-					varA = (((varC - riverLength % 2) * 2 + varA) & 0x07);
-					varB = 7 - varB;
-					
-					riverLength++;
-					
-					nearOcean = NearOcean(tile.X, tile.Y);
-					int rNx = tile.X, rNy = tile.Y;
-					switch (varA)
-					{
-						case 0: case 1: rNy--; break;
-						case 2: case 3: rNx++; break;
-						case 4: case 5: rNy++; break;
-						case 6: case 7: rNx--; break;
-					}
-					rNx = (rNx + WIDTH) % WIDTH;
-					if (rNy < 0 || rNy >= HEIGHT) break;
-					tile = _tiles[rNx, rNy];
-				}
-				while (!nearOcean && (tile.GetType() != typeof(Ocean) && tile.GetType() != typeof(River) && tile.GetType() != typeof(Mountains)));
-				
-				if ((nearOcean || tile.Type == Terrain.River) && riverLength > 5)
-				{
-					rivers++;
-					ITile[,] mapPart = this[tile.X - 3, tile.Y - 3, 7, 7];
-					for (int x = 0; x < 7; x++)
-					for (int y = 0; y < 7; y++)
-					{
-						if (mapPart[x, y] == null) continue;
-						int xx = mapPart[x, y].X, yy = mapPart[x, y].Y;
-						if (_tiles[xx, yy].Type == Terrain.Forest)
-							_tiles[xx, yy] = new Jungle(xx, yy, TileIsSpecial(x, y));
-					}
-				}
-				else
-				{
-					_tiles = (ITile[,])tilesBackup.Clone(); ;
-				}
-			}
 
-			// Coastal river stubs
-			var coastalTiles = new List<(int x, int y)>();
+			int[,] distToOcean = ComputeDistanceToOcean();
+
+			// Candidate river mouths: land tiles directly adjacent to ocean,
+			// not hills or mountains, away from the polar rows.
+			var coastal = new List<(int x, int y)>();
 			for (int y = 2; y < HEIGHT - 2; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
-				if (!_tiles[x, y].IsOcean && NearOcean(x, y))
-					coastalTiles.Add((x, y));
+				ITile t = _tiles[x, y];
+				if (t.IsOcean || t.Type == Terrain.Mountains || t.Type == Terrain.Hills) continue;
+				if (distToOcean[x, y] == 1) coastal.Add((x, y));
 			}
 
-			int stubCount = Math.Min(3 + Common.Random.Next(4), coastalTiles.Count);
-			for (int s = 0; s < stubCount; s++)
+			// Fisher-Yates shuffle so we pick diverse starting positions.
+			for (int i = coastal.Count - 1; i > 0; i--)
 			{
-				var (sx, sy) = coastalTiles[Common.Random.Next(coastalTiles.Count)];
-				_tiles[sx, sy] = new River(sx, sy);
-				int cx = sx, cy = sy;
-				int steps = 2 + Common.Random.Next(5);
-				for (int step = 0; step < steps; step++)
+				int j = Common.Random.Next(i + 1);
+				(coastal[i], coastal[j]) = (coastal[j], coastal[i]);
+			}
+
+			int targetRivers = 8 + (_climate + _landMass) * 3;
+			int rivers = 0;
+			var allRiverTiles = new HashSet<(int, int)>();
+
+			int[] dxs = { 0, 0, -1, 1 };
+			int[] dys = { -1, 1, 0, 0 };
+
+			foreach (var (sx, sy) in coastal)
+			{
+				if (rivers >= targetRivers) break;
+
+				// Keep river mouths at least 4 tiles apart so they don't cluster.
+				bool tooClose = false;
+				for (int dy = -4; dy <= 4 && !tooClose; dy++)
+				for (int dx = -4; dx <= 4 && !tooClose; dx++)
 				{
-					int[] dxs = { 0, 0, -1, 1 };
-					int[] dys = { -1, 1, 0, 0 };
-					var valid = new List<(int nx, int ny)>();
+					int nx = (sx + dx + WIDTH) % WIDTH;
+					int ny = sy + dy;
+					if (ny >= 0 && ny < HEIGHT && allRiverTiles.Contains((nx, ny))) tooClose = true;
+				}
+				if (tooClose) continue;
+
+				ITile[,] backup = (ITile[,])_tiles.Clone();
+				var path = new List<(int x, int y)>();
+				int cx = sx, cy = sy;
+				var visited = new HashSet<(int, int)>();
+
+				while (true)
+				{
+					if (visited.Contains((cx, cy))) break;
+					visited.Add((cx, cy));
+					_tiles[cx, cy] = new River(cx, cy);
+					path.Add((cx, cy));
+
+					// Gather valid next steps: non-ocean, non-hills, non-mountains,
+					// not already river, not yet visited.
+					var candidates = new List<(int nx, int ny, int dist)>();
 					for (int d = 0; d < 4; d++)
 					{
 						int nx = (cx + dxs[d] + WIDTH) % WIDTH;
 						int ny = cy + dys[d];
 						if (ny < 0 || ny >= HEIGHT) continue;
 						if (_tiles[nx, ny].IsOcean) continue;
+						if (_tiles[nx, ny].Type == Terrain.Mountains) continue;
+						if (_tiles[nx, ny].Type == Terrain.Hills) continue;
 						if (_tiles[nx, ny].Type == Terrain.River) continue;
-						valid.Add((nx, ny));
+						if (visited.Contains((nx, ny))) continue;
+						// After the first few steps inland, stop if we'd be within
+						// 3 tiles of ocean again — prevents looping back to the coast.
+						if (path.Count >= 3 && distToOcean[nx, ny] < 3) continue;
+						candidates.Add((nx, ny, distToOcean[nx, ny]));
 					}
-					if (valid.Count == 0) break;
-					var (nx2, ny2) = valid[Common.Random.Next(valid.Count)];
-					_tiles[nx2, ny2] = new River(nx2, ny2);
-					cx = nx2;
-					cy = ny2;
+
+					if (candidates.Count == 0) break;
+
+					// Prefer directions that go deeper inland (higher distToOcean).
+					// Pick randomly from the best two options to allow mild meandering.
+					candidates.Sort((a, b) => b.dist.CompareTo(a.dist));
+					int pick = Common.Random.Next(Math.Min(2, candidates.Count));
+					(cx, cy) = (candidates[pick].nx, candidates[pick].ny);
+				}
+
+				if (path.Count >= 4)
+				{
+					rivers++;
+					foreach (var (px, py) in path)
+						allRiverTiles.Add((px, py));
+
+					// Convert Forest to Jungle around the inland terminus, matching
+					// the original game's behaviour where wet river valleys grow lush.
+					var (lx, ly) = path[path.Count - 1];
+					ITile[,] nearby = this[lx - 3, ly - 3, 7, 7];
+					for (int fx = 0; fx < 7; fx++)
+					for (int fy = 0; fy < 7; fy++)
+					{
+						if (nearby[fx, fy] == null) continue;
+						int xx = nearby[fx, fy].X, yy = nearby[fx, fy].Y;
+						if (_tiles[xx, yy].Type == Terrain.Forest)
+							_tiles[xx, yy] = new Jungle(xx, yy, TileIsSpecial(xx, yy));
+					}
+				}
+				else
+				{
+					_tiles = (ITile[,])backup.Clone();
 				}
 			}
 		}
