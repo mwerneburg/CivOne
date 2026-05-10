@@ -53,11 +53,11 @@ namespace CivOne.Screens.Reports
 			if ((_page * pageSize) >= _cities.Length)
 			{
 				yy += 4;
-				this.DrawText($"Total Income: {totalIncome}$", 0, 10, OX + 8, yy);
+				this.DrawText($"Total Income: {totalIncome}$", 0, CassetteTheme.INK_HIGH, OX + 8, yy);
 				yy += Resources.GetFontHeight(0);
 				if (totalScience > 0 && yy <= Height - 20)
 				{
-					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, 10, OX + 8, yy);
+					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, CassetteTheme.INK_HIGH, OX + 8, yy);
 				}
 			}
 		}
