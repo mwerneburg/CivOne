@@ -210,6 +210,12 @@ namespace CivOne.Screens
 			this.DrawCassetteField("POLLUTION", pollVal, cx, cy, cw, 0, pollColor);
 		}
 
+		private int TradePanelHeight(int fh)
+		{
+			int lines = Math.Max(1, _city.TradeRoutes.Count());
+			return 8 + lines * fh + 8;
+		}
+
 		private void DrawTradeRoutes()
 		{
 			// Position below the resources panel
@@ -221,15 +227,22 @@ namespace CivOne.Screens
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap;
 			int pw = ColLeftW;
-			int ph = 8 + fh + 8;   // single line panel
+			int ph = TradePanelHeight(fh);
 
 			if (py + ph > BodyY + BodyH) return;
 			this.DrawCassettePanel(px, py, pw, ph, "TRADE");
 
-			int routeCount = _city.TradeRoutes.Count();
-			string routeText = routeCount == 0 ? "NONE" : $"{routeCount}/3";
-			byte routeColor  = routeCount == 0 ? CassetteTheme.INK_LOW : CassetteTheme.OK;
-			this.DrawText(routeText, 0, routeColor, px + 4, py + 8);
+			var routes = _city.TradeRoutes.ToArray();
+			if (routes.Length == 0)
+			{
+				this.DrawText("NONE", 0, CassetteTheme.INK_LOW, px + 4, py + 8);
+				return;
+			}
+			for (int i = 0; i < routes.Length; i++)
+			{
+				string name = routes[i].Partner.Name.ToUpper();
+				this.DrawText(name, 0, CassetteTheme.OK, px + 4, py + 8 + i * fh);
+			}
 		}
 
 		private void DrawHappiness()
@@ -238,7 +251,7 @@ namespace CivOne.Screens
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
 			int resourcesPh = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
-			int tradePh     = 8 + fh + 8;
+			int tradePh     = TradePanelHeight(fh);
 
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap + tradePh + ColGap;
