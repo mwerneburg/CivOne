@@ -177,21 +177,36 @@ namespace CivOne
 			ITile[] tiles = unit.Tile.GetBorderTiles().Where(t => !((unit.Tile.IsOcean || unit is Diplomat) && t.City != null) && !t.IsOcean && !IsPolarTile(t) && t.Units.Any(u => u.Owner != 0)).ToArray();
 			if (tiles.Length == 0)
 			{
-				// No adjecent units found
-				if (Common.Random.Next(100) < 95)
+				// No adjacent enemies — march toward the nearest civilization city.
+				if (unit.Goto.IsEmpty)
 				{
-					for (int i = 0; i < 1000; i++)
+					City target = Game.GetCities()
+						.Where(c => c.Owner != 0)
+						.OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+						.FirstOrDefault();
+					if (target != null)
+						unit.Goto = new Point(target.X, target.Y);
+				}
+
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile next = Common.GotoStep(unit);
+					if (next == null)
 					{
-						int relX = Common.Random.Next(-1, 2);
-						int relY = Common.Random.Next(-1, 2);
-						if (relX == 0 && relY == 0) continue;
-						if (unit.Tile[relX, relY] is Ocean || IsPolarTile(unit.Tile[relX, relY])) continue;
-						if (unit is Diplomat && unit.Tile[relX, relY].City != null) continue;
-						if (unit.Tile.IsOcean && unit.Tile[relX, relY].City != null) continue;
-						unit.MoveTo(relX, relY);
+						// Arrived or path blocked — re-evaluate next turn.
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
 						return;
 					}
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+					{
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+					}
+					return;
 				}
+
+				// No civilization cities exist — disband.
 				Game.DisbandUnit(unit);
 				return;
 			}
