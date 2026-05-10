@@ -549,7 +549,7 @@ namespace CivOne.Units
 			}
 		}
 		
-		private static IBitmap[] _iconCache = new IBitmap[28];
+		private static IBitmap[] _iconCache = new IBitmap[Enum.GetValues(typeof(UnitType)).Length];
 		public virtual IBitmap Icon { get; private set; }
 		private string _name;
 		public string Name
