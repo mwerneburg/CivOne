@@ -55,9 +55,10 @@ namespace CivOne
 					return StrategyStance.Militarize;
 			}
 
-			// Expand: below the leader's preferred city count
-			int target = Leader.Development == Expansionistic ? 9
-			           : Leader.Development == Normal          ? 6 : 4;
+			// Expand: below the leader's preferred city count (scales with difficulty).
+			int target = Leader.Development == Expansionistic ? 9 + Game.Difficulty
+			           : Leader.Development == Normal          ? 6 + Game.Difficulty
+			           :                                         4 + Game.Difficulty;
 			if (cities.Length < target) return StrategyStance.Expand;
 
 			return StrategyStance.Develop;
@@ -218,8 +219,8 @@ namespace CivOne
 
 				int their = MilitaryScore(enemy);
 
-				// Base chance from leader personality
-				int chance = 0;
+				// Base chance from leader personality + difficulty bonus
+				int chance = Game.Difficulty * 3;
 				if (Leader.Aggression  == AggressionLevel.Aggressive)    chance += 8;
 				if (Leader.Militarism  == MilitarismLevel.Militaristic)   chance += 7;
 
@@ -515,6 +516,10 @@ namespace CivOne
 		}
 
 		// ── research weights ──────────────────────────────────────────────────
+
+		// Returns how much the AI values acquiring a given advance right now.
+		// Used by the King screen to pick the advance it demands in a trade.
+		internal int AdvanceDemandValue(IAdvance a) => AdvanceWeight(a, GetStance());
 
 		private static int AdvanceWeight(IAdvance a, StrategyStance stance)
 		{

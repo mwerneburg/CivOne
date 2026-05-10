@@ -228,7 +228,7 @@ namespace CivOne.Screens.GamePlayPanels
 			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
 			py += 2;
 
-			_gameInfo.DrawText("♡ THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
+			_gameInfo.DrawText("♥ THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
 			py += lh;
 
 			int skip = Math.Max(0, cities.Count - NotifMaxLines);

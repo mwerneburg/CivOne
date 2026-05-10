@@ -183,20 +183,59 @@ namespace CivOne.Screens
 					"We would trade, but you have", "nothing to offer us.");
 				return;
 			}
-			if (AIAccepts(50))
-			{
-				IAdvance give = weOffer[Common.Random.Next(weOffer.Length)];
-				IAdvance get  = theyOffer[Common.Random.Next(theyOffer.Length)];
-				_enemy.AddAdvance(give, false);
-				GameTask.Enqueue(new GetAdvance(Human, get));
-				SetResponse(FaceState.Smiling,
-					$"We offer {get.Name}", $"in exchange for {give.Name}.", "Agreed.");
-			}
-			else
+			if (!AIAccepts(50))
 			{
 				SetResponse(FaceState.Angry,
 					"We are not interested", "in such an exchange.");
+				return;
 			}
+
+			// AI demands the advance it values most (per its strategic stance).
+			// Ties broken randomly so it's not perfectly predictable.
+			AI ai = AI.Instance(_enemy);
+			int topWeight = weOffer.Max(a => ai.AdvanceDemandValue(a));
+			IAdvance[] topCandidates = weOffer.Where(a => ai.AdvanceDemandValue(a) == topWeight).ToArray();
+			IAdvance pendingGive = topCandidates[Common.Random.Next(topCandidates.Length)];
+			SetResponse(FaceState.Neutral,
+				$"We seek {pendingGive.Name}.",
+				"Name your price:");
+			AddMenu(BuildAdvancePicker(theyOffer, pendingGive));
+		}
+
+		private Menu BuildAdvancePicker(IAdvance[] advances, IAdvance pendingGive)
+		{
+			int fh           = Resources.GetFontHeight(FONT_ID);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			int menuY        = BodyY + speechPanelH + PAD + fh + PAD / 2;
+
+			var menu = new Menu(Palette)
+			{
+				X              = RightX,
+				Y              = menuY,
+				MenuWidth      = RightW,
+				ActiveColour   = CassetteTheme.PHOS_FAINT,
+				TextColour     = CassetteTheme.INK_HIGH,
+				DisabledColour = CassetteTheme.INK_LOW,
+				FontId         = FONT_ID,
+				Indent         = PAD
+			};
+
+			foreach (IAdvance adv in advances.OrderBy(a => a.Name))
+			{
+				IAdvance captured = adv;
+				menu.Items.Add(adv.Name).OnSelect((s, e) =>
+				{
+					CloseMenus();
+					_enemy.AddAdvance(pendingGive, false);
+					GameTask.Enqueue(new GetAdvance(Human, captured));
+					SetResponse(FaceState.Smiling,
+						$"We offer {captured.Name}",
+						$"in exchange for {pendingGive.Name}.",
+						"Agreed.");
+				});
+			}
+
+			return menu;
 		}
 
 		private void SeekTribute(object sender, EventArgs args)
