@@ -46,6 +46,12 @@ namespace CivOne.Units
 		public int BuildingCleanPollution { get; private set; }
 		public bool AutoClean { get; private set; }
 
+		internal bool IsTileClaimed(int tx, int ty) =>
+			Game.GetUnits().OfType<Settlers>().Any(s =>
+				s != this && s.Owner == Owner &&
+				((!s.Goto.IsEmpty && s.Goto.X == tx && s.Goto.Y == ty) ||
+				 (s.X == tx && s.Y == ty && s.Busy)));
+
 		private ITile FindNearestCityPollution()
 		{
 			ITile best = null;
@@ -53,6 +59,7 @@ namespace CivOne.Units
 			foreach (ITile t in Map.AllTiles())
 			{
 				if (!t.Pollution) continue;
+				if (IsTileClaimed(t.X, t.Y)) continue;
 				bool nearCity = Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) <= 3);
 				if (!nearCity) continue;
 				int d = Common.DistanceToTile(X, Y, t.X, t.Y);

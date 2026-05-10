@@ -74,6 +74,8 @@ namespace CivOne
 					}
 					else if (nearestOwnCity < 3)
 					{
+						bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
+						if (!tileAlreadyClaimed)
 						switch (Common.Random.Next(nearestOwnCity < 1 ? 1 : 5 * nearestOwnCity))
 						{
 							case 0:

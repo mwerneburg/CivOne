@@ -306,6 +306,12 @@ namespace CivOne
 			ITile best = null;
 			int bestScore = int.MinValue;
 
+			byte ownId = Game.PlayerNumber(Player);
+			var claimedGotos = new System.Collections.Generic.HashSet<(int, int)>(
+				Game.GetUnits().OfType<Settlers>()
+				    .Where(s => s != settlers && s.Owner == ownId && !s.Goto.IsEmpty)
+				    .Select(s => (s.Goto.X, s.Goto.Y)));
+
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
 			{
@@ -316,6 +322,7 @@ namespace CivOne
 				if (tile == null || tile.IsOcean || tile.City != null) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (!Player.Visible(tx, ty)) continue;
+				if (claimedGotos.Contains((tx, ty))) continue;
 				int score = SiteSuitability(tile);
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
