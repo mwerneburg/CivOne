@@ -55,10 +55,11 @@ namespace CivOne
 					return StrategyStance.Militarize;
 			}
 
-			// Expand: below the leader's preferred city count (scales with difficulty).
-			int target = Leader.Development == Expansionistic ? 9 + Game.Difficulty
-			           : Leader.Development == Normal          ? 6 + Game.Difficulty
-			           :                                         4 + Game.Difficulty;
+			// Expand: below the leader's preferred city count (scales with difficulty and map size).
+			int mapScale = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			int target = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
+			           : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
+			           :                                         (4 * mapScale) + Game.Difficulty;
 			if (cities.Length < target) return StrategyStance.Expand;
 
 			return StrategyStance.Develop;
@@ -448,6 +449,14 @@ namespace CivOne
 				return;
 			}
 
+			// Explorers: head for the nearest unseen tile
+			if (unit is Explorer)
+			{
+				ITile dest = BestExploreTile(unit);
+				if (dest != null) unit.Goto = new Point(dest.X, dest.Y);
+				return;
+			}
+
 			// Diplomats: head for the nearest visible foreign city
 			if (unit is Diplomat)
 			{
@@ -693,6 +702,14 @@ namespace CivOne
 			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 			if (defenders < 1)                Consider(BestDefender());
 
+			// Explorer: one per 3 cities while the map still has fog-of-war to reveal
+			{
+				byte ownId = Game.PlayerNumber(Player);
+				int ownExplorers = Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer);
+				int explorerCap  = Math.Max(1, Player.Cities.Length / 3);
+				if (ownExplorers < explorerCap) Consider(new Explorer());
+			}
+
 			// Consolidate: happiness and growth buildings first
 			if (stance == StrategyStance.Consolidate)
 			{
@@ -770,7 +787,11 @@ namespace CivOne
 			// 1. Defensive unit if city is undefended
 			if (defenders < 1) plan.Add(BestDefender());
 
-			// 2. Barracks
+			// 2. Explorer — one free scout early on
+			if (Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer) < 1)
+				plan.Add(new Explorer());
+
+			// 3. Barracks
 			if (!city.HasBuilding<Barracks>()) plan.Add(new Barracks());
 
 			// 3. Militia — capped at 4× city count

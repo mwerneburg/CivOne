@@ -859,6 +859,7 @@ namespace CivOne.Graphics
 				case UnitType.Nuclear: text = 'N'; break;
 				case UnitType.Diplomat: text = 'D'; break;
 				case UnitType.Caravan: text = 't'; break;
+				case UnitType.Explorer: text = 'e'; break;
 			}
 			if (text != ' ')
 			{

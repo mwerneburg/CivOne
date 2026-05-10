@@ -39,5 +39,6 @@ namespace CivOne.Enums
 		Nuclear = 25,
 		Diplomat = 26,
 		Caravan = 27,
+		Explorer = 28,
 	}
 }
