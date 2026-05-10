@@ -108,8 +108,8 @@ namespace CivOne.Graphics
 			{
 				if (_seaBase == null)
 				{
-					// CYAN(17) dominant + OK green(14) shimmer + BORDER(5)/BG3(4) depth specks
-					_seaBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(17, 17, 17, 17, 17, 17, 17, 17, 14, 14, 5, 4).Take(16 * 16).ToArray());
+					// Static OCEAN(18) ~82% + sparse green/beige/border specks for depth variety.
+					_seaBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 14, 14, 7, 5).Take(16 * 16).ToArray());
 				}
 				return _seaBase;
 			}
@@ -397,25 +397,80 @@ namespace CivOne.Graphics
 		private static readonly string TilesFilePath =
 			Path.Combine(Environment.CurrentDirectory, "free_tiles.txt");
 
+		private static readonly string ShoresFilePath =
+			Path.Combine(Environment.CurrentDirectory, "shore_tiles.txt");
+
 		private Dictionary<string, byte[]> _tileOverrides;
+		private Dictionary<string, byte[]> _shoreOverrides;
 
 		private byte[] TryLoadTile(string name)
 		{
 			if (_tileOverrides == null)
-				_tileOverrides = ParseTilesFile();
+				_tileOverrides = ParseTilesFile(TilesFilePath);
 			return _tileOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
 
-		private Dictionary<string, byte[]> ParseTilesFile()
+		private byte[] TryLoadShore(string name)
+		{
+			if (_shoreOverrides == null)
+				_shoreOverrides = ParseTilesFile(ShoresFilePath);
+			return _shoreOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		// Composite per-direction shore wave overlays from shore_tiles.txt.
+		// Returns null when the file or required sections are absent (falls back to CoastLayer).
+		public Bytemap ShoreLayer(Direction land)
+		{
+			if (_shoreOverrides == null)
+				_shoreOverrides = ParseTilesFile(ShoresFilePath);
+			if (_shoreOverrides.Count == 0)
+				return null;
+
+			Bytemap output = new Bytemap(16, 16);
+			bool any = false;
+
+			foreach (var pair in new[] {
+				(North,     "shore_N"),
+				(South,     "shore_S"),
+				(East,      "shore_E"),
+				(West,      "shore_W") })
+			{
+				if (!land.And(pair.Item1)) continue;
+				byte[] tile = TryLoadShore(pair.Item2);
+				if (tile == null) continue;
+				output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
+				any = true;
+			}
+
+			// Diagonal-only corner patches
+			foreach (var pair in new[] {
+				(NorthWest, North, West, "shore_NW"),
+				(NorthEast, North, East, "shore_NE"),
+				(SouthWest, South, West, "shore_SW"),
+				(SouthEast, South, East, "shore_SE") })
+			{
+				if (land.And(pair.Item1) && land.Not(pair.Item2) && land.Not(pair.Item3))
+				{
+					byte[] tile = TryLoadShore(pair.Item4);
+					if (tile == null) continue;
+					output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
+					any = true;
+				}
+			}
+
+			return any ? output : null;
+		}
+
+		private Dictionary<string, byte[]> ParseTilesFile(string path)
 		{
 			var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
-			if (!File.Exists(TilesFilePath))
+			if (!File.Exists(path))
 				return result;
 
 			string currentSection = null;
 			var pixels = new List<byte>();
 
-			foreach (string raw in File.ReadAllLines(TilesFilePath))
+			foreach (string raw in File.ReadAllLines(path))
 			{
 				string line = raw.Trim();
 				if (line.Length == 0 || line.StartsWith("#")) continue;
@@ -593,10 +648,13 @@ namespace CivOne.Graphics
 		}
 
 		// Coastline strip painted on ocean tiles that border land.
-		// Two-pixel depth: foam (INK_HIGH/8) at the waterline + wiggly sand (INK_MID/7) behind it.
-		// Separate wiggle patterns for horizontal (N/S) and vertical (E/W) edges.
+		// If shore_tiles.txt is present, uses animated wave indices (96-99) from ShoreLayer.
+		// Otherwise falls back to the static two-pixel foam/sand pattern below.
 		public Bytemap CoastLayer(Direction land)
 		{
+			Bytemap shore = ShoreLayer(land);
+			if (shore != null) return shore;
+
 			const byte foam = 8;  // INK_HIGH — surf/foam
 			const byte sand = 7;  // INK_MID  — wet sand / shallows
 
