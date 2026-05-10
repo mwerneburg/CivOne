@@ -234,6 +234,15 @@ namespace CivOne
 
 		internal IEnumerable<Player> Players => _players;
 
+		internal void ClearSpaceShipProduction(int playerIndex)
+		{
+			foreach (City city in _players[playerIndex].Cities.Where(c => c.CurrentProduction is Buildings.ISpaceShip))
+			{
+				IProduction fallback = city.AvailableProduction.FirstOrDefault();
+				if (fallback != null) city.SetProduction(fallback);
+			}
+		}
+
 		// mass_ht = comps×4 + mods×4 + str (in hundred-ton units)
 		// flight_years = (4445 + mass_ht) / (100 × engines)  where engines = comps/2
 		internal static float SpaceshipFlightYears(int structural, int component, int module)
@@ -377,6 +386,7 @@ namespace CivOne
 
 					SpaceshipLaunchTurn[p] = _gameTurn;
 					SpaceshipArrivalTurn[p] = _gameTurn + SpaceshipTravelTurns(structural, component, module);
+					ClearSpaceShipProduction(p);
 					string eta = Common.YearString((ushort)SpaceshipArrivalTurn[p]);
 					if (_players[p] == HumanPlayer)
 					{
