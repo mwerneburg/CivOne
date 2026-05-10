@@ -25,10 +25,12 @@ namespace CivOne.Screens
 		private readonly int _mapW;   // width of left-hand map area  (= Width - _panW)
 
 		// ── map geometry (relative to _mapW) ─────────────────────────────────
-		private int TileW => Math.Max(1, _mapW / Map.WIDTH);
-		private int TileH => Math.Max(1, Height / Map.HEIGHT);
-		private int OX    => (_mapW - Map.WIDTH  * TileW) / 2;
-		private int OY    => (Height - Map.HEIGHT * TileH) / 2;
+		// Use a single uniform tile size so the map aspect ratio is preserved.
+		private int TileSize => Math.Max(1, Math.Min(_mapW / Map.WIDTH, Height / Map.HEIGHT));
+		private int TileW => TileSize;
+		private int TileH => TileSize;
+		private int OX    => (_mapW - Map.WIDTH  * TileSize) / 2;
+		private int OY    => (Height - Map.HEIGHT * TileSize) / 2;
 
 		// ── replay state ─────────────────────────────────────────────────────
 		private readonly int[] _eventTurns;
@@ -49,6 +51,11 @@ namespace CivOne.Screens
 		// event log (most-recent last)
 		private readonly List<string> _log = new List<string>();
 		private const int LOG_LINES = 12;
+
+		// track which techs/units/buildings have already been logged as "first"
+		private readonly HashSet<string> _seenTechs     = new HashSet<string>();
+		private readonly HashSet<string> _seenUnits     = new HashSet<string>();
+		private readonly HashSet<string> _seenBuildings = new HashSet<string>();
 
 		// ── terrain backdrop (sized to the map column only) ───────────────────
 		private readonly Picture _terrain;
@@ -233,8 +240,29 @@ namespace CivOne.Screens
 					}
 					case ReplayData.TechDiscovered td:
 					{
-						string tribe = PlayerTribeName(td.OwnerId);
-						_log.Add($"{tribe}: {td.TechName}");
+						if (_seenTechs.Add(td.TechName))
+						{
+							string tribe = PlayerTribeName(td.OwnerId);
+							_log.Add($"{tribe} discovers {td.TechName}");
+						}
+						break;
+					}
+					case ReplayData.UnitBuilt ub:
+					{
+						if (_seenUnits.Add(ub.UnitName))
+						{
+							string tribe = PlayerTribeName(ub.OwnerId);
+							_log.Add($"{tribe} fields first {ub.UnitName}");
+						}
+						break;
+					}
+					case ReplayData.BuildingBuilt bb:
+					{
+						if (_seenBuildings.Add(bb.BuildingName))
+						{
+							string tribe = PlayerTribeName(bb.OwnerId);
+							_log.Add($"{tribe} builds first {bb.BuildingName}");
+						}
 						break;
 					}
 					case ReplayData.CivilizationDestroyed cvd:
@@ -308,6 +336,9 @@ namespace CivOne.Screens
 						int target = _turnIdx - 1;
 						_cities.Clear();
 						_log.Clear();
+						_seenTechs.Clear();
+						_seenUnits.Clear();
+						_seenBuildings.Clear();
 						for (int xi = 0; xi < Map.WIDTH; xi++)
 						for (int yi = 0; yi < Map.HEIGHT; yi++)
 							_territory[xi, yi] = NO_OWNER;

@@ -168,6 +168,10 @@ namespace CivOne
 						return new CosReplayEntry { Type = "WonderBuilt", Turn = r.Turn, OwnerId = wb.OwnerId, X = wb.X, Y = wb.Y, WonderName = wb.WonderName };
 					case ReplayData.TechDiscovered td:
 						return new CosReplayEntry { Type = "TechDiscovered", Turn = r.Turn, OwnerId = td.OwnerId, TechName = td.TechName };
+					case ReplayData.UnitBuilt ub:
+						return new CosReplayEntry { Type = "UnitBuilt", Turn = r.Turn, OwnerId = ub.OwnerId, UnitName = ub.UnitName };
+					case ReplayData.BuildingBuilt bb:
+						return new CosReplayEntry { Type = "BuildingBuilt", Turn = r.Turn, OwnerId = bb.OwnerId, BuildingName = bb.BuildingName };
 					default:
 						return null;
 				}
@@ -481,6 +485,12 @@ namespace CivOne
 						break;
 					case "TechDiscovered":
 						_replayData.Add(new ReplayData.TechDiscovered(re.Turn, (byte)re.OwnerId, re.TechName ?? ""));
+						break;
+					case "UnitBuilt":
+						_replayData.Add(new ReplayData.UnitBuilt(re.Turn, (byte)re.OwnerId, re.UnitName ?? ""));
+						break;
+					case "BuildingBuilt":
+						_replayData.Add(new ReplayData.BuildingBuilt(re.Turn, (byte)re.OwnerId, re.BuildingName ?? ""));
 						break;
 				}
 			}

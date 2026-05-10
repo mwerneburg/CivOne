@@ -91,6 +91,9 @@ namespace CivOne.Persistence
 		public string WonderName { get; set; }
 		// TechDiscovered
 		public string TechName { get; set; }
+		// UnitBuilt / BuildingBuilt
+		public string UnitName { get; set; }
+		public string BuildingName { get; set; }
 	}
 
 	public class CosPlayer

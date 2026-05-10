@@ -1179,6 +1179,12 @@ namespace CivOne
 					{
 						GameTask.Enqueue(new ImprovementBuilt(this, unit));
 					}
+					if (!(CurrentProduction is Settlers || CurrentProduction is Diplomat || CurrentProduction is Caravan))
+					{
+						string uname = (CurrentProduction as ICivilopedia)?.Name;
+						if (uname != null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))
+							Game.Instance.AddReplayEvent(new ReplayData.UnitBuilt(Game.GameTurn, Owner, uname));
+					}
 				}
 				if (CurrentProduction is ISpaceShip)
 				{
@@ -1208,7 +1214,7 @@ namespace CivOne
 							_buildings.RemoveAll(x => x is Courthouse);
 						}
 						_buildings.Add(CurrentProduction as IBuilding);
-						
+
 						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
 						message.Done += (s, a) => {
 							GameTask advisorMessage = Message.Advisor(Advisor.Foreign, true, $"{Player.TribeName} capital", $"moved to {Name}.");
@@ -1222,6 +1228,9 @@ namespace CivOne
 						_buildings.Add(CurrentProduction as IBuilding);
 						GameTask.Enqueue(new ImprovementBuilt(this, (CurrentProduction as IBuilding)));
 					}
+					string bname = (CurrentProduction as ICivilopedia)?.Name;
+					if (bname != null && !Game.Instance.GetReplayData<ReplayData.BuildingBuilt>().Any(b => b.BuildingName == bname))
+						Game.Instance.AddReplayEvent(new ReplayData.BuildingBuilt(Game.GameTurn, Owner, bname));
 				}
 				if (CurrentProduction is IWonder)
 				{

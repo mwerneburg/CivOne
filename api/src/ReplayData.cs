@@ -94,6 +94,30 @@ namespace CivOne
 			}
 		}
 
+		public class UnitBuilt : ReplayData
+		{
+			public readonly byte OwnerId;
+			public readonly string UnitName;
+
+			public UnitBuilt(int turn, byte ownerId, string unitName) : base(turn)
+			{
+				OwnerId = ownerId;
+				UnitName = unitName;
+			}
+		}
+
+		public class BuildingBuilt : ReplayData
+		{
+			public readonly byte OwnerId;
+			public readonly string BuildingName;
+
+			public BuildingBuilt(int turn, byte ownerId, string buildingName) : base(turn)
+			{
+				OwnerId = ownerId;
+				BuildingName = buildingName;
+			}
+		}
+
 		public int Turn { get; private set; }
 
 		protected ReplayData(int turn)
