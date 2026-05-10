@@ -332,6 +332,7 @@ namespace CivOne.Screens.Reports
 						Game.Instance.SpaceshipArrivalTurn[pid] = Game.Instance.GameTurn
 							+ (int)Math.Ceiling(Game.SpaceshipFlightYears(str, cmp, mod));
 						Game.Instance.ClearSpaceShipProduction(pid);
+						Game.Instance.PerformAutoSave();
 						_update = true;
 					}
 				}
