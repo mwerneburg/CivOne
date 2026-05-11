@@ -14,7 +14,7 @@ namespace CivOne.Units
 {
 	internal class Explorer : BaseUnitLand
 	{
-		public Explorer() : base(10, 0, 1, 2)
+		public Explorer() : base(2, 0, 1, 2)
 		{
 			Type = UnitType.Explorer;
 			Name = "Explorer";
