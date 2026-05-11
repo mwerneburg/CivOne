@@ -449,7 +449,7 @@ namespace CivOne.Units
 				}
 				return Confront(relX, relY);
 			}
-			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan) && !new ITile[] { Map[X, Y], moveTarget }.Any(t => t.IsOcean || t.City != null) && moveTarget.GetBorderTiles().SelectMany(t => t.Units).Any(u => u.Owner != Owner))
+			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan || this is Explorer) && !new ITile[] { Map[X, Y], moveTarget }.Any(t => t.IsOcean || t.City != null) && moveTarget.GetBorderTiles().SelectMany(t => t.Units).Any(u => u.Owner != Owner))
 			{
 				if (!moveTarget.Units.Any(x => x.Owner == Owner))
 				{

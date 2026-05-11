@@ -20,7 +20,7 @@ namespace CivOne.Units
 			Name = "Explorer";
 			RequiredTech = null;
 			ObsoleteTech = new Combustion();
-			SetIcon('C', 1, 1);
+			SetIcon('C', 1, 0);
 		}
 	}
 }

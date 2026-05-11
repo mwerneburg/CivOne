@@ -542,7 +542,8 @@ namespace CivOne
 						unit.Goto = Point.Empty;
 						return;
 					}
-					unit.MoveTo(next.X - unit.X, next.Y - unit.Y);
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+						unit.Goto = Point.Empty;
 					return;
 				}
 				return;
