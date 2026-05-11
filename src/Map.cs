@@ -28,6 +28,68 @@ namespace CivOne
 		private int _terrainMasterWord;
 		private int _landMass, _temperature, _climate, _age;
 		private ITile[,] _tiles;
+		private bool[,] _freshwater;
+
+		// Flood-fill every connected ocean region.  Any region whose tile count is
+		// at or below LAKE_MAX is a freshwater lake — too small to be the open sea.
+		// Swamp tiles are also freshwater (wetlands).  This size-based approach is
+		// robust against the polar rows being Arctic in a loaded save, and against
+		// bays that happen to have a thin channel to the global ocean.
+		internal void ComputeFreshwaterLakes()
+		{
+			_freshwater = new bool[WIDTH, HEIGHT];
+
+			int lakeMax = Math.Max(20, (WIDTH * HEIGHT) / 120);  // ≈33 for 80×50
+
+			var label  = new int[WIDTH, HEIGHT];
+			var sizes  = new List<int> { 0 };  // index 0 unused
+			int next   = 1;
+
+			int[] ddx = { 0, 0, -1, 1 };
+			int[] ddy = { -1, 1, 0, 0 };
+
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (!_tiles[x, y].IsOcean || label[x, y] != 0) continue;
+
+				int id   = next++;
+				int size = 0;
+				var q    = new Queue<(int, int)>();
+				q.Enqueue((x, y));
+				label[x, y] = id;
+
+				while (q.Count > 0)
+				{
+					var (cx, cy) = q.Dequeue();
+					size++;
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+						int ny = cy + ddy[d];
+						if (ny < 0 || ny >= HEIGHT || label[nx, ny] != 0) continue;
+						if (!_tiles[nx, ny].IsOcean) continue;
+						label[nx, ny] = id;
+						q.Enqueue((nx, ny));
+					}
+				}
+
+				sizes.Add(size);
+			}
+
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				int id = label[x, y];
+				if (id > 0 && sizes[id] <= lakeMax)
+					_freshwater[x, y] = true;
+				else if (_tiles[x, y].Type == Terrain.Swamp)
+					_freshwater[x, y] = true;
+			}
+		}
+
+		// Returns true if (x,y) is a freshwater source: enclosed lake or swamp.
+		internal bool IsFreshwaterAt(int x, int y) => _freshwater != null && _freshwater[x, y];
 		
 		public bool Ready { get; private set; }
 		public bool FixedStartPositions { get; private set; }

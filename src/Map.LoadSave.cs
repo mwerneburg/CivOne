@@ -92,6 +92,7 @@ namespace CivOne
 				}
 			}
 			
+			ComputeFreshwaterLakes();
 			Ready = true;
 			Log("Map: Ready");
 		}

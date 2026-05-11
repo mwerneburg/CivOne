@@ -26,6 +26,7 @@ namespace CivOne
 		internal void FinalizeForCosLoad()
 		{
 			CalculateLandValue();
+			ComputeFreshwaterLakes();
 			Ready = true;
 			Log("Map: Ready (loaded from COS)");
 		}

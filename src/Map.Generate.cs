@@ -470,7 +470,8 @@ namespace CivOne
 				(coastal[i], coastal[j]) = (coastal[j], coastal[i]);
 			}
 
-			int targetRivers = 8 + (_climate + _landMass) * 3;
+			// Target: enough rivers to give each large continent 1–2 water corridors.
+			int targetRivers = 5 + _climate + _landMass;
 			int rivers = 0;
 			var allRiverTiles = new HashSet<(int, int)>();
 
@@ -481,10 +482,10 @@ namespace CivOne
 			{
 				if (rivers >= targetRivers) break;
 
-				// Keep river mouths at least 4 tiles apart so they don't cluster.
+				// Keep river mouths well separated so rivers don't grow parallel.
 				bool tooClose = false;
-				for (int dy = -4; dy <= 4 && !tooClose; dy++)
-				for (int dx = -4; dx <= 4 && !tooClose; dx++)
+				for (int dy = -8; dy <= 8 && !tooClose; dy++)
+				for (int dx = -8; dx <= 8 && !tooClose; dx++)
 				{
 					int nx = (sx + dx + WIDTH) % WIDTH;
 					int ny = sy + dy;
@@ -504,8 +505,7 @@ namespace CivOne
 					_tiles[cx, cy] = new River(cx, cy);
 					path.Add((cx, cy));
 
-					// Gather valid next steps: non-ocean, non-hills, non-mountains,
-					// not already river, not yet visited.
+					// Gather valid next steps.
 					var candidates = new List<(int nx, int ny, int dist)>();
 					for (int d = 0; d < 4; d++)
 					{
@@ -517,18 +517,41 @@ namespace CivOne
 						if (_tiles[nx, ny].Type == Terrain.Hills) continue;
 						if (_tiles[nx, ny].Type == Terrain.River) continue;
 						if (visited.Contains((nx, ny))) continue;
-						// After the first few steps inland, stop if we'd be within
-						// 3 tiles of ocean again — prevents looping back to the coast.
+						// After 3 steps inland, don't allow approaching the coast again
+						// (prevents U-turns that loop back to a bay).
 						if (path.Count >= 3 && distToOcean[nx, ny] < 3) continue;
+						// Don't grow within 4 tiles of any already-committed river — the
+						// key guard against parallel rivers forming a grid.
+						bool nearCommitted = false;
+						for (int ry = -4; ry <= 4 && !nearCommitted; ry++)
+						for (int rx = -4; rx <= 4 && !nearCommitted; rx++)
+						{
+							int rnx = (nx + rx + WIDTH) % WIDTH;
+							int rny = ny + ry;
+							if (rny >= 0 && rny < HEIGHT && allRiverTiles.Contains((rnx, rny)))
+								nearCommitted = true;
+						}
+						if (nearCommitted) continue;
+						// Prevent hairpin U-turns: reject any candidate that is directly
+						// adjacent (distance 1) to a non-recent path tile.  Distance 2
+						// must stay allowed — that is the normal forward-step distance.
+						bool nearSelf = false;
+						for (int pi = 0; pi < path.Count - 1 && !nearSelf; pi++)
+						{
+							var (px, py) = path[pi];
+							if (Math.Abs(nx - px) + Math.Abs(ny - py) <= 1) nearSelf = true;
+						}
+						if (nearSelf) continue;
+
 						candidates.Add((nx, ny, distToOcean[nx, ny]));
 					}
 
 					if (candidates.Count == 0) break;
 
-					// Prefer directions that go deeper inland (higher distToOcean).
-					// Pick randomly from the best two options to allow mild meandering.
+					// Strongly prefer going inland (highest distToOcean).  30 % of the
+					// time allow the 2nd-best choice so rivers aren't perfectly straight.
 					candidates.Sort((a, b) => b.dist.CompareTo(a.dist));
-					int pick = Common.Random.Next(Math.Min(2, candidates.Count));
+					int pick = (candidates.Count > 1 && Common.Random.Next(10) < 3) ? 1 : 0;
 					(cx, cy) = (candidates[pick].nx, candidates[pick].ny);
 				}
 
@@ -538,8 +561,7 @@ namespace CivOne
 					foreach (var (px, py) in path)
 						allRiverTiles.Add((px, py));
 
-					// Convert Forest to Jungle around the inland terminus, matching
-					// the original game's behaviour where wet river valleys grow lush.
+					// Convert Forest to Jungle near the inland terminus.
 					var (lx, ly) = path[path.Count - 1];
 					ITile[,] nearby = this[lx - 3, ly - 3, 7, 7];
 					for (int fx = 0; fx < 7; fx++)
@@ -556,8 +578,50 @@ namespace CivOne
 					_tiles = (ITile[,])backup.Clone();
 				}
 			}
+
+			// Short stubs from random coastal tiles — give arid interiors a water
+			// source even when no main river reached them.  These are deliberately
+			// brief (2–4 tiles) and don't enforce the committed-river exclusion zone,
+			// so they act as local feeder streams rather than additional major rivers.
+			var coastalLand = new List<(int x, int y)>();
+			for (int y = 2; y < HEIGHT - 2; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				ITile ct = _tiles[x, y];
+				if (ct.IsOcean || ct.Type == Terrain.River || ct.Type == Terrain.Mountains || ct.Type == Terrain.Hills) continue;
+				if (distToOcean[x, y] == 1) coastalLand.Add((x, y));
+			}
+
+			int stubCount = Math.Min(targetRivers * 2, coastalLand.Count);
+			for (int s = 0; s < stubCount; s++)
+			{
+				var (sx2, sy2) = coastalLand[Common.Random.Next(coastalLand.Count)];
+				if (_tiles[sx2, sy2].Type == Terrain.River) continue;
+				_tiles[sx2, sy2] = new River(sx2, sy2);
+				int cx2 = sx2, cy2 = sy2;
+				int steps = 1 + Common.Random.Next(3);
+				for (int step = 0; step < steps; step++)
+				{
+					var valid = new List<(int nx, int ny)>();
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx2 + dxs[d] + WIDTH) % WIDTH;
+						int ny = cy2 + dys[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (_tiles[nx, ny].IsOcean) continue;
+						if (_tiles[nx, ny].Type == Terrain.River) continue;
+						if (_tiles[nx, ny].Type == Terrain.Mountains) continue;
+						if (_tiles[nx, ny].Type == Terrain.Hills) continue;
+						if (distToOcean[nx, ny] < 2) continue;
+						valid.Add((nx, ny));
+					}
+					if (valid.Count == 0) break;
+					(cx2, cy2) = valid[Common.Random.Next(valid.Count)];
+					_tiles[cx2, cy2] = new River(cx2, cy2);
+				}
+			}
 		}
-		
+
 		private void CalculateContinentSize()
 		{
 			Log("Map: Calculate continent and ocean sizes");
@@ -839,6 +903,7 @@ namespace CivOne
 			CalculateContinentSize();
 			CreateMountainRanges();
 			CreatePoles();
+			ComputeFreshwaterLakes();
 			PlaceHuts();
 			CalculateLandValue();
 			
