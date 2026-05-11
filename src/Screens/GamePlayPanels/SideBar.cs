@@ -170,7 +170,11 @@ namespace CivOne.Screens.GamePlayPanels
 					_gameInfo.DrawText($"Moves: {unit.MovesLeft}", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
 				_gameInfo.DrawText((unit.Home == null ? "NONE" : unit.Home.Name), 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
-				_gameInfo.DrawText($"({Map[unit.X, unit.Y].Name})", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+				{
+					var _t = Map[unit.X, unit.Y];
+					string _tName = (_t.IsOcean && Map.Instance.IsFreshwaterAt(_t.X, _t.Y)) ? "Lake" : _t.Name;
+					_gameInfo.DrawText($"({_tName})", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+				}
 
 				if (Map[unit.X, unit.Y].RailRoad)
 					_gameInfo.DrawText("(RailRoad)", 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
