@@ -1,6 +1,7 @@
 # A sci-fi port of CivOne
 
-*** Note:
+## Note:
+
  1. I am replacing all of the original game's IP that is still in use, and that some graphics/colors are off.
  2. This port uses the original game's display dimensions. Please see below for display configuration.
 
@@ -8,49 +9,66 @@ This is a fork of the CivOne project, which has had various homes over many year
 
 Because of the resize, the old city screen no longer rendered properly, so I have replaced it outright with a two-tone screen with a "cassette futurism" look. The sort of thing you could play on the Nostromo. The reason being is that this clone leans heavily into the imaginative original design, which strongly featured a race to space colonization; I mean they kind of made that the point of the game!
 
+## Game rules
+
 Almost all rules are retained from the original.
  + Amusingly, Gandhi is still an irrational and implacable war-monger when you'd expect it least (held over from the repo as I found it).
 
-As for rule changes:
+Rule changes:
  + The "settler cheat" was not present in this open-source project and I left it that way.
- + In the repo as I found it, barracks never expire, so you don't have to rebuild. I kept it.
+ + In the repo as I found it, barracks never expire, so you don't have to rebuild.
  + No more building roads and rail on water (which I can't believe I never tried in the original).
  + Rivers have the same 'move' as roads. This code was optionally present in the <2017 repo.
- + Caravans have the same 'move' as diplomats. The code for Civ 2 "Freight" units was present in the <2017 repo but not active.
  + Improved bonuses to river mouths and coastlines, to reflect the gains of trade and rebalance what happens to inland cities at scale.
  + Cities have roads (and rail) by default; no more losing 1/3 move when you steam out of town.
  + Other civilizations can start diplomatic discussions.
- + Upgradable military units (like Civ 2). Want not, waste not.
  + Autosave always on. I think the crash scenarios are fixed, but let's be reasonable.
  + AI with real strategy. Yes, that includes stacking units. Watch out!
- + If WLTKD can't grow a city, it spawns a free caravan.
  + A city's mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (as a cornerstone of a modern city).
  + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits and implications.
  + Five years after the creation of the SETI wonder, a signal is detected with a warning.
- + Settlers may auto-clean of pollution for all friendly cities.
- + The Civilization Score chart is a bit different and also does not cap annoyingly like the original.
+ + The Civilization Score chart does not cap annoyingly like the original.
  + I added the instant replay, but it came out a bit differently.
  + Roads and railways are much quicker to build.
  + Check box in options for Circuses (allows Colosseum)
  + Check box in options for Barricades (allows City Walls and SDI)
- + Add city improvement shipyard (allows transports, submarine, carrier, and battleship)
+ + Added city improvement shipyard (allows transports, submarine, carrier, and battleship)
  + Overlays such as hills, swamps, and irrigation now load from a text file so you can redraw these to your liking.
  + Some wonders that historically happened on or near the sea can now only happen in a sea town (Colossus, Lighthouse, Magellan's Voyage, Darwin's Voyage)
- + You need a Shipyard (new city improvement) to make any ship larger than the ironside
  + Has a production queue, like other 4x games
- + Modifies Copernicus's Observatory to have Civ-2 style unexpiring benefit.
- + Lowers the size a city can attain without an aqueduct from 9 to 7 (as in Civ 2).
+ + Irrigation requires a freshwater source (rivers, lakes, wetlands)
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
  + If a city starts WLTK but cannot grow, you get a free caravan instead.
 
+Terrain generation
+ + The terrain generation system in the <2017 repo was obviously different to the original.
+ + I have modified it further:
+  - drier than the original, meaning you can't expect to make unnaturally uniform city mosaics
+  - equatorial jungle band
+  - mid-lattitude arid bands
+  - temperate forest bands
+  - thick tundra/arctic bands
+  - long north-south mountain ranges
+  - stub rivers around the coasts
+  - a few longer rivers per continent (still a bit wonky)
+
+Civ II stuff
+ + AI civilizations have to build wonders, they don't just plop.
+ + Lowers the size a city can attain without an aqueduct from 11 to 7.
+ + Upgradable military units. Want not, waste not.
+ + The benefits of Copernicus's Observatory do not expire.
+ + Caravans have the same 'move' as diplomats.
+ + Settlers may auto-clean of pollution for all friendly cities.
+ + (The code for Civ II "Freight" units was present in the <2017 repo but remains inactive.)
+
 Platforms
- + Tested on Arm Macbook Air and Linux Mint of Intel
+ + Tested on Arm Macbook Air and Linux Mint on Intel
  + Not tested on anything else
 
 Technology
- + C#
+ + C#, SDL
  + dotnet 10
  + YAML save files (hat tip to ChrisWi)
 
@@ -60,13 +78,12 @@ Known issues
  + None known; fixed several
 
 2. Less serious
- + Units moving under GoTo don't always get a map refresh (though the prior tearing is mostly gone).
  + The unit graphics in the garrison (city view) are badly downscaled/upscaled; also, the citizens are barely two-legged sticks. Bear with me, folks.
  + Battle animations are a bit herky-jerky, it was this way in the code repo from 2017 that I cloned.
- + There are lots and lots of natural disasters.
- + Otherwise, seems a bit too easy.
+ + There are lots and lots of natural disasters in the earlier phases.
+ + Still a bit too easy to win.
 
-Display
+## Display
 
 The game runs in Expand mode by default, meaning the window and canvas grow to fill whatever space you give them. Each game pixel is always rendered at 2× on screen, so more screen real-estate means more of the map is visible — not just a stretched image.
 
