@@ -753,6 +753,7 @@ namespace CivOne
 			if (Player.HasAdvance<Masonry>()           && !city.HasBuilding<CityWalls>())     Consider(new CityWalls());
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
+			if (Player.HasAdvance<Computers>()         && !city.HasBuilding<Observatory>())   Consider(new Observatory());
 
 			// Wonder: only for the empire's top production city
 			IWonder wonder = SelectWonder(city, stance);

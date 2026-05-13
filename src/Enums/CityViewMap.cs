@@ -26,6 +26,7 @@ namespace CivOne.Enums
 		Cathedral,
 		University,
 		Colosseum,
+		Observatory,
 		Factory,
 		MfgPlant,
 		SdiDefense,

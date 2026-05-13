@@ -15,9 +15,7 @@ namespace CivOne
 {
 	internal static partial class SDL
 	{
-		#if MACOS
-		private const string DLL_SDL = "/Library/Frameworks/SDL2.framework/Versions/Current/SDL2";
-		#elif LINUX
+		#if LINUX
 		private const string DLL_SDL = "libSDL2-2.0.so.0";
 		#else
 		private const string DLL_SDL = "SDL2";

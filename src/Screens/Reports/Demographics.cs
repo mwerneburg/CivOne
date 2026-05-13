@@ -17,6 +17,7 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using UniversityBuilding = CivOne.Buildings.University;
+using ObservatoryBuilding = CivOne.Buildings.Observatory;
 
 namespace CivOne.Screens.Reports
 {
@@ -76,7 +77,8 @@ namespace CivOne.Screens.Reports
 			int cities = Math.Max(1, p.Cities.Length);
 			int libPct = p.Cities.Count(c => c.HasBuilding<Library>())           * 5 / cities;
 			int uniPct = p.Cities.Count(c => c.HasBuilding<UniversityBuilding>()) * 5 / cities;
-			return Math.Min(99, have * 100 / Math.Max(1, total) + libPct + uniPct);
+			int ObsPct = p.Cities.Count(c => c.HasBuilding<ObservatoryBuilding>()) * 5 / cities;
+			return Math.Min(99, have * 100 / Math.Max(1, total) + libPct + uniPct + ObsPct);
 		}
 
 		private static int DiseaseValue(Player p)

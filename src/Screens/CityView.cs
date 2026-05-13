@@ -18,6 +18,7 @@ using CivOne.Graphics.Sprites;
 using CivOne.Wonders;
 
 using UniversityBuilding = CivOne.Buildings.University;
+using ObservatoryBuilding = CivOne.Buildings.Observatory;
 
 namespace CivOne.Screens
 {
@@ -473,6 +474,8 @@ namespace CivOne.Screens
 				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.PHOS_GLOW, "$$");
 			else if (typeof(T) == typeof(Cathedral))
 				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.WHITE, "^");
+			else if (typeof(T) == typeof(ObservatoryBuilding))
+				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.CYAN, "@");
 			else if (typeof(T) == typeof(UniversityBuilding))
 				DrawNativeBuilding(picture, x, y, CassetteTheme.INK_LOW, CassetteTheme.CYAN, "#");
 			else if (typeof(T) == typeof(Colosseum))
@@ -609,6 +612,7 @@ namespace CivOne.Screens
 				foreach (Type type in new Type[] {
 					typeof(Barracks), typeof(Granary), typeof(Temple), typeof(MarketPlace),
 					typeof(Library), typeof(Courthouse), typeof(Bank), typeof(Cathedral),
+                    typeof(ObservatoryBuilding),
 					typeof(UniversityBuilding), typeof(Colosseum), typeof(Factory), typeof(MfgPlant),
 					typeof(SdiDefense), typeof(RecyclingCenter), typeof(NuclearPlant),
 					typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage) })
@@ -625,6 +629,7 @@ namespace CivOne.Screens
 						else if (type == typeof(Courthouse))       id = CityViewMap.Courthouse;
 						else if (type == typeof(Bank))             id = CityViewMap.Bank;
 						else if (type == typeof(Cathedral))        id = CityViewMap.Cathedral;
+						else if (type == typeof(ObservatoryBuilding)) id = CityViewMap.Observatory;
 						else if (type == typeof(UniversityBuilding)) id = CityViewMap.University;
 						else if (type == typeof(Colosseum))        id = CityViewMap.Colosseum;
 						else if (type == typeof(Factory))          id = CityViewMap.Factory;
@@ -741,6 +746,7 @@ namespace CivOne.Screens
 					case CityViewMap.Courthouse:     DrawBuildingOverlay<Courthouse>(dx, dy);       continue;
 					case CityViewMap.Bank:           DrawBuildingOverlay<Bank>(dx, dy);             continue;
 					case CityViewMap.Cathedral:      DrawBuildingOverlay<Cathedral>(dx, dy);        continue;
+					case CityViewMap.Observatory:     DrawBuildingOverlay<ObservatoryBuilding>(dx, dy); continue;
 					case CityViewMap.University:     DrawBuildingOverlay<UniversityBuilding>(dx, dy); continue;
 					case CityViewMap.Colosseum:      DrawBuildingOverlay<Colosseum>(dx, dy);        continue;
 					case CityViewMap.Factory:        DrawBuildingOverlay<Factory>(dx, dy);          continue;

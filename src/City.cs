@@ -21,6 +21,7 @@ using CivOne.Units;
 using CivOne.Wonders;
 
 using UniversityBuilding = CivOne.Buildings.University;
+using ObservatoryBuilding = CivOne.Buildings.Observatory;
 
 namespace CivOne
 {
@@ -398,6 +399,7 @@ namespace CivOne
 				double libUniBonus = newtonActive ? (2.0 / 3.0) : 0.5;
 				if (HasBuilding<Library>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<UniversityBuilding>()) science += (short)Math.Floor(science * libUniBonus);
+				if (HasBuilding<ObservatoryBuilding>()) science += (short)Math.Floor(science * libUniBonus);
 				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
 				if (Player.HasWonder<SETIProgram>()) science += (short)Math.Floor((double)science * 0.5);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
@@ -606,6 +608,7 @@ namespace CivOne
 				{
 					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus)) continue;
 					if (wonder is Wonders.SETIProgram && !HasBuilding<UniversityBuilding>()) continue;
+					if (wonder is Wonders.SETIProgram && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<ObservatoryBuilding>()) < 5) continue;
 					yield return wonder;
 				}
 			}
