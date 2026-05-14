@@ -210,7 +210,10 @@ namespace CivOne
 					SpaceshipModule      = SpaceshipModule.ToArray(),
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					MapRevealedNotified  = MapRevealedNotified,
-					SETISignalTurn       = SETISignalTurn,
+					SETISignalTurn          = SETISignalTurn,
+					VisitorArchetype        = (int)VisitorType,
+					TauCetiEscalationTurn   = TauCetiEscalationTurn,
+					ProbeDispatched         = ProbeDispatched,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
 					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
@@ -314,8 +317,11 @@ namespace CivOne
 			for (int i = 0; i < _players.Length; i++)
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
 
-			MapRevealedNotified = g.MapRevealedNotified;
-			SETISignalTurn      = g.SETISignalTurn;
+			MapRevealedNotified   = g.MapRevealedNotified;
+			SETISignalTurn        = g.SETISignalTurn;
+			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
+			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
+			ProbeDispatched       = g.ProbeDispatched;
 			if (g.Transmissions != null)
 				foreach (var t in g.Transmissions)
 					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });
@@ -341,6 +347,8 @@ namespace CivOne
 			// preventing a save made mid-countdown from firing sooner than expected on reload.
 			if (SETISignalTurn > 0)
 				SETISignalTurn = Math.Max(SETISignalTurn, (uint)(_gameTurn + 5));
+			if (TauCetiEscalationTurn > 0 && !ProbeDispatched)
+				TauCetiEscalationTurn = Math.Max(TauCetiEscalationTurn, (uint)(_gameTurn + 5));
 			CityNames    = g.CityNames;
 			HumanPlayer  = _players[g.HumanPlayer];
 			HumanPlayer.CurrentResearch = null; // set below after advances loaded

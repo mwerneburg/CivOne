@@ -25,29 +25,43 @@ namespace CivOne.Screens
 			"",
 			"SUBJECT: SETI SIGNAL ANALYSIS – TAU CETI SYSTEM",
 			"",
-			"DIRECTIVE COMPLIANCE: SETI deep-space array monitoring initiated per",
-			"Protocol 9-X. Signal detected 04 MAY {game date} / 09:44 UTC",
-			"",
 			"FINDINGS: Artificial origin confirmed.",
 			"Signal source: Tau Ceti (GJ 71, HD 10700).",
 			"Frequency: 1420.40575177 MHz (neutral hydrogen line).",
 			"Bandwidth: 1.2 kHz.",
 			"Modulation: Pulse-train with embedded data stream.",
+			"Repeat interval: 18.3 days. No degradation observed.",
 			"",
-			"DATA ANALYSIS:",
+			"DATA ANALYSIS — TEAM A:",
 			"",
 			"* Complexity: 98.7% non-random. Pattern suggests structured information.",
-			"* Encryption: Present. Attempts to decode failed.",
-			"  No known terrestrial cipher matched.",
-			"* Content: Uninterpretable. No repeating sequences, headers,",
-			"  or recognizable symbols.",
-			"* Repeat Interval: 18.3 days (consistent). No degradation observed.",
+			"* Recursive sub-pattern detected at three independent scale levels.",
+			"  Inconsistent with biological signal design.",
+			"* INTERPRETATION: Machine-generated. Possibly autonomous.",
+			"",
+			"DATA ANALYSIS — TEAM B:",
+			"",
+			"* Signal header structure resembles an inventory or manifest format.",
+			"  Recurring cross-index blocks remain undecoded.",
+			"* Repeat interval is not orbital. Interval is behavioral.",
+			"* INTERPRETATION: Directed communication. Source knows we are here.",
+			"",
+			"DATA ANALYSIS — TEAM C:",
+			"",
+			"* Power profile consistent with distributed array, not a single source.",
+			"* Signal attenuation suggests source is in motion.",
+			"* INTERPRETATION: Origin is a vessel or fleet, not a planetary body.",
+			"",
+			"ASSESSMENTS CONFLICT. CONSENSUS NOT REACHED.",
 			"",
 			"RECOMMENDATIONS:",
 			"",
-			"* Containment: Signal isolated. No further transmission attempts authorized.",
-			"* Investigation: Request dispatch of unmanned spacecraft for on-site analysis.",
-			"* Contingency: Establish colony on Alpha Centauri II per Directive 7.",
+			"* Containment: Signal isolated. No reply authorized at this time.",
+			"* Investigation: Dispatch unmanned probe to Tau Ceti for direct analysis.",
+			"* Contingency A: Establish colony at Alpha Centauri II per Directive 7.",
+			"* Contingency B: Commission study of planetary defense options.",
+			"",
+			"NOTE: Some researchers argue an absence of response is itself a message.",
 			"",
 			"TRANSMISSION ENDS.",
 		};
@@ -100,10 +114,14 @@ namespace CivOne.Screens
 			if (text.StartsWith("TRANSMISSION TIMESTAMP") ||
 			    text.StartsWith("STATUS"))                         return CassetteTheme.PHOS_DIM;
 			if (text.StartsWith("SUBJECT"))                        return CassetteTheme.PHOS_GLOW;
-			if (text.StartsWith("DIRECTIVE") || text.StartsWith("FINDINGS") ||
-			    text.StartsWith("DATA ANALYSIS") || text.StartsWith("RECOMMENDATIONS") ||
+			if (text.StartsWith("FINDINGS") ||
+			    text.StartsWith("DATA ANALYSIS") ||
+			    text.StartsWith("RECOMMENDATIONS") ||
 			    text.StartsWith("TRANSMISSION ENDS"))              return CassetteTheme.INK_HIGH;
+			if (text.StartsWith("ASSESSMENTS CONFLICT"))           return CassetteTheme.ALERT;
+			if (text.StartsWith("* INTERPRETATION:"))              return CassetteTheme.PHOS_GLOW;
 			if (text.StartsWith("*"))                              return CassetteTheme.PHOS;
+			if (text.StartsWith("NOTE:"))                          return CassetteTheme.ALERT;
 			return CassetteTheme.INK_MID;
 		}
 

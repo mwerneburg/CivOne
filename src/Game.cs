@@ -61,6 +61,15 @@ namespace CivOne
 		// Turn on which the SETI signal transmission should fire (0 = not scheduled)
 		internal uint SETISignalTurn;
 
+		// Archetype of the incoming visitors, seeded when the SETI signal fires
+		internal VisitorArchetype VisitorType;
+
+		// Turn on which the Tau Ceti approach warning fires (0 = not scheduled)
+		internal uint TauCetiEscalationTurn;
+
+		// Set when the probe wonder is built, cancels the approach warning (Phase 2)
+		internal bool ProbeDispatched;
+
 		// Log of terminal transmissions shown during this game
 		internal readonly List<TransmissionRecord> Transmissions = new List<TransmissionRecord>();
 
@@ -364,11 +373,25 @@ namespace CivOne
 				// Fire the SETI signal transmission 5 turns after SETI Program is built
 				if (SETISignalTurn > 0 && _gameTurn >= SETISignalTurn)
 				{
-					SETISignalTurn = 0; // clear so it only fires once
+					SETISignalTurn = 0;
+					if (VisitorType == VisitorArchetype.None)
+						VisitorType = Common.Random.Next(10) == 0
+							? VisitorArchetype.Conquerors
+							: (VisitorArchetype)(Common.Random.Next(3) + 1);
+					TauCetiEscalationTurn = (uint)(_gameTurn + 20);
 					SETISignalTransmission.EnsureConfigFile();
 					string gameDate = GameYear;
 					RecordTransmission("SETISignal", gameDate);
 					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
+				}
+
+				// Fire the Tau Ceti approach warning 20 turns after the SETI signal
+				if (TauCetiEscalationTurn > 0 && _gameTurn >= TauCetiEscalationTurn && !ProbeDispatched)
+				{
+					TauCetiEscalationTurn = 0;
+					string gameDate = GameYear;
+					RecordTransmission("TauCetiApproach", gameDate);
+					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType)));
 				}
 
 				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)

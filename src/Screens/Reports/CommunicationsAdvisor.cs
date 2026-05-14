@@ -32,6 +32,7 @@ namespace CivOne.Screens.Reports
 			"SETISignal"         => "SETI Signal Analysis",
 			"SouthPoleIntel"     => "Classified Intelligence Report",
 			"SouthPoleExpedition"=> "Expedition Log – South Pole Mission",
+			"TauCetiApproach"    => "Tau Ceti — Approach Warning",
 			_                    => type
 		};
 
@@ -43,6 +44,7 @@ namespace CivOne.Screens.Reports
 				"SETISignal"          => new SETISignalTransmission(entry.Year),
 				"SouthPoleIntel"      => new SouthPoleIntelReport(entry.Year),
 				"SouthPoleExpedition" => new SouthPoleExpeditionLog(entry.Year),
+				"TauCetiApproach"     => new TauCetiApproachWarning(entry.Year, Game.Instance.VisitorType),
 				_                    => null
 			};
 			if (screen != null)

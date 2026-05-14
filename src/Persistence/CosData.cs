@@ -48,6 +48,9 @@ namespace CivOne.Persistence
 		public string FirstExplorer { get; set; }
 		public bool MapRevealedNotified { get; set; }
 		public uint SETISignalTurn { get; set; }
+		public int VisitorArchetype { get; set; }
+		public uint TauCetiEscalationTurn { get; set; }
+		public bool ProbeDispatched { get; set; }
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }
