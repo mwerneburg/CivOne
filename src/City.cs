@@ -1523,23 +1523,26 @@ namespace CivOne
 
 						Player previousOwner = Game.GetPlayer(this.Owner);
 
-						Show captureCity = Show.CaptureCity(this);
-						captureCity.Done += (s1, a1) =>
+						System.Action transferCity = () =>
 						{
+							while (this.Units.Length > 0)
+								Game.DisbandUnit(this.Units[0]);
 							this.Owner = admired.Owner;
-
 							previousOwner.IsDestroyed();
-
 							if (Human == admired.Owner)
-							{
 								GameTask.Insert(Tasks.Show.CityManager(this));
-							}
 						};
 
-						if (Human == admired.Owner)
+						if (Human == admired.Owner || Human == previousOwner)
 						{
-							humanGetsCity = true;
+							humanGetsCity = (Human == admired.Owner);
+							Show captureCity = Show.CaptureCity(this);
+							captureCity.Done += (s1, a1) => transferCity();
 							GameTask.Insert(captureCity);
+						}
+						else
+						{
+							transferCity();
 						}
 
 					}

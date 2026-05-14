@@ -947,7 +947,7 @@ namespace CivOne
 			return best;
 		}
 
-		private int CountUnseenTiles(int x, int y)
+	private int CountUnseenTiles(int x, int y)
 		{
 			int count = 0;
 			for (int dy = -2; dy <= 2; dy++)
@@ -960,6 +960,39 @@ namespace CivOne
 				if (!Player.Visible(tx, ty)) count++;
 			}
 			return count;
+		}
+
+		// ── settler improvement selection ──────────────────────────────────────
+
+		private enum SettlerImprovement { Road, Irrigation, Mine, None }
+
+		private SettlerImprovement ChooseSettlerImprovement(
+		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity)
+		{
+		    StrategyStance stance = GetStance();
+		    
+		    // Expansion phase: build roads to unlock new settlement paths
+		    if (stance == StrategyStance.Expand)
+		        return validRoad ? SettlerImprovement.Road : 
+		               validIrrigation ? SettlerImprovement.Irrigation :
+		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
+		    
+		    // Consolidation: irrigation → food → growth
+		    if (stance == StrategyStance.Consolidate)
+		        return validIrrigation ? SettlerImprovement.Irrigation :
+		               validRoad ? SettlerImprovement.Road :
+		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
+		    
+		    // Militarization: roads first for rapid troop movement
+		    if (stance == StrategyStance.Militarize)
+		        return validRoad ? SettlerImprovement.Road :
+		               validMine ? SettlerImprovement.Mine :
+		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
+		    
+		    // Default development: prioritize water access, then shields, then roads
+		    return validIrrigation ? SettlerImprovement.Irrigation :
+		           validMine ? SettlerImprovement.Mine :
+		           validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
 		}
 	}
 }

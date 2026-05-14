@@ -51,7 +51,7 @@ namespace CivOne
 				ITile tile = unit.Tile;
 
 				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City == null);
-				bool validIrrigaton = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation)
+				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation);
 				bool validRoad = (tile.City == null) && tile.Road;
@@ -73,35 +73,27 @@ namespace CivOne
 						unit.SkipTurn();
 						return;
 					}
-					else if (nearestOwnCity < 3)
-					{
-						bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
-						if (!tileAlreadyClaimed)
-						switch (Common.Random.Next(nearestOwnCity < 1 ? 1 : 5 * nearestOwnCity))
-						{
-							case 0:
-								if (validRoad)
-								{
-									GameTask.Enqueue(Orders.BuildRoad(unit));
-									return;
-								}
-								break;
-							case 1:
-								if (validIrrigaton)
-								{
-									GameTask.Enqueue(Orders.BuildIrrigation(unit));
-									return;
-								}
-								break;
-							case 2:
-								if (validMine)
-								{
-									GameTask.Enqueue(Orders.BuildMines(unit));
-									return;
-								}
-								break;
-						}
-					}
+                    else if (nearestOwnCity < 3)
+                    {
+                        bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
+                        if (!tileAlreadyClaimed)
+                        {
+                            // Prioritize by strategy stance instead of random
+                            var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity);
+                            switch (improvementChoice)
+                            {
+                                case SettlerImprovement.Road:
+                                    if (validRoad) { GameTask.Enqueue(Orders.BuildRoad(unit)); return; }
+                                    break;
+                                case SettlerImprovement.Irrigation:
+                                    if (validIrrigation) { GameTask.Enqueue(Orders.BuildIrrigation(unit)); return; }
+                                    break;
+                                case SettlerImprovement.Mine:
+                                    if (validMine) { GameTask.Enqueue(Orders.BuildMines(unit)); return; }
+                                    break;
+                            }
+                        }
+                    }
 
 					ITile best = BestSettleSite(unit);
 					if (best != null && (best.X != unit.X || best.Y != unit.Y))
@@ -246,16 +238,11 @@ namespace CivOne
 						}
 					}
 
-					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
-					{
-						if (Common.Random.Next(0, 100) < 67)
-							unit.Goto = Point.Empty;
-						else if (Common.Random.Next(0, 100) < 67)
-							unit.SkipTurn();
-						else
-							Game.DisbandUnit(unit);
-						return;
-					}
+                    if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+                    {
+                        HandleMovementFailure(unit, next);
+                        return;
+                    }
 					return;
 				}
 				unit.SkipTurn();
