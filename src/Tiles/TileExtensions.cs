@@ -134,8 +134,8 @@ namespace CivOne.Tiles
 		{
 			if (tile.Irrigation) return false;
 			if (!(tile is Desert || tile is Grassland || tile is Hills || tile is Plains || tile is River)) return false;
-			return CrossTiles(tile).Any(x => x.Irrigation || x is River || x is Swamp
-				|| (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
+			return CrossTiles(tile).Any(x => (x.Irrigation || x is River || x is Swamp
+				|| (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))) && x.City == null);
 		}
 
 		public static bool AllowChangeTerrain(this ITile tile)

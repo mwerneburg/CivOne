@@ -93,6 +93,7 @@ namespace CivOne.Units
 					if (MovesLeft < moveCosts)
 						moveCosts = MovesLeft;
 					MovesLeft -= moveCosts;
+					PartMoves = 0;
 				}
 				else if (PartMoves > 0)
 				{
