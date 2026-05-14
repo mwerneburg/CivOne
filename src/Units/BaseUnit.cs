@@ -251,7 +251,24 @@ namespace CivOne.Units
 				Log($"[Confront] {GetType().Name} P{Owner} ({X},{Y}) → ({X+relX},{Y+relY}) {targetDesc}");
 			}
 
-			// Any hostile act against another civ triggers a state of war
+			// Any hostile act against another civ triggers a state of war.
+			// Democracy: the Senate blocks sneak attacks — the unit cannot initiate
+			// a new war, so only proceed if already at war with the target.
+			if (Human == Owner && Player.Government is Governments.Democracy)
+			{
+				Player targetOwner = moveTarget.City != null
+				    ? Game.GetPlayer(moveTarget.City.Owner)
+				    : moveTarget.Units.Any(u => u.Owner != Owner)
+				        ? Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner)
+				        : null;
+				if (targetOwner != null && targetOwner != Player && !Player.IsAtWar(targetOwner))
+				{
+					GameTask.Enqueue(Message.Error("-- Civilization Note --", "The Senate has", "blocked your attack!"));
+					Movement = null;
+					return false;
+				}
+			}
+
 			if (moveTarget.City != null && moveTarget.City.Owner != Owner)
 				Player.DeclareWar(Game.GetPlayer(moveTarget.City.Owner));
 			else if (moveTarget.Units.Any(u => u.Owner != Owner))

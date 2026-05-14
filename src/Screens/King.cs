@@ -364,7 +364,8 @@ namespace CivOne.Screens
 				menu.Items.Add("Seek exchange of knowledge").OnSelect(SeekKnowledge);
 				menu.Items.Add("Trade maps").OnSelect(TradeMaps);
 				menu.Items.Add("Demand tribute").OnSelect(SeekTribute);
-				menu.Items.Add("Declare war!").OnSelect(DeclareWarOnThem);
+				if (!(Human.Government is Gov.Democracy))
+					menu.Items.Add("Declare war!").OnSelect(DeclareWarOnThem);
 				menu.Items.Add("Farewell").OnSelect(Farewell);
 			}
 
