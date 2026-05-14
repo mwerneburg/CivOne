@@ -53,18 +53,26 @@ namespace CivOne.Tasks
 			{
 				cityView = new Newspaper(_city, new string[] { $"{_city.Name} builds", $"{name}." }, showGovernment: false);
 			}
-			else if (_improvement is IBuilding)
-			{
-				cityView = new CityView(_city, production: (_improvement as IBuilding));
-			}
-			else if (_improvement is IWonder)
-			{
-				cityView = new CityView(_city, production: (_improvement as IWonder));
-			}
 			else
 			{
-				EndTask();
-				return;
+				string artPath = ImprovementArtScreen.FindArtPath(name);
+				if (artPath != null)
+				{
+					cityView = new ImprovementArtScreen(artPath, name);
+				}
+				else if (_improvement is IBuilding)
+				{
+					cityView = new CityView(_city, production: (_improvement as IBuilding));
+				}
+				else if (_improvement is IWonder)
+				{
+					cityView = new CityView(_city, production: (_improvement as IWonder));
+				}
+				else
+				{
+					EndTask();
+					return;
+				}
 			}
 			cityView.Closed += ClosedCityView;
 			Common.AddScreen(cityView);
