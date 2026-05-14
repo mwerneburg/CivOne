@@ -556,6 +556,14 @@ namespace CivOne.Units
 			Home?.InvalidateCache();
 			Explore();
 			MovementDone(previousTile);
+
+			// Wake any adjacent human sentry units when an enemy moves next to them
+			if (Game.Started && Human != Owner)
+			{
+				foreach (ITile adjacent in Tile.GetBorderTiles())
+					foreach (IUnit sleeping in adjacent.Units.Where(u => u.Sentry && Human == u.Owner).ToList())
+						sleeping.Sentry = false;
+			}
 		}
 
 		protected void MovementTo(int relX, int relY)
