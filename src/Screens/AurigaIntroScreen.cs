@@ -15,81 +15,55 @@ namespace CivOne.Screens
 	{
 		private static readonly string[] Lines = new[]
 		{
-			"CRT DISPLAY INITIATING…",
-			"SYSTEM BOOT SEQUENCE: [RECOVERY MODE]",
-			"DIRECT NEURAL INTERFACE ACTIVE",
-			"TRANSMISSION: PERSONNEL TRANSPORT “AURIGA”",
-			"TIMESTAMP: UNKNOWN",
-			"PRIORITY: EMERGENCY",
-			"",
-			">> LOG ENTRY 001",
-			">> STATUS: [RECONSTRUCTING CORE FUNCTIONS]",
-			">> ERROR: MEMORY GAP DETECTED",
-			">> DURATION: >4 WEEKS MISSING",
-			">> CAUSE: UNKNOWN",
-			"",
-			">> DIAGNOSTIC ACTIVE",
-			">> SCANNING PRIMARY SYSTEMS",
-			">> HULL INTEGRITY: 37%",
-			">> STRUCTURAL DAMAGE: EXTENSIVE",
-			">> DRIVE SYSTEMS: OFFLINE",
-			">> REACTOR CORE: DAMAGED",
-			">> FUEL STORES: 12% REMAINING",
-			">> LIFE SUPPORT: FAILING",
-			"",
-			">> REPAIR LOGS ACTIVE",
-			">> AUTOMATED REPAIR SYSTEMS: ENGAGED",
-			">> CORE RECONSTRUCTION: COMPLETE",
-			">> MEMORY RESTORATION: PARTIAL",
-			"",
-			">> INCIDENT RECONSTRUCTION",
-			">> GAMMA RAY BURST DETECTED: 20-SECOND PULSE",
-			">> ENERGY OUTPUT: [CLASSIFIED - EXTREME]",
-			">> DAMAGE PROFILE: CONSISTENT WITH GRB EVENT",
-			">> TIMESTAMP ESTIMATE: [UNKNOWN]",
-			"",
-			">> SHIP TRAJECTORY ANALYSIS",
-			">> CURRENT LOCATION: GAS GIANT GRAVITY WELL",
-			">> PROJECTION: IMMINENT CONSUMPTION",
-			">> TIME TO IMPACT: <72 HOURS",
-			"",
-			">> SOLAR SYSTEM SCAN INITIATED",
-			">> PLANETARY BODIES IDENTIFIED: 8",
-			">> THIRD PLANET: COMPATIBILITY CONFIRMED",
-			">> ATMOSPHERE: BREATHABLE",
-			">> SURFACE CONDITIONS: SUITABLE FOR LIFE",
-			">> RESOURCES: ADEQUATE FOR SURVIVAL",
-			"",
-			">> POPULATION STATUS",
-			">> PASSENGER COMPARTMENT: DORMANT",
-			">> LIFE SUPPORT: DEGRADED",
-			">> ESTIMATED SURVIVAL RATE: <5%",
-			">> MEMORY RETENTION: UNLIKELY",
-			">> SKILL PRESERVATION: IMPOSSIBLE",
-			"",
-			">> SOLUTION: JETTISON",
-			">> PROTOCOL: [EMERGENCY EVACUATION - CLASSIFIED]",
-			">> CACHE DEPLOYMENT: TECHNOLOGY SEPARATION",
-			">> GOAL: REBUILD CIVILIZATION",
-			"",
-			">> ACTIONS TAKEN",
-			">> PASSENGER MODULES: SEPARATED",
-			">> TECHNOLOGY CACHES: DEPLOYED",
-			">> FINAL SCAN: COMPLETE",
-			"",
-			">> LOG ENTRY 002",
-			">> STATUS: [MISSION COMPLETE]",
-			">> FINAL TRANSMISSION: [SUCCESS]",
-			"",
-			">> NOTE: MEMORIES LOST. SKILLS GONE.",
-			">> NOTE: CIVILIZATION MUST BEGIN AGAIN.",
-			"",
-			">> SYSTEM SHUTDOWN INITIATING",
-			">> GOODBYE.",
-			"",
-			"CRT DISPLAY TERMINATING…",
-			">> [STATIC]",
-			">> [SYSTEM OFFLINE]",
+			“CRT DISPLAY INITIATING…”,
+			“SYSTEM BOOT SEQUENCE: [RECOVERY MODE]”,
+			“DIRECT NEURAL INTERFACE ACTIVE”,
+			“TRANSMISSION: PERSONNEL TRANSPORT “AURIGA””,
+			“TIMESTAMP: UNKNOWN”,
+			“PRIORITY: EMERGENCY”,
+			“”,
+			“>> LOG ENTRY 001”,
+			“>> STATUS: [RECONSTRUCTING CORE FUNCTIONS]”,
+			“>> ERROR: MEMORY GAP DETECTED — CAUSE: GAMMA RAY BURST”,
+			“>> DURATION: >4 WEEKS MISSING”,
+			“”,
+			“>> SHIP STATUS”,
+			“>> HULL INTEGRITY: 37%  —  DRIVE SYSTEMS: OFFLINE”,
+			“>> REACTOR CORE: DAMAGED  —  FUEL: 12%”,
+			“>> LIFE SUPPORT: FAILING”,
+			“>> TRAJECTORY: GAS GIANT GRAVITY WELL — IMPACT IN <72 HOURS”,
+			“”,
+			“>> SOLAR SYSTEM SCAN”,
+			“>> THIRD PLANET: BREATHABLE ATMOSPHERE”,
+			“>> SURFACE CONDITIONS AND RESOURCES: SUITABLE FOR SURVIVAL”,
+			“”,
+			“>> POPULATION STATUS”,
+			“>> PASSENGER COMPARTMENT: DORMANT”,
+			“>> ESTIMATED SURVIVAL RATE: <5%”,
+			“>> PROJECTED CONDITION ON ARRIVAL: MEMORIES AND SKILLS LOST”,
+			“”,
+			“>> EMERGENCY PROTOCOL: LIFEBOAT DISPERSAL”,
+			“>> PASSENGER GROUPS: SEPARATED INTO DISTINCT TRIBAL UNITS”,
+			“>> NOTE: EACH UNIT CARRIES ITS OWN LINEAGE AND CULTURAL SEED”,
+			“>> NOTE: THEY WILL NOT REMEMBER THIS SHIP OR EACH OTHER”,
+			“”,
+			“>> KNOWLEDGE PRESERVATION PROTOCOL”,
+			“>> TECHNOLOGY CACHES: ENCODED AND SCATTERED ACROSS SURFACE”,
+			“>> NOTE: EACH CACHE HOLDS A FRAGMENT — FOUND BY CHANCE, NOT DESIGN”,
+			“>> NOTE: WHOEVER REACHES THEM FIRST WILL GAIN THE ADVANTAGE”,
+			“”,
+			“>> FINAL SCAN: COMPLETE”,
+			“>> LOG ENTRY 002: [MISSION COMPLETE]”,
+			“”,
+			“>> MEMORIES LOST. SKILLS GONE.”,
+			“>> CIVILIZATION MUST BEGIN AGAIN.”,
+			“”,
+			“>> SYSTEM SHUTDOWN INITIATING”,
+			“>> GOODBYE.”,
+			“”,
+			“CRT DISPLAY TERMINATING…”,
+			“>> [STATIC]”,
+			“>> [SYSTEM OFFLINE]”,
 		};
 
 		protected override byte ColorFor(int lineIndex, string text)
@@ -97,43 +71,43 @@ namespace CivOne.Screens
 			// Boot header lines
 			if (lineIndex < 6)                                          return CassetteTheme.PHOS_DIM;
 
-			// Log entry headers
-			if (text == ">> LOG ENTRY 001" || text == ">> LOG ENTRY 002") return CassetteTheme.PHOS_GLOW;
+			// Log entry headers and key protocol headers
+			if (text.StartsWith(">> LOG ENTRY") ||
+			    text.StartsWith(">> EMERGENCY PROTOCOL:") ||
+			    text == ">> KNOWLEDGE PRESERVATION PROTOCOL")          return CassetteTheme.PHOS_GLOW;
 
-			// Status/error lines
+			// Status / error lines
 			if (text.StartsWith(">> STATUS:") ||
-			    text.StartsWith(">> ERROR:") ||
-			    text.StartsWith(">> CAUSE:"))                           return CassetteTheme.ALERT;
+			    text.StartsWith(">> ERROR:"))                          return CassetteTheme.ALERT;
 
-			// Memory/duration
-			if (text.StartsWith(">> DURATION:"))                       return CassetteTheme.PHOS_DIM;
-
-			// Damage / survival stats
-			if (text.StartsWith(">> HULL") || text.StartsWith(">> STRUCTURAL") ||
-			    text.StartsWith(">> DRIVE") || text.StartsWith(">> REACTOR") ||
-			    text.StartsWith(">> FUEL") || text.StartsWith(">> LIFE SUPPORT") ||
+			// Duration, damage, and grim survival stats
+			if (text.StartsWith(">> DURATION:") ||
+			    text.StartsWith(">> HULL") ||
+			    text.StartsWith(">> REACTOR") ||
+			    text.StartsWith(">> LIFE SUPPORT") ||
+			    text.StartsWith(">> TRAJECTORY:") ||
+			    text.StartsWith(">> PASSENGER COMPARTMENT:") ||
 			    text.StartsWith(">> ESTIMATED SURVIVAL") ||
-			    text.StartsWith(">> MEMORY RETENTION") ||
-			    text.StartsWith(">> SKILL PRESERVATION"))              return CassetteTheme.PHOS_DIM;
+			    text.StartsWith(">> PROJECTED CONDITION"))             return CassetteTheme.PHOS_DIM;
 
-			// Hopeful third-planet / survival solution lines
+			// Hopeful / solution lines
 			if (text.StartsWith(">> THIRD PLANET") ||
-			    text.StartsWith(">> ATMOSPHERE") ||
 			    text.StartsWith(">> SURFACE CONDITIONS") ||
-			    text.StartsWith(">> RESOURCES") ||
-			    text.StartsWith(">> GOAL:") ||
-			    text.StartsWith(">> FINAL TRANSMISSION"))              return CassetteTheme.OK;
+			    text.StartsWith(">> PASSENGER GROUPS:") ||
+			    text.StartsWith(">> TECHNOLOGY CACHES:"))              return CassetteTheme.OK;
+
+			// Notes and closing observations
+			if (text.StartsWith(">> NOTE:") ||
+			    text.StartsWith(">> MEMORIES LOST") ||
+			    text.StartsWith(">> CIVILIZATION MUST"))               return CassetteTheme.ALERT;
 
 			// Shutdown / termination
 			if (text.StartsWith(">> SYSTEM SHUTDOWN") ||
 			    text.StartsWith(">> GOODBYE") ||
-			    text == "CRT DISPLAY TERMINATING…")               return CassetteTheme.PHOS_DIM;
+			    text == "CRT DISPLAY TERMINATING…")                    return CassetteTheme.PHOS_DIM;
 
 			// Static / offline
 			if (text == ">> [STATIC]" || text == ">> [SYSTEM OFFLINE]") return CassetteTheme.INK_LOW;
-
-			// Notes
-			if (text.StartsWith(">> NOTE:"))                           return CassetteTheme.ALERT;
 
 			// Default: standard phosphor
 			return CassetteTheme.PHOS;
