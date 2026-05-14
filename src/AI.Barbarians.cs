@@ -157,7 +157,8 @@ namespace CivOne
 					ITile moveTo = friendlyTiles[Common.Random.Next(friendlyTiles.Length)];
 					int relX = moveTo.X - unit.X;
 					int relY = moveTo.Y - unit.Y;
-					unit.MoveTo(relX, relY);
+					if (!unit.MoveTo(relX, relY))
+						unit.SkipTurn();
 					return;
 				}
 
@@ -217,9 +218,10 @@ namespace CivOne
 				int relY = moveTo.Y - unit.Y;
 				while (relX < -1) relX += Map.WIDTH;
 				while (relX > 1) relX -= Map.WIDTH;
-				if (unit is Diplomat && unit.Tile.City != null) return;
+				if (unit is Diplomat && unit.Tile.City != null) { unit.SkipTurn(); return; }
 
-				unit.MoveTo(relX, relY);
+				if (!unit.MoveTo(relX, relY))
+					unit.SkipTurn();
 			}
 		}
 	}
