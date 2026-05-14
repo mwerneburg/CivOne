@@ -50,6 +50,10 @@ namespace CivOne
 			    && Player.Visible(c.X, c.Y)))
 				return StrategyStance.Militarize;
 
+			// Militarize: human player is running away — drop economic goals and arm up
+			if (HumanIsDominant() && Human != null && IsNeighbor(Human))
+				return StrategyStance.Militarize;
+
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
 			if (Leader.Militarism == MilitarismLevel.Militaristic
 			    || Leader.Aggression == AggressionLevel.Aggressive)
@@ -76,6 +80,29 @@ namespace CivOne
 			return Player.Cities.Any(oc =>
 			    enemy.Cities.Any(ec =>
 			        Common.DistanceToTile(oc.X, oc.Y, ec.X, ec.Y) <= 15));
+		}
+
+		// True when the human player has broken away from the pack: 2× the cities or 2× the
+		// score of the strongest AI.  8-city floor on the city check so it doesn't fire in
+		// the early expansion phase before civs have had a chance to settle.
+		private bool HumanIsDominant()
+		{
+			Player human = Human;
+			if (human == null || human.IsDestroyed()) return false;
+
+			Player[] aiPlayers = Game.Players
+			    .Where(p => Game.PlayerNumber(p) != 0 && !p.IsDestroyed() && p != human)
+			    .ToArray();
+			if (aiPlayers.Length == 0) return false;
+
+			int humanCities = human.Cities.Length;
+			int humanScore  = Math.Max(1, human.Score);
+			int bestAICities = aiPlayers.Max(p => p.Cities.Length);
+			int bestAIScore  = aiPlayers.Max(p => Math.Max(1, p.Score));
+
+			if (humanCities >= 8 && humanCities > bestAICities * 2) return true;
+			if (humanScore > bestAIScore * 2) return true;
+			return false;
 		}
 
 		private int MilitaryScore(Player player)
@@ -206,6 +233,42 @@ namespace CivOne
 			if (Game.PlayerNumber(Player) == 0) return;
 			if (Player.Government is Governments.Anarchy) return;
 
+			// ── Coalition against a runaway human ────────────────────────────────
+			if (HumanIsDominant())
+			{
+				// Wind down existing AI-vs-AI wars (~25 % chance per war per turn).
+				// MakePeace is bilateral so only one side needs to call it.
+				foreach (Player ally in Game.Players)
+				{
+					if (ally == Player || ally.IsDestroyed() || ally.IsHuman) continue;
+					if (Game.PlayerNumber(ally) == 0) continue; // not barbarians
+					if (!Player.IsAtWar(ally)) continue;
+					if (Common.Random.Next(100) < 25)
+						Player.MakePeace(ally);
+				}
+
+				// Non-Rep/Dem civs with an army may now turn on the human
+				if (!Player.RepublicDemocratic)
+				{
+					int own = MilitaryScore(Player);
+					Player human = Human;
+					if (own > 0 && human != null && !human.IsDestroyed()
+					    && !Player.IsAtWar(human) && IsNeighbor(human)
+					    && !human.HasWonder<UnitedNations>())
+					{
+						// Base 10 %, +5 % per difficulty level, +10 % if we can field half their force
+						int chance = 10 + Game.Difficulty * 5;
+						if (own >= MilitaryScore(human) / 2) chance += 10;
+						if (Common.Random.Next(100) < chance)
+							Player.DeclareWar(human);
+					}
+				}
+
+				// No new inter-AI wars while coalition is active
+				return;
+			}
+			// ── Normal war logic below ───────────────────────────────────────────
+
 			// Republics and Democracies are blocked by their Senate from starting wars
 			if (Player.RepublicDemocratic) return;
 
@@ -220,8 +283,8 @@ namespace CivOne
 			    && Player.Visible(c.X, c.Y)))
 				return;
 
-			int own = MilitaryScore(Player);
-			if (own == 0) return; // no army, no war
+			int ownScore = MilitaryScore(Player);
+			if (ownScore == 0) return; // no army, no war
 
 			foreach (Player enemy in Game.Players)
 			{
@@ -238,9 +301,9 @@ namespace CivOne
 				if (Leader.Militarism  == MilitarismLevel.Militaristic)   chance += 7;
 
 				// Modifier for relative strength
-				if (own > their)           chance += 5;
-				if (own > their * 3 / 2)   chance += 5; // notably stronger
-				if (their > own * 3 / 2)   chance -= 20; // notably weaker — don't be reckless
+				if (ownScore > their)             chance += 5;
+				if (ownScore > their * 3 / 2)     chance += 5; // notably stronger
+				if (their > ownScore * 3 / 2)     chance -= 20; // notably weaker — don't be reckless
 
 				if (Common.Random.Next(100) < chance)
 				{
@@ -350,14 +413,27 @@ namespace CivOne
 		{
 			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire.
 			// Barbarians (P0) are treated as always hostile even without a formal war state.
-			return Game.GetCities()
-			           .Where(c => c.Player != Player
-			                    && (Player.IsAtWar(c.Player) || c.Owner == 0)
-			                    && Player.Visible(c.X, c.Y))
-			           .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
-			           .ThenBy(c => Player.Cities.Min(oc =>
-			               Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
-			           .FirstOrDefault();
+			var candidates = Game.GetCities()
+			    .Where(c => c.Player != Player
+			             && (Player.IsAtWar(c.Player) || c.Owner == 0)
+			             && Player.Visible(c.X, c.Y));
+
+			// When the human is dominant and we're at war with them, hit their cities first.
+			Player human = Human;
+			if (HumanIsDominant() && human != null && Player.IsAtWar(human))
+			{
+				City humanCity = candidates
+				    .Where(c => c.Player == human)
+				    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
+				    .ThenBy(c => Player.Cities.Min(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
+				    .FirstOrDefault();
+				if (humanCity != null) return humanCity;
+			}
+
+			return candidates
+			    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
+			    .ThenBy(c => Player.Cities.Min(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
+			    .FirstOrDefault();
 		}
 
 		private ITile StagingTile(City target)
