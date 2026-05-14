@@ -84,7 +84,7 @@ namespace CivOne.Screens
 		protected override bool HasUpdate(uint gameTick)
 		{
 			bool mapUpdated = _cityMap.Update(gameTick);
-			if (!_update && !mapUpdated) return false;
+			if (!_update && !mapUpdated && !ProductionInvalid) return false;
 
 			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
 
@@ -348,7 +348,7 @@ namespace CivOne.Screens
 
 			// Production name
 			string prodName = (_city.CurrentProduction as ICivilopedia)?.Name.ToUpper() ?? "???";
-			byte nameColor  = blink ? CassetteTheme.PHOS : CassetteTheme.PHOS;
+			byte nameColor  = blink ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 			this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
 
 			// Progress meter
