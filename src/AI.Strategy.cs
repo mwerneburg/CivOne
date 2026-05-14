@@ -44,6 +44,12 @@ namespace CivOne
 			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p)))
 				return StrategyStance.Militarize;
 
+			// Militarize: barbarian city visible near our empire — rally to expel them
+			if (Game.GetCities().Any(c => c.Owner == 0
+			    && Player.Cities.Any(oc => Common.DistanceToTile(c.X, c.Y, oc.X, oc.Y) <= 10)
+			    && Player.Visible(c.X, c.Y)))
+				return StrategyStance.Militarize;
+
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
 			if (Leader.Militarism == MilitarismLevel.Militaristic
 			    || Leader.Aggression == AggressionLevel.Aggressive)
@@ -208,6 +214,12 @@ namespace CivOne
 			    && Leader.Aggression != AggressionLevel.Aggressive)
 				return;
 
+			// Don't pick fights with other civs while barbarians hold a city near our empire
+			if (Game.GetCities().Any(c => c.Owner == 0
+			    && Player.Cities.Any(oc => Common.DistanceToTile(c.X, c.Y, oc.X, oc.Y) <= 10)
+			    && Player.Visible(c.X, c.Y)))
+				return;
+
 			int own = MilitaryScore(Player);
 			if (own == 0) return; // no army, no war
 
@@ -336,10 +348,11 @@ namespace CivOne
 
 		private City PickAttackTarget()
 		{
-			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire
+			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire.
+			// Barbarians (P0) are treated as always hostile even without a formal war state.
 			return Game.GetCities()
 			           .Where(c => c.Player != Player
-			                    && Player.IsAtWar(c.Player)
+			                    && (Player.IsAtWar(c.Player) || c.Owner == 0)
 			                    && Player.Visible(c.X, c.Y))
 			           .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 			           .ThenBy(c => Player.Cities.Min(oc =>
@@ -494,10 +507,13 @@ namespace CivOne
 			{
 				if (stance == StrategyStance.Militarize)
 				{
-					// Validate or refresh the civ-wide attack target
-					if (_attackTarget == null
-					    || _attackTarget.Player == Player         // we captured it
-					    || !Player.IsAtWar(_attackTarget.Player)) // war ended
+					// Validate or refresh the civ-wide attack target.
+					// Barbarian cities stay valid until captured; non-barbarian targets
+					// are dropped when the war ends.
+					bool targetStale = _attackTarget == null
+					    || _attackTarget.Player == Player
+					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player));
+					if (targetStale)
 						_attackTarget = PickAttackTarget();
 
 					if (_attackTarget != null)
@@ -764,9 +780,20 @@ namespace CivOne
 
 			// Soft units by government / stance
 			if (stance == StrategyStance.Militarize && !Player.RepublicDemocratic)
+			{
 				Consider(BestAttacker());
+			}
 			else if (Player.HasAdvance<Writing>())
-				Consider(new Diplomat());
+			{
+				// One Diplomat per 3 cities (same cadence as Explorers), minimum 2 empire-wide.
+				byte ownId2 = Game.PlayerNumber(Player);
+				int ownDiplomats = Game.GetUnits().Count(u => u.Owner == ownId2 && u is Diplomat);
+				int diplomatCap  = Math.Max(2, Player.Cities.Length / 3);
+				if (ownDiplomats < diplomatCap)
+					Consider(new Diplomat());
+				else if (Player.HasAdvance<Trade>())
+					Consider(new Caravan());
+			}
 			else if (Player.HasAdvance<Trade>())
 				Consider(new Caravan());
 
