@@ -21,14 +21,14 @@ namespace CivOne.Civilizations
 			CityNames = new string[]
 			{
 				"Moscow",
-				"Leningrad",
+				"St. Petersburg",
 				"Kiev",
 				"Minsk",
 				"Smolensk",
 				"Odessa",
 				"Sevastopol",
-				"Tblisi",
-				"Sverdlovsk",
+				"Tbilisi",
+				"Yekaterinburg",
 				"Yakutsk",
 				"Vladivostok",
 				"Novograd",

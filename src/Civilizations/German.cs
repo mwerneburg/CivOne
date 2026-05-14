@@ -34,7 +34,7 @@ namespace CivOne.Civilizations
 				"Heidelberg",
 				"Salzburg",
 				"Konigsberg",
-				"Dortmond",
+				"Dortmund",
 				"Brandenburg"
 			};
 		}

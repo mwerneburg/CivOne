@@ -20,22 +20,22 @@ namespace CivOne.Civilizations
 			StartY = 19;
 			CityNames = new string[]
 			{
-				"Peking",
+				"Beijing",
 				"Shanghai",
-				"Canton",
-				"Nanking",
-				"Tsingtao",
-				"Hangchow",
-				"Tientsin",
-				"Tatung",
-				"Macao",
+				"Guangzhou",
+				"Nanjing",
+				"Qingdao",
+				"Hangzhou",
+				"Tianjin",
+				"Datong",
+				"Macau",
 				"Anyang",
-				"Shantung",
-				"Chinan",
+				"Shandong",
+				"Jinan",
 				"Kaifeng",
-				"Ningpo",
-				"Paoting",
-				"Yangchow"
+				"Ningbo",
+				"Baoding",
+				"Yangzhou"
 			};
 		}
 	}
