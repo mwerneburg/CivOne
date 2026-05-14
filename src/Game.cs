@@ -535,8 +535,8 @@ namespace CivOne
 					Player owner = HumanPlayer;
 					Player nextCityOwner = (next.City != null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
 					bool peacefulBlock =
-						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p != null && !owner.IsAtWar(p); })
-						|| (nextCityOwner != null && !owner.IsAtWar(nextCityOwner));
+						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p != null && u.Owner != 0 && !owner.IsAtWar(p); })
+						|| (nextCityOwner != null && nextCityOwner != GetPlayer(0) && !owner.IsAtWar(nextCityOwner));
 					if (peacefulBlock)
 					{
 						unit.Goto = Point.Empty;
