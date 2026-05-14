@@ -151,6 +151,20 @@ namespace CivOne.Units
 
 		private int DefendStrength(IUnit defendUnit, IUnit attackUnit)
 		{
+			// Air attack on a non-air defender: terrain and fortification bonuses are stripped
+			// unless the city has a SAM Battery.  This makes air units dominant in the field
+			// and gives SAM Batteries a clear, exclusive defensive role.
+			if (attackUnit.Class == UnitClass.Air && defendUnit.Class != UnitClass.Air)
+			{
+				bool hasSam = defendUnit.Tile.City?.HasBuilding<Buildings.SamBattery>() == true;
+				if (!hasSam)
+				{
+					int baseDefend = (int)defendUnit.Defense * 2;
+					if (defendUnit.Veteran) baseDefend += baseDefend / 2;
+					return baseDefend;
+				}
+			}
+
 			// Check City Walls for step 5 (Great Wall acts as City Walls for all owner cities until Gunpowder)
 			bool cityWalls = defendUnit.Tile.City != null
 				&& (defendUnit.Tile.City.HasBuilding<CityWalls>()

@@ -38,5 +38,6 @@ namespace CivOne.Enums
 		Shipyard = 24,
 		SewerSystem = 25,
 		Observatory = 26,
+		SamBattery = 27,
 	}
 }

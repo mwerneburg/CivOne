@@ -843,6 +843,7 @@ namespace CivOne
 			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
 			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
 			if (Player.HasAdvance<Masonry>()           && !city.HasBuilding<CityWalls>())     Consider(new CityWalls());
+			if (Player.HasAdvance<Rocketry>()          && !city.HasBuilding<SamBattery>())    Consider(new SamBattery());
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
 			if (Player.HasAdvance<Computers>()         && !city.HasBuilding<Observatory>())   Consider(new Observatory());
