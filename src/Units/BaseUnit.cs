@@ -313,6 +313,8 @@ namespace CivOne.Units
 							Game.DisbandUnit(capturedCity.Units[0]);
 						capturedCity.Owner = Owner;
 						capturedCity.TechStolen = false;
+						previousOwner.InvalidateCityCaches();
+						Game.GetPlayer(Owner).InvalidateCityCaches();
 						{
 							City[] cities = Game.Instance.GetCities();
 							int cIdx = System.Array.IndexOf(cities, capturedCity);

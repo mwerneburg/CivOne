@@ -178,7 +178,7 @@ namespace CivOne
 		}
 		public int ScienceRate => _scienceRate;
 
-		private void InvalidateCityCaches()
+		internal void InvalidateCityCaches()
 		{
 			if (!Game.Started) return;
 			foreach (City city in Cities)
