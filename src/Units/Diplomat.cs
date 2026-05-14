@@ -82,11 +82,42 @@ namespace CivOne.Units
 				}
 				else
 				{
-					if (moveTarget.City.Player == Human)
-						GameTask.Enqueue(Tasks.Show.DiplomatSabotage(moveTarget.City, this));
+					City target = moveTarget.City;
+
+					// Counter-espionage: a resident Diplomat has a 50 % chance of catching the spy
+					if (target.Tile.Units.Any(u => u.Owner == target.Owner && u is Diplomat)
+					    && Common.Random.Next(2) == 0)
+					{
+						Game.DisbandUnit(this);
+						if (target.Player == Human || Player == Human)
+							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} spy caught", $"in {target.Name}!"));
+						return true;
+					}
+
+					IAdvance advance = !target.TechStolen ? GetAdvanceToSteal(target.Player) : null;
+
+					if (advance != null)
+					{
+						// Steal technology — notify if the human is involved on either side
+						GameTask task = new Tasks.GetAdvance(Player, advance);
+						task.Done += (s, a) =>
+						{
+							target.TechStolen = true;
+							Game.DisbandUnit(this);
+							if (target.Player == Human || Player == Human)
+								GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} steal", $"{advance.Name}"));
+						};
+						GameTask.Enqueue(task);
+					}
+					else if (target.Player == Human)
+					{
+						GameTask.Enqueue(Tasks.Show.DiplomatSabotage(target, this));
+					}
 					else
-						Sabotage(moveTarget.City);
-						
+					{
+						Sabotage(target);
+					}
+
 					return true;
 				}
 			}

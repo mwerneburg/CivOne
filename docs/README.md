@@ -61,6 +61,7 @@ Civ II stuff
  + The benefits of Copernicus's Observatory do not expire.
  + Caravans have the same 'move' as diplomats.
  + Settlers may auto-clean of pollution for all friendly cities.
+ + Spy-vs-spy; a defending spy defeats the theft of technology.
  + (The code for Civ II "Freight" units was present in the <2017 repo but remains inactive.)
 
 Platforms
