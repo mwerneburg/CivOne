@@ -1194,10 +1194,10 @@ namespace CivOne
 					// SS parts are tracked as player-level counters, not city buildings,
 					// so the city can repeat-build the same part.
 					Shields = 0;
-					int p = Owner;
-					if (CurrentProduction is Buildings.SSStructural)      Game.SpaceshipStructural[p]++;
-					else if (CurrentProduction is Buildings.SSComponent)  Game.SpaceshipComponent[p]++;
-					else if (CurrentProduction is Buildings.SSModule)     Game.SpaceshipModule[p]++;
+					int playerIndex = Owner;
+					if (CurrentProduction is Buildings.SSStructural)      Game.SpaceshipStructural[playerIndex]++;
+					else if (CurrentProduction is Buildings.SSComponent)  Game.SpaceshipComponent[playerIndex]++;
+					else if (CurrentProduction is Buildings.SSModule)     Game.SpaceshipModule[playerIndex]++;
 					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
 					message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
 					GameTask.Enqueue(message);

@@ -763,12 +763,12 @@ namespace CivOne.Units
 		{
 			get
 			{
-				byte s = 0;
-				if (Sentry)         s |= (1 << 0);
-				if (FortifyActive)  s |= (1 << 2);
-				if (_fortify)       s |= (1 << 3);
-				if (Veteran)        s |= (1 << 5);
-				return s;
+				byte statusByte = 0;
+				if (Sentry)         statusByte |= (1 << 0);
+				if (FortifyActive)  statusByte |= (1 << 2);
+				if (_fortify)       statusByte |= (1 << 3);
+				if (Veteran)        statusByte |= (1 << 5);
+				return statusByte;
 			}
 			set
 			{

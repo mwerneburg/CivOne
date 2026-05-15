@@ -149,14 +149,14 @@ namespace CivOne
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
-				int l = (int)((float)Math.Abs(y * 2 - (HEIGHT - 1)) / HEIGHT * 29);
-				l += Common.Random.Next(7);
-				if (l < 0) l = -l;
-				l += 1 - _temperature;
-				
-				l = (l / 6) + 1;
-				
-				switch (l)
+				int latitudeIndex = (int)((float)Math.Abs(y * 2 - (HEIGHT - 1)) / HEIGHT * 29);
+				latitudeIndex += Common.Random.Next(7);
+				if (latitudeIndex < 0) latitudeIndex = -latitudeIndex;
+				latitudeIndex += 1 - _temperature;
+
+				latitudeIndex = (latitudeIndex / 6) + 1;
+
+				switch (latitudeIndex)
 				{
 					case 0:
 					case 1: latitude[x, y] = 0; break;

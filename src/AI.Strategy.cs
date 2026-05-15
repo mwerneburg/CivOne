@@ -318,7 +318,7 @@ namespace CivOne
 		private int SiteSuitability(ITile center)
 		{
 			int score = 0;
-			int w = Map.WIDTH, h = Map.HEIGHT;
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 
 			// Resource value of every tile in the working diamond.
 			// Ocean tiles get a +2 premium for long-term coastal trade potential.
@@ -327,14 +327,14 @@ namespace CivOne
 			for (int dx = -2; dx <= 2; dx++)
 			{
 				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
-				int tx = (center.X + dx + w) % w;
+				int tx = (center.X + dx + mapWidth) % mapWidth;
 				int ty = center.Y + dy;
-				if (ty < 0 || ty >= h) continue;
-				ITile t = Map[tx, ty];
-				if (t is null) continue;
-				score += t.Food * 2 + t.Shield + t.Trade;
-				if (t.IsOcean) score += 2;
-				if (t.Special)  score += 3;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null) continue;
+				score += tile.Food * 2 + tile.Shield + tile.Trade;
+				if (tile.IsOcean) score += 2;
+				if (tile.Special)  score += 3;
 			}
 
 			// Immediate neighbours: river adjacency unlocks irrigation chains.
@@ -345,12 +345,12 @@ namespace CivOne
 			for (int dx = -1; dx <= 1; dx++)
 			{
 				if (dx == 0 && dy == 0) continue;
-				int tx = (center.X + dx + w) % w;
+				int tx = (center.X + dx + mapWidth) % mapWidth;
 				int ty = center.Y + dy;
-				if (ty < 0 || ty >= h) continue;
-				ITile t = Map[tx, ty];
-				if (t is River)             { score += 3; hasRiverNeighbor  = true; }
-				else if (t is not null && t.IsOcean) hasCoastNeighbor = true;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is River)             { score += 3; hasRiverNeighbor  = true; }
+				else if (tile is not null && tile.IsOcean) hasCoastNeighbor = true;
 			}
 
 			// A river-mouth site combines irrigation, river trade, and ocean trade.
@@ -359,11 +359,11 @@ namespace CivOne
 			// City proximity penalties
 			foreach (City city in Game.GetCities())
 			{
-				int d = Common.DistanceToTile(center.X, center.Y, city.X, city.Y);
-				if (d < 4) { score -= 20; continue; } // working-radius overlap
-				if (d < 6) { score -= 5;  continue; }
+				int dist = Common.DistanceToTile(center.X, center.Y, city.X, city.Y);
+				if (dist < 4) { score -= 20; continue; } // working-radius overlap
+				if (dist < 6) { score -= 5;  continue; }
 				// Foreign city in the 6–10 band: contested border risk
-				if (city.Player != Player && d < 10)
+				if (city.Player != Player && dist < 10)
 					score -= Player.IsAtWar(city.Player) ? 10 : 4;
 			}
 
@@ -377,7 +377,7 @@ namespace CivOne
 
 		internal ITile BestSettleSite(IUnit settlers)
 		{
-			int w = Map.WIDTH, h = Map.HEIGHT;
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile best = null;
 			int bestScore = int.MinValue;
 
@@ -390,9 +390,9 @@ namespace CivOne
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
 			{
-				int tx = (settlers.X + dx + w) % w;
+				int tx = (settlers.X + dx + mapWidth) % mapWidth;
 				int ty = settlers.Y + dy;
-				if (ty < 0 || ty >= h) continue;
+				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
@@ -438,7 +438,7 @@ namespace CivOne
 
 		private ITile StagingTile(City target)
 		{
-			int w = Map.WIDTH, h = Map.HEIGHT;
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			byte own = Game.PlayerNumber(Player);
 			ITile best = null;
 			int bestCount = -1;
@@ -447,15 +447,15 @@ namespace CivOne
 			for (int dx = -1; dx <= 1; dx++)
 			{
 				if (dx == 0 && dy == 0) continue;
-				int tx = (target.X + dx + w) % w;
+				int tx = (target.X + dx + mapWidth) % mapWidth;
 				int ty = target.Y + dy;
-				if (ty < 0 || ty >= h) continue;
-				ITile t = Map[tx, ty];
-				if (t is null || t.IsOcean) continue;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null || tile.IsOcean) continue;
 				// Don't stage on a tile already occupied by enemies
-				if (t.Units.Any(u => u.Owner != own)) continue;
-				int count = t.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack);
-				if (best is null || count > bestCount) { best = t; bestCount = count; }
+				if (tile.Units.Any(u => u.Owner != own)) continue;
+				int count = tile.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack);
+				if (best is null || count > bestCount) { best = tile; bestCount = count; }
 			}
 			return best;
 		}
@@ -465,16 +465,16 @@ namespace CivOne
 		// Ocean tile adjacent to a city — where a transport can drop troops.
 		private ITile LandingTile(City target)
 		{
-			int w = Map.WIDTH, h = Map.HEIGHT;
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			for (int dy = -1; dy <= 1; dy++)
 			for (int dx = -1; dx <= 1; dx++)
 			{
 				if (dx == 0 && dy == 0) continue;
-				int tx = (target.X + dx + w) % w;
+				int tx = (target.X + dx + mapWidth) % mapWidth;
 				int ty = target.Y + dy;
-				if (ty < 0 || ty >= h) continue;
-				ITile t = Map[tx, ty];
-				if (t is not null && t.IsOcean) return t;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is not null && tile.IsOcean) return tile;
 			}
 			return null;
 		}
@@ -631,82 +631,82 @@ namespace CivOne
 
 		private static int AdvanceWeight(IAdvance a, StrategyStance stance)
 		{
-			int w = 1; // baseline: every advance can be chosen
+			int weight = 1; // baseline: every advance can be chosen
 
 			switch (stance)
 			{
 				case StrategyStance.Militarize:
-					if (a is BronzeWorking)      w += 7;
-					if (a is IronWorking)         w += 7;
-					if (a is TheWheel)            w += 6;
-					if (a is HorsebackRiding)     w += 7;
-					if (a is Feudalism)           w += 5;
-					if (a is Chivalry)            w += 7;
-					if (a is Gunpowder)           w += 8;
-					if (a is Mathematics)         w += 4;
-					if (a is Physics)             w += 5;
-					if (a is Chemistry)           w += 5;
-					if (a is Metallurgy)          w += 7;
-					if (a is Engineering)         w += 5;
-					if (a is SteamEngine)         w += 5;
-					if (a is Industrialization)   w += 6;
-					if (a is Conscription)        w += 8;
-					if (a is Automobile)          w += 8;
-					if (a is LaborUnion)          w += 8;
-					if (a is Masonry)             w += 4; // CityWalls for defence
+					if (a is BronzeWorking)      weight += 7;
+					if (a is IronWorking)         weight += 7;
+					if (a is TheWheel)            weight += 6;
+					if (a is HorsebackRiding)     weight += 7;
+					if (a is Feudalism)           weight += 5;
+					if (a is Chivalry)            weight += 7;
+					if (a is Gunpowder)           weight += 8;
+					if (a is Mathematics)         weight += 4;
+					if (a is Physics)             weight += 5;
+					if (a is Chemistry)           weight += 5;
+					if (a is Metallurgy)          weight += 7;
+					if (a is Engineering)         weight += 5;
+					if (a is SteamEngine)         weight += 5;
+					if (a is Industrialization)   weight += 6;
+					if (a is Conscription)        weight += 8;
+					if (a is Automobile)          weight += 8;
+					if (a is LaborUnion)          weight += 8;
+					if (a is Masonry)             weight += 4; // CityWalls for defence
 					break;
 
 				case StrategyStance.Develop:
-					if (a is Alphabet)            w += 7;
-					if (a is Writing)             w += 8;
-					if (a is Literacy)            w += 6;
-					if (a is CodeOfLaws)          w += 6;
-					if (a is TheRepublic)         w += 7;
-					if (a is Advances.Democracy)  w += 6;
-					if (a is Pottery)             w += 6;
-					if (a is Trade)               w += 8;
-					if (a is Currency)            w += 7;
-					if (a is Banking)             w += 7;
-					if (a is TheCorporation)      w += 6;
-					if (a is Philosophy)          w += 5;
-					if (a is Advances.University)  w += 7;
-					if (a is Invention)           w += 6;
-					if (a is TheoryOfGravity)     w += 6;
-					if (a is Masonry)             w += 5;
-					if (a is Construction)        w += 5;
-					if (a is CeremonialBurial)    w += 5;
-					if (a is Mysticism)           w += 4;
-					if (a is Religion)            w += 5;
+					if (a is Alphabet)            weight += 7;
+					if (a is Writing)             weight += 8;
+					if (a is Literacy)            weight += 6;
+					if (a is CodeOfLaws)          weight += 6;
+					if (a is TheRepublic)         weight += 7;
+					if (a is Advances.Democracy)  weight += 6;
+					if (a is Pottery)             weight += 6;
+					if (a is Trade)               weight += 8;
+					if (a is Currency)            weight += 7;
+					if (a is Banking)             weight += 7;
+					if (a is TheCorporation)      weight += 6;
+					if (a is Philosophy)          weight += 5;
+					if (a is Advances.University)  weight += 7;
+					if (a is Invention)           weight += 6;
+					if (a is TheoryOfGravity)     weight += 6;
+					if (a is Masonry)             weight += 5;
+					if (a is Construction)        weight += 5;
+					if (a is CeremonialBurial)    weight += 5;
+					if (a is Mysticism)           weight += 4;
+					if (a is Religion)            weight += 5;
 					break;
 
 				case StrategyStance.Consolidate:
-					if (a is CeremonialBurial)    w += 9; // Temple
-					if (a is Mysticism)           w += 8; // doubles Temple
-					if (a is Philosophy)          w += 6;
-					if (a is Religion)            w += 8; // Cathedral
-					if (a is Construction)        w += 8; // Colosseum
-					if (a is Pottery)             w += 7; // Granary
-					if (a is Trade)               w += 6;
-					if (a is Currency)            w += 6;
-					if (a is Banking)             w += 5;
-					if (a is Writing)             w += 5;
+					if (a is CeremonialBurial)    weight += 9; // Temple
+					if (a is Mysticism)           weight += 8; // doubles Temple
+					if (a is Philosophy)          weight += 6;
+					if (a is Religion)            weight += 8; // Cathedral
+					if (a is Construction)        weight += 8; // Colosseum
+					if (a is Pottery)             weight += 7; // Granary
+					if (a is Trade)               weight += 6;
+					if (a is Currency)            weight += 6;
+					if (a is Banking)             weight += 5;
+					if (a is Writing)             weight += 5;
 					break;
 
 				case StrategyStance.Expand:
-					if (a is Pottery)             w += 8; // Granary feeds growth
-					if (a is BridgeBuilding)      w += 7; // roads cross rivers
-					if (a is RailRoad)            w += 7; // fast movement
-					if (a is Masonry)             w += 6;
-					if (a is MapMaking)           w += 5; // explore coasts
-					if (a is Alphabet)            w += 5;
-					if (a is Writing)             w += 5;
-					if (a is Trade)               w += 5;
-					if (a is TheWheel)            w += 5;
-					if (a is HorsebackRiding)     w += 5;
+					if (a is Pottery)             weight += 8; // Granary feeds growth
+					if (a is BridgeBuilding)      weight += 7; // roads cross rivers
+					if (a is RailRoad)            weight += 7; // fast movement
+					if (a is Masonry)             weight += 6;
+					if (a is MapMaking)           weight += 5; // explore coasts
+					if (a is Alphabet)            weight += 5;
+					if (a is Writing)             weight += 5;
+					if (a is Trade)               weight += 5;
+					if (a is TheWheel)            weight += 5;
+					if (a is HorsebackRiding)     weight += 5;
 					break;
 			}
 
-			return w;
+			return weight;
 		}
 
 		// ── production helpers ─────────────────────────────────────────────────
@@ -927,7 +927,7 @@ namespace CivOne
 
 		internal ITile BestExploreTile(IUnit unit)
 		{
-			int w = Map.WIDTH, h = Map.HEIGHT;
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile best = null;
 			int bestScore = 0; // only move if it adds value
 
@@ -935,14 +935,14 @@ namespace CivOne
 			for (int dx = -8; dx <= 8; dx++)
 			{
 				if (dx == 0 && dy == 0) continue;
-				int tx = (unit.X + dx + w) % w;
+				int tx = (unit.X + dx + mapWidth) % mapWidth;
 				int ty = unit.Y + dy;
-				if (ty < 0 || ty >= h) continue;
-				ITile t = Map[tx, ty];
-				if (t is null || t.IsOcean) continue;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null || tile.IsOcean) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
 				int score = CountUnseenTiles(tx, ty) - dist;
-				if (score > bestScore) { bestScore = score; best = t; }
+				if (score > bestScore) { bestScore = score; best = tile; }
 			}
 			return best;
 		}

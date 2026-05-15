@@ -107,130 +107,130 @@ namespace CivOne.Screens
 
 		private static Picture NativeHouse(int stage, int houseType)
 		{
-			var p = new Picture(31, 31);
+			var picture = new Picture(31, 31);
 			if (stage < 2)
 			{
 				// Ancient hut
-				p.FillRectangle(6, 14, 19, 17, CassetteTheme.BG3);
+				picture.FillRectangle(6, 14, 19, 17, CassetteTheme.BG3);
 				// Roof triangle
 				for (int row = 0; row < 6; row++)
 				{
 					int left = 10 - row;
 					int w    = 11 + row * 2;
-					p.FillRectangle(left, 8 + row, w, 1, CassetteTheme.BORDER);
+					picture.FillRectangle(left, 8 + row, w, 1, CassetteTheme.BORDER);
 				}
 				// Door
-				p.FillRectangle(13, 22, 5, 9, CassetteTheme.BG0);
+				picture.FillRectangle(13, 22, 5, 9, CassetteTheme.BG0);
 			}
 			else if (stage < 8)
 			{
 				// Classical house
-				p.FillRectangle(4, 12, 23, 19, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 12, 23, 19, CassetteTheme.BORDER);
 				// Roof triangle
 				for (int row = 0; row < 8; row++)
 				{
 					int left = 15 - row;
 					int w    = row * 2 + 1;
-					p.FillRectangle(left, 4 + row, w, 1, CassetteTheme.INK_LOW);
+					picture.FillRectangle(left, 4 + row, w, 1, CassetteTheme.INK_LOW);
 				}
 				// Windows
-				p.FillRectangle(7, 14, 4, 4, CassetteTheme.PHOS_GHOST);
-				p.FillRectangle(18, 14, 4, 4, CassetteTheme.PHOS_GHOST);
+				picture.FillRectangle(7, 14, 4, 4, CassetteTheme.PHOS_GHOST);
+				picture.FillRectangle(18, 14, 4, 4, CassetteTheme.PHOS_GHOST);
 				// Door
-				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
+				picture.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
 			else if (stage < 16)
 			{
 				// Merchant house — houseType gives slight colour variation
 				byte body = houseType == 0 ? CassetteTheme.INK_LOW : CassetteTheme.BORDER;
-				p.FillRectangle(2, 8, 27, 23, body);
+				picture.FillRectangle(2, 8, 27, 23, body);
 				// Roof
 				for (int row = 0; row < 6; row++)
 				{
 					int left = 15 - row * 2;
 					int w    = row * 4 + 1;
 					if (left < 0) { w += left * 2; left = 0; }
-					p.FillRectangle(left, 2 + row, w, 1, CassetteTheme.BORDER);
+					picture.FillRectangle(left, 2 + row, w, 1, CassetteTheme.BORDER);
 				}
 				// Windows (two rows)
-				p.FillRectangle(5,  10, 5, 5, CassetteTheme.PHOS_FAINT);
-				p.FillRectangle(19, 10, 5, 5, CassetteTheme.PHOS_FAINT);
-				p.FillRectangle(5,  18, 5, 5, CassetteTheme.PHOS_FAINT);
-				p.FillRectangle(19, 18, 5, 5, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(5,  10, 5, 5, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(19, 10, 5, 5, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(5,  18, 5, 5, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(19, 18, 5, 5, CassetteTheme.PHOS_FAINT);
 				// Door
-				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
+				picture.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
 			else if (stage < 20)
 			{
 				// Industrial flat
-				p.FillRectangle(0, 6, 31, 25, CassetteTheme.INK_LOW);
+				picture.FillRectangle(0, 6, 31, 25, CassetteTheme.INK_LOW);
 				// Roof bar
-				p.FillRectangle(0, 4, 31, 2, CassetteTheme.BORDER);
+				picture.FillRectangle(0, 4, 31, 2, CassetteTheme.BORDER);
 				// Chimney
-				p.FillRectangle(22, 0, 5, 6, CassetteTheme.INK_MID);
+				picture.FillRectangle(22, 0, 5, 6, CassetteTheme.INK_MID);
 				// Windows
-				p.FillRectangle(3,  10, 5, 6, CassetteTheme.PHOS_FAINT);
-				p.FillRectangle(11, 10, 5, 6, CassetteTheme.PHOS_FAINT);
-				p.FillRectangle(19, 10, 5, 6, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(3,  10, 5, 6, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(11, 10, 5, 6, CassetteTheme.PHOS_FAINT);
+				picture.FillRectangle(19, 10, 5, 6, CassetteTheme.PHOS_FAINT);
 				// Door
-				p.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
+				picture.FillRectangle(12, 22, 7, 9, CassetteTheme.BG0);
 			}
 			else
 			{
 				// Glass tower
-				p.FillRectangle(4, 0, 23, 31, CassetteTheme.BG3);
+				picture.FillRectangle(4, 0, 23, 31, CassetteTheme.BG3);
 				// Vertical dividers
-				p.FillRectangle(4,  0, 1, 31, CassetteTheme.BORDER);
-				p.FillRectangle(12, 0, 1, 31, CassetteTheme.BORDER);
-				p.FillRectangle(19, 0, 1, 31, CassetteTheme.BORDER);
-				p.FillRectangle(26, 0, 1, 31, CassetteTheme.BORDER);
+				picture.FillRectangle(4,  0, 1, 31, CassetteTheme.BORDER);
+				picture.FillRectangle(12, 0, 1, 31, CassetteTheme.BORDER);
+				picture.FillRectangle(19, 0, 1, 31, CassetteTheme.BORDER);
+				picture.FillRectangle(26, 0, 1, 31, CassetteTheme.BORDER);
 				// Horizontal bands
-				p.FillRectangle(4, 0,  23, 1, CassetteTheme.BORDER);
-				p.FillRectangle(4, 6,  23, 1, CassetteTheme.BORDER);
-				p.FillRectangle(4, 12, 23, 1, CassetteTheme.BORDER);
-				p.FillRectangle(4, 18, 23, 1, CassetteTheme.BORDER);
-				p.FillRectangle(4, 24, 23, 1, CassetteTheme.BORDER);
-				p.FillRectangle(4, 30, 23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 0,  23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 6,  23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 12, 23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 18, 23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 24, 23, 1, CassetteTheme.BORDER);
+				picture.FillRectangle(4, 30, 23, 1, CassetteTheme.BORDER);
 				// Window glass cells
 				for (int col = 0; col < 3; col++)
 				for (int row = 0; row < 5; row++)
-					p.FillRectangle(5 + col * 7, 1 + row * 6, 6, 5, CassetteTheme.PHOS_FAINT);
+					picture.FillRectangle(5 + col * 7, 1 + row * 6, 6, 5, CassetteTheme.PHOS_FAINT);
 				// Dark ground-floor door
-				p.FillRectangle(12, 24, 7, 7, CassetteTheme.BG0);
+				picture.FillRectangle(12, 24, 7, 7, CassetteTheme.BG0);
 			}
-			return p;
+			return picture;
 		}
 
 		// ── native tree sprite (24×8) ─────────────────────────────────────────
 
 		private static Picture NativeTree()
 		{
-			var p = new Picture(24, 8);
+			var picture = new Picture(24, 8);
 			// Foliage blob
-			p.FillRectangle(4, 0, 16, 5, CassetteTheme.OK);
+			picture.FillRectangle(4, 0, 16, 5, CassetteTheme.OK);
 			// Trim corners for oval-ish look
-			p.FillRectangle(4, 0, 2, 2, 0);
-			p.FillRectangle(18, 0, 2, 2, 0);
-			p.FillRectangle(4, 3, 2, 2, 0);
-			p.FillRectangle(18, 3, 2, 2, 0);
+			picture.FillRectangle(4, 0, 2, 2, 0);
+			picture.FillRectangle(18, 0, 2, 2, 0);
+			picture.FillRectangle(4, 3, 2, 2, 0);
+			picture.FillRectangle(18, 3, 2, 2, 0);
 			// Trunk
-			p.FillRectangle(10, 5, 4, 3, CassetteTheme.INK_LOW);
-			return p;
+			picture.FillRectangle(10, 5, 4, 3, CassetteTheme.INK_LOW);
+			return picture;
 		}
 
 		// ── native road sprite (24×8) ─────────────────────────────────────────
 
 		private static Picture NativeRoad(Direction road)
 		{
-			var p = new Picture(24, 8);
-			p.FillRectangle(0, 0, 24, 8, CassetteTheme.BG2);
+			var picture = new Picture(24, 8);
+			picture.FillRectangle(0, 0, 24, 8, CassetteTheme.BG2);
 			// Center strip
-			p.FillRectangle(0, 3, 24, 2, CassetteTheme.BORDER);
-			if ((road & Direction.North) != 0) p.FillRectangle(10, 0, 4, 3, CassetteTheme.BORDER);
-			if ((road & Direction.South) != 0) p.FillRectangle(10, 5, 4, 3, CassetteTheme.BORDER);
-			if ((road & Direction.East)  != 0) p.FillRectangle(14, 3, 10, 2, CassetteTheme.BORDER);
-			if ((road & Direction.West)  != 0) p.FillRectangle(0,  3, 10, 2, CassetteTheme.BORDER);
-			return p;
+			picture.FillRectangle(0, 3, 24, 2, CassetteTheme.BORDER);
+			if ((road & Direction.North) != 0) picture.FillRectangle(10, 0, 4, 3, CassetteTheme.BORDER);
+			if ((road & Direction.South) != 0) picture.FillRectangle(10, 5, 4, 3, CassetteTheme.BORDER);
+			if ((road & Direction.East)  != 0) picture.FillRectangle(14, 3, 10, 2, CassetteTheme.BORDER);
+			if ((road & Direction.West)  != 0) picture.FillRectangle(0,  3, 10, 2, CassetteTheme.BORDER);
+			return picture;
 		}
 
 		// ── glyph drawing helper for 15×15 centered in 49×49 ─────────────────
@@ -810,11 +810,11 @@ namespace CivOne.Screens
 			byte col = isCapture ? CassetteTheme.ALERT
 			         : isLove    ? CassetteTheme.PHOS_GLOW
 			                     : CassetteTheme.PHOS_DIM;
-			var p = new Picture(78, 65);
-			p.FillRectangle(0, 0, 78, 65, CassetteTheme.BG0);
+			var picture = new Picture(78, 65);
+			picture.FillRectangle(0, 0, 78, 65, CassetteTheme.BG0);
 			for (int i = 0; i < 4; i++)
-				DrawStickFigure(p, 4 + i * 18, 30, frameIndex, col);
-			return p;
+				DrawStickFigure(picture, 4 + i * 18, 30, frameIndex, col);
+			return picture;
 		}
 
 		// ── palette / fade helpers ────────────────────────────────────────────
@@ -862,11 +862,11 @@ namespace CivOne.Screens
 				});
 			for (int i = _bursts.Count - 1; i >= 0; i--)
 			{
-				var b = _bursts[i];
-				int r = b.Age + 1;
-				DrawBurstRing(b.X, b.Y, r, b.Col);
-				if (b.Age > 2) DrawBurstRing(b.X, b.Y, r - 2, CassetteTheme.PHOS_DIM);
-				_bursts[i] = new FireworkBurst { X = b.X, Y = b.Y, Age = b.Age + 1, Col = b.Col };
+				var burst = _bursts[i];
+				int radius = burst.Age + 1;
+				DrawBurstRing(burst.X, burst.Y, radius, burst.Col);
+				if (burst.Age > 2) DrawBurstRing(burst.X, burst.Y, radius - 2, CassetteTheme.PHOS_DIM);
+				_bursts[i] = new FireworkBurst { X = burst.X, Y = burst.Y, Age = burst.Age + 1, Col = burst.Col };
 				if (_bursts[i].Age >= 14) _bursts.RemoveAt(i);
 			}
 		}
