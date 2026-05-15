@@ -181,7 +181,7 @@ namespace CivOne.Screens
 				this.DrawCassetteDivider(px + 2, qy, pw - 4);
 				this.DrawText("QUEUE:", 0, CassetteTheme.PHOS_DIM, px + 4, qy + 2);
 				qy += FooterH - 2;
-				int xBtn = px + pw - 12;
+				int xBtn = px + pw - 16;
 				for (int i = 0; i < QueueVisible; i++)
 				{
 					IProduction item = queue[i];
@@ -189,7 +189,7 @@ namespace CivOne.Screens
 					int turns = TurnsFor(item);
 					this.DrawText($"{i + 1}. {name}", 0, CassetteTheme.INK_HIGH, px + 4, qy);
 					this.DrawText($"{turns}t", 0, CassetteTheme.INK_LOW, xBtn - 4, qy, TextAlign.Right);
-					this.DrawText("×", 0, CassetteTheme.ALERT, xBtn, qy);
+					this.DrawText("[x]", 0, CassetteTheme.ALERT, xBtn, qy);
 					qy += QueueRowH;
 				}
 				if (queue.Count > QueueVisible)
@@ -300,7 +300,7 @@ namespace CivOne.Screens
 			{
 				int footerY = PanelY + HeaderH + ListH + 2;
 				int qy = footerY + FooterH;   // past the divider+header row
-				int xBtn = px + pw - 12;
+				int xBtn = px + pw - 16;
 				for (int i = 0; i < QueueVisible; i++)
 				{
 					if (args.X >= xBtn && args.X <= px + pw - 4
