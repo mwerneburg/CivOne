@@ -22,8 +22,8 @@ namespace CivOne.Screens
 				VisitorArchetype.Owners => new[]
 				{
 					"UPDATE — SIGNAL PATTERN:",
-					">> Manifest-header structure now accounts for 34% of signal content.",
-					">> Recurring cross-index blocks suggest active cataloguing.",
+					">> Message intercepted from approaching source.",
+					">> Reads: Type 0.91 civilization detected. Reacquire inhabitants.",
 				},
 				VisitorArchetype.Refugees => new[]
 				{
@@ -60,7 +60,7 @@ namespace CivOne.Screens
 				"",
 				"SOURCE HAS ADVANCED.",
 				"DISTANCE CLOSED: 20% OF ORIGINAL ESTIMATE.",
-				"REVISED ARRIVAL ESTIMATE: 80 YEARS.",
+				"ARRIVAL ESTIMATE: 80 YEARS.",
 				"",
 				"IMPLICATION: THE SOURCE IS UNDER ACTIVE PROPULSION.",
 				"THIS IS NOT DRIFT. THIS IS APPROACH.",

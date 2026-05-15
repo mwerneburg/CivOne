@@ -22,8 +22,8 @@ namespace CivOne.Screens
 		protected const int FONT_ID = 0;
 		protected const int PAD     = 10;
 
-		// 3 chars per frame at ~15 frames/sec ≈ 45 chars/sec
-		private const int CHARS_PER_TICK = 3;
+		// 2 chars per frame at ~15 frames/sec ≈ 30 chars/sec
+		private const int CHARS_PER_TICK = 2;
 		// Cursor blinks every N frames (half-period)
 		private const int CURSOR_BLINK_HALF = 8;
 
