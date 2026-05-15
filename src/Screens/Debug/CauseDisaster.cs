@@ -99,7 +99,7 @@ namespace CivOne.Screens.Debug
 
 		private void CauseDisaster_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -114,7 +114,7 @@ namespace CivOne.Screens.Debug
 				return false;
 			}
 
-			if (_selectedCity == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedCity is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_citySelect);
 				return false;

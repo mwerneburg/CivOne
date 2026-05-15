@@ -13,7 +13,7 @@ namespace CivOne
 {
 	internal static class WLTKNotifications
 	{
-		private static readonly List<string> _cities = new List<string>();
+		private static readonly List<string> _cities = new();
 		private static bool _dirty;
 
 		public static IReadOnlyList<string> Cities => _cities;

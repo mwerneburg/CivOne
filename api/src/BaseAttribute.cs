@@ -22,7 +22,7 @@ namespace CivOne
 		internal BaseAttribute(Type type, object value, Func<object, bool> checkValue = null)
 		{
 			_value = value;
-			Valid = (value.GetType() == type) && (checkValue == null || checkValue(value));
+			Valid = (value.GetType() == type) && (checkValue is null || checkValue(value));
 		}
 	}
 }

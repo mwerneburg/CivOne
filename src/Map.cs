@@ -89,7 +89,7 @@ namespace CivOne
 		}
 
 		// Returns true if (x,y) is a freshwater source: enclosed lake or swamp.
-		internal bool IsFreshwaterAt(int x, int y) => _freshwater != null && _freshwater[x, y];
+		internal bool IsFreshwaterAt(int x, int y) => _freshwater is not null && _freshwater[x, y];
 		
 		public bool Ready { get; private set; }
 		public bool FixedStartPositions { get; private set; }
@@ -164,7 +164,7 @@ namespace CivOne
 		
 		public IEnumerable<ITile> ContinentTiles(int continentId) => AllTiles().Where(t => t.ContinentId == continentId);
 		
-		public IEnumerable<City> ContentCities(int continentId) => ContinentTiles(continentId).Where(x => x.City != null).Select(x => x.City).ToArray();
+		public IEnumerable<City> ContentCities(int continentId) => ContinentTiles(continentId).Where(x => x.City is not null).Select(x => x.City).ToArray();
 		
 		public ITile this[int x, int y]
 		{
@@ -220,7 +220,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (_instance == null)
+				if (_instance is null)
 					_instance = new Map();
 				return _instance;
 			}

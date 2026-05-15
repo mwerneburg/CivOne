@@ -111,7 +111,7 @@ namespace CivOne.Screens.Reports
 
 		private static string Truncate(string s, int maxChars)
 		{
-			if (s == null || s.Length <= maxChars) return s ?? "";
+			if (s is null || s.Length <= maxChars) return s ?? "";
 			return s.Substring(0, maxChars - 1) + "…";
 		}
 

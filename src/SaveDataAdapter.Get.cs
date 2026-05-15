@@ -112,7 +112,7 @@ namespace CivOne
 		{
 			SaveData.City[] cities = GetArray<SaveData.City>(nameof(SaveData.Cities), 128);
 
-			List<CityData> output = new List<CityData>();
+			List<CityData> output = new();
 
 			for (byte c = 0; c < cities.Length; c++)
 			{
@@ -146,7 +146,7 @@ namespace CivOne
 
 			for (int p = 0; p < 8; p++)
 			{
-				List<UnitData> unitData = new List<UnitData>();
+				List<UnitData> unitData = new();
 				for (byte u = 0; u < 128; u++)
 				{
 					SaveData.Unit unit = units[(p * 128) + u];
@@ -198,7 +198,7 @@ namespace CivOne
 			ushort replayLength = _saveData.ReplayLength;
 			byte[] bytes = GetArray(nameof(SaveData.ReplayData), 4096);
 
-			List<ReplayData> output = new List<ReplayData>();
+			List<ReplayData> output = new();
 			for (int i = 0; i < replayLength; i++)
 			{
 				byte entryCode = (byte)((bytes[i] & 0xF0) >> 4);

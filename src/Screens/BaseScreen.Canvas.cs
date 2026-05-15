@@ -46,7 +46,7 @@ namespace CivOne.Screens
 			set
 			{
 				_palette = value.Copy();
-				if (_originalColours == null)
+				if (_originalColours is null)
 					_originalColours = value.Copy();
 			}
 		}

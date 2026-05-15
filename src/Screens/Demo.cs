@@ -43,10 +43,10 @@ namespace CivOne.Screens
 			switch (Settings.GraphicsMode)
 			{
 				case GraphicsMode.Graphics256:
-					_textColours = new byte[] { 239, 236, 233, 5, 229 };
+					_textColours = [239, 236, 233, 5, 229];
 					break;
 				case GraphicsMode.Graphics16:
-					_textColours = new byte[] { 15, 15, 7, 5, 8 };
+					_textColours = [15, 15, 7, 5, 8];
 					break;
 			}
 			

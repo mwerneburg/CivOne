@@ -47,7 +47,7 @@ namespace CivOne.Tasks
 		
 		private void CityManagerClosed(object sender, EventArgs args)
 		{
-			if (_unit != null)
+			if (_unit is not null)
 			{
 				Game.DisbandUnit(_unit);
 			}
@@ -88,7 +88,7 @@ namespace CivOne.Tasks
 		private void CreateCity(int nameId)
 		{
 			_city = Game.AddCity(_player, nameId, _x, _y);
-			if (_city != null)
+			if (_city is not null)
 			{
 				if (_player.IsHuman)
 				{
@@ -97,7 +97,7 @@ namespace CivOne.Tasks
 					Common.AddScreen(cityManager);
 					return;
 				}
-				if (_unit != null)
+				if (_unit is not null)
 				{
 					Game.DisbandUnit(_unit);
 				}
@@ -123,7 +123,7 @@ namespace CivOne.Tasks
 
 		private void CreateCity()
 		{
-			if (_unit != null && !(_unit is Settlers))
+			if (_unit is not null && !(_unit is Settlers))
 			{
 				Error("SETTLERS");
 				EndTask();
@@ -131,7 +131,7 @@ namespace CivOne.Tasks
 			}
 
 			Settlers settlers = (_unit as Settlers);
-			if (settlers != null)
+			if (settlers is not null)
 			{
 				_player = settlers.Player;
 				_x = settlers.X;
@@ -144,7 +144,7 @@ namespace CivOne.Tasks
 				return;
 			}
 
-			if (Map[_x, _y].City != null)
+			if (Map[_x, _y].City is not null)
 			{
 				// There is already a city here
 				if (_unit is Settlers)

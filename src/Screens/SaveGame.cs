@@ -65,7 +65,7 @@ namespace CivOne.Screens
 				try
 				{
 					var meta = CosSerializer.DeserializeMeta(File.ReadAllText(path));
-					if (meta == null) continue;
+					if (meta is null) continue;
 					slots[i].Exists = true;
 					slots[i].Label  = meta.Name ?? "(unknown)";
 					slots[i].Year   = Common.YearString((ushort)meta.Turn);

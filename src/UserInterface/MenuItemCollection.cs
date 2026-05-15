@@ -20,9 +20,9 @@ namespace CivOne.UserInterface
 
 		private void HandlePluginActions(object sender, EventArgs args)
 		{
-			if (Id == null) return;
+			if (Id is null) return;
 			foreach (MenuModification mod in Reflect.GetModifications<MenuModification>().Where(x => x.MenuId == Id))
-			foreach(MenuItem<T> item in _menuItems.Where(x => x != null))
+			foreach(MenuItem<T> item in _menuItems.Where(x => x is not null))
 			{
 				(string Text, string Shortcut) change = mod.ChangeMenuItemText(item.Text, item.Shortcut);
 				item.Text = change.Text;

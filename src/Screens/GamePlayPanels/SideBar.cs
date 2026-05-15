@@ -32,7 +32,7 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			_miniMap.Clear(CassetteTheme.BG0);
 
-			if (GamePlay != null)
+			if (GamePlay is not null)
 			{
 				IUnit activeUnit = Game.ActiveUnit;
 				ITile[,] tiles = Map[GamePlay.X - 30, GamePlay.Y - 18, 78, 48];
@@ -40,10 +40,10 @@ namespace CivOne.Screens.GamePlayPanels
 				for (int xx = 0; xx < 78; xx++)
 				{
 					ITile tile = tiles[xx, yy];
-					if (tile == null) continue;
+					if (tile is null) continue;
 
 					// Flash active unit
-					if (activeUnit != null && Human == activeUnit.Owner && (tile.X == activeUnit.X && tile.Y == activeUnit.Y))
+					if (activeUnit is not null && Human == activeUnit.Owner && (tile.X == activeUnit.X && tile.Y == activeUnit.Y))
 					{
 						_miniMap[xx + 1, yy + 1] = (gameTick % 4 <= 1)
 							? CassetteTheme.PHOS_GLOW
@@ -74,7 +74,7 @@ namespace CivOne.Screens.GamePlayPanels
 					}
 					else if (Human.Visible(tile.X, tile.Y))
 					{
-						if (tile.City != null)
+						if (tile.City is not null)
 						{
 							_miniMap[xx + 1, yy + 1] = Common.ColourLight[tile.City.Owner];
 						}
@@ -139,14 +139,14 @@ namespace CivOne.Screens.GamePlayPanels
 				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER)
 				.AddScanlines();
 
-			if (Game.CurrentPlayer != Human || (unit != null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
+			if (Game.CurrentPlayer != Human || (unit is not null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
 				byte dotColour = (gameTick % 4 < 2) ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 				_gameInfo.FillRectangle(2, _gameInfo.Height - 8, 6, 6, dotColour);
 				return;
 			}
 
-			if (unit != null)
+			if (unit is not null)
 			{
 				int yy = 2;
 				_gameInfo.DrawText(Human.TribeName, 0, CassetteTheme.PHOS_DIM, 4, 2, TextAlign.Left);
@@ -169,7 +169,7 @@ namespace CivOne.Screens.GamePlayPanels
 				{
 					_gameInfo.DrawText($"Moves: {unit.MovesLeft}", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
-				_gameInfo.DrawText((unit.Home == null ? "NONE" : unit.Home.Name), 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
+				_gameInfo.DrawText((unit.Home is null ? "NONE" : unit.Home.Name), 0, CassetteTheme.INK_LOW, 4, (yy += 8), TextAlign.Left);
 				{
 					var _t = Map[unit.X, unit.Y];
 					string _tName = (_t.IsOcean && Map.Instance.IsFreshwaterAt(_t.X, _t.Y)) ? "Lake" : _t.Name;
@@ -281,7 +281,7 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 			if (args.Y >= 62)
 			{
-				if (Game.CurrentPlayer == Human && Game.ActiveUnit == null)
+				if (Game.CurrentPlayer == Human && Game.ActiveUnit is null)
 				{
 					GameTask.Enqueue(Turn.End());
 				}
@@ -294,7 +294,7 @@ namespace CivOne.Screens.GamePlayPanels
 			get
 			{
 				IScreen mapScreen = Common.Screens.FirstOrDefault(s => (s is GamePlay));
-				if (mapScreen != null)
+				if (mapScreen is not null)
 					return (mapScreen as GamePlay);
 				return null;
 			}

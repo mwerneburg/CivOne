@@ -31,8 +31,8 @@ namespace CivOne
 		private readonly Player[] _players;
 		private readonly List<City> _cities;
 		private readonly List<IUnit> _units;
-		private readonly Dictionary<byte, byte> _advanceOrigin = new Dictionary<byte, byte>();
-		private readonly List<ReplayData> _replayData = new List<ReplayData>();
+		private readonly Dictionary<byte, byte> _advanceOrigin = new();
+		private readonly List<ReplayData> _replayData = new();
 
 		// [0]=barbarians, [1-7]=civs; 0 = not yet launched
 		internal readonly int[] SpaceshipLaunchTurn = new int[8];
@@ -43,7 +43,7 @@ namespace CivOne
 		internal readonly int[] SpaceshipModule     = new int[8];
 
 		// Per-turn score snapshots: each int[] is [gameTurn, score0, score1, ..., scoreN]
-		private readonly List<int[]> _scoreHistory = new List<int[]>();
+		private readonly List<int[]> _scoreHistory = new();
 		internal IReadOnlyList<int[]> ScoreHistory => _scoreHistory;
 
 		internal void RecordScoreSnapshot()
@@ -74,7 +74,7 @@ namespace CivOne
 		internal int ProbeOutcomeTier;
 
 		// Log of terminal transmissions shown during this game
-		internal readonly List<TransmissionRecord> Transmissions = new List<TransmissionRecord>();
+		internal readonly List<TransmissionRecord> Transmissions = new();
 
 		internal void RecordTransmission(string type, string year)
 			=> Transmissions.Add(new TransmissionRecord { Type = type, Year = year });
@@ -85,7 +85,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (_firstExplorer == null)
+				if (_firstExplorer is null)
 				{
 					_firstExplorer = new byte[Map.WIDTH, Map.HEIGHT];
 					for (int x = 0; x < Map.WIDTH; x++)
@@ -109,7 +109,7 @@ namespace CivOne
 		private int _currentPlayer = 0;
 		private int _activeUnit;
 		private bool _activeUnitExplicit = false;
-		private readonly HashSet<IUnit> _waitingUnits = new HashSet<IUnit>();
+		private readonly HashSet<IUnit> _waitingUnits = new();
 
 		private IUnit _lastMovedUnit = null;
 		private int _sameUnitMoveCount = 0;
@@ -120,7 +120,7 @@ namespace CivOne
 		{
 			if (unit.Class != UnitClass.Land) return false;
 			ITile tile = unit.Tile;
-			if (tile == null || tile.City != null) return false;
+			if (tile is null || tile.City is not null) return false;
 			return tile.Units.Any(u => u is IBoardable);
 		}
 
@@ -142,7 +142,7 @@ namespace CivOne
 			if (_advanceOrigin.ContainsKey(advance.Id))
 				return;
 			byte playerNumber = 0;
-			if (player != null)
+			if (player is not null)
 				playerNumber = PlayerNumber(player);
 			_advanceOrigin.Add(advance.Id, playerNumber);
 		}
@@ -214,7 +214,7 @@ namespace CivOne
 				bool buddyDestroyed = _replayData.OfType<ReplayData.CivilizationDestroyed>()
 					.Any(rd => rd.DestroyedId == buddyId);
 				ICivilization buddyCiv = Common.Civilizations.FirstOrDefault(c => c.Id == buddyId);
-				if (!buddyDestroyed && buddyCiv != null)
+				if (!buddyDestroyed && buddyCiv is not null)
 				{
 					_players[playerSlot] = new Player(buddyCiv);
 					_players[playerSlot].Destroyed += PlayerDestroyed;
@@ -251,7 +251,7 @@ namespace CivOne
 			foreach (City city in _players[playerIndex].Cities.Where(c => c.CurrentProduction is Buildings.ISpaceShip))
 			{
 				IProduction fallback = city.AvailableProduction.FirstOrDefault();
-				if (fallback != null) city.SetProduction(fallback);
+				if (fallback is not null) city.SetProduction(fallback);
 			}
 		}
 
@@ -321,9 +321,9 @@ namespace CivOne
 			foreach (ITile tile in Map.AllTiles())
 			{
 				tile.Pollution = false;
-				if (tile.City != null || tile.IsOcean) continue;
+				if (tile.City is not null || tile.IsOcean) continue;
 
-				int adjacentOcean = tile.GetBorderTiles().Count(t => t != null && t.IsOcean);
+				int adjacentOcean = tile.GetBorderTiles().Count(t => t is not null && t.IsOcean);
 				int oceanThreshold = Math.Max(0, 7 - GlobalWarmingCount);
 
 				if (adjacentOcean >= oceanThreshold)
@@ -493,7 +493,7 @@ namespace CivOne
 				if (Barbarian.IsSeaSpawnTurn)
 				{
 					ITile tile = Barbarian.SeaSpawnPosition;
-					if (tile != null)
+					if (tile is not null)
 					{
 						foreach (UnitType unitType in Barbarian.SeaSpawnUnits)
 							CreateUnit(unitType, tile.X, tile.Y, 0, false);
@@ -503,7 +503,7 @@ namespace CivOne
 				if (Barbarian.IsLandSpawnTurn)
 				{
 					ITile tile = Barbarian.LandSpawnPosition;
-					if (tile != null)
+					if (tile is not null)
 					{
 						foreach (UnitType unitType in Barbarian.LandSpawnUnits)
 							CreateUnit(unitType, tile.X, tile.Y, 0, false);
@@ -549,20 +549,20 @@ namespace CivOne
 			IUnit unit = ActiveUnit;
 			if (CurrentPlayer == HumanPlayer)
 			{
-				if (unit != null && !unit.Goto.IsEmpty)
+				if (unit is not null && !unit.Goto.IsEmpty)
 				{
 					ITile next = Common.GotoStep(unit);
-					if (next == null)
+					if (next is null)
 					{
 						unit.Goto = Point.Empty;
 						return;
 					}
 					// Don't let a GoTo move initiate war — stop peacefully at the border.
 					Player owner = HumanPlayer;
-					Player nextCityOwner = (next.City != null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
+					Player nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
 					bool peacefulBlock =
-						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p != null && u.Owner != 0 && !owner.IsAtWar(p); })
-						|| (nextCityOwner != null && nextCityOwner != GetPlayer(0) && !owner.IsAtWar(nextCityOwner));
+						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p is not null && u.Owner != 0 && !owner.IsAtWar(p); })
+						|| (nextCityOwner is not null && nextCityOwner != GetPlayer(0) && !owner.IsAtWar(nextCityOwner));
 					if (peacefulBlock)
 					{
 						unit.Goto = Point.Empty;
@@ -574,7 +574,7 @@ namespace CivOne
 				}
 				return;
 			}
-			if (unit != null && (unit.MovesLeft > 0 || unit.PartMoves > 0))
+			if (unit is not null && (unit.MovesLeft > 0 || unit.PartMoves > 0))
 			{
 				if (unit == _lastMovedUnit)
 				{
@@ -718,7 +718,7 @@ namespace CivOne
 		public IUnit CreateUnit(UnitType type, int x, int y, byte owner, bool endTurn = false)
 		{
 			IUnit unit = CreateUnit((UnitType)type, x, y);
-			if (unit == null) return null;
+			if (unit is null) return null;
 
 			unit.Owner = owner;
 			if (unit.Class == UnitClass.Water)
@@ -755,9 +755,9 @@ namespace CivOne
 			for (int relY = -3; relY <= 3; relY++)
 			for (int relX = -3; relX <= 3; relX++)
 			{
-				if (tile[relX, relY] == null) continue;
+				if (tile[relX, relY] is null) continue;
 				City city = tile[relX, relY].City;
-				if (city == null) continue;
+				if (city is null) continue;
 				if (!ownerCities && CurrentPlayer == city.Owner) continue;
 				city.UpdateResources();
 			}
@@ -773,7 +773,7 @@ namespace CivOne
 
 		public bool WonderObsolete<T>() where T : IWonder, new() => WonderObsolete(new T());
 
-		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech != null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
+		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech is not null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
 
 		// Calculates probe mission quality (0-100) from the human player's civilisation state.
 		// Four equal-weight dimensions: science depth, happiness, cultural coverage, pollution.
@@ -825,14 +825,14 @@ namespace CivOne
 
 		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
 		{
-			if (unit == null || !_units.Contains(unit)) return;
+			if (unit is null || !_units.Contains(unit)) return;
 			Player player = GetPlayer(unit.Owner);
 			if (player.Gold < cost) return;
 
 			player.Gold -= (short)cost;
 
 			IUnit upgraded = CreateUnit(targetType, unit.X, unit.Y);
-			if (upgraded == null) return;
+			if (upgraded is null) return;
 			upgraded.Owner   = unit.Owner;
 			upgraded.Veteran = unit.Veteran;
 			upgraded.SetHome(unit.Home);
@@ -846,7 +846,7 @@ namespace CivOne
 		{
 			IUnit activeUnit = ActiveUnit;
 
-			if (unit == null) return;
+			if (unit is null) return;
 			if (!_units.Contains(unit)) return;
 			if (unit.Tile is Ocean && unit is IBoardable)
 			{
@@ -941,7 +941,7 @@ namespace CivOne
 			}
 			internal set
 			{
-				if (value == null || value.MovesLeft == 0 && value.PartMoves == 0)
+				if (value is null || value.MovesLeft == 0 && value.PartMoves == 0)
 					return;
 				value.Busy = false;   // clears Sentry, Fortify, and FortifyActive
 				_activeUnit = _units.IndexOf(value);
@@ -951,14 +951,14 @@ namespace CivOne
 
 		public IUnit MovingUnit => _units.FirstOrDefault(u => u.Moving);
 
-		public static bool Started => (_instance != null);
+		public static bool Started => (_instance is not null);
 		
 		private static Game _instance;
 		public static Game Instance
 		{
 			get
 			{
-				if (_instance == null)
+				if (_instance is null)
 				{
 					Log("ERROR: Game instance does not exist");
 				}

@@ -33,7 +33,7 @@ namespace CivOne.Graphics.Sprites
 
 		private readonly Func<T, Bytemap> GetSprite;
 
-		private readonly Dictionary<T, ISprite> _sprites = new Dictionary<T, ISprite>();
+		private readonly Dictionary<T, ISprite> _sprites = new();
 
 		public ISprite this[T index]
 		{

@@ -48,7 +48,7 @@ namespace CivOne.Screens
 			Palette = p;
 
 			int lineHeight = Resources.GetFontHeight(0);
-			int lineCount  = message.Length + (title != null ? 1 : 0);
+			int lineCount  = message.Length + (title is not null ? 1 : 0);
 			int innerW     = 207;
 			int innerH     = lineCount * lineHeight + 8;
 			int px         = 57;
@@ -66,7 +66,7 @@ namespace CivOne.Screens
 			this.FillRectangle(px + 1, py + 1, innerW - 2, lineHeight + 3, stripe);
 
 			int yy = py + 4;
-			if (title != null)
+			if (title is not null)
 			{
 				this.DrawText(title, 0, CassetteTheme.INK_HIGH, px + innerW / 2, yy, TextAlign.Center);
 				yy += lineHeight;

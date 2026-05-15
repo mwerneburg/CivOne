@@ -17,8 +17,8 @@ namespace CivOne.Graphics.Sprites
 {
 	public static class MapTile
 	{
-		private static Direction[] Clockwise => new [] { North, NorthEast, East, SouthEast, South, SouthWest, West, NorthWest };
-		private static Direction[] Cross => new [] { North, East, South, West };
+		private static Direction[] Clockwise => [North, NorthEast, East, SouthEast, South, SouthWest, West, NorthWest];
+		private static Direction[] Cross => [North, East, South, West];
 		private static Free Free => Free.Instance;
 		private static Resources Resources => Resources.Instance;
 		private static Settings Settings => Settings.Instance;
@@ -384,26 +384,26 @@ namespace CivOne.Graphics.Sprites
 			Direction directions = None, riverDirections = None;
 			if (tile is Ocean)
 			{
-				foreach (Direction direction in new[] { North, East, South, West, NorthWest, NorthEast, SouthWest, SouthEast })
+				foreach (Direction direction in (Direction[])[North, East, South, West, NorthWest, NorthEast, SouthWest, SouthEast])
 				{
 					ITile borderTile = tile.GetBorderTile(direction);
-					if (borderTile == null) continue;
+					if (borderTile is null) continue;
 					if (borderTile is Ocean) continue;
 					directions |= direction;
 				}
-				foreach (Direction direction in new[] { North, East, South, West })
+				foreach (Direction direction in (Direction[])[North, East, South, West])
 				{
 					ITile borderTile = tile.GetBorderTile(direction);
-					if (borderTile == null) continue;
+					if (borderTile is null) continue;
 					if (borderTile is River) riverDirections |= direction;
 				}
 			}
 			else
 			{
-				foreach (Direction direction in new[] { North, East, South, West })
+				foreach (Direction direction in (Direction[])[North, East, South, West])
 				{
 					ITile borderTile = tile.GetBorderTile(direction);
-					if (borderTile == null) continue;
+					if (borderTile is null) continue;
 
 					switch (tile)
 					{

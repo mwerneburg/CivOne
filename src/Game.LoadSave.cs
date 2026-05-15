@@ -24,7 +24,7 @@ namespace CivOne
 	{
 		public static void LoadGame(string sveFile, string mapFile)
 		{
-			if (_instance != null)
+			if (_instance is not null)
 			{
 				Log("ERROR: Game instance already exists");
 				return;
@@ -176,10 +176,10 @@ namespace CivOne
 						for (int q = 0; q < queueLen; q++)
 						{
 							string typeName = br.ReadString();
-							if (city == null) continue;
+							if (city is null) continue;
 							IProduction item = Reflect.GetProduction()
 							    .FirstOrDefault(p => p.GetType().Name == typeName);
-							if (item != null) city.EnqueueProduction(item);
+							if (item is not null) city.EnqueueProduction(item);
 						}
 					}
 
@@ -281,7 +281,7 @@ namespace CivOne
 			_anthologyTurn = gameData.NextAnthologyTurn;
 			GlobalWarmingCount = gameData.GlobalWarmingCount;
 
-			Dictionary<byte, City> cityList = new Dictionary<byte, City>();
+			Dictionary<byte, City> cityList = new();
 			foreach (CityData cityData in gameData.Cities)
 			{
 				City city = new City(cityData.Owner)
@@ -336,7 +336,7 @@ namespace CivOne
 				foreach (UnitData data in unitData[p])
 				{
 					IUnit unit = CreateUnit((UnitType)data.TypeId, data.X, data.Y);
-					if (unit == null) continue;
+					if (unit is null) continue;
 					unit.Status = data.Status;
 					unit.Owner = p;
 					unit.PartMoves = (byte)(data.RemainingMoves % 3);

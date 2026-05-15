@@ -32,8 +32,8 @@ namespace CivOne
 		private static Plugin[] _plugins;
 		private static void LoadPlugins()
 		{
-			if (_plugins != null) return;
-			_plugins = Directory.GetFiles(Settings.Instance.PluginsDirectory, "*.dll").Select(x => Plugin.Load(x)).Where(x => x != null).ToArray();
+			if (_plugins is not null) return;
+			_plugins = Directory.GetFiles(Settings.Instance.PluginsDirectory, "*.dll").Select(x => Plugin.Load(x)).Where(x => x is not null).ToArray();
 
 			string[] disabledPlugins = Settings.Instance.DisabledPlugins.ToArray();
 			if (_plugins.Any(x => !disabledPlugins.Contains(x.Filename)))
@@ -108,7 +108,7 @@ namespace CivOne
 		
 		internal static IEnumerable<ICivilopedia> GetCivilopediaAll()
 		{
-			List<string> articles = new List<string>();
+			List<string> articles = new();
 			foreach (ICivilopedia article in GetTypes<ICivilopedia>().OrderBy(a => (a is IConcept) ? 1 : 0))
 			{
 				if (articles.Contains(article.Name)) continue;
@@ -140,7 +140,7 @@ namespace CivOne
 
 		internal static IEnumerable<Plugin> Plugins()
 		{
-			if (_plugins == null)
+			if (_plugins is null)
 			{
 				LoadPlugins();
 				ApplyPlugins();
@@ -152,7 +152,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (_plugins == null) yield break;
+				if (_plugins is null) yield break;
 				foreach (Assembly assembly in _plugins.Where(x => x.Enabled).Select(x => x.Assembly))
 				foreach (Type type in assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract && x.GetInterfaces().Contains(typeof(IModification))))
 				{
@@ -163,7 +163,7 @@ namespace CivOne
 
 		private static object[] ParseParameters(params object[] parameters)
 		{
-			List<object> output = new List<object>();
+			List<object> output = new();
 			foreach (object parameter in parameters)
 			{
 				switch (parameter)

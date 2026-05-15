@@ -79,10 +79,10 @@ namespace CivOne
 		internal int Food { get; set; }
 		internal IProduction CurrentProduction { get; private set; }
 		// Persisted to <savename>.civ1q alongside the .sve file (see Game.LoadSave.cs).
-		private readonly List<IProduction> _productionQueue = new List<IProduction>();
-		private List<ITile> _resourceTiles = new List<ITile>();
-		private List<IBuilding> _buildings = new List<IBuilding>();
-		private List<IWonder> _wonders = new List<IWonder>();
+		private readonly List<IProduction> _productionQueue = new();
+		private List<ITile> _resourceTiles = new();
+		private List<IBuilding> _buildings = new();
+		private List<IWonder> _wonders = new();
 
 		internal class TradeRoute
 		{
@@ -91,7 +91,7 @@ namespace CivOne
 			internal TradeRoute(City partner, string commodity) { Partner = partner; Commodity = commodity; }
 		}
 
-		private readonly List<TradeRoute> _tradeRoutes = new List<TradeRoute>();
+		private readonly List<TradeRoute> _tradeRoutes = new();
 		internal IEnumerable<TradeRoute> TradeRoutes => _tradeRoutes;
 		internal int TradeRouteCount => _tradeRoutes.Count;
 
@@ -131,7 +131,7 @@ namespace CivOne
 
 		internal void AddTradeRoute(City partner, string commodity)
 		{
-			if (partner == null) return;
+			if (partner is null) return;
 			if (_tradeRoutes.Count >= 3) _tradeRoutes.RemoveAt(0);
 			_tradeRoutes.Add(new TradeRoute(partner, commodity));
 			InvalidateCache();
@@ -161,7 +161,7 @@ namespace CivOne
 		public bool HasWonder<T>() where T : IWonder => _wonders.Any(w => w is T);
 
 		// True when a friendly city on the same continent holds the Hoover Dam
-		private bool HooverDamActive => Tile != null && Game.Started
+		private bool HooverDamActive => Tile is not null && Game.Started
 			&& Map.ContentCities(Tile.ContinentId).Any(c => c.Owner == Owner && c.HasWonder<HooverDam>());
 
 		public int HappyCitizens => Citizens.Count(c => c == Citizen.HappyMale || c == Citizen.HappyFemale);
@@ -568,7 +568,7 @@ namespace CivOne
 
 		public void SetResourceTile(ITile tile)
 		{
-			if (tile == null || OccupiedTile(tile) || !CityTiles.Contains(tile) || (tile.X == X && tile.Y == Y) || (_resourceTiles.Count >= Size && !_resourceTiles.Contains(tile)))
+			if (tile is null || OccupiedTile(tile) || !CityTiles.Contains(tile) || (tile.X == X && tile.Y == Y) || (_resourceTiles.Count >= Size && !_resourceTiles.Contains(tile)))
 			{
 				ResetResourceTiles();
 				return;
@@ -617,7 +617,7 @@ namespace CivOne
 		public void SetProduction(IProduction production)
 		{
 			bool switchingWonders = CurrentProduction is IWonder && production is IWonder;
-			if (!switchingWonders && CurrentProduction != null && CurrentProduction.GetType() != production.GetType())
+			if (!switchingWonders && CurrentProduction is not null && CurrentProduction.GetType() != production.GetType())
 				Shields = 0;
 			CurrentProduction = production;
 		}
@@ -647,10 +647,10 @@ namespace CivOne
 			// Prefer a wonder already planned in the queue
 			IWonder queued = _productionQueue.OfType<IWonder>()
 			    .FirstOrDefault(w => !Game.WonderBuilt(w));
-			if (queued != null) return queued;
+			if (queued is not null) return queued;
 
 			return Reflect.GetWonders()
-			    .Where(w => (beaten == null || w.Id != beaten.Id)
+			    .Where(w => (beaten is null || w.Id != beaten.Id)
 			             && !Game.WonderBuilt(w)
 			             && Player.ProductionAvailable(w))
 			    .FirstOrDefault();
@@ -659,7 +659,7 @@ namespace CivOne
 		internal void SetProduction(byte productionId)
 		{
 			IProduction production = Reflect.GetProduction().FirstOrDefault(p => p.ProductionId == productionId);
-			if (production == null)
+			if (production is null)
 			{
 				Log($"Invalid production ID for {Name}: {productionId}");
 				return;
@@ -711,7 +711,7 @@ namespace CivOne
 			}
 		}
 
-		private readonly List<Citizen> _specialists = new List<Citizen>();
+		private readonly List<Citizen> _specialists = new();
 
 		internal IEnumerable<Citizen> Citizens => _cachedCitizens ??= ComputeCitizens().ToList();
 
@@ -747,13 +747,13 @@ namespace CivOne
 					if (Player.HasWonder<Oracle>() && !Game.WonderObsolete<Oracle>()) templeEffect <<= 1;
 					unhappyCount -= templeEffect;
 				}
-				if (Tile != null && Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<JSBachsCathedral>()))
+				if (Tile is not null && Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<JSBachsCathedral>()))
 				{
 					unhappyCount -= 2;
 				}
 				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
 				bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
-					Tile != null &&
+					Tile is not null &&
 					Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());
 				if (HasBuilding<Cathedral>())
 					unhappyCount -= chapelOnContinent ? 6 : 4;
@@ -802,7 +802,7 @@ namespace CivOne
 				for (int xx = 0; xx < 5; xx++)
 				for (int yy = 0; yy < 5; yy++)
 				{
-					if (tiles[xx, yy] == null) continue;
+					if (tiles[xx, yy] is null) continue;
 					yield return tiles[xx, yy];
 				}
 			}
@@ -818,7 +818,7 @@ namespace CivOne
 				for (int yy = 0; yy < 5; yy++)
 				{
 					ITile tile = tiles[xx, yy];
-					if (tile == null) continue;
+					if (tile is null) continue;
 					if ((xx == 0 || xx == 4) && (yy == 0 || yy == 4)) tiles[xx, yy] = null;
 					if (!player.Visible(tile)) tiles[xx, yy] = null;
 				}
@@ -826,7 +826,7 @@ namespace CivOne
 			}
 		}
 
-		private readonly List<IUnit> _homeUnits = new List<IUnit>();
+		private readonly List<IUnit> _homeUnits = new();
 		internal void AddHomeUnit(IUnit unit)    { if (!_homeUnits.Contains(unit)) _homeUnits.Add(unit); }
 		internal void RemoveHomeUnit(IUnit unit) => _homeUnits.Remove(unit);
 		public IUnit[] Units => _homeUnits.ToArray();
@@ -923,7 +923,7 @@ namespace CivOne
 		{
 			if (!GeneratePollution()) return;
 
-			var candidates = CityTiles.Where(t => !t.Pollution && t.City == null && !t.IsOcean).ToList();
+			var candidates = CityTiles.Where(t => !t.Pollution && t.City is null && !t.IsOcean).ToList();
 			if (candidates.Count == 0) return;
 
 			candidates[Common.Random.Next(candidates.Count)].Pollution = true;
@@ -941,7 +941,7 @@ namespace CivOne
 			if (Size > 1) Size = (byte)Math.Max(1, Size - 2);
 
 			// Spread fallout across entire city radius
-			foreach (ITile tile in CityTiles.Where(t => !t.Pollution && !t.IsOcean && t.City == null))
+			foreach (ITile tile in CityTiles.Where(t => !t.Pollution && !t.IsOcean && t.City is null))
 				tile.Pollution = true;
 
 			// Disband all units in the 3×3 blast zone
@@ -1157,7 +1157,7 @@ namespace CivOne
 				}
 			}
 
-			if (CurrentProduction != null && Shields >= (int)CurrentProduction.Price * 10)
+			if (CurrentProduction is not null && Shields >= (int)CurrentProduction.Price * 10)
 			{
 				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0)
 				{
@@ -1185,7 +1185,7 @@ namespace CivOne
 					if (!(CurrentProduction is Settlers || CurrentProduction is Diplomat || CurrentProduction is Caravan))
 					{
 						string uname = (CurrentProduction as ICivilopedia)?.Name;
-						if (uname != null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))
+						if (uname is not null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))
 							Game.Instance.AddReplayEvent(new ReplayData.UnitBuilt(Game.GameTurn, Owner, uname));
 					}
 				}
@@ -1232,7 +1232,7 @@ namespace CivOne
 						GameTask.Enqueue(new ImprovementBuilt(this, (CurrentProduction as IBuilding)));
 					}
 					string bname = (CurrentProduction as ICivilopedia)?.Name;
-					if (bname != null && !Game.Instance.GetReplayData<ReplayData.BuildingBuilt>().Any(b => b.BuildingName == bname))
+					if (bname is not null && !Game.Instance.GetReplayData<ReplayData.BuildingBuilt>().Any(b => b.BuildingName == bname))
 						Game.Instance.AddReplayEvent(new ReplayData.BuildingBuilt(Game.GameTurn, Owner, bname));
 				}
 				if (CurrentProduction is IWonder)
@@ -1263,7 +1263,7 @@ namespace CivOne
 									IScreen ct1 = new ChooseTech();
 									ct1.Closed += (s2, a2) =>
 									{
-										if (Human.CurrentResearch != null)
+										if (Human.CurrentResearch is not null)
 										{
 											Human.AddAdvance(Human.CurrentResearch);
 											Human.CurrentResearch = null;
@@ -1271,7 +1271,7 @@ namespace CivOne
 										IScreen ct2 = new ChooseTech();
 										ct2.Closed += (s3, a3) =>
 										{
-											if (Human.CurrentResearch != null)
+											if (Human.CurrentResearch is not null)
 											{
 												Human.AddAdvance(Human.CurrentResearch);
 												Human.CurrentResearch = null;
@@ -1289,7 +1289,7 @@ namespace CivOne
 								for (int ii = 0; ii < 2; ii++)
 								{
 									IAdvance adv = Player.AvailableResearch.FirstOrDefault(a => !(a is FutureTech));
-									if (adv != null) Player.AddAdvance(adv);
+									if (adv is not null) Player.AddAdvance(adv);
 								}
 							}
 						}
@@ -1326,7 +1326,7 @@ namespace CivOne
 						// wonder, keeping accumulated shields as a head-start.
 						string lostName = (wonder as ICivilopedia).Name;
 						IWonder next = NextAvailableWonder(wonder);
-						if (next != null)
+						if (next is not null)
 						{
 							// Remove from queue if it was planned there
 							_productionQueue.Remove(next);
@@ -1356,7 +1356,7 @@ namespace CivOne
 
 		public void Disaster()
 		{
-			List<string> message = new List<string>();
+			List<string> message = new();
 			bool humanGetsCity = false;
 
 			if (Player.Cities.Length == 1)
@@ -1540,7 +1540,7 @@ namespace CivOne
 						}
 					}
 
-					if (admired != null && admired.Owner != this.Owner)
+					if (admired is not null && admired.Owner != this.Owner)
 					{
 						message.Clear();
 						message.Add($"Residents of {Name} admire the prosperity of {admired.Name}");

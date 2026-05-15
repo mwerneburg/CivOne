@@ -41,11 +41,11 @@ namespace CivOne.Civilizations
 		{
 			get
 			{
-				ITile[] tiles = Map.AllTiles().Where(t => t != null && t.IsOcean).ToArray();
+				ITile[] tiles = Map.AllTiles().Where(t => t is not null && t.IsOcean).ToArray();
 				for (int i = 0; i < 1000; i++)
 				{
 					ITile tile = tiles[Common.Random.Next(tiles.Length)];
-					if (tile == null || !tile.IsOcean || tile.GetBorderTiles().Any(t => t == null || !t.IsOcean)) continue;
+					if (tile is null || !tile.IsOcean || tile.GetBorderTiles().Any(t => t is null || !t.IsOcean)) continue;
 					return tile;
 				}
 				return null;
@@ -58,7 +58,7 @@ namespace CivOne.Civilizations
 			get
 			{
 				ITile[] candidates = Map.AllTiles()
-					.Where(t => t != null && !t.IsOcean && t.City == null
+					.Where(t => t is not null && !t.IsOcean && t.City is null
 						&& !Game.Players.Any(p => p.IsHuman && p.Visible(t.X, t.Y)))
 					.ToArray();
 				if (candidates.Length == 0) return null;

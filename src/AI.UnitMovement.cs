@@ -44,10 +44,10 @@ namespace CivOne
 
             // Military units: if we're staging an assault and failed to advance,
             // stay put for reinforcements or wait for path to clear
-            if (unit.Role == UnitRole.LandAttack && _attackTarget != null)
+            if (unit.Role == UnitRole.LandAttack && _attackTarget is not null)
             {
                 // Only abandon if it's clearly a dead-end (surrounded by water/cities)
-                if (!unit.Tile.GetBorderTiles().Any(t => t != null && !t.IsOcean && t.City != null))
+                if (!unit.Tile.GetBorderTiles().Any(t => t is not null && !t.IsOcean && t.City is not null))
                     return MovementFailureResolution.DisembarkAndFortify;
                 return MovementFailureResolution.RetryNextTurn;
             }
@@ -87,8 +87,8 @@ namespace CivOne
                     {
                         // Land unit stranded on ocean: try adjacent land tile
                         ITile land = unit.Tile.GetBorderTiles()
-                            .FirstOrDefault(t => t != null && !t.IsOcean);
-                        if (land != null)
+                            .FirstOrDefault(t => t is not null && !t.IsOcean);
+                        if (land is not null)
                         {
                             if (!unit.MoveTo(land.X - unit.X, land.Y - unit.Y))
                                 unit.SkipTurn();

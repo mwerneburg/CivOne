@@ -26,10 +26,10 @@ namespace CivOne
 		
 		private Stack<short> _stack;
 		
-		private List<short> _seeds1 = new List<short>();
-		private List<short> _seeds2 = new List<short>();
-		private List<int> _inputs = new List<int>();
-		private List<int> _outputs = new List<int>();
+		private List<short> _seeds1 = new();
+		private List<short> _seeds2 = new();
+		private List<int> _inputs = new();
+		private List<int> _outputs = new();
 		
 		private short _ds5BDA, _ds5BDC;
 		

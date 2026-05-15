@@ -22,7 +22,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_food == null)
+				if (_food is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -44,7 +44,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_foodLoss == null)
+				if (_foodLoss is null)
 				{
 					_foodLoss = Resources["SP257"][128, 32, 8, 8]
 						.ColourReplace((3, 0), (15, 5))
@@ -59,7 +59,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_shield == null)
+				if (_shield is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -79,7 +79,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_shieldLoss == null)
+				if (_shieldLoss is null)
 				{
 					_shieldLoss = Resources["SP257"][136, 32, 8, 8].ColourReplace((3, 0), (15, 5));
 				}
@@ -92,7 +92,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_trade == null)
+				if (_trade is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -112,7 +112,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_corruption == null)
+				if (_corruption is null)
 				{
 					_corruption = Resources["SP257"][144, 32, 8, 8].ColourReplace((3, 0), (15, 5));
 				}
@@ -125,7 +125,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_unhappy == null)
+				if (_unhappy is null)
 				{
 					_unhappy = Resources["SP257"][136, 40, 8, 8].ColourReplace(3, 0);
 				}
@@ -138,7 +138,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_luxuries == null)
+				if (_luxuries is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -158,7 +158,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_taxes == null)
+				if (_taxes is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -178,7 +178,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_science == null)
+				if (_science is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP257"))
 					{
@@ -198,7 +198,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_spy == null)
+				if (_spy is null)
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP299"))
 					{
@@ -218,7 +218,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_newspaper == null)
+				if (_newspaper is null)
 				{
 					_newspaper = Resources["SP257"][176, 128, 32, 16];
 				}
@@ -231,7 +231,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_sellButton == null)
+				if (_sellButton is null)
 				{
 					byte[] bytemap = new byte[] {
 						0,  0,  5,  5,  5,  0,  0,  0,
@@ -251,7 +251,7 @@ namespace CivOne.Graphics
 		private static IBitmap[] _helperArrow;
 		public static IBitmap HelperArrow(Direction direction)
 		{
-			if (_helperArrow == null)
+			if (_helperArrow is null)
 			{
 				_helperArrow = new IBitmap[4];
 				_helperArrow[0] = new Picture(16, 16, new byte[] {
@@ -341,7 +341,7 @@ namespace CivOne.Graphics
 		private static IBitmap[] _citizen = new Picture[9];
 		public static IBitmap Citizen(Citizen citizen)
 		{
-			if (_citizen[(int)citizen] == null)
+			if (_citizen[(int)citizen] is null)
 			{
 				_citizen[(int)citizen] = Resources["SP257"][(8 * (int)citizen), 128, 8, 16];
 			}
@@ -354,7 +354,7 @@ namespace CivOne.Graphics
 			if (stage < 0 || stage > 3)
 				return null;
 			
-			if (_lamp[stage] == null)
+			if (_lamp[stage] is null)
 			{
 				_lamp[stage] = Resources["SP257"][128 + (8 * stage), 48, 8, 8];
 			}
@@ -386,7 +386,7 @@ namespace CivOne.Graphics
 				governmentId = (modern ? 1 : 0);
 				filename = "GOVT0" + (modern ? "M" : "A");
 			}
-			if (_governmentPortrait[governmentId, (int)advisor] == null)
+			if (_governmentPortrait[governmentId, (int)advisor] is null)
 				_governmentPortrait[governmentId, (int)advisor] = Resources[filename][(40 * (int)advisor), 0, 40, 60];
 			return _governmentPortrait[governmentId, (int)advisor];
 		}

@@ -93,7 +93,7 @@ namespace CivOne.Screens
 			                       fieldX, fieldY + (fh + PAD) * 2, fieldW);
 
 			// Right panel — speech transcript
-			if (_speechLines == null) return;
+			if (_speechLines is null) return;
 
 			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
 			this.DrawCassettePanel(RightX, BodyY, RightW, speechPanelH, "TRANSCRIPT");
@@ -118,26 +118,26 @@ namespace CivOne.Screens
 			{
 				if (atWar)
 					return agg == AggressionLevel.Aggressive
-						? new[] { $"Our patience grows thin, {Human.LeaderName}.", "Surrender or face more war." }
-						: new[] { $"We seek to end this conflict,", $"{Human.LeaderName}. Let us talk terms." };
+						? [$"Our patience grows thin, {Human.LeaderName}.", "Surrender or face more war."]
+					: [$"We seek to end this conflict,", $"{Human.LeaderName}. Let us talk terms."];
 
 				return agg == AggressionLevel.Friendly
-					? new[] { $"Well met, {Human.LeaderName}!", $"The {_enemy.TribeNamePlural} bring greetings." }
+					? [$"Well met, {Human.LeaderName}!", $"The {_enemy.TribeNamePlural} bring greetings."]
 					: agg == AggressionLevel.Aggressive
-					? new[] { $"We come with demands, {Human.LeaderName}.", "Choose your next words carefully." }
-					: new[] { $"We come to you, {Human.LeaderName},", "on a matter of mutual interest." };
+					? [$"We come with demands, {Human.LeaderName}.", "Choose your next words carefully."]
+					: [$"We come to you, {Human.LeaderName},", "on a matter of mutual interest."];
 			}
 
 			if (atWar)
 				return agg == AggressionLevel.Aggressive
-					? new[] { $"What do you want, {Human.LeaderName}?", "We have nothing to discuss." }
-					: new[] { "Ambassador. You come in a", "time of war. Speak quickly." };
+					? [$"What do you want, {Human.LeaderName}?", "We have nothing to discuss."]
+					: ["Ambassador. You come in a", "time of war. Speak quickly."];
 
 			return agg == AggressionLevel.Friendly
-				? new[] { $"Greetings, {Human.LeaderName}!", $"The {_enemy.TribeNamePlural} welcome you." }
+				? [$"Greetings, {Human.LeaderName}!", $"The {_enemy.TribeNamePlural} welcome you."]
 				: agg == AggressionLevel.Aggressive
-				? new[] { "Your visit had better be", "worth our time, ambassador." }
-				: new[] { $"Welcome, {Human.LeaderName}.", "What is your purpose here?" };
+				? ["Your visit had better be", "worth our time, ambassador."]
+				: [$"Welcome, {Human.LeaderName}.", "What is your purpose here?"];
 		}
 
 		// ── AI helper ────────────────────────────────────────────────────────

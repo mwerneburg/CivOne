@@ -134,7 +134,7 @@ namespace CivOne
 					byte b = 0;
 					if (!_tiles[x, y].IsOcean)
 					{
-						if (_tiles[x, y].City != null) b |= 0x01;
+						if (_tiles[x, y].City is not null) b |= 0x01;
 						if (_tiles[x, y].Irrigation) b |= 0x02;
 						if (_tiles[x, y].Mine) b |= 0x04;
 						if (_tiles[x, y].Road) b |= 0x08;
@@ -194,7 +194,7 @@ namespace CivOne
 		
 		public void LoadMap()
 		{
-			if (Ready || _tiles != null)
+			if (Ready || _tiles is not null)
 			{
 				Log("ERROR: Map is already load{0}/generat{0}", (Ready ? "ed" : "ing"));
 				return;

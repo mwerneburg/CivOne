@@ -82,11 +82,11 @@ namespace CivOne.Screens.GamePlayPanels
 			_mouseX = args.X;
 			_mouseY = args.Y;
 
-			if (_rectMenus[0].Contains(args.Location) && GameSelected != null) GameSelected(this, null);
-			if (_rectMenus[1].Contains(args.Location) && OrdersSelected != null) OrdersSelected(this, null);
-			if (_rectMenus[2].Contains(args.Location) && AdvisorsSelected != null) AdvisorsSelected(this, null);
-			if (_rectMenus[3].Contains(args.Location) && WorldSelected != null) WorldSelected(this, null);
-			if (_rectMenus[4].Contains(args.Location) && CivilopediaSelected != null) CivilopediaSelected(this, null);
+			if (_rectMenus[0].Contains(args.Location) && GameSelected is not null) GameSelected(this, null);
+			if (_rectMenus[1].Contains(args.Location) && OrdersSelected is not null) OrdersSelected(this, null);
+			if (_rectMenus[2].Contains(args.Location) && AdvisorsSelected is not null) AdvisorsSelected(this, null);
+			if (_rectMenus[3].Contains(args.Location) && WorldSelected is not null) WorldSelected(this, null);
+			if (_rectMenus[4].Contains(args.Location) && CivilopediaSelected is not null) CivilopediaSelected(this, null);
 			
 			return false;
 		}

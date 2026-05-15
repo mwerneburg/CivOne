@@ -38,7 +38,7 @@ namespace CivOne.Screens.Dialogs
 
 		public AdvisorMessage(Advisor advisor, string[] message, bool leftAlign) : base((leftAlign ? 38 : 58), 72, DialogWidth(message), DialogHeight(message))
 		{
-			string[] advisorNames = new string[] { "Defense Minister", "Domestic Advisor", "Foreign Minister", "Science Advisor" };
+			string[] advisorNames = ["Defense Minister", "Domestic Advisor", "Foreign Minister", "Science Advisor"];
 
 			_textLines = TextBitmaps(message);
 			DialogBox.DrawText($"{advisorNames[(int)advisor]}:", 0, 15, 8, 4);

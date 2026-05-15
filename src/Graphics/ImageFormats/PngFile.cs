@@ -205,7 +205,7 @@ namespace CivOne.Graphics.ImageFormats
 							break;
 						case 3:
 							int pi = row[x] * 3;
-							if (plt != null && pi + 2 < plt.Length)
+							if (plt is not null && pi + 2 < plt.Length)
 							{
 								result[di] = plt[pi]; result[di + 1] = plt[pi + 1]; result[di + 2] = plt[pi + 2];
 							}

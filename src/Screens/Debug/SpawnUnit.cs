@@ -132,7 +132,7 @@ namespace CivOne.Screens.Debug
 
 		private void SpawnUnit_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			Destroy();
 		}
@@ -144,7 +144,7 @@ namespace CivOne.Screens.Debug
 				if (_unitX < 0 || _unitY < 0) return false;
 				ITile tile = Map[UnitX, UnitY];
 				if (tile.Units.Any(x => _selectedPlayer != x.Owner)) return false;
-				if (_selectedUnit.Class == UnitClass.Land && tile.City != null)
+				if (_selectedUnit.Class == UnitClass.Land && tile.City is not null)
 				{
 					return (_selectedPlayer == tile.City.Owner);
 				}
@@ -158,7 +158,7 @@ namespace CivOne.Screens.Debug
 				}
 				if (_selectedUnit.Class == UnitClass.Water && tile.Type != Terrain.Ocean)
 				{
-					return (tile.City != null && _selectedPlayer == tile.City.Owner);
+					return (tile.City is not null && _selectedPlayer == tile.City.Owner);
 				}
 				return true;
 			}
@@ -191,7 +191,7 @@ namespace CivOne.Screens.Debug
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_selectedUnit == null) return false;
+			if (_selectedUnit is null) return false;
 
 			if (ValidTile)
 			{
@@ -226,7 +226,7 @@ namespace CivOne.Screens.Debug
 
 		public override bool MouseMove(ScreenEventArgs args)
 		{
-			if (_selectedUnit == null) return false;
+			if (_selectedUnit is null) return false;
 
 			if (args.Y < 8 || (Settings.RightSideBar && args.X > 240) || (!Settings.RightSideBar && args.X < 80))
 			{
@@ -244,17 +244,17 @@ namespace CivOne.Screens.Debug
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_selectedPlayer == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedPlayer is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_civSelect);
 				return false;
 			}
-			else if (_selectedPlayer != null && _selectedUnit == null && Common.TopScreen.GetType() != typeof(Menu))
+			else if (_selectedPlayer is not null && _selectedUnit is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				UnitsMenu();
 				AddMenu(_unitSelect);
 			}
-			else if (_selectedUnit != null && _hasUpdate)
+			else if (_selectedUnit is not null && _hasUpdate)
 			{
 				int xx = (_unitX * 16) + (Settings.RightSideBar ? 0 : 80);
 				int yy = (_unitY * 16) + 8;

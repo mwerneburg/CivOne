@@ -72,7 +72,7 @@ namespace CivOne.Screens
 					try
 					{
 						var meta = CosSerializer.DeserializeMeta(File.ReadAllText(slots[i].CosFile));
-						if (meta != null)
+						if (meta is not null)
 						{
 							slots[i].Exists = true;
 							slots[i].IsCos  = true;
@@ -113,7 +113,7 @@ namespace CivOne.Screens
 				try
 				{
 					var meta = CosSerializer.DeserializeMeta(File.ReadAllText(autoPath));
-					if (meta != null)
+					if (meta is not null)
 					{
 						slots[8].Exists = true;
 						slots[8].IsCos  = true;

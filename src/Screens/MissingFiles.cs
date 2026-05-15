@@ -44,7 +44,7 @@ namespace CivOne.Screens
 		private void Menu_Copy(object sender, EventArgs args)
 		{
 			string path = Runtime.BrowseFolder("Location of Civilization data files");
-			if (path == null)
+			if (path is null)
 			{
 				// User pressed cancel
 				return;
@@ -63,7 +63,7 @@ namespace CivOne.Screens
 
 				this.DrawText("Succes!", 1, 2, 160, 54, TextAlign.Center);
 
-				string[] text = new string[] { "Done copying the data files.", " ", "Press any key to start the game..." };
+				string[] text = ["Done copying the data files.", " ", "Press any key to start the game..."];
 
 				for (int i = 0; i < text.Length; i++)
 				{
@@ -74,7 +74,7 @@ namespace CivOne.Screens
 			{
 				this.DrawText("Failed!", 1, 4, 160, 54, TextAlign.Center);
 
-				string[] text = new string[] { "Copying the data files has failed.", "Please make sure you pointed to the correct", "data folder and try again.", " ", "Press any key to close the game..." };
+				string[] text = ["Copying the data files has failed.", "Please make sure you pointed to the correct", "data folder and try again.", " ", "Press any key to close the game..."];
 
 				for (int i = 0; i < text.Length; i++)
 				{
@@ -94,7 +94,7 @@ namespace CivOne.Screens
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_menu == null)
+			if (_menu is null)
 			{
 				_menu = new Menu(Palette)
 				{

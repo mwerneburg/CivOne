@@ -23,8 +23,8 @@ namespace CivOne.Graphics
 		private readonly byte _charBottomRow;
 		private readonly byte _fontSpaceX;
 		private readonly byte _fontSpaceY;
-		private Dictionary<char, byte> _charWidths = new Dictionary<char, byte>();
-		private Dictionary<char, byte[]> _characters = new Dictionary<char, byte[]>();
+		private Dictionary<char, byte> _charWidths = new();
+		private Dictionary<char, byte[]> _characters = new();
 		
 		public int FontHeight => 1 + _charBottomRow - _charTopRow;
 		public byte FirstChar => _fontAsciiFirst;

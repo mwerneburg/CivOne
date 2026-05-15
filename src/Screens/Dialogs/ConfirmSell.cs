@@ -21,7 +21,7 @@ namespace CivOne.Screens.Dialogs
 
 		private void MenuYes(object sender, EventArgs args)
 		{
-			if (Sell != null)
+			if (Sell is not null)
 				Sell(this, args);
 			Cancel();
 		}
@@ -38,7 +38,7 @@ namespace CivOne.Screens.Dialogs
 				FontId = 0
 			};
 			int i = 0;
-			foreach (string choice in new [] { "No.", "Yes." })
+			foreach (string choice in (string[])["No.", "Yes."])
 			{
 				menu.Items.Add(choice, i++);
 			}
@@ -50,7 +50,7 @@ namespace CivOne.Screens.Dialogs
 			AddMenu(menu);
 		}
 
-		public ConfirmSell(IBuilding building) : base(128, 80, 9, 23, new string[] { "Do you want to sell", $"your {building.Name} for {building.SellPrice}$?" })
+		public ConfirmSell(IBuilding building) : base(128, 80, 9, 23, ["Do you want to sell", $"your {building.Name} for {building.SellPrice}$?"])
 		{
 			Building = building;
 			

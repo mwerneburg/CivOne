@@ -20,7 +20,7 @@ namespace CivOne.Graphics.ImageFormats
 	{
 		private static void Log(string text, params object[] parameters) => RuntimeHandler.Runtime.Log(text, parameters);
 
-		private static Dictionary<string, PicFile> _cache = new Dictionary<string, PicFile>();
+		private static Dictionary<string, PicFile> _cache = new();
 		private readonly byte[] _bytes;
 		private readonly byte[,] _colourTable = null;
 		private readonly Palette _palette16 = Common.GetPalette16;
@@ -184,7 +184,7 @@ namespace CivOne.Graphics.ImageFormats
 		/// <param name="colourTable">Colour table that was generated</param>
 		private void ConvertPictureX0(byte[,] colourTable)
 		{
-			if (colourTable == null) return;
+			if (colourTable is null) return;
 			
 			int width = _picture256.Width;
 			int height = _picture256.Height;

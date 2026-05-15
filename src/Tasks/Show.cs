@@ -61,7 +61,7 @@ namespace CivOne.Tasks
 				{
 					if (Math.Abs(dx) != radius && Math.Abs(dy) != radius) continue;
 					ITile t = Map[(x + dx + Map.WIDTH) % Map.WIDTH, y + dy];
-					if (t == null || t.IsOcean || t.Type == CivOne.Enums.Terrain.Arctic) continue;
+					if (t is null || t.IsOcean || t.Type == CivOne.Enums.Terrain.Arctic) continue;
 					return new Point(t.X, t.Y);
 				}
 			}
@@ -77,10 +77,10 @@ namespace CivOne.Tasks
 				gotoScreen.Closed += (s, a) =>
 				{
 					if (Human != Game.CurrentPlayer) return;
-					if (Game.ActiveUnit == null) return;
+					if (Game.ActiveUnit is null) return;
 					if (gotoScreen.X == -1 || gotoScreen.Y == -1) return;
 					int gx = gotoScreen.X, gy = gotoScreen.Y;
-					if (Game.ActiveUnit.Class == UnitClass.Land && Map[gx, gy] != null && Map[gx, gy].IsOcean)
+					if (Game.ActiveUnit.Class == UnitClass.Land && Map[gx, gy] is not null && Map[gx, gy].IsOcean)
 					{
 						Point land = NearestLandTile(gx, gy);
 						gx = land.X;
@@ -110,7 +110,7 @@ namespace CivOne.Tasks
 				search.Accept += (s, a) =>
 				{
 					City city = (s as Search).City;
-					if (city == null) return;
+					if (city is null) return;
 					GamePlay gamePlay = (GamePlay)Common.Screens.First(x => x.GetType() == typeof(GamePlay));
 					gamePlay.CenterOnPoint(city.X, city.Y);
 				};
@@ -125,7 +125,7 @@ namespace CivOne.Tasks
 				ChooseGovernment chooseGovernment = new ChooseGovernment();
 				chooseGovernment.Closed += (s, a) => {
 					IGovernment result = (s as ChooseGovernment).Result;
-					if (result == null) return;
+					if (result is null) return;
 					Human.Government = result;
 					GameTask.Insert(Message.NewGoverment(null, $"{Human.TribeName} government", $"changed to {Human.Government.Name}!"));
 				};

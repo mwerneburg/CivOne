@@ -38,7 +38,7 @@ namespace CivOne.Tasks
 				return;
 			}
 
-			if (_player.CurrentResearch == null)
+			if (_player.CurrentResearch is null)
 			{
 				GameTask.Enqueue(new TechSelect(_player));
 			}

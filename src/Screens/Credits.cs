@@ -23,8 +23,8 @@ namespace CivOne.Screens
 	{
 		private const int NOISE_COUNT = 40;
 		
-		private readonly int[] SHOW_INTRO_LINE = new[] { 312, 279, 254, 221, 196, 171, 146, 121, 96, 71, 46, 21, -4, -37, -62, -95, -120, -145, -170, -195, -220, -245, -270, -295 };
-		private readonly int[] HIDE_INTRO_LINE = new[] { 287, 229, -29, -87, -315 };
+		private readonly int[] SHOW_INTRO_LINE = [312, 279, 254, 221, 196, 171, 146, 121, 96, 71, 46, 21, -4, -37, -62, -95, -120, -145, -170, -195, -220, -245, -270, -295];
+		private readonly int[] HIDE_INTRO_LINE = [287, 229, -29, -87, -315];
 		
 		private readonly byte[] _menuColours;
 		private readonly string[] _introText;
@@ -66,13 +66,13 @@ namespace CivOne.Screens
 		{
 			get
 			{
-				return _overlay != null && (_overlay.GetType() == typeof(LoadGame) && ((LoadGame)_overlay).Cancel);
+				return _overlay is not null && (_overlay.GetType() == typeof(LoadGame) && ((LoadGame)_overlay).Cancel);
 			}
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_nextScreen != null)
+			if (_nextScreen is not null)
 			{
 				if (!HandleScreenFadeOut(Speed.Slow))
 				{
@@ -83,9 +83,9 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			if (_done && _overlay == null) return false;
+			if (_done && _overlay is null) return false;
 
-			if ((gameTick % 3) == 0 && _overlay == null) return false;
+			if ((gameTick % 3) == 0 && _overlay is null) return false;
 			
 			// Updates
 			if (_introLeft > -320)
@@ -106,7 +106,7 @@ namespace CivOne.Screens
 				_pictures[1].ApplyNoise(_noiseMap, --_noiseCounter);
 			}
 			
-			if (_noiseCounter == 0 && HasMenu && !Common.HasScreenType<Menu>() && (_overlay == null || LoadGameCancel))
+			if (_noiseCounter == 0 && HasMenu && !Common.HasScreenType<Menu>() && (_overlay is null || LoadGameCancel))
 			{
 				CreateMenu();
 			}
@@ -209,7 +209,7 @@ namespace CivOne.Screens
 			foreach (IScreen menu in _menus)
 				this.AddLayer(menu);
 			CloseMenus();
-			if (!Runtime.Settings.ShowIntro || Resources.SplashRawImage != null)
+			if (!Runtime.Settings.ShowIntro || Resources.SplashRawImage is not null)
 			{
 				_nextScreen = new NewGame();
 			}
@@ -272,28 +272,28 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			if (_done && _overlay != null)
+			if (_done && _overlay is not null)
 				return _overlay.KeyDown(args);
 			return SkipIntro();
 		}
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_done && _overlay != null)
+			if (_done && _overlay is not null)
 				return _overlay.MouseDown(args);
 			return SkipIntro();
 		}
 		
 		public override bool MouseUp(ScreenEventArgs args)
 		{
-			if (_done && _overlay != null)
+			if (_done && _overlay is not null)
 				return _overlay.MouseUp(args);
 			return false;
 		}
 		
 		public override bool MouseDrag(ScreenEventArgs args)
 		{
-			if (_done && _overlay != null)
+			if (_done && _overlay is not null)
 				return _overlay.MouseDrag(args);
 			return false;
 		}
@@ -302,7 +302,7 @@ namespace CivOne.Screens
 		{
 			get
 			{
-				if (_overlay != null && !LoadGameCancel)
+				if (_overlay is not null && !LoadGameCancel)
 					return _overlay.Cursor;
 				return base.Cursor;
 			}
@@ -344,7 +344,7 @@ namespace CivOne.Screens
 				_pictures[i] = new Picture(320, 200);
 			Picture splash = Splash.MakePicture(320, 200);
 			_pictures[2] = splash ?? BuildProceduralTitle();
-			if (splash == null)
+			if (splash is null)
 			{
 				_introLeft    = -320;
 				_logoSwipe    = 320;
@@ -373,7 +373,7 @@ namespace CivOne.Screens
 			DefaultTextSettings.Alignment = TextAlign.Center;
 			DefaultTextSettings.FontId = 4;
 			
-			_menuColours = new byte[] { 8, 15, 7 };
+			_menuColours = [8, 15, 7];
 			
 			Palette = _pictures[2].Palette;
 

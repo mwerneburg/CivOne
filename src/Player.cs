@@ -107,9 +107,9 @@ namespace CivOne
 
 		private readonly bool[,] _explored = new bool[Map.WIDTH, Map.HEIGHT];
 		private readonly bool[,] _visible = new bool[Map.WIDTH, Map.HEIGHT];
-		private readonly List<byte> _advances = new List<byte>();
-		private readonly List<byte> _embassies = new List<byte>();
-		private readonly HashSet<byte> _warWith = new HashSet<byte>();
+		private readonly List<byte> _advances = new();
+		private readonly List<byte> _embassies = new();
+		private readonly HashSet<byte> _warWith = new();
 
 		private short _anarchy = 0;
 		private short _gold;
@@ -147,7 +147,7 @@ namespace CivOne
 			get => _government;
 			internal set
 			{
-				if (value == null) return;
+				if (value is null) return;
 				_government = value;
 				InvalidateCityCaches();
 			}
@@ -282,9 +282,9 @@ namespace CivOne
 		
 		public bool HasAdvance<T>() where T : IAdvance => Advances.Any(a => a is T);
 
-		public bool HasAdvance(IAdvance advance) => (advance == null || Advances.Any(a => a.Id == advance.Id));
+		public bool HasAdvance(IAdvance advance) => (advance is null || Advances.Any(a => a.Id == advance.Id));
 
-		public Player[] Embassies => _embassies.Select(e => Game.Players.FirstOrDefault(p => e == Game.PlayerNumber(p))).Where(p => p != null).ToArray();
+		public Player[] Embassies => _embassies.Select(e => Game.Players.FirstOrDefault(p => e == Game.PlayerNumber(p))).Where(p => p is not null).ToArray();
 
 		public bool HasEmbassy(Player player) => _embassies.Any(e => e == Game.PlayerNumber(player));
 
@@ -375,7 +375,7 @@ namespace CivOne
 		private bool UnitAvailable(IUnit unit)
 		{
 			// Determine if the unit is obsolete
-			if (_advances.Any(a => unit.ObsoleteTech != null && unit.ObsoleteTech.Id == a))
+			if (_advances.Any(a => unit.ObsoleteTech is not null && unit.ObsoleteTech.Id == a))
 				return false;
 			
 			// Require Manhattan Project to be built for Nuclear unit
@@ -383,7 +383,7 @@ namespace CivOne
 				return false;
 			
 			// Determine if the unit requires a tech
-			if (unit.RequiredTech == null)
+			if (unit.RequiredTech is null)
 				return true;
 			
 			// Determine if the Player has the required tech
@@ -411,7 +411,7 @@ namespace CivOne
 			}
 
 			// Determine if the building requires a tech
-			if (building.RequiredTech == null)
+			if (building.RequiredTech is null)
 				return true;
 			
 			// Determine if the Player has the required tech
@@ -432,7 +432,7 @@ namespace CivOne
 				return false;
 
 			// Determine if the building requires a tech
-			if (wonder.RequiredTech == null)
+			if (wonder.RequiredTech is null)
 				return true;
 
 			// Determine if the Player has the required tech
@@ -460,12 +460,12 @@ namespace CivOne
 		{
 			if (this == 0) return false;
 			if (_destroyed) return true;
-			if (Cities.Length == 0 && !Game.GetUnits().Any(x => this == x.Owner && (x is Settlers && x.Home == null)))
+			if (Cities.Length == 0 && !Game.GetUnits().Any(x => this == x.Owner && (x is Settlers && x.Home is null)))
 			{
 				while (true)
 				{
 					IUnit unit = Game.GetUnits().FirstOrDefault(x => this == x.Owner);
-					if (unit == null) break;
+					if (unit is null) break;
 					Game.DisbandUnit(unit);
 				}
 				_destroyed = true;
@@ -514,13 +514,13 @@ namespace CivOne
 
 		public bool Visible(ITile tile)
 		{
-			if (tile == null) return false;
+			if (tile is null) return false;
 			return Visible(tile.X, tile.Y);
 		}
 
 		public bool Visible(ITile tile, Direction direction)
 		{
-			if (tile == null) return false;
+			if (tile is null) return false;
 			return Visible(tile.GetBorderTile(direction));
 		}
 
@@ -597,7 +597,7 @@ namespace CivOne
 		public Player(ICivilization civilization, string customLeaderName = null, string customTribeName = null, string customTribeNamePlural = null)
 		{
 			_civilization = civilization;
-			if (customLeaderName != null) _civilization.Leader.Name = customLeaderName;
+			if (customLeaderName is not null) _civilization.Leader.Name = customLeaderName;
 			_tribeName = customTribeName ?? _civilization.Name;
 			_tribeNamePlural = customTribeNamePlural ?? _civilization.NamePlural;
 			Government = new Despotism();

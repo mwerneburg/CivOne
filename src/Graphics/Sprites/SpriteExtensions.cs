@@ -13,7 +13,7 @@ namespace CivOne.Graphics.Sprites
 	{
 		public static IBitmap ToBitmap(this ISprite sprite)
 		{
-			if (sprite == null)
+			if (sprite is null)
 				return null;
 			return new Picture(sprite.Bitmap, Common.DefaultPalette);
 		}

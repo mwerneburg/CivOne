@@ -39,7 +39,7 @@ namespace CivOne.Screens
 
 		protected void HandleClose()
 		{
-			if (Closed == null)
+			if (Closed is null)
 				return;
 			Closed(this, null);
 		}

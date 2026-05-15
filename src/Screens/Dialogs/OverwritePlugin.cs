@@ -21,7 +21,7 @@ namespace CivOne.Screens.Dialogs
 		private void ConfirmOverwrite(object sender, EventArgs args)
 		{
 			Plugin plugin = Reflect.Plugins().FirstOrDefault(x => x.Filename == _filename && !x.Deleted);
-			if (plugin != null)
+			if (plugin is not null)
 			{
 				plugin.Delete();
 			}
@@ -42,7 +42,7 @@ namespace CivOne.Screens.Dialogs
 				TextColour = CassetteTheme.INK_HIGH,
 				FontId = 0
 			};
-			foreach (string choice in new [] { "No, keep existing", "Yes, overwrite" })
+			foreach (string choice in (string[])["No, keep existing", "Yes, overwrite"])
 			{
 				menu.Items.Add(choice);
 			}

@@ -77,7 +77,7 @@ namespace CivOne.Screens
 			int cx = Settings.RightSideBar ? 0 : 80;
 			int cy = 8;
 
-			if (_overlay == null || _animation == DestroyAnimation.Sprites)
+			if (_overlay is null || _animation == DestroyAnimation.Sprites)
 			{
 				_overlay = new Picture(Bitmap, Palette);
 
@@ -87,7 +87,7 @@ namespace CivOne.Screens
 				while (xx >= Map.WIDTH) xx -= Map.WIDTH;
 
 				_overlay.AddLayer(_unit.ToBitmap(), cx + (xx * 16), cy + (yy * 16));
-				if (_unit.Tile.Units.Length > 1 && !_unit.Tile.Fortress && _unit.Tile.City == null)
+				if (_unit.Tile.Units.Length > 1 && !_unit.Tile.Fortress && _unit.Tile.City is null)
 					_overlay.AddLayer(_unit.ToBitmap(), cx + (xx * 16) - 1, cy + (yy * 16) - 1);
 				
 				if (_animation == DestroyAnimation.Sprites)
@@ -111,13 +111,13 @@ namespace CivOne.Screens
 			if (_noiseCounter == 0)
 			{
 				IUnit[] units;
-				if (_unit.Tile.Units.Length > 1 && _unit.Tile.City == null && !_unit.Tile.Fortress && _stack)
+				if (_unit.Tile.Units.Length > 1 && _unit.Tile.City is null && !_unit.Tile.Fortress && _stack)
 				{
 					units = _unit.Tile.Units;
 				}
 				else
 				{
-					units = new IUnit[] { _unit };
+					units = [_unit];
 				}
 				foreach (IUnit unit in units)
 					Game.DisbandUnit(unit);
@@ -166,12 +166,12 @@ namespace CivOne.Screens
 				{
 					if (!Settings.RevealWorld && !t.Visible) continue;
 
-					if (t.Tile.City != null) continue;
+					if (t.Tile.City is not null) continue;
 					
 					if (_unit != Game.ActiveUnit && t.Tile.Units.Any(x => x == _unit))
 					{
 						// Unit is attacked, it is not in a city or fortress, destroy them all
-						if (t.Tile.City == null && !t.Tile.Fortress) continue;
+						if (t.Tile.City is null && !t.Tile.Fortress) continue;
 					}
 
 					IUnit[] units = t.Tile.Units.Where(u => u != _unit).ToArray();
@@ -201,7 +201,7 @@ namespace CivOne.Screens
 					if (!Settings.RevealWorld && !t.Visible) continue;
 
 					City city = t.Tile.City;
-					if (city == null) continue;
+					if (city is null) continue;
 					
 					output.AddLayer(Icons.City(city), t.Position);
 					

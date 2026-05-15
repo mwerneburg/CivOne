@@ -36,7 +36,7 @@ namespace CivOne
 				if (value)
 					Settings.DisabledPlugins = Settings.DisabledPlugins.Where(x => x != _fileName).ToArray();
 				else
-					Settings.DisabledPlugins = Settings.DisabledPlugins.Concat(new [] { _fileName }).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray();
+					Settings.DisabledPlugins = Settings.DisabledPlugins.Concat([_fileName]).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray();
 
 				Reflect.ApplyPlugins();
 			}

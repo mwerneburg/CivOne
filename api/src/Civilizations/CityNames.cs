@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	public class CityNames : BaseAttribute
 	{
-		private static bool InRange(object value) => (value as string[]).Length == 16 && (value as string[]).All(x => x != null && x.Length >= 1 && x.Length <= 13);
+		private static bool InRange(object value) => (value as string[]).Length == 16 && (value as string[]).All(x => x is not null && x.Length >= 1 && x.Length <= 13);
 
 		public string[] Value => GetValue<string[]>();
 

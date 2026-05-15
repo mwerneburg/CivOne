@@ -22,7 +22,7 @@ namespace CivOne.UserInterface
 
 		private static IEnumerable<string> GetMenuItemTexts<T>(this Menu<T> menu)
 		{
-			if (menu.Title != null) yield return menu.Title;
+			if (menu.Title is not null) yield return menu.Title;
 			foreach (MenuItem<T> item in menu.Items)
 				yield return item.Text;
 		}
@@ -40,7 +40,7 @@ namespace CivOne.UserInterface
 
 		public static Menu<T> Always<T>(this Menu<T> menu, MenuItemEventHandler<T> action)
 		{
-			if (action != null)
+			if (action is not null)
 			{
 				foreach (MenuItem<T> item in menu.Items)
 				{

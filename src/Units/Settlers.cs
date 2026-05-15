@@ -99,7 +99,7 @@ namespace CivOne.Units
 				// There is already a RailRoad here, don't build another one
 				return false;
 			}
-			if (!tile.IsOcean && !tile.Road && tile.City == null)
+			if (!tile.IsOcean && !tile.Road && tile.City is null)
 			{
 				if ((tile is River) && !Game.CurrentPlayer.HasAdvance<BridgeBuilding>())
 					return false;
@@ -111,7 +111,7 @@ namespace CivOne.Units
 				PartMoves = 0;
 				return true;
 			}
-			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && !tile.RailRoad && tile.City == null)
+			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && !tile.RailRoad && tile.City is null)
 			{
 				BuildingRoad = 2;
 				MovesLeft = 0;
@@ -137,7 +137,7 @@ namespace CivOne.Units
 				PartMoves = 0;
 				return true;
 			}
-			else if ((tile.GetBorderTiles().Any(t => (t.X == X || t.Y == Y) && (t.City == null)
+			else if ((tile.GetBorderTiles().Any(t => (t.X == X || t.Y == Y) && (t.City is null)
 				&& (t.Irrigation || (t is River) || (t is Swamp)
 				    || (t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))))) || (tile is River))
 			{
@@ -154,7 +154,7 @@ namespace CivOne.Units
 			}
 			else
 			{
-				if (((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)) && tile.City == null)
+				if (((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)) && tile.City is null)
 				{
 					if (Human == Owner)
 						GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText("ERROR/NOWATER")));
@@ -185,7 +185,7 @@ namespace CivOne.Units
 				return false;
 
 			ITile tile = Map[X, Y];
-			if (!tile.IsOcean && !(tile.Fortress) && tile.City == null)
+			if (!tile.IsOcean && !(tile.Fortress) && tile.City is null)
 			{
 				BuildingFortress = 5;
 				MovesLeft = 0;
@@ -319,7 +319,7 @@ namespace CivOne.Units
 				else
 				{
 					ITile target = FindNearestCityPollution();
-					if (target != null)
+					if (target is not null)
 						Goto = new Point(target.X, target.Y);
 					else
 						AutoClean = false;
@@ -328,7 +328,7 @@ namespace CivOne.Units
 		}
 
 		private MenuItem<int> MenuFoundCity() => MenuItem<int>
-			.Create((Map[X, Y].City == null) ? "Found New City" : "Add to City")
+			.Create((Map[X, Y].City is null) ? "Found New City" : "Add to City")
 			.SetShortcut("b")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.FoundCity(this)));
 
@@ -370,7 +370,7 @@ namespace CivOne.Units
 				AutoClean = true;
 				Goto = Point.Empty;
 				ITile target = FindNearestCityPollution();
-				if (target != null)
+				if (target is not null)
 				{
 					if (target.X == X && target.Y == Y)
 						CleanPollution();
@@ -414,7 +414,7 @@ namespace CivOne.Units
 				{
 					yield return MenuCleanPollution();
 				}
-				if (!AutoClean && FindNearestCityPollution() != null)
+				if (!AutoClean && FindNearestCityPollution() is not null)
 				{
 					yield return MenuAutoCleanPollution();
 				}
@@ -426,7 +426,7 @@ namespace CivOne.Units
 				{
 					yield return MenuPillage();
 				}
-				if (tile.City != null)
+				if (tile.City is not null)
 				{
 					yield return MenuHomeCity();
 				}

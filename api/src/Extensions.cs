@@ -17,7 +17,7 @@ namespace CivOne
 	{
 		internal static bool HasAttribute<T>(this object checkObject) where T : Attribute
 		{
-			if (checkObject == null)
+			if (checkObject is null)
 				return false;
 			return Attribute.IsDefined(checkObject.GetType(), typeof(T));
 		}

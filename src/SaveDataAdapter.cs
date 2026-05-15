@@ -26,9 +26,9 @@ namespace CivOne
 		{
 			IUnit unit = Reflect.GetUnits().FirstOrDefault(u => u.Type == (UnitType)typeId);
 			SaveData.UnitType output = new SaveData.UnitType();
-			if (unit != null)
+			if (unit is not null)
 			{
-				SetArray<SaveData.UnitType>(ref output, nameof(SaveData.UnitType.Name), 12, new string[] { unit.Name });
+				SetArray<SaveData.UnitType>(ref output, nameof(SaveData.UnitType.Name), 12, [unit.Name]);
 				output.ObsoleteTechId = (ushort)(unit.ObsoleteTech?.Id ?? 0x7F);
 				output.TerrainCategory = (ushort)unit.Class;
 				output.TotalMoves = (ushort)unit.Move;

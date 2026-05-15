@@ -18,10 +18,10 @@ namespace CivOne
 	public abstract class GameTask : BaseInstance
 	{
 		private static GameTask _currentTask = null;
-		private static List<GameTask> _tasks = new List<GameTask>();
+		private static List<GameTask> _tasks = new();
 
 		public static bool Any() => (_tasks.Count > 0);
-		public static bool Is<T>() where T : GameTask => (_currentTask != null && _currentTask is T);
+		public static bool Is<T>() where T : GameTask => (_currentTask is not null && _currentTask is T);
 		public static bool Fast => Common.HasAttribute<Fast>(_currentTask);
 		public static int Count<T>() where T : GameTask => _tasks.Count(t => t is T);
 
@@ -51,7 +51,7 @@ namespace CivOne
 
 		public static bool Update()
 		{
-			if (_currentTask != null)
+			if (_currentTask is not null)
 			{
 				try
 				{
@@ -76,14 +76,14 @@ namespace CivOne
 
 		public static void Enqueue(GameTask task)
 		{
-			if (task == null) return;
+			if (task is null) return;
 			task.Done += Finish;
 			_tasks.Add(task);
 		}
 
 		public static void Insert(GameTask task)
 		{
-			if (task == null) return;
+			if (task is null) return;
 			task.Done += Finish;
 			_tasks.Insert(0, task);
 		}
@@ -114,7 +114,7 @@ namespace CivOne
 
 		protected void EndTask()
 		{
-			if (Done == null) return;
+			if (Done is null) return;
 			Done(this, null);
 			Done = null;
 		}

@@ -269,7 +269,7 @@ namespace CivOne.Screens.Reports
 		public ScienceReport() : base("SCIENCE REPORT", 1)
 		{
 			// Research progress bar (positioned just below the header)
-			if (Human.CurrentResearch != null)
+			if (Human.CurrentResearch is not null)
 			{
 				double w = 8.0;
 				while (w * Human.ScienceCost > Width - 40 && w > 0.1) w -= 0.1;
@@ -298,7 +298,7 @@ namespace CivOne.Screens.Reports
 			BuildLayout();
 
 			// Start scroll so the current research (or earliest locked tech) is in view.
-			if (Human.CurrentResearch != null &&
+			if (Human.CurrentResearch is not null &&
 			    _nodeIdx.TryGetValue(Human.CurrentResearch.Id, out int idx))
 			{
 				_scrollX = Math.Max(0, _nodes[idx].X - Width / 3);

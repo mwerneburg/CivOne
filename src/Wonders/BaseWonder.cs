@@ -50,10 +50,10 @@ namespace CivOne.Wonders
 			{
 				yy += 8;
 				string requiredTech = "";
-				if (RequiredTech != null) requiredTech = RequiredTech.Name;
-				output.DrawText(string.Format("Requires {0}", requiredTech), 6, 9, 12, yy); yy += 8;
-				output.DrawText(string.Format("Cost: {0}0 shields.", Price), 6, 9, 12, yy); yy += 8;
-				output.DrawText(string.Format("Maintenance: ${0}", 0), 6, 12, 12, yy);
+				if (RequiredTech is not null) requiredTech = RequiredTech.Name;
+				output.DrawText($"Requires {requiredTech}", 6, 9, 12, yy); yy += 8;
+				output.DrawText($"Cost: {Price}0 shields.", 6, 9, 12, yy); yy += 8;
+				output.DrawText("Maintenance: $0", 6, 12, 12, yy);
 			}
 			
 			return output;
@@ -86,7 +86,7 @@ namespace CivOne.Wonders
 		{
 			string name = Id < 8 ? $"The {Name}" : Name;
 			string preposition = Id < 7 ? "of" : "in";
-			if (city != null && city.Size > 0)
+			if (city is not null && city.Size > 0)
 				return $"{name} {preposition} {city.Name}. ({Game.Instance.GetPlayer(city.Owner).Civilization.NamePlural})";
 			return $"{name} (Destroyed)";
 		}

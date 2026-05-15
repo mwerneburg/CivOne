@@ -38,7 +38,7 @@ namespace CivOne.Screens.CityManagerPanels
 
 					output.AddLayer(_units[i].ToBitmap(), xx, yy);
 					string homeCity = "NON.";
-					if (_units[i].Home != null)
+					if (_units[i].Home is not null)
 					{
 						homeCity = _units[i].Home.Name;
 						if (homeCity.Length >= 3)
@@ -90,7 +90,7 @@ namespace CivOne.Screens.CityManagerPanels
 				for (int ry = 0; ry < 5; ry++)
 				{
 					ITile tile = radius[rx, ry];
-					if (tile == null) continue;
+					if (tile is null) continue;
 
 					int px = OX + rx * TW;
 					int py = OY + ry * TH;

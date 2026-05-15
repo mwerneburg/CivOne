@@ -17,7 +17,7 @@ namespace CivOne.IO
 	{
 		private class ByteList
 		{
-			private readonly List<byte> _byteList = new List<byte>();
+			private readonly List<byte> _byteList = new();
 			private sbyte _byteNumber = 0;
 			private byte _byte = 0;
 
@@ -67,7 +67,7 @@ namespace CivOne.IO
 
 		private static void DecodeDictionary(bool clearEnd, int minBits, out Dictionary<int, byte[]> dictionary, out List<string> valueList)
 		{
-			dictionary = Enumerable.Range(0, 1 << minBits).ToDictionary(x => x, x => new byte[] { (byte)x });
+			dictionary = Enumerable.Range(0, 1 << minBits).ToDictionary(x => x, x => (byte[])[(byte)x]);
 			dictionary.Add(dictionary.Count, new byte[0]);
 			if (clearEnd)
 			{
@@ -194,7 +194,7 @@ namespace CivOne.IO
 					dictionary.Add(string.Join(",", newEntry), dictionary.Count);
 				}
 				
-				entry = new byte[] { input[i] };
+				entry = [input[i]];
 			}
 
 			if (entry.Length > 0)

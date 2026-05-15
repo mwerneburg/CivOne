@@ -94,7 +94,7 @@ namespace CivOne.Screens.CityManagerPanels
 			for (int yy = 0; yy < 5; yy++)
 			{
 				ITile tile = tiles[xx, yy];
-				if (tile == null) continue;
+				if (tile is null) continue;
 
 				int px = (xx * _tileSize) + 1;
 				int py = (yy * _tileSize) + 1;
@@ -137,7 +137,7 @@ namespace CivOne.Screens.CityManagerPanels
 
 			_city.SetResourceTile(_city.CityRadius[tileX, tileY]);
 			_update = true;
-			if (MapUpdate != null) MapUpdate(this, null);
+			if (MapUpdate is not null) MapUpdate(this, null);
 			return true;
 		}
 

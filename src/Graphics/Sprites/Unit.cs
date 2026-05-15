@@ -30,7 +30,7 @@ namespace CivOne.Graphics.Sprites
 
 			IBitmap baseSprite = BaseSprite(unit.Type);
 			Bytemap output;
-			if (baseSprite != null)
+			if (baseSprite is not null)
 			{
 				output = baseSprite.MatchColours(Common.DefaultPalette, 1, 15);
 			}

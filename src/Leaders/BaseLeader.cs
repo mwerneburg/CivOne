@@ -57,11 +57,11 @@ namespace CivOne.Leaders
 
 		private Picture LoadPngPortrait()
 		{
-			if (_pngPortrait != null) return _pngPortrait;
+			if (_pngPortrait is not null) return _pngPortrait;
 			string path = LeaderArtPath(Name);
-			if (path == null) return null;
+			if (path is null) return null;
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
-			if (rgba == null) return null;
+			if (rgba is null) return null;
 			Palette pal = Common.DefaultPalette;
 			CassetteTheme.ApplyTo(pal);
 			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
@@ -77,24 +77,24 @@ namespace CivOne.Leaders
 		public Picture GetPortrait(FaceState state = FaceState.Neutral)
 		{
 			Picture png = LoadPngPortrait();
-			if (png != null) return png;
+			if (png is not null) return png;
 
 			if (_modifications.ContainsKey(Leader))
 			{
-				if (_modifiedPicture == null)
+				if (_modifiedPicture is null)
 				{
-					_modifiedPicture = _modifications[Leader].LastOrDefault(x => x.Portrait != null && x.Portrait.GifToBitmap() != null)?.Portrait.GifToBitmap();
+					_modifiedPicture = _modifications[Leader].LastOrDefault(x => x.Portrait is not null && x.Portrait.GifToBitmap() is not null)?.Portrait.GifToBitmap();
 				}
 
-				if (_modifiedPicture != null && _modifiedPicture.Width() == 139 && _modifiedPicture.Height() == 133)
+				if (_modifiedPicture is not null && _modifiedPicture.Width() == 139 && _modifiedPicture.Height() == 133)
 				{
 					return GFX256 ? _modifiedPicture.MakePalette(64, 16) : _modifiedPicture.MakePalette(1, 15);
 				}
 			}
 
-			if (_picFile == null) return new Picture(139, 133, Common.GetPalette256);
+			if (_picFile is null) return new Picture(139, 133, Common.GetPalette256);
 
-			if (_picture == null)
+			if (_picture is null)
 			{
 				_picture = Resources[_picFile];
 			}
@@ -121,12 +121,12 @@ namespace CivOne.Leaders
 			{
 				if (_modifications.ContainsKey(Leader))
 				{
-					if (_modifiedPortraitSmall == null)
+					if (_modifiedPortraitSmall is null)
 					{
-						_modifiedPortraitSmall = _modifications[Leader].LastOrDefault(x => x.PortraitSmall != null && x.PortraitSmall.GifToBitmap() != null)?.PortraitSmall.GifToBitmap();
+						_modifiedPortraitSmall = _modifications[Leader].LastOrDefault(x => x.PortraitSmall is not null && x.PortraitSmall.GifToBitmap() is not null)?.PortraitSmall.GifToBitmap();
 					}
 
-					if (_modifiedPortraitSmall != null && _modifiedPortraitSmall.Width() == 27 && _modifiedPortraitSmall.Height() == 33)
+					if (_modifiedPortraitSmall is not null && _modifiedPortraitSmall.Width() == 27 && _modifiedPortraitSmall.Height() == 33)
 					{
 						return new Picture(_modifiedPortraitSmall.MatchColours(Resources["SLAM2"].Palette, 1, 255), Resources["SLAM2"].Palette);
 					}

@@ -50,7 +50,7 @@ namespace CivOne.Screens.Reports
 				int hh = 16;
 
 				byte colour = 12;
-				if (city != null && city.Size > 0)
+				if (city is not null && city.Size > 0)
 					colour = Common.ColourLight[city.Owner];
 				this.FillRectangle(xx, yy, ww, hh, colour)
 					.FillRectangle(xx + 1, yy + 1, ww - 2, hh - 2, 3)

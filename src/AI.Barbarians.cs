@@ -87,7 +87,7 @@ namespace CivOne
 						.OrderBy(x => Common.DistanceToTile(x.X, x.Y, unit.X, unit.Y))
 						.FirstOrDefault();
 
-					if (nearestCity == null
+					if (nearestCity is null
 					    || Common.DistanceToTile(unit.X, unit.Y, nearestCity.X, nearestCity.Y) > 10)
 					{
 						Game.DisbandUnit(unit);
@@ -106,7 +106,7 @@ namespace CivOne
 				if (!unit.Goto.IsEmpty)
 				{
 					ITile next = Common.GotoStep(unit);
-					if (next == null)
+					if (next is null)
 					{
 						// No path to current target — give up for this turn.
 						unit.Goto = Point.Empty;
@@ -134,7 +134,7 @@ namespace CivOne
 			if (unit.Tile.IsOcean && unit.Tile.GetBorderTiles().Where(x => !x.IsOcean && !IsPolarTile(x)).All(x => x.Units.Any(u => u.Owner != 0)))
 			{
 				IUnit ship = unit.Tile.Units.FirstOrDefault(u => u.Class == UnitClass.Water && u.MovesLeft > 0);
-				if (ship != null)
+				if (ship is not null)
 				{
 					ITile[] landTiles = unit.Tile.GetBorderTiles().Where(x => !x.IsOcean && !IsPolarTile(x) && x.Units.Any(u => u.Owner != 0)).ToArray();
 					if (landTiles.Length > 0)
@@ -175,7 +175,7 @@ namespace CivOne
 				}
 			}
 
-			ITile[] tiles = unit.Tile.GetBorderTiles().Where(t => !((unit.Tile.IsOcean || unit is Diplomat) && t.City != null) && !t.IsOcean && !IsPolarTile(t) && t.Units.Any(u => u.Owner != 0)).ToArray();
+			ITile[] tiles = unit.Tile.GetBorderTiles().Where(t => !((unit.Tile.IsOcean || unit is Diplomat) && t.City is not null) && !t.IsOcean && !IsPolarTile(t) && t.Units.Any(u => u.Owner != 0)).ToArray();
 			if (tiles.Length == 0)
 			{
 				// No adjacent enemies — march toward the nearest civilization city.
@@ -185,14 +185,14 @@ namespace CivOne
 						.Where(c => c.Owner != 0)
 						.OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 						.FirstOrDefault();
-					if (target != null)
+					if (target is not null)
 						unit.Goto = new Point(target.X, target.Y);
 				}
 
 				if (!unit.Goto.IsEmpty)
 				{
 					ITile next = Common.GotoStep(unit);
-					if (next == null)
+					if (next is null)
 					{
 						// Arrived or path blocked — re-evaluate next turn.
 						unit.Goto = Point.Empty;
@@ -218,7 +218,7 @@ namespace CivOne
 				int relY = moveTo.Y - unit.Y;
 				while (relX < -1) relX += Map.WIDTH;
 				while (relX > 1) relX -= Map.WIDTH;
-				if (unit is Diplomat && unit.Tile.City != null) { unit.SkipTurn(); return; }
+				if (unit is Diplomat && unit.Tile.City is not null) { unit.SkipTurn(); return; }
 
 				if (!unit.MoveTo(relX, relY))
 					unit.SkipTurn();

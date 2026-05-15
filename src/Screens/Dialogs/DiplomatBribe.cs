@@ -48,7 +48,7 @@ namespace CivOne.Screens.Dialogs
 		{
 			City capital = unitToBribe.Player.Cities.Where(c => c.HasBuilding(new Palace())).FirstOrDefault();
 
-			int distance = capital == null ? 16 : unitToBribe.Tile.DistanceTo(capital);
+			int distance = capital is null ? 16 : unitToBribe.Tile.DistanceTo(capital);
 			
 			return ((unitToBribe.Player.Gold + 750) / (distance + 2)) * unitToBribe.Price;
 		}

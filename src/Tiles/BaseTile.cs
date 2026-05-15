@@ -26,7 +26,7 @@ namespace CivOne.Tiles
 			{
 				int terrainId = (int)Type;
 				if (terrainId == 12) terrainId = 2;
-				if (_icons[terrainId] == null)
+				if (_icons[terrainId] is null)
 				{
 					switch (Type)
 					{
@@ -145,14 +145,14 @@ namespace CivOne.Tiles
 				switch (type)
 				{
 					case Terrain.Ocean:
-						foreach (Direction direction in new[] { North, East, South, West })
+						foreach (Direction direction in (Direction[])[North, East, South, West])
 						{
 							if (this.GetBorderType(direction) != Terrain.Ocean)
 								output += (byte)direction;
 						}
 						break;
 					case Terrain.River:
-						foreach (Direction direction in new[] { North, East, South, West })
+						foreach (Direction direction in (Direction[])[North, East, South, West])
 						{
 							Terrain borderType;
 							if ((borderType = this.GetBorderType(direction)) == type || borderType == Terrain.Ocean)
@@ -160,7 +160,7 @@ namespace CivOne.Tiles
 						}
 						break;
 					default:
-						foreach (Direction direction in new[] { North, East, South, West })
+						foreach (Direction direction in (Direction[])[North, East, South, West])
 						{
 							if (this.GetBorderType(direction) == type)
 								output += (byte)direction;

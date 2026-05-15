@@ -202,7 +202,7 @@ namespace CivOne.Screens
 			if (_difficulty == -1) MenuDifficulty();
 			else if (_competition == -1) MenuCompetition();
 			else if (_tribe == -1) MenuTribe();
-			else if (_leaderName == null) InputLeaderName();
+			else if (_leaderName is null) InputLeaderName();
 			else if (!_done)
 			{
 				if (_showIntroText) return false;
@@ -267,7 +267,7 @@ namespace CivOne.Screens
 				return true;
 			}
 			
-			if (_tribe != -1 && _tribeName == null)
+			if (_tribe != -1 && _tribeName is null)
 			{
 				DrawInputBox("Name of your Tribe...");
 				return true;
@@ -289,7 +289,7 @@ namespace CivOne.Screens
 					this.AddLayer(DifficultyPicture, OffsetX + 22 + (i * 2), OffsetY + 100 + (i * 3));
 				}
 				
-				if (_tribe != -1 && _leaderName == null)
+				if (_tribe != -1 && _leaderName is null)
 				{
 					this.DrawText(_tribeNamePlural, 6, 15, OffsetX + 47, OffsetY + 92, TextAlign.Center);
 					DrawInputBox("Your Name...");
@@ -301,7 +301,7 @@ namespace CivOne.Screens
 		
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			if (_tribe != -1 && _leaderName == null)
+			if (_tribe != -1 && _leaderName is null)
 			{
 				if (args.Key == Key.Enter)
 				{
@@ -326,7 +326,7 @@ namespace CivOne.Screens
 		private void Resize(object sender, ResizeEventArgs args)
 		{
 			this.FillRectangle(0, 0, args.Width, args.Height, 5);
-			if (_leaderName == null)
+			if (_leaderName is null)
 			{
 				CloseMenus();
 			}
@@ -355,10 +355,10 @@ namespace CivOne.Screens
 			this.AddLayer(_background);
 			
 			if (Settings.Instance.DeityEnabled)
-				_menuItemsDifficulty = new[] { "Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor", "Deity (toughest)" };
+				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor", "Deity (toughest)"];
 			else
-				_menuItemsDifficulty = new[] { "Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor (toughest)" };
-			_menuItemsCompetition = Enumerable.Range(3, 5).Reverse().Select(i => string.Format("{0} Civilizations", i)).ToArray();
+				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor (toughest)"];
+			_menuItemsCompetition = Enumerable.Range(3, 5).Reverse().Select(i => $"{i} Civilizations").ToArray();
 		}
 	}
 }

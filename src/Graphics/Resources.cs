@@ -24,11 +24,11 @@ namespace CivOne.Graphics
 
 		private static void Log(string text, params object[] parameters) => RuntimeHandler.Runtime.Log(text, parameters);
 
-		private readonly Dictionary<string, Picture> _cache = new Dictionary<string, Picture>();
-		private readonly Dictionary<string, Bytemap> _textCache = new Dictionary<string, Bytemap>();
+		private readonly Dictionary<string, Picture> _cache = new();
+		private readonly Dictionary<string, Bytemap> _textCache = new();
 		private readonly IFont _defaultFont = new DefaultFont();
-		private readonly List<Fontset> _fonts = new List<Fontset>();
-		private readonly Dictionary<Direction, IBitmap> _fog = new Dictionary<Direction, IBitmap>();
+		private readonly List<Fontset> _fonts = new();
+		private readonly Dictionary<Direction, IBitmap> _fog = new();
 		
 		internal void ClearTextCache() => _textCache.Clear();
 		
@@ -48,7 +48,7 @@ namespace CivOne.Graphics
 				fs.Read(file, 0, file.Length);
 			}
 			
-			List<ushort> fontOffsets = new List<ushort>();
+			List<ushort> fontOffsets = new();
 			int index = 0;
 			uint fontCount = BitConverter.ToUInt16(file, index);
 			index += 2;
@@ -90,9 +90,9 @@ namespace CivOne.Graphics
 		
 		public Picture GetText(string text, int font, byte colourFirstLetter, byte colour)
 		{
-			if (text == null) text = "[MISSING STRING]";
+			if (text is null) text = "[MISSING STRING]";
 
-			List<Bytemap> letters = new List<Bytemap>();
+			List<Bytemap> letters = new();
 			bool isFirstLetter = true;
 			foreach (char c in text)
 			{
@@ -135,7 +135,7 @@ namespace CivOne.Graphics
 		
 		private Bytemap GetLetter(byte colour, int font, char letter)
 		{
-			string key = string.Format("letter{0}|{1}|{2}", colour, font, letter);
+			string key = $"letter{colour}|{font}|{letter}";
 			if (!_textCache.ContainsKey(key))
 			{
 				_textCache.Add(key, Font(font).GetLetter(letter, colour));
@@ -151,7 +151,7 @@ namespace CivOne.Graphics
 		
 		internal string[] GetCivilopediaText(string name)
 		{
-			List<string> textLines = new List<string>();
+			List<string> textLines = new();
 			string text = string.Join(" ", TextFile.Instance.GetGameText(name));
 			string t = "";
 			while (text.Length > 0)
@@ -183,7 +183,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_worldMapTiles == null)
+				if (_worldMapTiles is null)
 				{
 					Picture sp299 = Instance["SP299"];
 					_worldMapTiles = new Picture(48, 8, sp299.Palette);
@@ -205,7 +205,7 @@ namespace CivOne.Graphics
 				
 				Picture output = null;
 				PicFile picFile = new PicFile(filename);
-				if ((Settings.GraphicsMode == GraphicsMode.Graphics256 && picFile.GetPicture256 != null) || picFile.GetPicture16 == null)
+				if ((Settings.GraphicsMode == GraphicsMode.Graphics256 && picFile.GetPicture256 is not null) || picFile.GetPicture16 is null)
 				{
 					output = new Picture(picFile.GetPicture256, picFile.GetPalette256);
 				}
@@ -219,7 +219,7 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static Dictionary<int, Picture> _palacePart = new Dictionary<int, Picture>();
+		private static Dictionary<int, Picture> _palacePart = new();
 		public Picture GetPalace(PalaceStyle style, PalacePart part, int level)
 		{
 			if (level == 0)
@@ -330,7 +330,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_instance == null)
+				if (_instance is null)
 				{
 					_instance = new Resources();
 				}

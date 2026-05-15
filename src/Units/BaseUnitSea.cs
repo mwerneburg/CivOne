@@ -28,7 +28,7 @@ namespace CivOne.Units
 			if (!(this is IBoardable) || !previousTile.Units.Any(u => u.Class == UnitClass.Land)) yield break;
 
 			IUnit[] moveUnits = previousTile.Units.Where(u => u.Class == UnitClass.Land).ToArray();
-			if (previousTile.City != null)
+			if (previousTile.City is not null)
 				moveUnits = moveUnits.Where(u => u.Sentry).ToArray();
 			moveUnits = moveUnits.Take((this as IBoardable).Cargo).ToArray();
 			foreach (IUnit unit in moveUnits)
@@ -107,7 +107,7 @@ namespace CivOne.Units
 				yield return MenuWait();
 				yield return MenuSentry();
 				yield return MenuGoTo();
-				if (Map[X, Y].City != null)
+				if (Map[X, Y].City is not null)
 				{
 					yield return MenuHomeCity();
 				}
@@ -123,7 +123,7 @@ namespace CivOne.Units
 		protected override bool ValidMoveTarget(ITile tile)
 		{
 			// Check whether the tile exists, is an ocean tile or contains a city.
-			return (tile != null && (tile.Type == Terrain.Ocean || tile.City != null));
+			return (tile is not null && (tile.Type == Terrain.Ocean || tile.City is not null));
 		}
 
 		public override void NewTurn()

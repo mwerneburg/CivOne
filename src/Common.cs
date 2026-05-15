@@ -46,17 +46,17 @@ namespace CivOne
 		public static IBuilding[] Buildings = Reflect.GetBuildings().ToArray();
 		public static IWonder[] Wonders = Reflect.GetWonders().ToArray();
 		public static ICivilization[] Civilizations => Reflect.GetCivilizations().ToArray();
-		public static byte[] ColourLight = new byte[] { 12, 15, 10, 9, 14, 11, 13, 7 };
-		public static byte[] ColourDark = new byte[] { 4, 7, 2, 1, 10, 3, 4, 8 };
+		public static byte[] ColourLight = [12, 15, 10, 9, 14, 11, 13, 7];
+		public static byte[] ColourDark = [4, 7, 2, 1, 10, 3, 4, 8];
 		
 		internal static IEnumerable<string> AllCityNames => Civilizations.Select(x => x.CityNames).SelectMany(x => x);
 
-		private static List<IScreen> _screens = new List<IScreen>();
+		private static List<IScreen> _screens = new();
 		internal static IScreen[] Screens => _screens.ToArray();
 
 		internal static bool HasAttribute<T>(object checkObject) where T : Attribute
 		{
-			if (checkObject == null)
+			if (checkObject is null)
 				return false;
 			return Attribute.IsDefined(checkObject.GetType(), typeof(T));
 		}
@@ -75,7 +75,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (TopScreen == null)
+				if (TopScreen is null)
 					return MouseCursor.None;
 				return TopScreen.Cursor;
 			}
@@ -86,7 +86,7 @@ namespace CivOne
 			get
 			{
 				GamePlay gamePlay = GamePlay;
-				if (gamePlay != null)
+				if (gamePlay is not null)
 					return gamePlay.MainPalette.Copy();
 				return Resources["SP257"].Palette.Copy();
 			}
@@ -162,7 +162,7 @@ namespace CivOne
 				if (sb.Length > 0 && i % 3 == 0) sb.Append(',');
 				sb.Append(input[i]);
 			}
-			return sb.ToString().TrimStart(new char[] { '0', ',' });
+			return sb.ToString().TrimStart(['0', ',']);
 		}
 
 		public static ushort YearToTurn(int year)
@@ -191,8 +191,8 @@ namespace CivOne
 			int year = TurnToYear(turn);
 			if (zeroAd && year == 1) year = 0;
 			if (year < 0)
-				return string.Format("{0} BC", -year);
-			return string.Format("{0} AD", year);
+				return $"{-year} BC";
+			return $"{year} AD";
 		}
 
 		public static string DifficultyName(int difficuly)
@@ -274,13 +274,13 @@ namespace CivOne
 					if (ny < 0 || ny >= h) continue;
 
 					ITile tile = map[nx, ny];
-					if (tile == null) continue;
+					if (tile is null) continue;
 
 					bool passable;
 					if (unit.Class == UnitClass.Land)
-						passable = !tile.IsOcean || tile.City != null;
+						passable = !tile.IsOcean || tile.City is not null;
 					else if (unit.Class == UnitClass.Water)
-						passable = tile.IsOcean || tile.City != null;
+						passable = tile.IsOcean || tile.City is not null;
 					else
 						passable = true;
 
@@ -333,7 +333,7 @@ namespace CivOne
 		
 		private static string[] BytesToArray(byte[] bytes, int maxLength)
 		{
-			List<string> output = new List<string>();
+			List<string> output = new();
 			StringBuilder sb = new StringBuilder();
 			foreach (byte b in bytes)
 			{
@@ -358,9 +358,9 @@ namespace CivOne
 		{
 			get
 			{
-				if (_palette16 == null)
+				if (_palette16 is null)
 				{
-					byte[] shades = new byte[] { 0, 104, 183, 255 };
+					byte[] shades = [0, 104, 183, 255];
 					_palette16 = new Colour[]
 					{
 						Colour.Transparent,
@@ -390,7 +390,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (_palette256 == null)
+				if (_palette256 is null)
 				{
 					_palette256 = new Palette(256);
 					for (int i = 0; i < 256; i++)

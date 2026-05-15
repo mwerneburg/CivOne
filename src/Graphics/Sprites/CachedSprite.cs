@@ -21,7 +21,7 @@ namespace CivOne.Graphics.Sprites
 		{
 			get
 			{
-				if (_bitmap == null)
+				if (_bitmap is null)
 					_bitmap = GetSprite();
 				return _bitmap;
 			}

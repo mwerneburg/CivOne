@@ -14,7 +14,7 @@ namespace CivOne.Screens
 {
 	public abstract partial class BaseScreen
 	{
-		protected readonly List<IMenu> _menus = new List<IMenu>();
+		protected readonly List<IMenu> _menus = new();
 
 		protected bool HasMenu => _menus.Any();
 		
@@ -28,10 +28,10 @@ namespace CivOne.Screens
 		{
 			foreach (IMenu menu in _menus)
 			{
-				if (menuId != null && menu.Id != menuId) continue;
+				if (menuId is not null && menu.Id != menuId) continue;
 				menu.Close();
 			}
-			_menus.RemoveAll(x => menuId == null || x.Id == menuId);
+			_menus.RemoveAll(x => menuId is null || x.Id == menuId);
 		}
 	}
 }

@@ -70,7 +70,7 @@ namespace CivOne.Screens.Dialogs
 
 			IAdvance advance = _diplomat.GetAdvanceToSteal(_enemyCity.Player);
 
-			if (advance == null)
+			if (advance is null)
 			{
 				GameTask.Insert(Message.General("No new technology found"));
 			}

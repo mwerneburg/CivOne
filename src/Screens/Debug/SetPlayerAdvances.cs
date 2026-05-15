@@ -113,19 +113,19 @@ namespace CivOne.Screens.Debug
 
 		private void PlayerAdvances_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			Destroy();
 		}
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_selectedPlayer == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedPlayer is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_civSelect);
 				return false;
 			}
-			else if (_selectedPlayer != null && Common.TopScreen.GetType() != typeof(Menu))
+			else if (_selectedPlayer is not null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AdvancesMenu();
 				AddMenu(_advanceSelect);

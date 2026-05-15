@@ -25,7 +25,7 @@ namespace CivOne.Screens.Reports
 		}
 
 		private readonly List<TransmissionRecord> _entries;
-		private readonly List<RowHit>             _rows = new List<RowHit>();
+		private readonly List<RowHit>             _rows = new();
 
 		private static string DisplayTitle(string type) => type switch
 		{
@@ -49,7 +49,7 @@ namespace CivOne.Screens.Reports
 				"ProbeResult"         => new ProbeResultTransmission(entry.Year, Game.Instance.VisitorType, Game.Instance.ProbeOutcomeTier),
 				_                    => null
 			};
-			if (screen != null)
+			if (screen is not null)
 				Common.AddScreen(screen);
 		}
 

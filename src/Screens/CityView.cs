@@ -340,7 +340,7 @@ namespace CivOne.Screens
 
 		private void DrawWonder<T>(Picture picture = null, int x = -1, int y = -1) where T : IWonder
 		{
-			if (picture == null) picture = _background;
+			if (picture is null) picture = _background;
 
 			if (typeof(T) == typeof(Pyramids))
 			{
@@ -423,7 +423,7 @@ namespace CivOne.Screens
 
 		private void DrawBuilding<T>(Picture picture = null, int x = -1, int y = -1) where T : IBuilding
 		{
-			if (picture == null) picture = _background;
+			if (picture is null) picture = _background;
 
 			if (typeof(T) == typeof(Aqueduct))
 			{
@@ -609,13 +609,15 @@ namespace CivOne.Screens
 					cityMap[xx, yy] = CityViewMap.Road;
 				}
 
-				foreach (Type type in new Type[] {
+				foreach (Type type in (Type[])
+				[
 					typeof(Barracks), typeof(Granary), typeof(Temple), typeof(MarketPlace),
 					typeof(Library), typeof(Courthouse), typeof(Bank), typeof(Cathedral),
                     typeof(ObservatoryBuilding),
 					typeof(UniversityBuilding), typeof(Colosseum), typeof(Factory), typeof(MfgPlant),
 					typeof(SdiDefense), typeof(RecyclingCenter), typeof(NuclearPlant),
-					typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage) })
+					typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage)
+				])
 				{
 					if (_city.HasBuilding(type) || _city.HasWonder(type))
 					{
@@ -958,7 +960,7 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			if (_noiseMap != null)
+			if (_noiseMap is not null)
 			{
 				if (_noiseCounter > 0)
 				{
@@ -1006,7 +1008,7 @@ namespace CivOne.Screens
 			if (_fadeStep != 0.0F && _fadeStep != 1.0F) return false;
 			if (_noiseCounter > 0 && _noiseCounter < NOISE_COUNT) return false;
 			Destroy();
-			if (Skipped != null)
+			if (Skipped is not null)
 				Skipped(this, null);
 			else
 				HandleClose();
@@ -1137,7 +1139,7 @@ namespace CivOne.Screens
 			}
 
 			// ── production complete noise wipe ────────────────────────────────
-			if (production != null)
+			if (production is not null)
 			{
 				_noiseMap = new byte[320, 200];
 				for (int x = 0; x < 320; x++)
@@ -1153,7 +1155,7 @@ namespace CivOne.Screens
 					.DrawText(lines[0], 5, 6, _dialogText)
 					.DrawText(lines[1], 5, 21, _dialogText)
 					.As<Picture>();
-				foreach (var pic in new[] { _background, _overlay })
+				foreach (var pic in (Picture[])[_background, _overlay])
 					pic.AddLayer(dialog, 80, 10);
 				return;
 			}

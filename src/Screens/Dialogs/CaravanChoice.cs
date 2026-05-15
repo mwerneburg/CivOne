@@ -45,7 +45,7 @@ namespace CivOne.Screens.Dialogs
 			Destroy();
 		}
 
-		private bool AllowEstablishTradeRoute => (_unit.Home == null) || (_unit.Home.Tile.DistanceTo(_city) >= 10);
+		private bool AllowEstablishTradeRoute => (_unit.Home is null) || (_unit.Home.Tile.DistanceTo(_city) >= 10);
 
 		private int ChoiceCount => (_city.CurrentProduction is IWonder) ? 3 : 2;
 

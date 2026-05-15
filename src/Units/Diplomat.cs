@@ -29,7 +29,7 @@ namespace CivOne.Units
 		{
 			City capital = cityToIncite.Player.Cities.Where(c => c.HasBuilding(new Palace())).FirstOrDefault();
 
-			int distance = capital == null ? 16 : cityToIncite.Tile.DistanceTo(capital);
+			int distance = capital is null ? 16 : cityToIncite.Tile.DistanceTo(capital);
 			
 			int cost = (cityToIncite.Player.Gold + 1000) / (distance + 3);
 
@@ -73,7 +73,7 @@ namespace CivOne.Units
 		{
 			ITile moveTarget = Map[X, Y][relX, relY];
 
-			if (moveTarget.City != null)
+			if (moveTarget.City is not null)
 			{
 				if (Human == Owner)
 				{
@@ -96,7 +96,7 @@ namespace CivOne.Units
 
 					IAdvance advance = !target.TechStolen ? GetAdvanceToSteal(target.Player) : null;
 
-					if (advance != null)
+					if (advance is not null)
 					{
 						// Steal technology — notify if the human is involved on either side
 						GameTask task = new Tasks.GetAdvance(Player, advance);

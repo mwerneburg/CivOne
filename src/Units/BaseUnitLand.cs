@@ -34,7 +34,7 @@ namespace CivOne.Units
 			{
 				IUnit next = previousTile.Units
 					.FirstOrDefault(u => u != this && u.Class == UnitClass.Land && !u.Sentry && (u.MovesLeft > 0 || u.PartMoves > 0));
-				if (next != null)
+				if (next is not null)
 					Game.Instance.ActiveUnit = next;
 			}
 
@@ -47,14 +47,14 @@ namespace CivOne.Units
 			}
 
 			bool riverBonus = previousTile is River && Tile is River;
-			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City != null;
-			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City != null;
+			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City is not null;
+			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City is not null;
 			if (prevConnected && currConnected || riverBonus)
 			{
 				// Cities are railroad waypoints: city→rail and rail→city cost 0 moves, just like rail→rail.
 				// City→city and road segments cost 1/3 move (road speed).
-				bool srcRail = previousTile.RailRoad || previousTile.City != null;
-				bool dstRail = Tile.RailRoad || Tile.City != null;
+				bool srcRail = previousTile.RailRoad || previousTile.City is not null;
+				bool dstRail = Tile.RailRoad || Tile.City is not null;
 				if (srcRail && dstRail && (previousTile.RailRoad || Tile.RailRoad))
 				{
 					// No moves lost
@@ -164,7 +164,7 @@ namespace CivOne.Units
 						{
 							foreach (ITile tile in Map[X, Y].GetBorderTiles())
 							{
-								if (tile.City != null || tile.Units.Length > 0) continue;
+								if (tile.City is not null || tile.Units.Length > 0) continue;
 								if (Common.Random.Next(0, 10) < 6) continue;
 								if (tile.IsOcean) continue;
 								Game.Instance.CreateUnit(Common.Random.Next(0, 100) < 50 ? UnitType.Cavalry : UnitType.Legion, tile.X, tile.Y, 0, true);
@@ -231,12 +231,12 @@ namespace CivOne.Units
 				{
 					yield return MenuPillage();
 				}
-				if (Map[X, Y].City != null)
+				if (Map[X, Y].City is not null)
 				{
 					yield return MenuHomeCity();
 				}
 				var upgrade = MenuUpgrade();
-				if (upgrade != null)
+				if (upgrade is not null)
 				{
 					yield return null;
 					yield return upgrade;
@@ -248,7 +248,7 @@ namespace CivOne.Units
 
 		protected override bool ValidMoveTarget(ITile tile)
 		{
-			if (tile == null)
+			if (tile is null)
 				return false;
 
 			// If the tile is not an ocean tile, movement is allowed

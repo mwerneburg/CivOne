@@ -107,7 +107,7 @@ namespace CivOne.Graphics
 		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap layer, Point point, bool dispose = false) => AddLayer(bitmap, layer, point.X, point.Y, dispose);
 		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap layer, int left = 0, int top = 0, bool dispose = false)
 		{
-			if (layer == null) return bitmap;
+			if (layer is null) return bitmap;
 			AddLayer(bitmap, layer.Bitmap, left, top, false);
 			if (dispose) layer.Dispose();
 			return bitmap;
@@ -115,7 +115,7 @@ namespace CivOne.Graphics
 		public static IBitmap AddLayer(this IBitmap bitmap, Bytemap layer, Point point, bool dispose = false) => AddLayer(bitmap, layer, point.X, point.Y, dispose);
 		public static IBitmap AddLayer(this IBitmap bitmap, Bytemap layer, int left = 0, int top = 0, bool dispose = false)
 		{
-			if (layer == null) return bitmap;
+			if (layer is null) return bitmap;
 			for (int yy = 0; yy < layer.Height; yy++)
 			{
 				if (top + yy >= bitmap.Height()) break;
@@ -143,7 +143,7 @@ namespace CivOne.Graphics
 		public static IBitmap Tile(this IBitmap bitmap, Bytemap layer, Point point, Size size) => Tile(bitmap, layer, point.X, point.Y, size.Width, size.Height);
 		public static IBitmap Tile(this IBitmap bitmap, Bytemap layer, int left = 0, int top = 0, int width = -1, int height = -1)
 		{
-			if (layer == null) return bitmap;
+			if (layer is null) return bitmap;
 			if (width == -1) width = bitmap.Width() - left;
 			if (height == -1) height = bitmap.Height() - top;
 			for (int yy = 0; yy < height; yy++)
@@ -175,7 +175,7 @@ namespace CivOne.Graphics
 		public static IBitmap DrawText(this IBitmap bitmap, string text, int x = 0, int y = 0, TextSettings settings = null)
 		{
 			if (string.IsNullOrWhiteSpace(text)) return bitmap;
-			if (settings == null)
+			if (settings is null)
 			{
 				if (bitmap is IDefaultTextSettings)
 					settings = (bitmap as IDefaultTextSettings).DefaultTextSettings;

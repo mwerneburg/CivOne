@@ -21,7 +21,7 @@ namespace CivOne.Buildings
 		{
 			Name = "Power Plant";
 			RequiredTech = new Refining();
-			if (_iconCache == null)
+			if (_iconCache is null)
 			{
 				SetIcon(4, 1, false);
 				Picture icon = new Picture(52, 50, Icon.Palette);

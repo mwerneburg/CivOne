@@ -33,7 +33,7 @@ namespace CivOne.IO
 		public static Bytemap AddLayer(this Bytemap bytemap, Bytemap layer, Point point) => AddLayer(bytemap, layer, point.X, point.Y);
 		public static Bytemap AddLayer(this Bytemap bytemap, Bytemap layer, int left = 0, int top = 0)
 		{
-			if (layer == null) return bytemap;
+			if (layer is null) return bytemap;
 
 			for (int yy = 0; yy < layer.Height; yy++)
 			{
@@ -51,7 +51,7 @@ namespace CivOne.IO
 		public static Bytemap ColourReplace(this Bytemap bytemap, byte from, byte to) => ColourReplace(bytemap, (from, to));
 		public static Bytemap ColourReplace(this Bytemap bytemap, params (byte From, byte To)[] fromToColours)
 		{
-			if (fromToColours == null) return bytemap;
+			if (fromToColours is null) return bytemap;
 
 			for (int yy = 0; yy < bytemap.Height; yy++)
 			for (int xx = 0; xx < bytemap.Width; xx++)

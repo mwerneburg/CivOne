@@ -77,7 +77,7 @@ namespace CivOne.Graphics.ImageFormats
 						g = _palette[i].G;
 						b = _palette[i].B;
 					}
-					writer.Write(new byte[] { r, g, b });
+					writer.Write((byte[])[r, g, b]);
 				}
 
 				// Image Descriptor
@@ -111,7 +111,7 @@ namespace CivOne.Graphics.ImageFormats
 
 		public IBitmap GetBitmap()
 		{
-			if (_pixels == null || _palette == null)
+			if (_pixels is null || _palette is null)
 				return null;
 			return new Picture(_pixels, _palette);
 		}
@@ -203,7 +203,7 @@ namespace CivOne.Graphics.ImageFormats
 						break;
 					default:
 						int minCode = buffer[index++];
-						List<byte> lzwData = new List<byte>();
+						List<byte> lzwData = new();
 						foreach (byte[] data in InputBlock(buffer, index))
 						{
 							index += (data.Length + 2);

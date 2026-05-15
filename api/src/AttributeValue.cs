@@ -18,7 +18,7 @@ namespace CivOne
 
 		private AttributeValue(BaseAttribute attribute)
 		{
-			if (!(HasValue = (attribute != null && attribute.Valid))) return;
+			if (!(HasValue = (attribute is not null && attribute.Valid))) return;
 			Value = attribute.GetValue<T>();
 		}
 	}

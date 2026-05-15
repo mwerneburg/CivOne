@@ -131,8 +131,8 @@ namespace CivOne
 			{
 				CityData data = values[i];
 
-				byte[] fortifiedUnits = new byte[] { 0xFF, 0xFF };
-				if (data.FortifiedUnits != null) Array.Copy(data.FortifiedUnits, fortifiedUnits, new[] { data.FortifiedUnits.Length, 2 }.Min());
+				byte[] fortifiedUnits = [0xFF, 0xFF];
+				if (data.FortifiedUnits is not null) Array.Copy(data.FortifiedUnits, fortifiedUnits, new[] { data.FortifiedUnits.Length, 2 }.Min());
 
 				SetArray<SaveData.City>(ref cities[i], nameof(SaveData.City.Buildings), new byte[4].ToBitIds(0, 4, data.Buildings));
 				cities[i].X = data.X;
@@ -147,7 +147,7 @@ namespace CivOne
 				cities[i].Shields = data.Shields;
 				SetArray<SaveData.City>(ref cities[i], nameof(SaveData.City.ResourceTiles), data.ResourceTiles);
 				cities[i].NameId = data.NameId;
-				SetArray<SaveData.City>(ref cities[i], nameof(SaveData.City.TradingCities), new byte[] { 0xFF, 0xFF, 0xFF });
+				SetArray<SaveData.City>(ref cities[i], nameof(SaveData.City.TradingCities), [0xFF, 0xFF, 0xFF]);
 				SetArray<SaveData.City>(ref cities[i], nameof(SaveData.City.FortifiedUnits), fortifiedUnits);
 			}
 			SetArray<SaveData.City>(nameof(SaveData.Cities), cities);
@@ -205,7 +205,7 @@ namespace CivOne
 
 		private void SetReplayData(ReplayData[] values)
 		{
-			List<byte> output = new List<byte>();
+			List<byte> output = new();
 			foreach (ReplayData value in values)
 			{
 				byte entryId = 0;
@@ -214,7 +214,7 @@ namespace CivOne
 				{
 					case ReplayData.CivilizationDestroyed civDestroyed:
 						entryId = 0xD;
-						data = new byte[] { (byte)civDestroyed.DestroyedId, (byte)civDestroyed.DestroyedById };
+						data = [(byte)civDestroyed.DestroyedId, (byte)civDestroyed.DestroyedById];
 						break;
 					default:
 						continue;

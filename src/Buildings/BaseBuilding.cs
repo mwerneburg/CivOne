@@ -60,10 +60,10 @@ namespace CivOne.Buildings
 			{
 				yy += 8;
 				string requiredTech = "";
-				if (RequiredTech != null) requiredTech = RequiredTech.Name;
-				output.DrawText(string.Format("Requires {0}", requiredTech), 6, 9, 12, yy); yy += 8;
-				output.DrawText(string.Format("Cost: {0}0 shields.", Price), 6, 9, 12, yy); yy += 8;
-				output.DrawText(string.Format("Maintenance: ${0}", Maintenance), 6, 12, 12, yy);
+				if (RequiredTech is not null) requiredTech = RequiredTech.Name;
+				output.DrawText($"Requires {requiredTech}", 6, 9, 12, yy); yy += 8;
+				output.DrawText($"Cost: {Price}0 shields.", 6, 9, 12, yy); yy += 8;
+				output.DrawText($"Maintenance: ${Maintenance}", 6, 12, 12, yy);
 			}
 			
 			return output;
@@ -80,7 +80,7 @@ namespace CivOne.Buildings
 		
 		protected void SetIcon(int col, int row, bool grassTile)
 		{
-			if ((grassTile && _iconsCacheGrass[col, row] == null) || (!grassTile && _iconsCache[col, row] == null))
+			if ((grassTile && _iconsCacheGrass[col, row] is null) || (!grassTile && _iconsCache[col, row] is null))
 			{
 				Icon = new Picture(50, 50, Resources["CITYPIX2"].Palette);
 				

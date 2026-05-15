@@ -115,11 +115,11 @@ namespace CivOne.Screens
 					else _cursorPosition = _text.Length;
 					return true;
 				case Key.Escape:
-					if (Cancel != null)
+					if (Cancel is not null)
 						Cancel(this, null);
 					break;
 				case Key.Enter:
-					if (Accept != null)
+					if (Accept is not null)
 						Accept(this, null);
 					break;
 				case Key.Delete:

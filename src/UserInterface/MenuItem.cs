@@ -27,19 +27,19 @@ namespace CivOne.UserInterface
 
 		internal void Select()
 		{
-			if (Selected == null) return;
+			if (Selected is null) return;
 			Selected(this, _args);
 		}
 
 		internal void Help()
 		{
-			if (Selected == null) return;
+			if (Selected is null) return;
 			GetHelp(this, _args);
 		}
 
 		internal void Context()
 		{
-			if (RightClick == null)
+			if (RightClick is null)
 			{
 				Select();
 				return;

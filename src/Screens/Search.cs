@@ -50,7 +50,7 @@ namespace CivOne.Screens
 		{
 			City = Game.GetCities().FirstOrDefault(x => x.Name.ToLower().StartsWith(_input.Text.ToLower()) && Human.Visible(x.X, x.Y));
 			_done = true;
-			if (City == null)
+			if (City is null)
 			{
 				this.FillRectangle(64, 78, 224, 10, BG2)
 					.DrawText("Unknown city.", 0, ALERT, 82, 80)
@@ -59,7 +59,7 @@ namespace CivOne.Screens
 				((Input)sender).Close();
 				return;
 			}
-			if (Accept != null)
+			if (Accept is not null)
 				Accept(this, null);
 			((Input)sender).Close();
 			Close();
@@ -68,7 +68,7 @@ namespace CivOne.Screens
 		private void Search_Cancel(object sender, EventArgs args)
 		{
 			_done = true;
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			((Input)sender).Close();
 			Close();

@@ -45,10 +45,10 @@ namespace CivOne.Screens
 		private int ItemWidth(MenuItem<int> menuItem)
 		{
 			int width = 0;
-			if (menuItem != null)
+			if (menuItem is not null)
 			{
-				if (menuItem.Text != null) width += Resources.GetTextSize(0, menuItem.Text).Width;
-				if (menuItem.Shortcut != null) width += Resources.GetTextSize(0, menuItem.Shortcut).Width + 8;
+				if (menuItem.Text is not null) width += Resources.GetTextSize(0, menuItem.Text).Width;
+				if (menuItem.Shortcut is not null) width += Resources.GetTextSize(0, menuItem.Shortcut).Width + 8;
 			}
 			return width;
 		}
@@ -57,12 +57,12 @@ namespace CivOne.Screens
 
 		private void MenuItemDraw(MenuItem<int> menuItem, int x, int y, bool active = false)
 		{
-			if (menuItem == null || menuItem.Text == null) return;
+			if (menuItem is null || menuItem.Text is null) return;
 			byte colour = !menuItem.Enabled
 				? CassetteTheme.INK_MID
 				: active ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
 			this.DrawText(menuItem.Text, 0, colour, x, y, TextAlign.Left);
-			if (menuItem.Shortcut == null) return;
+			if (menuItem.Shortcut is null) return;
 			int textWidth = Resources.GetTextSize(0, menuItem.Text).Width;
 			byte shortcutColour = active ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 			this.DrawText(menuItem.Shortcut, 0, shortcutColour, x + textWidth + 8, y, TextAlign.Left);

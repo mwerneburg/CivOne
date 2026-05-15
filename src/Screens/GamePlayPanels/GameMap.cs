@@ -111,7 +111,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 			if ((gameTick % 2) == 0 && (_lastTurn != Game.GameTurn || _lastUnit != unit))
 			{
-				if (unit != null && Game.Human == unit.Owner)
+				if (unit is not null && Game.Human == unit.Owner)
 				{
 					if (!unit.Goto.IsEmpty)
 						CenterOnUnit();
@@ -125,13 +125,13 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 
 			// Check if the active unit is on the screen and the blink status has changed.
-			if (unit == null)
+			if (unit is null)
 			{
 				_update = true;
 				return false;
 			}
 
-			if (TileList.Any(t => t != null && t.X == unit.X && t.Y == unit.Y) && (gameTick % 2) == 0)
+			if (TileList.Any(t => t is not null && t.X == unit.X && t.Y == unit.Y) && (gameTick % 2) == 0)
 			{
 				_update = true;
 			}
@@ -155,12 +155,12 @@ namespace CivOne.Screens.GamePlayPanels
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!(_update || _fullRedraw)) return false;
-			if (Game.MovingUnit == null && (gameTick % 2 == 1)) return false;
+			if (Game.MovingUnit is null && (gameTick % 2 == 1)) return false;
 
 			Player renderPlayer = Settings.RevealWorld ? null : Human;
 
 			IUnit activeUnit = ActiveUnit;
-			if (Game.MovingUnit != null)
+			if (Game.MovingUnit is not null)
 			{
 				IUnit movingUnit = Game.MovingUnit;
 				ITile tile = movingUnit.Tile;
@@ -183,7 +183,7 @@ namespace CivOne.Screens.GamePlayPanels
 						.AddLayer(Map[movingUnit.X - 1, movingUnit.Y - 1, 3, 3].ToBitmap(player: renderPlayer), dx - 16, dy - 16, dispose: true);
 					Bytemap unitPicture = movingUnit.ToBitmap();
 					this.AddLayer(unitPicture, dx + movement.X, dy + movement.Y);
-					if (movingUnit is IBoardable && tile.Units.Any(u => u.Class == UnitClass.Land && (tile.City == null || (tile.City != null && u.Sentry))))
+					if (movingUnit is IBoardable && tile.Units.Any(u => u.Class == UnitClass.Land && (tile.City is null || (tile.City is not null && u.Sentry))))
 					{
 						this.AddLayer(unitPicture, dx + movement.X - 1, dy + movement.Y - 1);
 					}
@@ -198,7 +198,7 @@ namespace CivOne.Screens.GamePlayPanels
 					.AddLayer(Tiles.ToBitmap(player: renderPlayer), dispose: true);
 			}
 
-			if (activeUnit != null && Game.CurrentPlayer == Human && !GameTask.Any())
+			if (activeUnit is not null && Game.CurrentPlayer == Human && !GameTask.Any())
 			{
 				ITile tile = activeUnit.Tile;
 				int dx = GetX(tile);
@@ -240,14 +240,14 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private void CenterOnUnit()
 		{
-			if (Game.ActiveUnit == null) return;
+			if (Game.ActiveUnit is null) return;
 			CenterOnPoint(Game.ActiveUnit.X, Game.ActiveUnit.Y);
 		}
 
 		private bool ShouldCenter(int relX = 0, int relY = 0)
 		{
 			IUnit unit = Game.ActiveUnit;
-			if (unit == null) return false;
+			if (unit is null) return false;
 			int viewRange = 1;
 			if (unit.Class == UnitClass.Water)
 			{
@@ -264,7 +264,7 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			_helperDirection = new Point(0, 0);
 			
-			if (Game.ActiveUnit == null)
+			if (Game.ActiveUnit is null)
 				return false;
 			
 			return Game.ActiveUnit.MoveTo(relX, relY);
@@ -277,7 +277,7 @@ namespace CivOne.Screens.GamePlayPanels
 			{
 				case MoveUnit moveUnit:
 					IUnit unit = moveUnit.ActiveUnit;
-					if (unit == null || (Human != unit.Owner && !Game.EnemyMoves) || (!Settings.RevealWorld && Human != unit.Owner && !Human.Visible(unit.X, unit.Y)))
+					if (unit is null || (Human != unit.Owner && !Game.EnemyMoves) || (!Settings.RevealWorld && Human != unit.Owner && !Human.Visible(unit.X, unit.Y)))
 					{
 						args.Abort();
 						return;
@@ -292,7 +292,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private bool KeyDownActiveUnit(KeyboardEventArgs args)
 		{
-			if (Game.ActiveUnit == null || Game.ActiveUnit.Moving)
+			if (Game.ActiveUnit is null || Game.ActiveUnit.Moving)
 				return false;
 			
 			if (args.Key == Key.Space)
@@ -409,7 +409,7 @@ namespace CivOne.Screens.GamePlayPanels
 					GameTask.Enqueue(Orders.FoundCity(Game.ActiveUnit));
 					return true;
 				case 'C':
-					if (Game.ActiveUnit == null) break;
+					if (Game.ActiveUnit is null) break;
 					CenterOnUnit();
 					return true;
 				case 'D':
@@ -475,7 +475,7 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'W':
 				{
 					IUnit sleeping = Game.GetUnits().FirstOrDefault(u => Human == u.Owner && (u.Sentry || u.Fortify));
-					if (sleeping != null)
+					if (sleeping is not null)
 					{
 						sleeping.Busy    = false;
 						sleeping.MovesLeft = sleeping.Move;
@@ -486,7 +486,7 @@ namespace CivOne.Screens.GamePlayPanels
 				}
 			}
 
-			if (Game.ActiveUnit != null)
+			if (Game.ActiveUnit is not null)
 			{
 				return KeyDownActiveUnit(args);
 			}
@@ -518,7 +518,7 @@ namespace CivOne.Screens.GamePlayPanels
 			
 			if ((args.Buttons & MouseButton.Right) > 0)
 			{
-				if (Game.ActiveUnit != null && (Game.ActiveUnit as BaseUnit).MoveTargets.Any(t => t.X == xx && t.Y == yy))
+				if (Game.ActiveUnit is not null && (Game.ActiveUnit as BaseUnit).MoveTargets.Any(t => t.X == xx && t.Y == yy))
 				{
 					int relX = xx - Game.ActiveUnit.X;
 					int relY = yy - Game.ActiveUnit.Y;
@@ -535,7 +535,7 @@ namespace CivOne.Screens.GamePlayPanels
 			}
 			if ((args.Buttons & MouseButton.Left) > 0)
 			{
-				if (city != null && (Human == city.Owner || Settings.RevealWorld) && !GameTask.Any())
+				if (city is not null && (Human == city.Owner || Settings.RevealWorld) && !GameTask.Any())
 				{
 					Common.AddScreen(new CityManager(city));
 				}

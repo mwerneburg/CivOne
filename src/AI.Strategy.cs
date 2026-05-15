@@ -51,7 +51,7 @@ namespace CivOne
 				return StrategyStance.Militarize;
 
 			// Militarize: human player is running away — drop economic goals and arm up
-			if (HumanIsDominant() && Human != null && IsNeighbor(Human))
+			if (HumanIsDominant() && Human is not null && IsNeighbor(Human))
 				return StrategyStance.Militarize;
 
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
@@ -88,7 +88,7 @@ namespace CivOne
 		private bool HumanIsDominant()
 		{
 			Player human = Human;
-			if (human == null || human.IsDestroyed()) return false;
+			if (human is null || human.IsDestroyed()) return false;
 
 			Player[] aiPlayers = Game.Players
 			    .Where(p => Game.PlayerNumber(p) != 0 && !p.IsDestroyed() && p != human)
@@ -158,7 +158,7 @@ namespace CivOne
 			// Don't revolt while at war
 			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
 
-			if (BestGovernment() == null) return; // already optimal
+			if (BestGovernment() is null) return; // already optimal
 
 			// ~25 % chance per turn → roughly 4-turn lag before acting
 			if (Common.Random.Next(100) < 25)
@@ -175,7 +175,7 @@ namespace CivOne
 			if (Player.IsDestroyed()) return;
 
 			Player human = Human;
-			if (human == null || human == Player || human.IsDestroyed()) return;
+			if (human is null || human == Player || human.IsDestroyed()) return;
 
 			// Only approach if we've spotted at least one of their cities
 			if (!Game.GetCities().Any(c => c.Player == human && Player.Visible(c.X, c.Y))) return;
@@ -252,7 +252,7 @@ namespace CivOne
 				{
 					int own = MilitaryScore(Player);
 					Player human = Human;
-					if (own > 0 && human != null && !human.IsDestroyed()
+					if (own > 0 && human is not null && !human.IsDestroyed()
 					    && !Player.IsAtWar(human) && IsNeighbor(human)
 					    && !human.HasWonder<UnitedNations>())
 					{
@@ -331,7 +331,7 @@ namespace CivOne
 				int ty = center.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
-				if (t == null) continue;
+				if (t is null) continue;
 				score += t.Food * 2 + t.Shield + t.Trade;
 				if (t.IsOcean) score += 2;
 				if (t.Special)  score += 3;
@@ -350,7 +350,7 @@ namespace CivOne
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
 				if (t is River)             { score += 3; hasRiverNeighbor  = true; }
-				else if (t != null && t.IsOcean) hasCoastNeighbor = true;
+				else if (t is not null && t.IsOcean) hasCoastNeighbor = true;
 			}
 
 			// A river-mouth site combines irrigation, river trade, and ocean trade.
@@ -394,7 +394,7 @@ namespace CivOne
 				int ty = settlers.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile tile = Map[tx, ty];
-				if (tile == null || tile.IsOcean || tile.City != null) continue;
+				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (!Player.Visible(tx, ty)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;
@@ -420,14 +420,14 @@ namespace CivOne
 
 			// When the human is dominant and we're at war with them, hit their cities first.
 			Player human = Human;
-			if (HumanIsDominant() && human != null && Player.IsAtWar(human))
+			if (HumanIsDominant() && human is not null && Player.IsAtWar(human))
 			{
 				City humanCity = candidates
 				    .Where(c => c.Player == human)
 				    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 				    .ThenBy(c => Player.Cities.Min(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
 				    .FirstOrDefault();
-				if (humanCity != null) return humanCity;
+				if (humanCity is not null) return humanCity;
 			}
 
 			return candidates
@@ -451,11 +451,11 @@ namespace CivOne
 				int ty = target.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
-				if (t == null || t.IsOcean) continue;
+				if (t is null || t.IsOcean) continue;
 				// Don't stage on a tile already occupied by enemies
 				if (t.Units.Any(u => u.Owner != own)) continue;
 				int count = t.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack);
-				if (best == null || count > bestCount) { best = t; bestCount = count; }
+				if (best is null || count > bestCount) { best = t; bestCount = count; }
 			}
 			return best;
 		}
@@ -474,7 +474,7 @@ namespace CivOne
 				int ty = target.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
-				if (t != null && t.IsOcean) return t;
+				if (t is not null && t.IsOcean) return t;
 			}
 			return null;
 		}
@@ -495,7 +495,7 @@ namespace CivOne
 		{
 			byte own = Game.PlayerNumber(Player);
 			return city.Tile.GetBorderTiles()
-			           .Where(t => t != null && t.IsOcean)
+			           .Where(t => t is not null && t.IsOcean)
 			           .OrderByDescending(t => t.Units.Count(u => u.Owner == own && u is IBoardable))
 			           .FirstOrDefault();
 		}
@@ -512,10 +512,10 @@ namespace CivOne
 					byte own = Game.PlayerNumber(Player);
 					bool hasPassengers = unit.Tile.Units.Any(u => u.Owner == own && u.Class == UnitClass.Land);
 
-					if (hasPassengers && _attackTarget != null)
+					if (hasPassengers && _attackTarget is not null)
 					{
 						ITile landing = LandingTile(_attackTarget);
-						if (landing != null)
+						if (landing is not null)
 						{
 							// Already at the landing zone — unload so troops can storm the beach
 							if (Common.DistanceToTile(unit.X, unit.Y, _attackTarget.X, _attackTarget.Y) <= 2)
@@ -530,10 +530,10 @@ namespace CivOne
 
 					// No passengers (or no target): wait at a coastal city for troops
 					City embark = EmbarkationCity();
-					if (embark != null)
+					if (embark is not null)
 					{
 						ITile pier = EmbarkationTile(embark);
-						if (pier != null) { unit.Goto = new Point(pier.X, pier.Y); return; }
+						if (pier is not null) { unit.Goto = new Point(pier.X, pier.Y); return; }
 					}
 				}
 
@@ -541,7 +541,7 @@ namespace CivOne
 				City port = Player.Cities
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .FirstOrDefault();
-				if (port != null) unit.Goto = new Point(port.X, port.Y);
+				if (port is not null) unit.Goto = new Point(port.X, port.Y);
 				return;
 			}
 
@@ -549,7 +549,7 @@ namespace CivOne
 			if (unit is Explorer)
 			{
 				ITile dest = BestExploreTile(unit);
-				if (dest != null) unit.Goto = new Point(dest.X, dest.Y);
+				if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
 				return;
 			}
 
@@ -560,7 +560,7 @@ namespace CivOne
 				    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y))
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .FirstOrDefault();
-				if (target != null) unit.Goto = new Point(target.X, target.Y);
+				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				return;
 			}
 
@@ -574,7 +574,7 @@ namespace CivOne
 				    ?? Player.Cities
 				       .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				       .FirstOrDefault();
-				if (target != null) unit.Goto = new Point(target.X, target.Y);
+				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				return;
 			}
 
@@ -586,13 +586,13 @@ namespace CivOne
 					// Validate or refresh the civ-wide attack target.
 					// Barbarian cities stay valid until captured; non-barbarian targets
 					// are dropped when the war ends.
-					bool targetStale = _attackTarget == null
+					bool targetStale = _attackTarget is null
 					    || _attackTarget.Player == Player
 					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player));
 					if (targetStale)
 						_attackTarget = PickAttackTarget();
 
-					if (_attackTarget != null)
+					if (_attackTarget is not null)
 					{
 						ITile staging = StagingTile(_attackTarget);
 						byte own = Game.PlayerNumber(Player);
@@ -605,7 +605,7 @@ namespace CivOne
 						int defenders = _attackTarget.Tile.Units.Count(u => u.Role == UnitRole.Defense);
 						int threshold = Math.Max(2, defenders + 1);
 
-						Point dest = (staged >= threshold || staging == null)
+						Point dest = (staged >= threshold || staging is null)
 						    ? new Point(_attackTarget.X, _attackTarget.Y)
 						    : new Point(staging.X, staging.Y);
 						unit.Goto = dest;
@@ -619,7 +619,7 @@ namespace CivOne
 				    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 				    .ThenBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .FirstOrDefault();
-				if (needsHelp != null) unit.Goto = new Point(needsHelp.X, needsHelp.Y);
+				if (needsHelp is not null) unit.Goto = new Point(needsHelp.X, needsHelp.Y);
 			}
 		}
 
@@ -850,7 +850,7 @@ namespace CivOne
 
 			// Wonder: only for the empire's top production city
 			IWonder wonder = SelectWonder(city, stance);
-			if (wonder != null) Consider(wonder);
+			if (wonder is not null) Consider(wonder);
 
 			// Second defender once infrastructure is underway
 			if (defenders < 2) Consider(BestDefender());
@@ -939,7 +939,7 @@ namespace CivOne
 				int ty = unit.Y + dy;
 				if (ty < 0 || ty >= h) continue;
 				ITile t = Map[tx, ty];
-				if (t == null || t.IsOcean) continue;
+				if (t is null || t.IsOcean) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
 				int score = CountUnseenTiles(tx, ty) - dist;
 				if (score > bestScore) { bestScore = score; best = t; }

@@ -63,7 +63,7 @@ namespace CivOne.Screens.Debug
 				GameTask.Enqueue(Message.General($"{_selectedPlayer.TribeName} gold set to {playerGold}$."));
 			}
 
-			if (Accept != null)
+			if (Accept is not null)
 				Accept(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -72,7 +72,7 @@ namespace CivOne.Screens.Debug
 
 		private void PlayerGold_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -81,12 +81,12 @@ namespace CivOne.Screens.Debug
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_selectedPlayer == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedPlayer is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_civSelect);
 				return false;
 			}
-			else if (_selectedPlayer != null && !Common.HasScreenType<Input>())
+			else if (_selectedPlayer is not null && !Common.HasScreenType<Input>())
 			{
 				Common.AddScreen(_input);
 			}

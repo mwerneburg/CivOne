@@ -17,19 +17,19 @@ namespace CivOne.Units
 {
 	internal class Caravan : BaseUnitLand
 	{
-		private static string[] WARES = new string[] { "Silk", "Silver", "Wine", "Copper", "Gems", "Dye", "Salt", "Spice" };
+		private static string[] WARES = ["Silk", "Silver", "Wine", "Copper", "Gems", "Dye", "Salt", "Spice"];
 
 		private int TradeGoldBonus(City targetCity)
 		{
 			// This formula is not confirmed... but it seems close enough
 
-			if (targetCity == null) return 0; // this should not happen
+			if (targetCity is null) return 0; // this should not happen
 
 			// set default values if home city is NONE
 			int distance = Common.DistanceToTile(-1, -1, targetCity.X, targetCity.Y);
 			int tradeHome = 12;
 
-			if (Home != null)
+			if (Home is not null)
 			{
 				distance = Home.Tile.DistanceTo(targetCity);
 				tradeHome = Home.TradeTotal;
@@ -38,7 +38,7 @@ namespace CivOne.Units
 			int tradeTarget = targetCity.TradeTotal;
 
 			float multiplier = 1;
-			if (Home != null && Home.Tile.ContinentId == targetCity.Tile.ContinentId) multiplier *= 0.5F;
+			if (Home is not null && Home.Tile.ContinentId == targetCity.Tile.ContinentId) multiplier *= 0.5F;
 			if (Owner == targetCity.Owner) multiplier *= 0.5F;
 			if (Game.GetPlayer(Owner).HasAdvance<RailRoad>() && Game.GetPlayer(targetCity.Owner).HasAdvance<RailRoad>()) multiplier *= 0.66F;
 			if (Game.GetPlayer(Owner).HasAdvance<Flight>() && Game.GetPlayer(targetCity.Owner).HasAdvance<Flight>()) multiplier *= 0.66F;
@@ -76,12 +76,12 @@ namespace CivOne.Units
 		public override bool MoveTo(int relX, int relY)
 		{
 			ITile moveTarget = Map[X, Y][relX, relY];
-			if (moveTarget == null) return false;
+			if (moveTarget is null) return false;
 
 			City city = moveTarget.City;
-			if (city != null && city != Home && city.Owner == Owner)
+			if (city is not null && city != Home && city.Owner == Owner)
 			{
-				bool tooClose = Home != null && moveTarget.DistanceTo(Home) < 10;
+				bool tooClose = Home is not null && moveTarget.DistanceTo(Home) < 10;
 				bool buildingWonder = city.CurrentProduction is IWonder;
 
 				if (!tooClose || buildingWonder)
@@ -100,7 +100,7 @@ namespace CivOne.Units
 			ITile moveTarget = Map[X, Y][relX, relY];
 			City city = moveTarget.City;
 
-			if (city == null || city.Owner != Owner)
+			if (city is null || city.Owner != Owner)
 			{
 				EstablishTradeRoute(moveTarget.City);
 				return true;

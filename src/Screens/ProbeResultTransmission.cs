@@ -220,7 +220,7 @@ namespace CivOne.Screens
 					break;
 			}
 
-			if (techNames != null && techNames.Length > 0)
+			if (techNames is not null && techNames.Length > 0)
 			{
 				lines.Add("");
 				lines.Add("TECHNOLOGIES TRANSMITTED AS GESTURE OF GOOD FAITH:");

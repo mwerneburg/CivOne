@@ -67,7 +67,7 @@ namespace CivOne.Screens
 			for (int i = 0; i < Items.Count; i++)
 			{
 				MenuItem<T> item = Items[i];
-				if (item.SelectedCondition == null || !item.SelectedCondition()) continue;
+				if (item.SelectedCondition is null || !item.SelectedCondition()) continue;
 				ActiveItem = i;
 				return;
 			}
@@ -83,14 +83,14 @@ namespace CivOne.Screens
 				int offsetY = 0;
 				
 				this.Clear();
-				if (Title != null)
+				if (Title is not null)
 				{
 					this.DrawText(Title, FontId, TitleColour, X + IndentTitle, Y + 1);
 					offsetY = fontHeight;
 				}
 				if (_activeItem >= 0)
 				{
-					if (_background == null)
+					if (_background is null)
 					{
 						this.FillRectangle(X, yy + offsetY, MenuWidth, fontHeight, ActiveColour);
 					}
@@ -127,7 +127,7 @@ namespace CivOne.Screens
 					Items[_activeItem].Select();
 					return true;
 				case Key.Escape:
-					if (Cancel != null)
+					if (Cancel is not null)
 					{
 						_activeItem = -1;
 						_change = true;
@@ -152,7 +152,7 @@ namespace CivOne.Screens
 			if (RowHeight != 0) fontHeight = RowHeight;
 			int yy = Y;
 			
-			if (Title != null) yy += fontHeight;
+			if (Title is not null) yy += fontHeight;
 			for (int i = 0; i < Items.Count; i++)
 			{
 				if (new Rectangle(X, yy, MenuWidth, fontHeight).Contains(args.Location)) return i;
@@ -167,7 +167,7 @@ namespace CivOne.Screens
 			_mouseDown = true;
 
 			int index = MouseOverItem(args);
-			if (index < 0 && MissClick != null)
+			if (index < 0 && MissClick is not null)
 			{
 				MissClick(this, null);
 				return true;
@@ -230,7 +230,7 @@ namespace CivOne.Screens
 			Items = new MenuItemCollection<T>(menuId);
 			Items.ItemsChanged += SelectDefault;
 
-			if (background != null)
+			if (background is not null)
 			{
 				_background = new Picture(background);
 			}

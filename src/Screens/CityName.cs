@@ -79,7 +79,7 @@ namespace CivOne.Screens
 				px + pw / 2, py + ph - fh - 4, TextAlign.Center);
 
 			// Create or reposition the Input
-			if (_input == null)
+			if (_input is null)
 			{
 				_input = new Input(Palette, _initialName, 0,
 					CassetteTheme.INK_HIGH, CassetteTheme.PHOS_FAINT,

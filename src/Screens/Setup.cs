@@ -44,7 +44,7 @@ namespace CivOne.Screens
 		private void BrowseForSoundFiles(object sender, MenuItemEventArgs<int> args)
 		{
 			string path = Runtime.BrowseFolder("Location of Civilization for Windows sound files");
-			if (path == null)
+			if (path is null)
 			{
 				// User pressed cancel
 				return;
@@ -56,7 +56,7 @@ namespace CivOne.Screens
 		private void BrowseForPlugins(object sender, MenuItemEventArgs<int> args)
 		{
 			string path = Runtime.BrowseFolder("Location of CivOne plugin(s)");
-			if (path == null)
+			if (path is null)
 			{
 				// User pressed cancel
 				return;
@@ -110,7 +110,7 @@ namespace CivOne.Screens
 		private MenuItemEventHandler<int> CloseScreen(Action action = null) => (s, a) =>
 		{
 			Destroy();
-			if (action != null) action();
+			if (action is not null) action();
 		};
 
 		private void ChangeWindowTitle()
@@ -228,7 +228,7 @@ namespace CivOne.Screens
 				.Concat(
 					Reflect.Plugins().Any() ?
 						Reflect.Plugins().Select(x => MenuItem.Create(x.ToString()).SetEnabled(!x.Deleted).OnSelect(GotoMenu(PluginMenu(x.Id, x)))) :
-						new [] { MenuItem.Create("No plugins installed").Disable() }
+						new[] { MenuItem.Create("No plugins installed").Disable() }
 				)
 				.Concat(new []
 				{

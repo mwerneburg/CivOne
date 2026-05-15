@@ -25,7 +25,7 @@ namespace CivOne.Units
 
 		private void HandleFuel()
 		{
-			if (Map[X, Y].City != null || Map[X, Y].Units.Any(u => u is Carrier))
+			if (Map[X, Y].City is not null || Map[X, Y].Units.Any(u => u is Carrier))
 			{
 				MovesLeft = 0;
 				FuelLeft = TotalFuel;
@@ -69,7 +69,7 @@ namespace CivOne.Units
 				{
 					yield return MenuPillage();
 				}
-				if (tile.City != null)
+				if (tile.City is not null)
 				{
 					yield return MenuHomeCity();
 				}
@@ -80,7 +80,7 @@ namespace CivOne.Units
 
 		protected override bool ValidMoveTarget(ITile tile)
 		{
-			return (tile != null);
+			return (tile is not null);
 		}
 
 		protected BaseUnitAir(byte price = 1, byte attack = 1, byte defense = 1, byte move = 1) : base(price, attack, defense, move)

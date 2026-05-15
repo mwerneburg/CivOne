@@ -37,14 +37,14 @@ namespace CivOne.Screens.Debug
 				Common.AddScreen(new King(_selectedPlayer));
 			}
 
-			if (Accept != null)
+			if (Accept is not null)
 				Accept(this, null);
 			Destroy();
 		}
 
 		private void MeetKing_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -53,7 +53,7 @@ namespace CivOne.Screens.Debug
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_selectedPlayer == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedPlayer is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_civSelect);
 				return false;

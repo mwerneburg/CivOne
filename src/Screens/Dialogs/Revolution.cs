@@ -33,7 +33,7 @@ namespace CivOne.Screens.Dialogs
 				Indent = 2
 			};
 			int i = 0;
-			foreach (string choice in new [] { "_No thanks.", "_Yes, we need a new government." })
+			foreach (string choice in (string[])["_No thanks.", "_Yes, we need a new government."])
 			{
 				menu.Items.Add(choice, i++);
 			}

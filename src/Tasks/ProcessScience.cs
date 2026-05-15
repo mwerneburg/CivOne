@@ -34,7 +34,7 @@ namespace CivOne.Tasks
 		
 		public override void Run()
 		{
-			if (_player.CurrentResearch == null)
+			if (_player.CurrentResearch is null)
 			{
 				if (_human)
 					GameTask.Enqueue(new TechSelect(_player));
@@ -68,7 +68,7 @@ namespace CivOne.Tasks
 			{
 				int n = _player.FutureTechs;
 				_player.CurrentResearch = null;
-				IScreen notice = new Newspaper(null, new[] { $"{_player.TribeName} scientists", $"complete Future Tech #{n}!", "Research continues." }, showGovernment: false);
+				IScreen notice = new Newspaper(null, [$"{_player.TribeName} scientists", $"complete Future Tech #{n}!", "Research continues."], showGovernment: false);
 				notice.Closed += (s, a) => { GameTask.Insert(new TechSelect(_player)); EndTask(); };
 				Common.AddScreen(notice);
 				return;
@@ -81,7 +81,7 @@ namespace CivOne.Tasks
 			}
 			else
 			{
-				discovery = new Newspaper(null, new string[] { $"{_player.TribeName} scholars", "discover the secret", $"of {_player.CurrentResearch.Name}!" }, showGovernment: false);
+				discovery = new Newspaper(null, [$"{_player.TribeName} scholars", "discover the secret", $"of {_player.CurrentResearch.Name}!"], showGovernment: false);
 			}
 			discovery.Closed += ClosedDiscovery;
 			Common.AddScreen(discovery);

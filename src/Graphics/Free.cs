@@ -59,7 +59,7 @@ namespace CivOne.Graphics
 
 		private void DiffPanel(ref Bytemap bytemap, int left, int top, int width, int height)
 		{
-			byte[] colours = new byte[] { 42, 41, 47, 15 };
+			byte[] colours = [42, 41, 47, 15];
 			for (int i = 0; i < colours.Length; i++)
 			{
 				bytemap.FillRectangle(left + i, top + i, width - (i * 2), height - (i * 2), colours[i]);
@@ -70,7 +70,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_panelGrey == null)
+				if (_panelGrey is null)
 				{
 					_panelGrey = new Bytemap(16, 16).FromByteArray(GenerateNoise(3, 4).Take(16 * 16).ToArray());
 				}
@@ -82,7 +82,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_panelBlue == null)
+				if (_panelBlue is null)
 				{
 					_panelBlue = new Bytemap(16, 16).FromByteArray(GenerateNoise(57, 9).Take(16 * 16).ToArray());
 				}
@@ -94,7 +94,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_landBase == null)
+				if (_landBase is null)
 				{
 					_landBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(37, 38, 39).Take(16 * 16).ToArray());
 				}
@@ -106,7 +106,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_seaBase == null)
+				if (_seaBase is null)
 				{
 					// Static OCEAN(18) ~82% + sparse green/beige/border specks for depth variety.
 					_seaBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 14, 14, 7, 5).Take(16 * 16).ToArray());
@@ -178,7 +178,7 @@ namespace CivOne.Graphics
 			get
 			{
 				byte[] loaded = TryLoadTile("mountains");
-				if (loaded != null)
+				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
 				return new Bytemap(16, 16).FromByteArray(
@@ -232,7 +232,7 @@ namespace CivOne.Graphics
 			get
 			{
 				byte[] loaded = TryLoadTile("swamp");
-				if (loaded != null)
+				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
 				return new Bytemap(16, 16).FromByteArray(
@@ -405,14 +405,14 @@ namespace CivOne.Graphics
 
 		private byte[] TryLoadTile(string name)
 		{
-			if (_tileOverrides == null)
+			if (_tileOverrides is null)
 				_tileOverrides = ParseTilesFile(TilesFilePath);
 			return _tileOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
 
 		private byte[] TryLoadShore(string name)
 		{
-			if (_shoreOverrides == null)
+			if (_shoreOverrides is null)
 				_shoreOverrides = ParseTilesFile(ShoresFilePath);
 			return _shoreOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
@@ -421,7 +421,7 @@ namespace CivOne.Graphics
 		// Returns null when the file or required sections are absent (falls back to CoastLayer).
 		public Bytemap ShoreLayer(Direction land)
 		{
-			if (_shoreOverrides == null)
+			if (_shoreOverrides is null)
 				_shoreOverrides = ParseTilesFile(ShoresFilePath);
 			if (_shoreOverrides.Count == 0)
 				return null;
@@ -429,30 +429,34 @@ namespace CivOne.Graphics
 			Bytemap output = new Bytemap(16, 16);
 			bool any = false;
 
-			foreach (var pair in new[] {
+			foreach (var pair in ((Direction, string)[])
+			[
 				(North,     "shore_N"),
 				(South,     "shore_S"),
 				(East,      "shore_E"),
-				(West,      "shore_W") })
+				(West,      "shore_W"),
+			])
 			{
 				if (!land.And(pair.Item1)) continue;
 				byte[] tile = TryLoadShore(pair.Item2);
-				if (tile == null) continue;
+				if (tile is null) continue;
 				output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 				any = true;
 			}
 
 			// Diagonal-only corner patches
-			foreach (var pair in new[] {
+			foreach (var pair in ((Direction, Direction, Direction, string)[])
+			[
 				(NorthWest, North, West, "shore_NW"),
 				(NorthEast, North, East, "shore_NE"),
 				(SouthWest, South, West, "shore_SW"),
-				(SouthEast, South, East, "shore_SE") })
+				(SouthEast, South, East, "shore_SE"),
+			])
 			{
 				if (land.And(pair.Item1) && land.Not(pair.Item2) && land.Not(pair.Item3))
 				{
 					byte[] tile = TryLoadShore(pair.Item4);
-					if (tile == null) continue;
+					if (tile is null) continue;
 					output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 					any = true;
 				}
@@ -477,14 +481,14 @@ namespace CivOne.Graphics
 
 				if (line.StartsWith("[") && line.EndsWith("]"))
 				{
-					if (currentSection != null && pixels.Count == 256)
+					if (currentSection is not null && pixels.Count == 256)
 						result[currentSection] = pixels.ToArray();
 					currentSection = line.Substring(1, line.Length - 2);
 					pixels = new List<byte>();
 				}
-				else if (currentSection != null)
+				else if (currentSection is not null)
 				{
-					foreach (string tok in line.Split(new[] { ' ', '\t', ',' },
+					foreach (string tok in line.Split([' ', '\t', ','],
 						StringSplitOptions.RemoveEmptyEntries))
 					{
 						if (byte.TryParse(tok, out byte v))
@@ -492,7 +496,7 @@ namespace CivOne.Graphics
 					}
 				}
 			}
-			if (currentSection != null && pixels.Count == 256)
+			if (currentSection is not null && pixels.Count == 256)
 				result[currentSection] = pixels.ToArray();
 
 			return result;
@@ -505,7 +509,7 @@ namespace CivOne.Graphics
 		{
 			string section = directions == None ? "hill_standalone" : "hill_connected";
 			byte[] loaded = TryLoadTile(section);
-			if (loaded != null)
+			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 
 			if (directions == None)
@@ -624,7 +628,7 @@ namespace CivOne.Graphics
 		public Bytemap Irrigation()
 		{
 			byte[] loaded = TryLoadTile("irrigation");
-			if (loaded != null)
+			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 
 			return new Bytemap(16, 16).FromByteArray(
@@ -653,7 +657,7 @@ namespace CivOne.Graphics
 		public Bytemap CoastLayer(Direction land)
 		{
 			Bytemap shore = ShoreLayer(land);
-			if (shore != null) return shore;
+			if (shore is not null) return shore;
 
 			const byte foam = 8;  // INK_HIGH — surf/foam
 			const byte sand = 7;  // INK_MID  — wet sand / shallows
@@ -696,7 +700,7 @@ namespace CivOne.Graphics
 		public Bytemap River(Direction directions)
 		{
 			Picture output = new Picture(16, 16);
-			foreach (Direction direction in new Direction[] { North, East, South, West })
+			foreach (Direction direction in (Direction[])[North, East, South, West])
 			{
 				switch ((Direction)(directions & direction))
 				{
@@ -733,7 +737,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_city == null)
+				if (_city is null)
 				{
 					Random r = new Random(0x4701);
 					_city = new Picture(16, 16)
@@ -754,7 +758,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_fortify == null)
+				if (_fortify is null)
 				{
 					_fortify = new Bytemap(16, 16)
 						.FromByteArray(GenerateNoise(26, 27, 28).Take(16 * 16).ToArray())
@@ -982,14 +986,14 @@ namespace CivOne.Graphics
 				
 				DiffPanel(ref output, 155, 29, 131, 137);
 				
-				(int Skip, byte[] Colours)[] backgrounds = new (int Skip, byte[] Colours)[]
-				{
-					(139, new byte[] { 23, 24, 25, 26, 27, 1 }),
-					(2075, new byte[] { 24, 25, 26, 27, 28, 2 }),
-					(4085, new byte[] { 25, 26, 27, 28, 29, 3 }),
-					(6750, new byte[] { 26, 27, 28, 29, 30, 6 }),
-					(8412, new byte[] { 27, 28, 29, 30, 31, 4 })
-				};
+				(int Skip, byte[] Colours)[] backgrounds =
+				[
+					(139, [23, 24, 25, 26, 27, 1]),
+					(2075, [24, 25, 26, 27, 28, 2]),
+					(4085, [25, 26, 27, 28, 29, 3]),
+					(6750, [26, 27, 28, 29, 30, 6]),
+					(8412, [27, 28, 29, 30, 31, 4])
+				];
 				for (int i = 0; i < 5; i++)
 				{
 					int xx = (i % 2) == 0 ? 21 : 80;
@@ -1007,7 +1011,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				if (_instance == null)
+				if (_instance is null)
 					_instance = new Free();
 				return _instance;
 			}

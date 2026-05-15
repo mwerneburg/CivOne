@@ -30,7 +30,7 @@ namespace CivOne.Screens.Reports
 			for (int i = 0; i < _cities.Length; i++)
 			{
 				City city = _cities[i];
-				if (city == null || city.Size == 0) continue;
+				if (city is null || city.Size == 0) continue;
 
 				byte colour = Common.ColourLight[city.Owner];
 				Player owner = Game.GetPlayer(city.Owner);

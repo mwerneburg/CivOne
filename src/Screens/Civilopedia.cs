@@ -48,7 +48,7 @@ namespace CivOne.Screens
 			public int X, Y, W;
 			public ICivilopedia Target;
 		}
-		private readonly List<PageLink> _links = new List<PageLink>();
+		private readonly List<PageLink> _links = new();
 
 		private static Palette BuildPalette()
 		{
@@ -112,7 +112,7 @@ namespace CivOne.Screens
 			this.FillRectangle(0, 0, Width, 27, CassetteTheme.BG3)
 				.FillRectangle(0, 27, Width, 1, CassetteTheme.BORDER);
 
-			if (_singlePage == null)
+			if (_singlePage is null)
 			{
 				this.DrawText("ENCYCLOPEDIA OF CIVILIZATION", 0, CassetteTheme.PHOS_GLOW, Width / 2, 9, TextAlign.Center);
 				if (_pages.Length > 78)
@@ -155,7 +155,7 @@ namespace CivOne.Screens
 		{
 			if (_singlePage is IBuilding b)
 			{
-				if (b.RequiredTech != null)
+				if (b.RequiredTech is not null)
 					DrawLabelLink(OX + 12, yy, "Requires: ", b.RequiredTech.Name, b.RequiredTech as ICivilopedia);
 				else
 					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
@@ -166,7 +166,7 @@ namespace CivOne.Screens
 			}
 			if (_singlePage is BaseWonder w)
 			{
-				if (w.RequiredTech != null)
+				if (w.RequiredTech is not null)
 					DrawLabelLink(OX + 12, yy, "Requires: ", w.RequiredTech.Name, w.RequiredTech as ICivilopedia);
 				else
 					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
@@ -176,7 +176,7 @@ namespace CivOne.Screens
 			}
 			if (_singlePage is IUnit u)
 			{
-				if (u.RequiredTech != null)
+				if (u.RequiredTech is not null)
 					DrawLabelLink(OX + 12, yy, "Requires: ", u.RequiredTech.Name, u.RequiredTech as ICivilopedia);
 				else
 					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
@@ -209,17 +209,17 @@ namespace CivOne.Screens
 					}
 					yy += 9;
 				}
-				foreach (IUnit unit in Reflect.GetUnits().Where(u2 => u2.RequiredTech != null && u2.RequiredTech.Id == adv.Id))
+				foreach (IUnit unit in Reflect.GetUnits().Where(u2 => u2.RequiredTech is not null && u2.RequiredTech.Id == adv.Id))
 				{
 					DrawLink(OX + 20, yy, $"{unit.Name} unit", unit as ICivilopedia);
 					yy += 9;
 				}
-				foreach (IBuilding building in Reflect.GetBuildings().Where(bld => bld.RequiredTech != null && bld.RequiredTech.Id == adv.Id))
+				foreach (IBuilding building in Reflect.GetBuildings().Where(bld => bld.RequiredTech is not null && bld.RequiredTech.Id == adv.Id))
 				{
 					DrawLink(OX + 20, yy, $"{building.Name} improvement", building as ICivilopedia);
 					yy += 9;
 				}
-				foreach (IWonder wonder in Reflect.GetWonders().Where(wndr => wndr.RequiredTech != null && wndr.RequiredTech.Id == adv.Id))
+				foreach (IWonder wonder in Reflect.GetWonders().Where(wndr => wndr.RequiredTech is not null && wndr.RequiredTech.Id == adv.Id))
 				{
 					DrawLink(OX + 20, yy, $"{wonder.Name} Wonder", wonder as ICivilopedia);
 					yy += 9;
@@ -229,7 +229,7 @@ namespace CivOne.Screens
 
 		private bool NextPage()
 		{
-			if (_singlePage != null && _pageNumber < _singlePage.PageCount)
+			if (_singlePage is not null && _pageNumber < _singlePage.PageCount)
 			{
 				_pageNumber++;
 				_update = true;
@@ -246,7 +246,7 @@ namespace CivOne.Screens
 			this.Clear(CassetteTheme.BG0);
 			DrawHeader();
 
-			if (_singlePage == null)
+			if (_singlePage is null)
 			{
 				int xx = OX + 10, yy = 32;
 				int columns = (int)Math.Ceiling((float)_pages.Length / 26);
@@ -271,14 +271,14 @@ namespace CivOne.Screens
 
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			if (_singlePage != null && NextPage()) return true;
+			if (_singlePage is not null && NextPage()) return true;
 			Destroy();
 			return true;
 		}
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_singlePage != null)
+			if (_singlePage is not null)
 			{
 				// Check links before paging or closing
 				foreach (PageLink link in _links)
@@ -327,34 +327,31 @@ namespace CivOne.Screens
 
 		private void DrawTerrainTextValues(ref int y, string name, string food = null, string production = null, string trade = null, string foodIrrigation = null, string productionMining = null, string tradeRoads = null)
 		{
-			string foodFormat = "Food: {0} units.";
-			string productionFormat = "Production: {0} units.";
-			string tradeFormat = "Trade: {0}";
 
 			this.DrawText(name, 0, CassetteTheme.INK_HIGH, OX + 12, y);
 			y += 8;
-			if (food != null)
+			if (food is not null)
 			{
-				if (foodIrrigation != null)
-					food = string.Format("{0} ({1} with Irrigation)", food, foodIrrigation);
-				this.DrawText(string.Format(foodFormat, food), 0, CassetteTheme.INK_MID, OX + 16, y);
+				if (foodIrrigation is not null)
+					food = $"{food} ({foodIrrigation} with Irrigation)";
+				this.DrawText($"Food: {food} units.", 0, CassetteTheme.INK_MID, OX + 16, y);
 				y += 8;
 			}
-			if (production != null)
+			if (production is not null)
 			{
-				if (productionMining != null)
-					production = string.Format("{0} ({1} with Mining)", production, productionMining);
-				this.DrawText(string.Format(productionFormat, production), 0, CassetteTheme.INK_MID, OX + 16, y);
+				if (productionMining is not null)
+					production = $"{production} ({productionMining} with Mining)";
+				this.DrawText($"Production: {production} units.", 0, CassetteTheme.INK_MID, OX + 16, y);
 				y += 8;
 			}
-			if (trade != null)
+			if (trade is not null)
 			{
-				if (tradeRoads != null)
-					trade = string.Format("{0} ({1} with Roads)", trade, tradeRoads);
-				this.DrawText(string.Format(tradeFormat, trade), 0, CassetteTheme.INK_MID, OX + 16, y);
+				if (tradeRoads is not null)
+					trade = $"{trade} ({tradeRoads} with Roads)";
+				this.DrawText($"Trade: {trade}", 0, CassetteTheme.INK_MID, OX + 16, y);
 				y += 8;
 			}
-			if (food == null && production == null && trade == null)
+			if (food is null && production is null && trade is null)
 			{
 				this.DrawText("nothing", 0, CassetteTheme.INK_MID, OX + 16, y);
 				y += 8;

@@ -29,7 +29,7 @@ namespace CivOne.Screens
 		private readonly SideBar _sideBar;
 		private readonly GameMap _gameMap;
 
-		private bool Busy => (Game.MovingUnit != null || Human != Game.CurrentPlayer || GameTask.Any());
+		private bool Busy => (Game.MovingUnit is not null || Human != Game.CurrentPlayer || GameTask.Any());
 		
 		private GameMenu _gameMenu = null;
 		private int _menuX, _menuY;
@@ -77,7 +77,7 @@ namespace CivOne.Screens
 		
 		private void MenuBarOrders(object sender, EventArgs args)
 		{
-			if (Game.ActiveUnit == null) return;
+			if (Game.ActiveUnit is null) return;
 
 			_gameMenu = new GameMenu("MenuBarOrders", Palette);
 			_gameMenu.Items.AddRange(Game.ActiveUnit.MenuItems);
@@ -145,7 +145,7 @@ namespace CivOne.Screens
 		
 		private void DrawLayer(IScreen layer, uint gameTick, int x, int y)
 		{
-			if (layer == null) return;
+			if (layer is null) return;
 			if (!layer.Update(gameTick) && !_redraw) return;
 			this.AddLayer(layer, x, y);
 		}
@@ -203,7 +203,7 @@ namespace CivOne.Screens
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
 			// Cancel an active GoTo order on any keypress, even mid-move animation.
-			if (Game.CurrentPlayer == Human && Game.ActiveUnit != null && !Game.ActiveUnit.Goto.IsEmpty)
+			if (Game.CurrentPlayer == Human && Game.ActiveUnit is not null && !Game.ActiveUnit.Goto.IsEmpty)
 			{
 				Game.ActiveUnit.Goto = Point.Empty;
 				return true;
@@ -214,7 +214,7 @@ namespace CivOne.Screens
 			if (CheckShift56(args))
 				return true;
 			
-			if (_gameMenu != null)
+			if (_gameMenu is not null)
 			{
 				if (!_gameMenu.KeyDown(args))
 				{
@@ -224,7 +224,7 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			if (_menuBar.KeyDown(args) && _gameMenu != null)
+			if (_menuBar.KeyDown(args) && _gameMenu is not null)
 			{
 				_gameMenu.KeepOpen = true;
 				return true;
@@ -284,12 +284,12 @@ namespace CivOne.Screens
 			if (Cursor == MouseCursor.None) return true;
 
 			// Cancel an active GoTo order on any click.
-			if (Game.CurrentPlayer == Human && Game.ActiveUnit != null && !Game.ActiveUnit.Goto.IsEmpty)
+			if (Game.CurrentPlayer == Human && Game.ActiveUnit is not null && !Game.ActiveUnit.Goto.IsEmpty)
 			{
 				Game.ActiveUnit.Goto = Point.Empty;
 				return true;
 			}
-			if (_gameMenu != null && _gameMenu.KeepOpen)
+			if (_gameMenu is not null && _gameMenu.KeepOpen)
 			{
 				MouseArgsOffset(ref args, _menuX, _menuY);
 				_update |= _gameMenu.MouseDown(args);
@@ -331,7 +331,7 @@ namespace CivOne.Screens
 		public override bool MouseUp(ScreenEventArgs args)
 		{
 			if (Cursor == MouseCursor.None) return true;
-			if (_gameMenu == null) return false;
+			if (_gameMenu is null) return false;
 			if (args.Y < 8)
 			{
 				_menuBar.MouseDown(args);
@@ -351,7 +351,7 @@ namespace CivOne.Screens
 		public override bool MouseDrag(ScreenEventArgs args)
 		{
 			if (Cursor == MouseCursor.None) return true;
-			if (_gameMenu == null) return false;
+			if (_gameMenu is null) return false;
 			
 			MouseArgsOffset(ref args, _menuX, _menuY);
 			_update |= _gameMenu.MouseDrag(args);

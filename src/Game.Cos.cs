@@ -86,7 +86,7 @@ namespace CivOne
 			{
 				int? gx = unit.Goto.IsEmpty ? (int?)null : unit.Goto.X;
 				int? gy = unit.Goto.IsEmpty ? (int?)null : unit.Goto.Y;
-				int homeCityId = unit.Home != null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
+				int homeCityId = unit.Home is not null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
 
 				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
 				if (unit is Settlers settlers)
@@ -175,7 +175,7 @@ namespace CivOne
 					default:
 						return null;
 				}
-			}).Where(e => e != null).ToList();
+			}).Where(e => e is not null).ToList();
 
 			string displayName = BuildDisplayName();
 			var cos = new CosFile
@@ -232,7 +232,7 @@ namespace CivOne
 
 		public static bool LoadCos(string cosFile)
 		{
-			if (_instance != null)
+			if (_instance is not null)
 			{
 				Log("ERROR: Game instance already exists");
 				return false;
@@ -309,7 +309,7 @@ namespace CivOne
 			for (int i = 0; i < _players.Length; i++)
 			{
 				var warList = cos.Players[i].AtWarWith;
-				if (warList == null) continue;
+				if (warList is null) continue;
 				foreach (int j in warList)
 					_players[i].SetAtWar((byte)j, true);
 			}
@@ -324,10 +324,10 @@ namespace CivOne
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
 			ProbeDispatched       = g.ProbeDispatched;
 			ProbeOutcomeTier      = g.ProbeOutcomeTier;
-			if (g.Transmissions != null)
+			if (g.Transmissions is not null)
 				foreach (var t in g.Transmissions)
 					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });
-			if (g.ScoreHistory != null)
+			if (g.ScoreHistory is not null)
 				foreach (var entry in g.ScoreHistory)
 					_scoreHistory.Add(entry.ToArray());
 
@@ -377,7 +377,7 @@ namespace CivOne
 					Shields = cd.Shields
 				};
 				var prod = Reflect.GetProduction().FirstOrDefault(p => p.GetType().Name == cd.Production);
-				if (prod != null) city.SetProduction(prod);
+				if (prod is not null) city.SetProduction(prod);
 				city.SetResourceTiles(cd.ResourceTiles?.Select(b => (byte)b).ToArray() ?? Array.Empty<byte>());
 
 				foreach (int bId in cd.Buildings ?? Array.Empty<int>())
@@ -386,13 +386,13 @@ namespace CivOne
 				foreach (int wId in cd.Wonders ?? Array.Empty<int>())
 				{
 					var wonder = Common.Wonders.FirstOrDefault(w => w.Id == wId);
-					if (wonder != null) city.AddWonder(wonder);
+					if (wonder is not null) city.AddWonder(wonder);
 				}
 
 				foreach (var q in cd.ProductionQueue ?? Array.Empty<string>())
 				{
 					var item = Reflect.GetProduction().FirstOrDefault(p => p.GetType().Name == q);
-					if (item != null) city.EnqueueProduction(item);
+					if (item is not null) city.EnqueueProduction(item);
 				}
 
 				foreach (int unitTypeId in cd.FortifiedUnits ?? Array.Empty<int>())
@@ -415,11 +415,11 @@ namespace CivOne
 			for (int ci = 0; ci < (cos.Cities?.Count ?? 0); ci++)
 			{
 				var cd = cos.Cities[ci];
-				if (cd.TradeRoutes == null || !cityById.TryGetValue(cd.Id, out var city)) continue;
+				if (cd.TradeRoutes is null || !cityById.TryGetValue(cd.Id, out var city)) continue;
 				foreach (var tr in cd.TradeRoutes)
 				{
 					var partner = _cities.FirstOrDefault(c => c.X == tr.PartnerX && c.Y == tr.PartnerY);
-					if (partner != null) city.AddTradeRoute(partner, tr.Commodity);
+					if (partner is not null) city.AddTradeRoute(partner, tr.Commodity);
 				}
 			}
 
@@ -427,7 +427,7 @@ namespace CivOne
 			foreach (var ud in cos.Units ?? Enumerable.Empty<CosUnit>())
 			{
 				var unit = CreateUnit((UnitType)ud.TypeId, ud.X, ud.Y);
-				if (unit == null) continue;
+				if (unit is null) continue;
 				unit.Status    = (byte)ud.Status;
 				unit.Owner     = (byte)ud.Owner;
 				unit.MovesLeft = (byte)ud.MovesLeft;
@@ -443,23 +443,23 @@ namespace CivOne
 			}
 
 			// Spaceship
-			if (g.SpaceshipLaunch != null)
+			if (g.SpaceshipLaunch is not null)
 				for (int i = 0; i < Math.Min(g.SpaceshipLaunch.Length, 8); i++)
 					SpaceshipLaunchTurn[i] = g.SpaceshipLaunch[i];
-			if (g.SpaceshipArrival != null)
+			if (g.SpaceshipArrival is not null)
 				for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, 8); i++)
 					SpaceshipArrivalTurn[i] = g.SpaceshipArrival[i];
-			if (g.SpaceshipStructural != null)
+			if (g.SpaceshipStructural is not null)
 				for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, 8); i++)
 					SpaceshipStructural[i] = g.SpaceshipStructural[i];
-			if (g.SpaceshipComponent != null)
+			if (g.SpaceshipComponent is not null)
 				for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, 8); i++)
 					SpaceshipComponent[i] = g.SpaceshipComponent[i];
-			if (g.SpaceshipModule != null)
+			if (g.SpaceshipModule is not null)
 				for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, 8); i++)
 					SpaceshipModule[i] = g.SpaceshipModule[i];
 			// Migrate: old COS saves stored SS parts as city buildings; convert and strip them.
-			if (g.SpaceshipStructural == null && g.SpaceshipComponent == null && g.SpaceshipModule == null)
+			if (g.SpaceshipStructural is null && g.SpaceshipComponent is null && g.SpaceshipModule is null)
 			{
 				foreach (City city in _cities)
 				{

@@ -130,7 +130,7 @@ namespace CivOne.Screens
 		internal static Picture MakePicture(int w, int h)
 		{
 			SplashData raw = Resources.SplashRawImage;
-			if (raw == null) return null;
+			if (raw is null) return null;
 			byte[] scaled = ScaleRgba(raw.Rgba, raw.Width, raw.Height, w, h);
 			return Quantize(scaled, w, h);
 		}
@@ -138,7 +138,7 @@ namespace CivOne.Screens
 		private void Build()
 		{
 			_picture = MakePicture(Width, Height);
-			if (_picture == null) return;
+			if (_picture is null) return;
 			Palette = _picture.Palette;
 			this.AddLayer(_picture, 0, 0);
 		}
@@ -154,10 +154,10 @@ namespace CivOne.Screens
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (_picture == null)
+			if (_picture is null)
 			{
 				Build();
-				if (_picture == null)
+				if (_picture is null)
 				{
 					Dismiss();
 					return false;

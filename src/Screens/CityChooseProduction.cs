@@ -142,7 +142,7 @@ namespace CivOne.Screens
 				int ry = listTop + (i - _scrollTop) * RowH;
 				bool sel = (i == _selection);
 
-				if (prev != null && ItemCategory(item) != ItemCategory(prev))
+				if (prev is not null && ItemCategory(item) != ItemCategory(prev))
 					this.DrawCassetteDivider(px + 2, ry, pw - 4);
 
 				if (sel)

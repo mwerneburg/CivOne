@@ -68,7 +68,7 @@ namespace CivOne.Screens
 				this.FillRectangle(dx, dy, tileW, tileH, colour);
 
 				City city = tile.City;
-				if (city != null && city.Size > 0)
+				if (city is not null && city.Size > 0)
 				{
 					this.FillRectangle(dx, dy, tileW, tileH, Common.ColourLight[city.Owner]);
 				}

@@ -18,7 +18,7 @@ namespace CivOne.Screens.Reports
 {
 	internal class IntelligenceReport : BaseReport
 	{
-		private readonly Dictionary<Player, Rectangle> _infoButtons = new Dictionary<Player, Rectangle>();
+		private readonly Dictionary<Player, Rectangle> _infoButtons = new();
 
 		private void MouseDown(object sender, ScreenEventArgs args)
 		{
@@ -72,7 +72,7 @@ namespace CivOne.Screens.Reports
 				byte colour = Common.ColourLight[id];
 				if (player.IsHuman || Human.HasEmbassy(player))
 				{
-					int unitCount = Game.GetUnits().Count(u => u.Owner == id && u.Home != null);
+					int unitCount = Game.GetUnits().Count(u => u.Owner == id && u.Home is not null);
 
 					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.BG0, OX + 8, yy + 3)
 						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.INK_HIGH, OX + 8, yy + 2)

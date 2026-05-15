@@ -42,20 +42,20 @@ namespace CivOne.Screens
 
 		// city dot state: map position → (ownerIndex, cityName)
 		private readonly Dictionary<(int x, int y), (byte owner, string name)> _cities
-			= new Dictionary<(int x, int y), (byte owner, string name)>();
+			= new();
 
 		// territory ownership
 		private const byte NO_OWNER = 255;
 		private readonly byte[,] _territory = new byte[Map.WIDTH, Map.HEIGHT];
 
 		// event log (most-recent last)
-		private readonly List<string> _log = new List<string>();
+		private readonly List<string> _log = new();
 		private const int LOG_LINES = 12;
 
 		// track which techs/units/buildings have already been logged as "first"
-		private readonly HashSet<string> _seenTechs     = new HashSet<string>();
-		private readonly HashSet<string> _seenUnits     = new HashSet<string>();
-		private readonly HashSet<string> _seenBuildings = new HashSet<string>();
+		private readonly HashSet<string> _seenTechs     = new();
+		private readonly HashSet<string> _seenUnits     = new();
+		private readonly HashSet<string> _seenBuildings = new();
 
 		// ── terrain backdrop (sized to the map column only) ───────────────────
 		private readonly Picture _terrain;

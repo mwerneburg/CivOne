@@ -38,7 +38,7 @@ namespace CivOne.Screens.Debug
 				GameTask.Enqueue(Message.General($"Game year set to {Game.GameYear}."));
 			}
 
-			if (Accept != null)
+			if (Accept is not null)
 				Accept(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -47,7 +47,7 @@ namespace CivOne.Screens.Debug
 
 		private void GameYear_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();

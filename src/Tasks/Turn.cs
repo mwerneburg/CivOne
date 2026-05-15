@@ -27,7 +27,7 @@ namespace CivOne.Tasks
 
 		protected override bool Step()
 		{
-			if (_unit != null)
+			if (_unit is not null)
 			{
 				Game.CurrentPlayer.AI.Move(_unit);
 				EndTask();
@@ -42,11 +42,11 @@ namespace CivOne.Tasks
 
 		public override void Run()
 		{
-			if (_turnObject != null)
+			if (_turnObject is not null)
 			{
 				_turnObject.NewTurn();
 			}
-			else if (_unit != null)
+			else if (_unit is not null)
 			{
 				return;
 			}
@@ -61,7 +61,7 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			else if (_gameOver != null && _gameOver.IsHuman)
+			else if (_gameOver is not null && _gameOver.IsHuman)
 			{
 				Common.AddScreen(new GameOver());
 			}

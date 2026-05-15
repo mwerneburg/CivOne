@@ -33,9 +33,9 @@ namespace CivOne.Tiles
 
 		public static bool DrawRoad(this ITile tile) => (tile.Road || tile.RailRoad) && (!tile.RailRoad || (tile.RailRoad && tile.BorderRoads() != tile.BorderRailRoads()));
 		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad;
-		public static bool DrawIrrigation(this ITile tile) => tile.Irrigation && tile.City == null;
+		public static bool DrawIrrigation(this ITile tile) => tile.Irrigation && tile.City is null;
 		public static bool DrawMine(this ITile tile) => tile.Mine;
-		public static bool DrawFortress(this ITile tile) => tile.Fortress && tile.City == null;
+		public static bool DrawFortress(this ITile tile) => tile.Fortress && tile.City is null;
 		public static bool DrawHut(this ITile tile) => tile.Hut;
 
 		public static int DistanceTo(this ITile tile, int x, int y) => Common.DistanceToTile(tile.X, tile.Y, x, y);
@@ -46,7 +46,7 @@ namespace CivOne.Tiles
 		public static Terrain GetBorderType(this ITile tile, Direction direction)
 		{
 			ITile borderTile = GetBorderTile(tile, direction);
-			if (borderTile == null) return Terrain.None;
+			if (borderTile is null) return Terrain.None;
 			if (borderTile.Type == Terrain.Grassland2) return Terrain.Grassland1;
 			return borderTile.Type;
 		}
@@ -73,7 +73,7 @@ namespace CivOne.Tiles
 			for (int relX = -1; relX <= 1; relX++)
 			{
 				if (relX == 0 && relY == 0) continue;
-				if (tile[relX, relY] == null) continue;
+				if (tile[relX, relY] is null) continue;
 				yield return tile[relX, relY];
 			}
 		}
@@ -85,7 +85,7 @@ namespace CivOne.Tiles
 			{
 				if (relX == 0 && relY == 0) continue;
 				if (relX != 0 && relY != 0) continue;
-				if (tile[relX, relY] == null) continue;
+				if (tile[relX, relY] is null) continue;
 				yield return tile[relX, relY];
 			}
 		}
@@ -96,7 +96,7 @@ namespace CivOne.Tiles
 			for (int i = 1; i <= 128; i *= 2)
 			{
 				ITile borderTile = GetBorderTile(tile, (Direction)i);
-				if (borderTile == null || (!borderTile.Road && !borderTile.RailRoad && borderTile.City == null)) continue;
+				if (borderTile is null || (!borderTile.Road && !borderTile.RailRoad && borderTile.City is null)) continue;
 				output += i;
 			}
 			return output;
@@ -108,7 +108,7 @@ namespace CivOne.Tiles
 			for (int i = 1; i <= 128; i *= 2)
 			{
 				ITile borderTile = GetBorderTile(tile, (Direction)i);
-				if (borderTile == null || (!borderTile.RailRoad && borderTile.City == null)) continue;
+				if (borderTile is null || (!borderTile.RailRoad && borderTile.City is null)) continue;
 				output += i;
 			}
 			return output;
@@ -135,7 +135,7 @@ namespace CivOne.Tiles
 			if (tile.Irrigation) return false;
 			if (!(tile is Desert || tile is Grassland || tile is Hills || tile is Plains || tile is River)) return false;
 			return CrossTiles(tile).Any(x => (x.Irrigation || x is River || x is Swamp
-				|| (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))) && x.City == null);
+				|| (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))) && x.City is null);
 		}
 
 		public static bool AllowChangeTerrain(this ITile tile)
@@ -145,7 +145,7 @@ namespace CivOne.Tiles
 
 		public static IBitmap ToBitmap(this ITile[,] tiles, TileSettings settings = null, Player player = null)
 		{
-			if (settings == null) settings = TileSettings.Default;
+			if (settings is null) settings = TileSettings.Default;
 
 			IBitmap output = new Picture(16 * tiles.GetLength(0), 16 * tiles.GetLength(1), Palette);
 
@@ -153,7 +153,7 @@ namespace CivOne.Tiles
 			for (int xx = 0; xx < tiles.GetLength(0); xx++)
 			{
 				ITile tile = tiles[xx, yy];
-				if (tile == null || player != null && !player.Visible(tile)) continue;
+				if (tile is null || player is not null && !player.Visible(tile)) continue;
 
 				int x = (xx * 16), y = (yy * 16);
 				output.AddLayer(tile.ToBitmap(settings, player), x, y, dispose: true);
@@ -165,7 +165,7 @@ namespace CivOne.Tiles
 				for (int xx = 0; xx < tiles.GetLength(0); xx++)
 				{
 					ITile tile = tiles[xx, yy];
-					if (tile == null || tile.City == null || player != null && !player.Visible(tile)) continue;
+					if (tile is null || tile.City is null || player is not null && !player.Visible(tile)) continue;
 					int x = (xx == 0) ? 0 : (xx * 16) - 8;
 					int y = (yy * 16) + 16;
 					string label = tile.City.Name;
@@ -178,7 +178,7 @@ namespace CivOne.Tiles
 
 		public static IBitmap ToBitmap(this ITile tile, TileSettings settings = null, Player player = null)
 		{
-			if (settings == null) settings = TileSettings.Default;
+			if (settings is null) settings = TileSettings.Default;
 
 			IBitmap output = new Picture(16, 16, Palette);
 
@@ -187,7 +187,7 @@ namespace CivOne.Tiles
 			output.AddLayer(MapTile.TileLayer(tile));
 			output.AddLayer(MapTile.TileSpecial(tile));
 			Bytemap erosion = MapTile.LandCoastErosion(tile);
-			if (erosion != null) output.AddLayer(erosion, dispose: true);
+			if (erosion is not null) output.AddLayer(erosion, dispose: true);
 			
 			// Add tile improvements
 			if (tile.Type != Terrain.River && settings.Improvements)
@@ -204,10 +204,10 @@ namespace CivOne.Tiles
 			if (tile.DrawHut()) output.AddLayer(MapTile.Hut);
 			if (tile.Pollution && !tile.IsOcean) output.AddLayer(MapTile.Pollution);
 
-			if (player != null)
+			if (player is not null)
 			{
 				Direction fog = Direction.None;
-				foreach (Direction direction in new[] { West, North, East, South })
+				foreach (Direction direction in (Direction[])[West, North, East, South])
 				{
 					if (player.Visible(tile, direction)) continue;
 					fog += (int)direction;
@@ -215,7 +215,7 @@ namespace CivOne.Tiles
 				if (fog != None) output.AddLayer(MapTile.Fog[fog]);
 			}
 
-			if (settings.Cities && tile.City != null)
+			if (settings.Cities && tile.City is not null)
 			{
 				output.AddLayer(Icons.City(tile.City, smallFont: settings.CitySmallFonts));
 				if (settings.ActiveUnit && tile.Units.Any(u => u == Game.ActiveUnit && u.Owner != Game.PlayerNumber(player)))
@@ -224,9 +224,9 @@ namespace CivOne.Tiles
 				}
 			}
 			
-			if ((settings.EnemyUnits || settings.Units) && (tile.City == null || tile.Units.Any(u => u == Game.ActiveUnit)))
+			if ((settings.EnemyUnits || settings.Units) && (tile.City is null || tile.Units.Any(u => u == Game.ActiveUnit)))
 			{
-				int unitCount = tile.Units.Count(u => settings.Units || player == null || u.Owner != Game.PlayerNumber(player));
+				int unitCount = tile.Units.Count(u => settings.Units || player is null || u.Owner != Game.PlayerNumber(player));
 				if (unitCount > 0)
 				{
 					output.AddLayer(tile.UnitsToPicture(), dispose: true);
@@ -238,7 +238,7 @@ namespace CivOne.Tiles
 
 		public static IBitmap UnitsToPicture(this ITile tile)
 		{
-			if (tile == null || tile.Units.Length == 0 || (tile.Units.Length == 1 && tile.Units[0] == Game.MovingUnit)) return null;
+			if (tile is null || tile.Units.Length == 0 || (tile.Units.Length == 1 && tile.Units[0] == Game.MovingUnit)) return null;
 			
 			IUnit[] units = tile.Units.OrderBy(x => (tile.IsOcean && x.Class == UnitClass.Water) ? 1 : 0).Where(x => x != Game.MovingUnit).ToArray();
 			if (units.Length == 0) return null;
@@ -246,13 +246,13 @@ namespace CivOne.Tiles
 			bool stack = (units.Length > 1);
 			IUnit unit = units.First();
 			if (tile.IsOcean) unit = units.FirstOrDefault(x => x.Class == UnitClass.Water) ?? units.FirstOrDefault(x => !(x.Class == UnitClass.Land && x.Sentry));
-			if (Game.Started && Game.ActiveUnit != null && !Game.ActiveUnit.Moving && Game.ActiveUnit.X == tile.X && Game.ActiveUnit.Y == tile.Y) unit = Game.ActiveUnit;
-			if (unit == null) return null;
+			if (Game.Started && Game.ActiveUnit is not null && !Game.ActiveUnit.Moving && Game.ActiveUnit.X == tile.X && Game.ActiveUnit.Y == tile.Y) unit = Game.ActiveUnit;
+			if (unit is null) return null;
 			
 			IBitmap output = new Picture(16, 16, Palette);
 			Bytemap unitPicture = unit.ToBitmap();
-			if (tile.City == null) output.AddLayer(unitPicture);
-			if (stack || tile.City != null) output.AddLayer(unitPicture, -1, -1);
+			if (tile.City is null) output.AddLayer(unitPicture);
+			if (stack || tile.City is not null) output.AddLayer(unitPicture, -1, -1);
 			return output;
 		}
 	}

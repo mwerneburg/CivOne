@@ -39,7 +39,7 @@ namespace CivOne
 				else
 				{
 					ITile tile = Map[x, y];
-					if (tile == null) continue;
+					if (tile is null) continue;
 
 					if (tile.IsOcean) continue; // Is it an ocean tile?
 					if (tile.Hut) continue; // Is there a hut on this tile?
@@ -50,7 +50,7 @@ namespace CivOne
 					if (Map.ContinentTiles(tile.ContinentId).Count(t => Map.TileIsType(t, Terrain.Plains, Terrain.Grassland1, Terrain.Grassland2, Terrain.River)) < (32 - (GameTurn / 16))) continue; // Check buildable tiles on continent
 					
 					// After 0 AD, don't spawn a Civilization on a continent that already contains cities.
-					if (Common.TurnToYear(GameTurn) >= 0 && Map.ContinentTiles(tile.ContinentId).Any(t => t.City != null)) continue;
+					if (Common.TurnToYear(GameTurn) >= 0 && Map.ContinentTiles(tile.ContinentId).Any(t => t.City is not null)) continue;
 					
 					Log(loopCounter.ToString());
 				}
@@ -73,7 +73,7 @@ namespace CivOne
 			// All Handicap values start from 0.
 			byte handicap = 0;
 			IUnit startUnit = _units.Where(u => u.Owner == player).FirstOrDefault();
-			if (startUnit == null) return;
+			if (startUnit is null) return;
 			int x = startUnit.X, y = startUnit.Y;
 
 			ITile[] continent = Map.ContinentTiles(Map[x, y].ContinentId).ToArray();
@@ -125,7 +125,7 @@ namespace CivOne
 		{
 			byte bonus = (byte)(_players.Max(p => p.Handicap) - _players[player].Handicap);
 			IUnit startUnit = _units.Where(u => u.Owner == player).FirstOrDefault();
-			if (startUnit == null) return;
+			if (startUnit is null) return;
 			int x = startUnit.X, y = startUnit.Y;
 
 			if (bonus >= 4)
@@ -158,7 +158,7 @@ namespace CivOne
 		
 		public static void CreateGame(int difficulty, int competition, ICivilization tribe, string leaderName = null, string tribeName = null, string tribeNamePlural = null)
 		{
-			if (_instance != null)
+			if (_instance is not null)
 			{
 				Log("ERROR: Game instance already exists");
 				return;

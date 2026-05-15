@@ -87,7 +87,7 @@ namespace CivOne.Advances
 									requiredTech.Append(" and ");
 								requiredTech.Append(tech.Name);
 							}
-							output.DrawText(string.Format("Requires {0}", requiredTech), 6, 1, 32, yy); yy += 8;
+							output.DrawText($"Requires {requiredTech}", 6, 1, 32, yy); yy += 8;
 						}
 						yy += 16;
 						output.DrawText("Allows:", 6, 1, 32, yy); yy += 8;
@@ -95,26 +95,26 @@ namespace CivOne.Advances
 						{
 							string allows = tech.Name;
 							foreach (IAdvance at in tech.RequiredTechs.Where(a => a.Id != Id))
-								allows += string.Format(" (with {0})", at.Name);
+								allows += $" (with {at.Name})";
 							output.DrawText(allows, 6, 9, 40, yy); yy += 8;
 						}
 						yy += 4;
-						foreach (IUnit unit in Reflect.GetUnits().Where(u => u.RequiredTech != null && u.RequiredTech.Id == Id))
+						foreach (IUnit unit in Reflect.GetUnits().Where(u => u.RequiredTech is not null && u.RequiredTech.Id == Id))
 						{
 							output.AddLayer(unit.ToBitmap(Game.PlayerNumber(Human)), 40, yy - 5);
-							output.DrawText(string.Format("{0} unit", unit.Name), 6, 12, 60, yy); yy += 12;
+							output.DrawText($"{unit.Name} unit", 6, 12, 60, yy); yy += 12;
 						}
-						foreach (IBuilding building in Reflect.GetBuildings().Where(b => b.RequiredTech != null && b.RequiredTech.Id == Id))
+						foreach (IBuilding building in Reflect.GetBuildings().Where(b => b.RequiredTech is not null && b.RequiredTech.Id == Id))
 						{
-							if (building.SmallIcon != null)
+							if (building.SmallIcon is not null)
 								output.AddLayer(building.SmallIcon, 39, yy - 2);
-							output.DrawText(string.Format("{0} improvement", building.Name), 6, 2, 60, yy); yy += 12;
+							output.DrawText($"{building.Name} improvement", 6, 2, 60, yy); yy += 12;
 						}
-						foreach (IWonder wonder in Reflect.GetWonders().Where(w => w.RequiredTech != null && w.RequiredTech.Id == Id))
+						foreach (IWonder wonder in Reflect.GetWonders().Where(w => w.RequiredTech is not null && w.RequiredTech.Id == Id))
 						{
-							if (wonder.SmallIcon != null)
+							if (wonder.SmallIcon is not null)
 								output.AddLayer(wonder.SmallIcon, 39, yy - 2);
-							output.DrawText(string.Format("{0} Wonder", wonder.Name), 6, 2, 60, yy); yy += 12;
+							output.DrawText($"{wonder.Name} Wonder", 6, 2, 60, yy); yy += 12;
 						}
 					}
 					break;

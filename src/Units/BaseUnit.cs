@@ -80,7 +80,7 @@ namespace CivOne.Units
 			}
 		}
 
-		public bool Moving => (Movement != null);
+		public bool Moving => (Movement is not null);
 		public MoveUnit Movement { get; protected set; }
 
 		private int AttackStrength(IUnit defendUnit)
@@ -105,13 +105,13 @@ namespace CivOne.Units
 
 				// Step 4: If the attacking unit is a Barbarian unit and the defending unit is inside a city and the defending civilization does not control any other cities, set the attack strength to zero.
 				// This actually makes the defending unit invincible in this special case. Might well save you from being obliterated by that unlucky hut at 3600BC.
-				if (defendUnit.Tile.City != null && Game.GetPlayer(defendUnit.Owner).Cities.Length == 1)
+				if (defendUnit.Tile.City is not null && Game.GetPlayer(defendUnit.Owner).Cities.Length == 1)
 				{
 					attackStrength = 0;
 				}
 
 				// Step 5: If the attacking unit is a Barbarian unit and the defending unit is inside a city with a Palace, divide the attack strength by 2.
-				if (defendUnit.Tile.City != null && defendUnit.Tile.City.HasBuilding<Palace>())
+				if (defendUnit.Tile.City is not null && defendUnit.Tile.City.HasBuilding<Palace>())
 				{
 					attackStrength /= 2;
 				}
@@ -166,7 +166,7 @@ namespace CivOne.Units
 			}
 
 			// Check City Walls for step 5 (Great Wall acts as City Walls for all owner cities until Gunpowder)
-			bool cityWalls = defendUnit.Tile.City != null
+			bool cityWalls = defendUnit.Tile.City is not null
 				&& (defendUnit.Tile.City.HasBuilding<CityWalls>()
 				    || (!Game.WonderObsolete<Wonders.GreatWall>()
 				        && Game.GetPlayer(defendUnit.Tile.City.Owner)?.HasWonder<Wonders.GreatWall>() == true));
@@ -226,7 +226,7 @@ namespace CivOne.Units
 			int randomAttack = Common.Random.Next(attackStrength);
 			int randomDefense = Common.Random.Next(defenseStrength);
 			bool win = (randomAttack > randomDefense);
-			if (win && attackUnit.Owner == 0 && defendUnit.Tile.City != null)
+			if (win && attackUnit.Owner == 0 && defendUnit.Tile.City is not null)
 			{
 				 // If the attacking unit is a Barbarian unit and the defending unit is inside a city, then, if the attacking unit won, the procedure will be repeated once
 				 // This time, the attacking unit wins on a tie.
@@ -256,10 +256,10 @@ namespace CivOne.Units
 			Movement = new MoveUnit(relX, relY);
 
 			ITile moveTarget = Map[X, Y][relX, relY];
-			if (moveTarget == null) return false;
+			if (moveTarget is null) return false;
 
 			{
-				string targetDesc = moveTarget.City != null
+				string targetDesc = moveTarget.City is not null
 					? $"city {moveTarget.City.Name}(P{moveTarget.City.Owner})"
 					: $"unit {(moveTarget.Units.FirstOrDefault()?.GetType().Name ?? "?")}(P{moveTarget.Units.FirstOrDefault()?.Owner})";
 				Log($"[Confront] {GetType().Name} P{Owner} ({X},{Y}) → ({X+relX},{Y+relY}) {targetDesc}");
@@ -270,12 +270,12 @@ namespace CivOne.Units
 			// a new war, so only proceed if already at war with the target.
 			if (Human == Owner && Player.Government is Governments.Democracy)
 			{
-				Player targetOwner = moveTarget.City != null
+				Player targetOwner = moveTarget.City is not null
 				    ? Game.GetPlayer(moveTarget.City.Owner)
 				    : moveTarget.Units.Any(u => u.Owner != Owner)
 				        ? Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner)
 				        : null;
-				if (targetOwner != null && targetOwner != Player && !Player.IsAtWar(targetOwner))
+				if (targetOwner is not null && targetOwner != Player && !Player.IsAtWar(targetOwner))
 				{
 					GameTask.Enqueue(Message.Error("-- Civilization Note --", "The Senate has", "blocked your attack!"));
 					Movement = null;
@@ -283,12 +283,12 @@ namespace CivOne.Units
 				}
 			}
 
-			if (moveTarget.City != null && moveTarget.City.Owner != Owner)
+			if (moveTarget.City is not null && moveTarget.City.Owner != Owner)
 				Player.DeclareWar(Game.GetPlayer(moveTarget.City.Owner));
 			else if (moveTarget.Units.Any(u => u.Owner != Owner))
 				Player.DeclareWar(Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner));
 
-			if (!moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City != null && moveTarget.City.Owner != Owner)
+			if (!moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City is not null && moveTarget.City.Owner != Owner)
 			{
 				if (Class != UnitClass.Land)
 				{
@@ -363,7 +363,7 @@ namespace CivOne.Units
 				int yy = (Y - Common.GamePlay.Y + relY) * 16;
 				Show nuke = Show.Nuke(xx, yy);
 
-				if (Map[X, Y][relX, relY].City != null)
+				if (Map[X, Y][relX, relY].City is not null)
 					PlaySound("airnuke");
 				else
 					PlaySound("s_nuke");
@@ -398,7 +398,7 @@ namespace CivOne.Units
 					}
 
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
-					if (unit != null)
+					if (unit is not null)
 					{
 						GameTask.Insert(Show.DestroyUnit(unit, true));
 					}
@@ -419,7 +419,7 @@ namespace CivOne.Units
 						}
 					}
 					Movement = null;
-					if (Map[X, Y][relX, relY].City != null)
+					if (Map[X, Y][relX, relY].City is not null)
 					{
 						City cc = Map[X, Y][relX, relY].City;
 						bool wallProtected = cc.HasBuilding<CityWalls>()
@@ -465,14 +465,14 @@ namespace CivOne.Units
 
 		public virtual bool MoveTo(int relX, int relY)
 		{
-			if (Movement != null)
+			if (Movement is not null)
 			{
 				Log($"[MoveTo] Blocked: {GetType().Name} P{Owner} ({X},{Y}) has active Movement");
 				return false;
 			}
 			
 			ITile moveTarget = Map[X, Y][relX, relY];
-			if (moveTarget == null) return false;
+			if (moveTarget is null) return false;
 			if (moveTarget.Units.Any(u => u.Owner != Owner))
 			{
 				if (Class == UnitClass.Land && Tile.IsOcean)
@@ -482,7 +482,7 @@ namespace CivOne.Units
 				}
 				return Confront(relX, relY);
 			}
-			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan || this is Explorer) && !new ITile[] { Map[X, Y], moveTarget }.Any(t => t.IsOcean || t.City != null) && moveTarget.GetBorderTiles().SelectMany(t => t.Units).Any(u => u.Owner != Owner))
+			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan || this is Explorer) && !((ITile[])[Map[X, Y], moveTarget]).Any(t => t.IsOcean || t.City is not null) && moveTarget.GetBorderTiles().SelectMany(t => t.Units).Any(u => u.Owner != Owner))
 			{
 				if (!moveTarget.Units.Any(x => x.Owner == Owner))
 				{
@@ -497,7 +497,7 @@ namespace CivOne.Units
 					}
 				}
 			}
-			if (moveTarget.City != null && moveTarget.City.Owner != Owner)
+			if (moveTarget.City is not null && moveTarget.City.Owner != Owner)
 			{
 				return Confront(relX, relY);
 			}
@@ -510,14 +510,14 @@ namespace CivOne.Units
 			}
 
 			// TODO: This implementation was done by observation, may need a revision
-			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.City != null;
-			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.City != null;
+			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.City is not null;
+			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.City is not null;
 			bool riverBonus = Tile is River && moveTarget is River;
 			if (srcRoad && dstRoad || riverBonus)
 			{
 				// Handle movement in MovementDone
 			}
-			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.City == null && moveTarget.Movement > 1)
+			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.City is null && moveTarget.Movement > 1)
 			{
 				bool success;
 				if (PartMoves >= 2)
@@ -631,12 +631,12 @@ namespace CivOne.Units
 			{
 				yy += 8;
 				string requiredTech = "";
-				if (RequiredTech != null) requiredTech = RequiredTech.Name;
-				output.DrawText(string.Format("Requires {0}", requiredTech), 6, 9, 100, yy); yy += 8;
-				output.DrawText(string.Format("Cost: {0}0 resources.", Price), 6, 9, 100, yy); yy += 8;
-				output.DrawText(string.Format("Attack Strength: {0}", Attack), 6, 12, 100, yy); yy += 8;
-				output.DrawText(string.Format("Defense Strength: {0}", Defense), 6, 12, 100, yy); yy += 8;
-				output.DrawText(string.Format("Movement Rate: {0}", Move), 6, 5, 100, yy);
+				if (RequiredTech is not null) requiredTech = RequiredTech.Name;
+				output.DrawText($"Requires {requiredTech}", 6, 9, 100, yy); yy += 8;
+				output.DrawText($"Cost: {Price}0 resources.", 6, 9, 100, yy); yy += 8;
+				output.DrawText($"Attack Strength: {Attack}", 6, 12, 100, yy); yy += 8;
+				output.DrawText($"Defense Strength: {Defense}", 6, 12, 100, yy); yy += 8;
+				output.DrawText($"Movement Rate: {Move}", 6, 5, 100, yy);
 			}
 			
 			return output;
@@ -803,7 +803,7 @@ namespace CivOne.Units
 
 		public void SetHome()
 		{
-			if (Map[X, Y].City == null) return;
+			if (Map[X, Y].City is null) return;
 			SetHome(Map[X, Y].City);
 		}
 
@@ -844,7 +844,7 @@ namespace CivOne.Units
 		
 		protected void SetIcon(char page, int col, int row)
 		{
-			if (_iconCache[(int)Type] == null)
+			if (_iconCache[(int)Type] is null)
 			{
 				_iconCache[(int)Type] = Resources[$"ICONPG{page}"][col * 160, row * 62, 160, 60]
 					.ColourReplace((byte)(GFX256 ? 253 : 15), 0);
@@ -879,11 +879,11 @@ namespace CivOne.Units
 			cost = 0;
 			if (!UpgradesTo.HasValue) return false;
 			City city = Map[X, Y].City;
-			if (city == null || city.Owner != Owner) return false;
+			if (city is null || city.Owner != Owner) return false;
 			if (!city.HasBuilding<Barracks>()) return false;
 			IUnit target = Game.PeekUnit(UpgradesTo.Value);
-			if (target == null) return false;
-			if (target.RequiredTech != null && !Player.HasAdvance(target.RequiredTech)) return false;
+			if (target is null) return false;
+			if (target.RequiredTech is not null && !Player.HasAdvance(target.RequiredTech)) return false;
 			targetName = target.Name;
 			cost = (int)target.Price * 10;
 			return Player.Gold >= cost;
@@ -904,9 +904,9 @@ namespace CivOne.Units
 
 		protected void Explore(int range, bool sea = false, bool noCorners = false)
 		{
-			if (Game == null) return;
+			if (Game is null) return;
 			Player player = Game.GetPlayer(Owner);
-			if (player == null) return;
+			if (player is null) return;
 			player.Explore(X, Y, range, sea, noCorners);
 			if (player.IsHuman) Common.GamePlay?.RefreshMap();
 		}
@@ -920,7 +920,7 @@ namespace CivOne.Units
 		internal static IBitmap GetBaseSprite(UnitType type)
 		{
 			if (!_modifications.ContainsKey(type)) return null;
-			return _modifications[type].LastOrDefault(x => x.Sprite != null && x.Sprite.GifToBitmap() != null)?.Sprite.GifToBitmap();
+			return _modifications[type].LastOrDefault(x => x.Sprite is not null && x.Sprite.GifToBitmap() is not null)?.Sprite.GifToBitmap();
 		}
 
 		private static Dictionary<UnitType, List<UnitModification>> _modifications = new Dictionary<UnitType, List<UnitModification>>();

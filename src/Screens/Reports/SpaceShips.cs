@@ -134,7 +134,7 @@ namespace CivOne.Screens.Reports
 
 			// ── backdrop: spacedock vista ─────────────────────────────────────────
 			IBitmap bg = Resources.SpacedockImage;
-			if (bg != null)
+			if (bg is not null)
 			{
 				Bytemap scaled = ScaleBytemap(bg.Bitmap, vistaW, contentH);
 				this.AddLayer(scaled, 0, headerH);
@@ -361,7 +361,7 @@ namespace CivOne.Screens.Reports
 			// Build palette: start from spacedock image palette if available,
 			// otherwise default. Then stamp Cassette colours at indices 1-17.
 			IBitmap bg = Resources.SpacedockImage;
-			Palette pal = (bg != null) ? bg.Palette.Copy() : Common.DefaultPalette;
+			Palette pal = (bg is not null) ? bg.Palette.Copy() : Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				pal.MergePalette(cassette, 1, 17);
 			Palette = pal;

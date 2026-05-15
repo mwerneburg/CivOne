@@ -50,7 +50,7 @@ namespace CivOne.Screens
 
 			this.CassetteBackground();
 
-			if (_indices != null)
+			if (_indices is not null)
 			{
 				int ox = Math.Max(0, (Width  - _imgW) / 2);
 				int oy = Math.Max(0, (Height - _imgH) / 2);
@@ -83,7 +83,7 @@ namespace CivOne.Screens
 				Palette = pal;
 
 				byte[] rgba = PngFile.ReadRgba(artPath, out _imgW, out _imgH);
-				if (rgba != null)
+				if (rgba is not null)
 					_indices = PngFile.ToIndices(rgba, _imgW, _imgH, pal);
 			}
 		}

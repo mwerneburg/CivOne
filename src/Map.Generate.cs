@@ -567,7 +567,7 @@ namespace CivOne
 					for (int fx = 0; fx < 7; fx++)
 					for (int fy = 0; fy < 7; fy++)
 					{
-						if (nearby[fx, fy] == null) continue;
+						if (nearby[fx, fy] is null) continue;
 						int xx = nearby[fx, fy].X, yy = nearby[fx, fy].Y;
 						if (_tiles[xx, yy].Type == Terrain.Forest)
 							_tiles[xx, yy] = new Jungle(xx, yy, TileIsSpecial(xx, yy));
@@ -777,13 +777,13 @@ namespace CivOne
 			Log("Map: Creating poles");
 			
 			for (int x = 0; x < WIDTH; x++)
-			foreach (int y in new int[] { 0, (HEIGHT - 1) })
+			foreach (int y in new[] { 0, (HEIGHT - 1) })
 			{
 				_tiles[x, y] = new Arctic(x, y, false);
 			}
 			
 			for (int i = 0; i < (WIDTH / 4); i++)
-			foreach (int y in new int[] { 0, 1, (HEIGHT - 2), (HEIGHT - 1) })
+			foreach (int y in new[] { 0, 1, (HEIGHT - 2), (HEIGHT - 1) })
 			{
 				int x = Common.Random.Next(WIDTH);
 				_tiles[x, y] = new Tundra(x, y, false);
@@ -913,7 +913,7 @@ namespace CivOne
 		
 		public void Generate(int landMass = 1, int temperature = 1, int climate = 1, int age = 1, int width = 80, int height = 50)
 		{
-			if (Ready || _tiles != null)
+			if (Ready || _tiles is not null)
 			{
 				Log("ERROR: Map is already load{0}/generat{0}", (Ready ? "ed" : "ing"));
 				return;

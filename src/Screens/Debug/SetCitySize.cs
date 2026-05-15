@@ -100,7 +100,7 @@ namespace CivOne.Screens.Debug
 				GameTask.Enqueue(Message.General($"{_selectedCity.Name} size set to {citySize}."));
 			}
 
-			if (Accept != null)
+			if (Accept is not null)
 				Accept(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -135,7 +135,7 @@ namespace CivOne.Screens.Debug
 
 		private void CitySize_Cancel(object sender, EventArgs args)
 		{
-			if (Cancel != null)
+			if (Cancel is not null)
 				Cancel(this, null);
 			if (sender is Input)
 				((Input)sender)?.Close();
@@ -150,12 +150,12 @@ namespace CivOne.Screens.Debug
 				return false;
 			}
 
-			if (_selectedCity == null && Common.TopScreen.GetType() != typeof(Menu))
+			if (_selectedCity is null && Common.TopScreen.GetType() != typeof(Menu))
 			{
 				AddMenu(_citySelect);
 				return false;
 			}
-			else if (_selectedCity != null && Common.TopScreen.GetType() != typeof(Input))
+			else if (_selectedCity is not null && Common.TopScreen.GetType() != typeof(Input))
 			{
 				Common.AddScreen(_input);
 			}

@@ -75,7 +75,7 @@ namespace CivOne
 				if (Runtime.Settings.DataCheck && !FileSystem.DataFilesExist()) yield return typeof(MissingFiles);
 				if (Runtime.Settings.Demo) yield return typeof(Demo);
 				if (Runtime.Settings.Setup) yield return typeof(Setup);
-				if (Resources.SplashRawImage != null) yield return typeof(Splash);
+				if (Resources.SplashRawImage is not null) yield return typeof(Splash);
 				yield return typeof(Credits);
 			}
 		}
@@ -98,7 +98,7 @@ namespace CivOne
 
 		private void OnDraw(object sender, EventArgs args)
 		{
-			if (TopScreen == null) return;
+			if (TopScreen is null) return;
 
 			Runtime.Palette?.Dispose();
 			// Build a composite palette:
@@ -114,7 +114,7 @@ namespace CivOne
 			{
 				IScreen themedScreen = Common.Screens
 					.LastOrDefault(s => s != Common.TopScreen && Common.HasAttribute<Expand>(s));
-				if (themedScreen != null)
+				if (themedScreen is not null)
 				{
 					composite.MergePalette(themedScreen.Palette, 1, 18);
 					composite.MergePalette(themedScreen.Palette, 96, 8);
@@ -124,7 +124,7 @@ namespace CivOne
 			
 			if (Common.HasAttribute<Modal>(TopScreen))
 			{
-				Runtime.Layers = new[] { TopScreen.Bitmap };
+				Runtime.Layers = [TopScreen.Bitmap];
 			}
 			else
 			{
@@ -136,7 +136,7 @@ namespace CivOne
 				_currentCursor = Common.MouseCursor;
 				_cursorType = Settings.Instance.CursorType;
 				Runtime.CurrentCursor = _currentCursor;
-				if (Cursor.Current?.Bitmap != null)
+				if (Cursor.Current?.Bitmap is not null)
 				{
 					Runtime.Cursor = Cursor.Current.ToBitmap();
 				}
@@ -156,7 +156,7 @@ namespace CivOne
 			if (args[KeyModifier.Control, Key.F5])
 			{
 				string filename = Common.CaptureFilename;
-				if (Runtime.Layers == null) return;
+				if (Runtime.Layers is null) return;
 				using (IBitmap bitmap = new Picture(CanvasWidth, CanvasHeight, Common.TopScreen.Palette.Copy()))
 				{
 					bitmap.Palette[0] = Colour.Black;
@@ -212,7 +212,7 @@ namespace CivOne
 
 		public static void Register(IRuntime runtime)
 		{
-			if (_instance != null)
+			if (_instance is not null)
 			{
 				throw new Exception("Only one runtime can be registered.");
 			}

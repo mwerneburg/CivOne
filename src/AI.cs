@@ -50,11 +50,11 @@ namespace CivOne
 			{
 				ITile tile = unit.Tile;
 
-				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City == null);
-				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation)
+				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City is null);
+				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
-				bool validMine = (tile is Mountains || tile is Hills) && (tile.City == null) && (!tile.Mine) && (!tile.Irrigation);
-				bool validRoad = (tile.City == null) && tile.Road;
+				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
+				bool validRoad = (tile.City is null) && tile.Road;
 				int nearestCity = 255;
 				int nearestOwnCity = 255;
 
@@ -96,14 +96,14 @@ namespace CivOne
                     }
 
 					ITile best = BestSettleSite(unit);
-					if (best != null && (best.X != unit.X || best.Y != unit.Y))
+					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 						unit.Goto = new Point(best.X, best.Y);
 				}
 
 				if (!unit.Goto.IsEmpty)
 				{
 					ITile next = Common.GotoStep(unit);
-					if (next == null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+					if (next is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
 					{
 						unit.Goto = Point.Empty;
@@ -117,32 +117,32 @@ namespace CivOne
 			else if (unit is Militia || unit is Phalanx || unit is Musketeers || unit is Riflemen || unit is MechInf)
 			{
 				// Trim excess defenders in cities (per-city cap of 4)
-				while (unit.Tile.City != null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)
+				while (unit.Tile.City is not null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)
 				{
 					IUnit disband = null;
 					IUnit[] units = unit.Tile.Units.Where(x => x != unit).ToArray();
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Militia)) != null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Phalanx)) != null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Musketeers)) != null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Riflemen)) != null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is MechInf)) != null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Militia)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Phalanx)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Musketeers)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Riflemen)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is MechInf)) is not null) { Game.DisbandUnit(disband); continue; }
 				}
 
 				// Chieftain: militia explore toward fog-of-war instead of fortifying immediately,
 				// but only if the city still has another defender (or the unit is already in the field).
-				bool lastCityDefender = unit.Tile.City != null
+				bool lastCityDefender = unit.Tile.City is not null
 					&& unit.Tile.Units.Count(u => u.Role == UnitRole.Defense) <= 1;
 				if (Game.Difficulty == 0 && unit is Militia && !lastCityDefender)
 				{
 					if (unit.Goto.IsEmpty)
 					{
 						ITile dest = BestExploreTile(unit);
-						if (dest != null) unit.Goto = new Point(dest.X, dest.Y);
+						if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
 					}
 					if (!unit.Goto.IsEmpty)
 					{
 						ITile next = Common.GotoStep(unit);
-						if (next == null) { unit.Goto = Point.Empty; unit.Fortify = true; return; }
+						if (next is null) { unit.Goto = Point.Empty; unit.Fortify = true; return; }
 						if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
 						return;
 					}
@@ -156,11 +156,11 @@ namespace CivOne
 				if (unit.Class == UnitClass.Land && unit.Tile.IsOcean)
 				{
 					ITile land = unit.Tile.GetBorderTiles()
-					    .Where(t => t != null && !t.IsOcean && !t.Units.Any(u => u.Owner != unit.Owner))
+					    .Where(t => t is not null && !t.IsOcean && !t.Units.Any(u => u.Owner != unit.Owner))
 					    .OrderBy(t => t.Units.Any() ? 0 : 1) // prefer our own units already there
 					    .FirstOrDefault()
-					    ?? unit.Tile.GetBorderTiles().FirstOrDefault(t => t != null && !t.IsOcean);
-					if (land != null)
+					    ?? unit.Tile.GetBorderTiles().FirstOrDefault(t => t is not null && !t.IsOcean);
+					if (land is not null)
 						unit.MoveTo(land.X - unit.X, land.Y - unit.Y);
 					else
 						unit.SkipTurn();
@@ -173,18 +173,18 @@ namespace CivOne
 				if (!unit.Goto.IsEmpty)
 				{
 					ITile next = Common.GotoStep(unit);
-					if (next == null)
+					if (next is null)
 					{
 						// No land path — try boarding an adjacent friendly transport
 						if (unit.Role == UnitRole.LandAttack)
 						{
 							byte own = (byte)Game.PlayerNumber(Player);
 							ITile boardTile = unit.Tile.GetBorderTiles()
-							    .FirstOrDefault(t => t != null && t.IsOcean
+							    .FirstOrDefault(t => t is not null && t.IsOcean
 							        && t.Units.Any(u => u.Owner == own && u is IBoardable)
 							        && t.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo)
 							           > t.Units.Count(u => u.Class == UnitClass.Land));
-							if (boardTile != null)
+							if (boardTile is not null)
 							{
 								if (!unit.MoveTo(boardTile.X - unit.X, boardTile.Y - unit.Y))
 									unit.SkipTurn();
@@ -198,10 +198,10 @@ namespace CivOne
 
 					// Don't let a GoTo move initiate war with a civilization at peace.
 					{
-						Player nextCityOwner = (next.City != null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
+						Player nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
 						bool peacefulBlock =
-							next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = Game.GetPlayer(u.Owner); return p != null && !Player.IsAtWar(p); })
-							|| (nextCityOwner != null && !Player.IsAtWar(nextCityOwner));
+							next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = Game.GetPlayer(u.Owner); return p is not null && !Player.IsAtWar(p); })
+							|| (nextCityOwner is not null && !Player.IsAtWar(nextCityOwner));
 						if (peacefulBlock)
 						{
 							unit.Goto = Point.Empty;
@@ -227,7 +227,7 @@ namespace CivOne
 						}
 
 						// Staged assault: units committed to a designated target don't back down.
-						bool stagedAssault = _attackTarget != null && next.City == _attackTarget;
+						bool stagedAssault = _attackTarget is not null && next.City == _attackTarget;
 						if (!stagedAssault
 						    && unit.Attack < next.Units.Select(x => x.Defense).Max()
 						    && Common.Random.Next(0, 100) < 50)
@@ -252,7 +252,7 @@ namespace CivOne
 
 		internal void ChooseResearch()
 		{
-			if (Player.CurrentResearch != null) return;
+			if (Player.CurrentResearch is not null) return;
 
 			IAdvance[] available = Player.AvailableResearch.ToArray();
 			if (available.Length == 0) return;
@@ -281,7 +281,7 @@ namespace CivOne
 
 		internal void CityProduction(City city)
 		{
-			if (city == null || city.Size == 0 || city.Tile == null || Player != city.Owner) return;
+			if (city is null || city.Size == 0 || city.Tile is null || Player != city.Owner) return;
 
 			city.ClearProductionQueue();
 			var stance = GetStance();
@@ -293,7 +293,7 @@ namespace CivOne
 				city.EnqueueProduction(plan[i]);
 		}
 
-		private static Dictionary<Player, AI> _instances = new Dictionary<Player, AI>();
+		private static Dictionary<Player, AI> _instances = new();
 		internal static AI Instance(Player player)
 		{
 			if (_instances.ContainsKey(player))

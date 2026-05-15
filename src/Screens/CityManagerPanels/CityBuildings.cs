@@ -98,7 +98,7 @@ namespace CivOne.Screens.CityManagerPanels
 			_page = 0;
 			_improvements = GetImprovements.ToArray();
 			_update = true;
-			if (BuildingUpdate != null)
+			if (BuildingUpdate is not null)
 				BuildingUpdate(this, null);
 		}
 

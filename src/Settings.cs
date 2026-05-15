@@ -383,7 +383,7 @@ namespace CivOne
 		
 		private void CreateDirectories()
 		{
-			foreach (string dir in new[] { StorageDirectory, CaptureDirectory, DataDirectory, PluginsDirectory, SavesDirectory, SoundsDirectory })
+			foreach (string dir in (string[])[StorageDirectory, CaptureDirectory, DataDirectory, PluginsDirectory, SavesDirectory, SoundsDirectory])
 			if (!Directory.Exists(dir))
 			{
 				Directory.CreateDirectory(dir);
@@ -404,7 +404,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (_instance == null)
+				if (_instance is null)
 					_instance = new Settings();
 				return _instance;
 			}

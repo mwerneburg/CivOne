@@ -213,7 +213,7 @@ namespace CivOne.Screens.Reports
 		{
 			if (minVal <= 1) return 1;
 			double mag = Math.Pow(10, Math.Floor(Math.Log10(minVal)));
-			foreach (int m in new[] { 1, 2, 5, 10 })
+			foreach (int m in (int[])[1, 2, 5, 10])
 			{
 				int v = (int)(m * mag);
 				if (v >= minVal) return v;

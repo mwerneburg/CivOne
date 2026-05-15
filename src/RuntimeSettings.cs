@@ -13,7 +13,7 @@ namespace CivOne
 {
 	public class RuntimeSettings
 	{
-		private readonly Dictionary<string, object> _customSettings = new Dictionary<string, object>();
+		private readonly Dictionary<string, object> _customSettings = new();
 
 		private bool _free;
 

@@ -27,18 +27,18 @@ namespace CivOne.Screens
 			("Epic (320x200)", new Size(320, 200)),
 		};
 
-		private static readonly (string Question, string[] Options)[] Steps = new[]
-		{
-			("MAP SIZE",    new[] { "Tiny (40x25)", "Small (60x40)", "Normal (80x50)", "Large (120x75)", "Huge (160x100)", "Epic (320x200)" }),
-			("LAND MASS",   new[] { "Small", "Normal", "Large" }),
-			("TEMPERATURE", new[] { "Cool", "Temperate", "Warm" }),
-			("CLIMATE",     new[] { "Arid", "Normal", "Wet" }),
-			("AGE",         new[] { "3 billion years", "4 billion years", "5 billion years" }),
-		};
+		private static readonly (string Question, string[] Options)[] Steps =
+		[
+			("MAP SIZE",    ["Tiny (40x25)", "Small (60x40)", "Normal (80x50)", "Large (120x75)", "Huge (160x100)", "Epic (320x200)"]),
+			("LAND MASS",   ["Small", "Normal", "Large"]),
+			("TEMPERATURE", ["Cool", "Temperate", "Warm"]),
+			("CLIMATE",     ["Arid", "Normal", "Wet"]),
+			("AGE",         ["3 billion years", "4 billion years", "5 billion years"]),
+		];
 
 		private int _step = 0;
 		private int _cursor = 2;
-		private readonly int[] _confirmed = new int[] { 2, 1, 1, 1, 1 };
+		private readonly int[] _confirmed = [2, 1, 1, 1, 1];
 		private bool _hasUpdate = true;
 		private bool _closing = false;
 
@@ -156,7 +156,7 @@ namespace CivOne.Screens
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			if (_optionRects == null) return false;
+			if (_optionRects is null) return false;
 			for (int i = 0; i < _optionRects.Length; i++)
 			{
 				if (_optionRects[i].Contains(args.X, args.Y))

@@ -76,7 +76,7 @@ namespace CivOne
 
 		private static byte GetId(this City city)
 		{
-			if (city != null)
+			if (city is not null)
 			{
 				City[] cities = Game.Instance.GetCities();
 				for (byte c = 0; c < cities.Length; c++)
@@ -159,7 +159,7 @@ namespace CivOne
 			IEnumerable<IUnit> filteredUnits = unitList.ToList().FilterUnits();
 
 			byte index = 0;
-			List<UnitData> unitDataList = new List<UnitData>();
+			List<UnitData> unitDataList = new();
 			foreach (IUnit unit in filteredUnits)
 			{
 				unitDataList.Add(unit.GetUnitData(index++));
@@ -268,7 +268,7 @@ namespace CivOne
 
 		public static string[] Traits(this ILeader leader)
 		{
-			List<string> output = new List<string>();
+			List<string> output = new();
 			if (leader.Aggression != AggressionLevel.Normal) output.Add(leader.Aggression.ToText());
 			if (leader.Development != DevelopmentLevel.Normal) output.Add(leader.Development.ToString());
 			if (leader.Militarism != MilitarismLevel.Normal) output.Add(leader.Militarism.ToString());
@@ -309,7 +309,7 @@ namespace CivOne
 
 		public static Bytemap MatchColours(this IBitmap input, Palette palette, int startIndex, int length)
 		{
-			Dictionary<int, int> matches = new Dictionary<int, int>();
+			Dictionary<int, int> matches = new();
 
 			Colour[] pal = input.Palette.Entries.ToArray();
 			Colour[] cmp = palette.Entries.ToArray();
@@ -344,7 +344,7 @@ namespace CivOne
 
 		public static Picture MakePalette(this IBitmap bitmap, int startIndex, int colourLength)
 		{
-			Dictionary<byte, int> colourCount = new Dictionary<byte, int>();
+			Dictionary<byte, int> colourCount = new();
 			foreach (byte colourIndex in bitmap.Bitmap.ToByteArray())
 			{
 				if (bitmap.Palette[colourIndex].A == 0) continue; // Do not count transparent

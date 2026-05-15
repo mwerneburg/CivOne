@@ -49,14 +49,14 @@ namespace CivOne.Tasks
 			}
 
 			IScreen cityView;
-			if (_unitName != null || !Game.Animations)
+			if (_unitName is not null || !Game.Animations)
 			{
-				cityView = new Newspaper(_city, new string[] { $"{_city.Name} builds", $"{name}." }, showGovernment: false);
+				cityView = new Newspaper(_city, [$"{_city.Name} builds", $"{name}."], showGovernment: false);
 			}
 			else
 			{
 				string artPath = ImprovementArtScreen.FindArtPath(name);
-				if (artPath != null)
+				if (artPath is not null)
 				{
 					cityView = new ImprovementArtScreen(artPath, name);
 				}

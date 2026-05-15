@@ -115,7 +115,7 @@ namespace CivOne
 				_tiles[x, y] = tile;
 			}
 
-			if (cos.Improvements != null)
+			if (cos.Improvements is not null)
 			{
 				foreach (var imp in cos.Improvements)
 				{
