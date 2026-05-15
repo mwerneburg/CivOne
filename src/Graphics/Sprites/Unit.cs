@@ -40,7 +40,7 @@ namespace CivOne.Graphics.Sprites
 				int xx = (unitId % 20) * 16;
 				int yy = unitId < 20 ? 160 : 176;
 
-				if (Resources.Exists(resFile))
+				if (unitId <= 27 && Resources.Exists(resFile))
 				{
 					output = Resources[resFile].Bitmap[xx, yy, 16, 16]
 						.FillRectangle(0, 0, 16, 1, 0)
