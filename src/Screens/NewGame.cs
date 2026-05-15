@@ -35,7 +35,8 @@ namespace CivOne.Screens
 
 		private int _difficulty = -1, _competition = -1, _tribe = -1;
 		private string _leaderName = null, _tribeName = null, _tribeNamePlural = null;
-		private bool _done = false, _showIntroText = false;
+		private bool _done = false, _showIntroText = false, _gameCreated = false;
+		private int _borderStyle = -1;
 		
 		private Menu CreateMenu(string title, MenuItemEventHandler<int> setChoice, params string[] menuTexts)
 		{
@@ -208,14 +209,20 @@ namespace CivOne.Screens
 				if (_showIntroText) return false;
 				if (!Map.Instance.Ready) { DrawSpinner(gameTick); return true; }
 
-				ICivilization civ = _tribesAvailable[_tribe];
-				Game.CreateGame(_difficulty, _competition, civ, _leaderName, _tribeName, _tribeNamePlural);
-				
+				if (!_gameCreated)
+				{
+					_gameCreated = true;
+					ICivilization civ = _tribesAvailable[_tribe];
+					Game.CreateGame(_difficulty, _competition, civ, _leaderName, _tribeName, _tribeNamePlural);
+					PlaySound(Human.Civilization.Tune);
+				}
+
+				if (_borderStyle < 0) _borderStyle = Common.Random.Next(2);
 				this.Clear(15);
-				DrawBorder(Common.Random.Next(2));
-				
+				DrawBorder(_borderStyle);
+
 				this.AddLayer(DifficultyPicture, OffsetX + 134, OffsetY + 20);
-				
+
 				int yy = OffsetY + 81;
 				foreach (string textLine in TextFile.Instance.GetGameText("KING/INIT"))
 				{
@@ -241,8 +248,8 @@ namespace CivOne.Screens
 					yy += 8;
 				}
 
-				PlaySound(Human.Civilization.Tune);
-				
+				this.DrawText("[ CLICK OR PRESS ANY KEY TO CONTINUE ]", 0, 8, OffsetX + 160, OffsetY + 192, TextAlign.Center);
+
 				_showIntroText = true;
 				return true;
 			}
