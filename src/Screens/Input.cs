@@ -187,6 +187,7 @@ namespace CivOne.Screens
 			OnResize += Resize;
 
 			Palette = palette.Copy();
+			Palette[0] = Colour.Transparent;
 			_text = text;
 			_fontId = fontId;
 			_textColour = textColour;
@@ -203,6 +204,7 @@ namespace CivOne.Screens
 			OnResize += Resize;
 
 			Palette = palette.Copy();
+			Palette[0] = Colour.Transparent;
 			_text = "";
 			_fontId = fontId;
 			_textColour = textColour;
