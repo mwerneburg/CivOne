@@ -51,6 +51,7 @@ namespace CivOne.Persistence
 		public int VisitorArchetype { get; set; }
 		public uint TauCetiEscalationTurn { get; set; }
 		public bool ProbeDispatched { get; set; }
+		public int ProbeOutcomeTier { get; set; }
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }

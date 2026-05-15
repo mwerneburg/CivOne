@@ -214,6 +214,7 @@ namespace CivOne
 					VisitorArchetype        = (int)VisitorType,
 					TauCetiEscalationTurn   = TauCetiEscalationTurn,
 					ProbeDispatched         = ProbeDispatched,
+					ProbeOutcomeTier        = ProbeOutcomeTier,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
 					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
@@ -322,6 +323,7 @@ namespace CivOne
 			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
 			ProbeDispatched       = g.ProbeDispatched;
+			ProbeOutcomeTier      = g.ProbeOutcomeTier;
 			if (g.Transmissions != null)
 				foreach (var t in g.Transmissions)
 					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });

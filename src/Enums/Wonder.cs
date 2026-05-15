@@ -33,5 +33,6 @@ namespace CivOne.Enums
 		SETIProgram = 20,
 		CureForCancer = 21,
 		SouthPoleExpedition = 22,
+		InterstellarProbe   = 23,
 	}
 }

@@ -70,6 +70,9 @@ namespace CivOne
 		// Set when the probe wonder is built, cancels the approach warning (Phase 2)
 		internal bool ProbeDispatched;
 
+		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
+		internal int ProbeOutcomeTier;
+
 		// Log of terminal transmissions shown during this game
 		internal readonly List<TransmissionRecord> Transmissions = new List<TransmissionRecord>();
 
@@ -771,7 +774,49 @@ namespace CivOne
 		public bool WonderObsolete<T>() where T : IWonder, new() => WonderObsolete(new T());
 
 		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech != null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
-		
+
+		// Calculates probe mission quality (0-100) from the human player's civilisation state.
+		// Four equal-weight dimensions: science depth, happiness, cultural coverage, pollution.
+		internal static int CalcProbeQuality(Player player)
+		{
+			City[] cities = player.Cities;
+			if (cities.Length == 0) return 0;
+
+			// Science (0-25): advance count, capping at 60 (full tree is ~88, 60 covers
+			// late-game depth well enough).
+			int scienceScore = Math.Min(25, player.Advances.Length * 25 / 60);
+
+			// Happiness (0-25): fraction of citizens who are happy or content.
+			int totalPop  = cities.Sum(c => c.Size);
+			int happyPop  = cities.Sum(c => c.HappyCitizens + c.ContentCitizens);
+			int happyScore = totalPop > 0 ? happyPop * 25 / totalPop : 0;
+
+			// Culture (0-25): fraction of cities with both a Temple and a Library.
+			int cultured      = cities.Count(c => c.HasBuilding<Temple>() && c.HasBuilding<Library>());
+			int cultureScore  = cities.Length > 0 ? cultured * 25 / cities.Length : 0;
+
+			// Clean (0-25): each pollution tile subtracts 3; floor at 0.
+			int cleanScore = Math.Max(0, 25 - player.Pollution * 3);
+
+			return scienceScore + happyScore + cultureScore + cleanScore;
+		}
+
+		// Maps quality + archetype to outcome tier 0-4.
+		internal static int CalcProbeOutcomeTier(int quality, VisitorArchetype archetype)
+		{
+			int bonus = archetype == VisitorArchetype.Refugees   ?  15
+			          : archetype == VisitorArchetype.Evaluators ?   5
+			          : archetype == VisitorArchetype.Owners     ? -10
+			          : archetype == VisitorArchetype.Conquerors ? -20
+			          : 0;
+			int adj = quality + bonus;
+			if (adj < 20) return 0;
+			if (adj < 40) return 1;
+			if (adj < 60) return 2;
+			if (adj < 80) return 3;
+			return 4;
+		}
+
 		internal void PerformAutoSave()
 		{
 			try { SaveCos(Settings.Instance.AutoSavePath); }

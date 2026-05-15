@@ -33,6 +33,7 @@ namespace CivOne.Screens.Reports
 			"SouthPoleIntel"     => "Classified Intelligence Report",
 			"SouthPoleExpedition"=> "Expedition Log – South Pole Mission",
 			"TauCetiApproach"    => "Tau Ceti — Approach Warning",
+			"ProbeResult"        => "Tau Ceti — Probe Result",
 			_                    => type
 		};
 
@@ -45,6 +46,7 @@ namespace CivOne.Screens.Reports
 				"SouthPoleIntel"      => new SouthPoleIntelReport(entry.Year),
 				"SouthPoleExpedition" => new SouthPoleExpeditionLog(entry.Year),
 				"TauCetiApproach"     => new TauCetiApproachWarning(entry.Year, Game.Instance.VisitorType),
+				"ProbeResult"         => new ProbeResultTransmission(entry.Year, Game.Instance.VisitorType, Game.Instance.ProbeOutcomeTier),
 				_                    => null
 			};
 			if (screen != null)
