@@ -73,7 +73,7 @@ namespace CivOne.Screens.Reports
 			{
 				City city = _cities[i];
 
-				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.INK_HIGH, OX + 16, y);
+				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.PHOS, OX + 16, y);
 
 				DrawCitizens(city, OX + ((i % 2 == 0) ? 72 : 76), y);
 				DrawBuildings(city, y);
@@ -125,10 +125,22 @@ namespace CivOne.Screens.Reports
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
+			int pageSize = (Height - 32) / 10;
+			if (args.Y >= 32)
+			{
+				int rowIdx  = (args.Y - 32) / 10;
+				int cityIdx = (_page - 1) * pageSize + rowIdx;
+				if (cityIdx >= 0 && cityIdx < _cities.Length)
+				{
+					Destroy();
+					Common.AddScreen(new CityManager(_cities[cityIdx]));
+					return true;
+				}
+			}
 			return NextPage();
 		}
 
-		public AttitudeSurvey() : base("SENTIMENT SURVEY", 9)
+		public AttitudeSurvey() : base("SENTIMENT SURVEY", 9, MouseCursor.Pointer)
 		{
 			_cities = Game.GetCities().Where(c => Human == c.Owner && c.Size > 0).ToArray();
 		}
