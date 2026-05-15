@@ -277,14 +277,19 @@ namespace CivOne.Screens
 				this.DrawCassetteField("UNHAPPY", $"{unhappy}", cx, cy + 2 * fieldH, cw, 0, alertCol);
 			}
 
-			if (!_city.IsInDisorder)
+			if (_city.IsInDisorder)
 			{
-				this.DrawText("STABLE", 0, CassetteTheme.OK,
+				this.DrawText("DISORDER", 0, CassetteTheme.ALERT,
+					cx + cw, py + ph - fh - 4, TextAlign.Right);
+			}
+			else if (_city.WasWeLoveKing)
+			{
+				this.DrawText("♥ THE KING", 0, CassetteTheme.PHOS,
 					cx + cw, py + ph - fh - 4, TextAlign.Right);
 			}
 			else
 			{
-				this.DrawText("DISORDER", 0, CassetteTheme.ALERT,
+				this.DrawText("STABLE", 0, CassetteTheme.OK,
 					cx + cw, py + ph - fh - 4, TextAlign.Right);
 			}
 		}
