@@ -20,8 +20,11 @@ namespace CivOne.Screens
 	internal class ImprovementArtScreen : BaseScreen
 	{
 		private readonly string _name;
-		private readonly byte[,] _indices; // [y, x] pre-mapped to Cassette palette
-		private readonly int _imgW, _imgH;
+		private readonly byte[] _rawRgba;
+		private readonly int _rawW, _rawH;
+		private byte[,] _indices;
+		private int _builtForW = -1, _builtForH = -1;
+		private int _scaledW, _scaledH;
 		private bool _update = true;
 
 		internal static string FindArtPath(string improvementName)
@@ -43,27 +46,63 @@ namespace CivOne.Screens
 			return p;
 		}
 
+		// Box-filter scale from srcW×srcH to dstW×dstH RGBA.
+		private static byte[] ScaleRgba(byte[] src, int srcW, int srcH, int dstW, int dstH)
+		{
+			byte[] dst = new byte[dstW * dstH * 4];
+			for (int dy = 0; dy < dstH; dy++)
+			for (int dx = 0; dx < dstW; dx++)
+			{
+				int x0 = dx * srcW / dstW, x1 = (dx + 1) * srcW / dstW;
+				int y0 = dy * srcH / dstH, y1 = (dy + 1) * srcH / dstH;
+				if (x1 == x0) x1++;
+				if (y1 == y0) y1++;
+				long r = 0, g = 0, b = 0, a = 0, n = 0;
+				for (int sy = y0; sy < y1; sy++)
+				for (int sx = x0; sx < x1; sx++)
+				{
+					int i = (sy * srcW + sx) * 4;
+					r += src[i]; g += src[i+1]; b += src[i+2]; a += src[i+3]; n++;
+				}
+				int oi = (dy * dstW + dx) * 4;
+				dst[oi] = (byte)(r/n); dst[oi+1] = (byte)(g/n); dst[oi+2] = (byte)(b/n); dst[oi+3] = (byte)(a/n);
+			}
+			return dst;
+		}
+
+		private void RebuildIndices()
+		{
+			float scale = Math.Min((float)Width / _rawW, (float)Height / _rawH);
+			_scaledW = Math.Max(1, (int)(_rawW * scale));
+			_scaledH = Math.Max(1, (int)(_rawH * scale));
+			byte[] scaled = ScaleRgba(_rawRgba, _rawW, _rawH, _scaledW, _scaledH);
+			using (Palette pal = BuildPalette())
+				_indices = PngFile.ToIndices(scaled, _scaledW, _scaledH, pal);
+			_builtForW = Width;
+			_builtForH = Height;
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
 			_update = false;
 
+			if (_rawRgba is not null && (Width != _builtForW || Height != _builtForH))
+				RebuildIndices();
+
 			this.CassetteBackground();
 
 			if (_indices is not null)
 			{
-				int ox = Math.Max(0, (Width  - _imgW) / 2);
-				int oy = Math.Max(0, (Height - _imgH) / 2);
-				int dw = Math.Min(_imgW, Width  - ox);
-				int dh = Math.Min(_imgH, Height - oy);
-				for (int y = 0; y < dh; y++)
-				for (int x = 0; x < dw; x++)
+				int ox = (Width  - _scaledW) / 2;
+				int oy = (Height - _scaledH) / 2;
+				for (int y = 0; y < _scaledH; y++)
+				for (int x = 0; x < _scaledW; x++)
 					Bitmap[ox + x, oy + y] = _indices[y, x];
 			}
 
 			this.AddScanlines();
 
-			// Subtle dismiss hint at bottom
 			string hint = "[ ANY KEY OR CLICK TO CONTINUE ]";
 			this.DrawText(hint, 0, CassetteTheme.BORDER, Width / 2, Height - 9, TextAlign.Center);
 
@@ -78,14 +117,9 @@ namespace CivOne.Screens
 			_name = improvementName;
 			OnResize += (s, e) => _update = true;
 
-			using (Palette pal = BuildPalette())
-			{
-				Palette = pal;
-
-				byte[] rgba = PngFile.ReadRgba(artPath, out _imgW, out _imgH);
-				if (rgba is not null)
-					_indices = PngFile.ToIndices(rgba, _imgW, _imgH, pal);
-			}
+			Palette pal = BuildPalette();
+			Palette = pal;
+			_rawRgba = PngFile.ReadRgba(artPath, out _rawW, out _rawH);
 		}
 	}
 }
