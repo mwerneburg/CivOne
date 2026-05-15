@@ -20,6 +20,7 @@ namespace CivOne.Screens
 	internal class ImprovementArtScreen : BaseScreen
 	{
 		private readonly string _name;
+		private readonly string _cityName;
 		private readonly byte[] _rawRgba;
 		private readonly int _rawW, _rawH;
 		private byte[,] _indices;
@@ -103,8 +104,7 @@ namespace CivOne.Screens
 
 			this.AddScanlines();
 
-			string hint = "[ ANY KEY OR CLICK TO CONTINUE ]";
-			this.DrawText(hint, 0, CassetteTheme.BORDER, Width / 2, Height - 9, TextAlign.Center);
+			this.DrawText($"{_cityName} has built {_name}.", 0, CassetteTheme.INK_HIGH, Width / 2, Height - 9, TextAlign.Center);
 
 			return true;
 		}
@@ -112,9 +112,10 @@ namespace CivOne.Screens
 		public override bool KeyDown(KeyboardEventArgs args)  { Destroy(); return true; }
 		public override bool MouseDown(ScreenEventArgs args) { Destroy(); return true; }
 
-		internal ImprovementArtScreen(string artPath, string improvementName)
+		internal ImprovementArtScreen(string artPath, string improvementName, string cityName)
 		{
 			_name = improvementName;
+			_cityName = cityName;
 			OnResize += (s, e) => _update = true;
 
 			Palette pal = BuildPalette();

@@ -58,7 +58,7 @@ namespace CivOne.Tasks
 				string artPath = ImprovementArtScreen.FindArtPath(name);
 				if (artPath is not null)
 				{
-					cityView = new ImprovementArtScreen(artPath, name);
+					cityView = new ImprovementArtScreen(artPath, name, _city.Name);
 				}
 				else if (_improvement is IBuilding)
 				{
