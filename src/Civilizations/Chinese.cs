@@ -12,7 +12,7 @@ using CivOne.Leaders;
 
 namespace CivOne.Civilizations
 {
-	internal class Chinese : BaseCivilization<Mao>
+	internal class Chinese : BaseCivilization<Deng>
 	{
 		public Chinese() : base(Civilization.Chinese, "Chinese", "Chinese", "mao")
 		{

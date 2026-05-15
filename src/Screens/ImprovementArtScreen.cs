@@ -8,7 +8,6 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using CivOne.Enums;
 using CivOne.Events;
@@ -42,49 +41,6 @@ namespace CivOne.Screens
 			Palette p = Common.DefaultPalette;
 			CassetteTheme.ApplyTo(p);
 			return p;
-		}
-
-		private static byte[,] ConvertToIndices(byte[] rgba, int w, int h, Palette pal)
-		{
-			// Cache palette entries to avoid repeated unmanaged reads.
-			var pr = new byte[pal.Length];
-			var pg = new byte[pal.Length];
-			var pb = new byte[pal.Length];
-			var pa = new byte[pal.Length];
-			for (int i = 0; i < pal.Length; i++)
-			{
-				Colour c = pal[i];
-				pa[i] = c.A; pr[i] = c.R; pg[i] = c.G; pb[i] = c.B;
-			}
-
-			// Cache nearest-palette lookups so repeated colors cost O(1).
-			var memo = new Dictionary<int, byte>();
-
-			var indices = new byte[h, w];
-			for (int y = 0; y < h; y++)
-			for (int x = 0; x < w; x++)
-			{
-				int i = (y * w + x) * 4;
-				if (rgba[i + 3] < 128) { indices[y, x] = CassetteTheme.BG0; continue; }
-
-				int key = (rgba[i] << 16) | (rgba[i + 1] << 8) | rgba[i + 2];
-				if (!memo.TryGetValue(key, out byte idx))
-				{
-					byte r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
-					idx = CassetteTheme.BG0;
-					int best = int.MaxValue;
-					for (int j = 1; j < pal.Length; j++)
-					{
-						if (pa[j] == 0) continue;
-						int dr = r - pr[j], dg = g - pg[j], db = b - pb[j];
-						int dist = dr * dr + dg * dg + db * db;
-						if (dist < best) { best = dist; idx = (byte)j; }
-					}
-					memo[key] = idx;
-				}
-				indices[y, x] = idx;
-			}
-			return indices;
 		}
 
 		protected override bool HasUpdate(uint gameTick)
@@ -128,7 +84,7 @@ namespace CivOne.Screens
 
 				byte[] rgba = PngFile.ReadRgba(artPath, out _imgW, out _imgH);
 				if (rgba != null)
-					_indices = ConvertToIndices(rgba, _imgW, _imgH, pal);
+					_indices = PngFile.ToIndices(rgba, _imgW, _imgH, pal);
 			}
 		}
 	}

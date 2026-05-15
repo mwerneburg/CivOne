@@ -19,6 +19,50 @@ namespace CivOne.Graphics.ImageFormats
 	// Color types: 0 grayscale, 2 RGB, 3 indexed, 4 gray+alpha, 6 RGBA.
 	internal static class PngFile
 	{
+		// Convert RGBA bytes (from ReadRgba) to palette indices.
+		// Transparent pixels (alpha < 128) become CassetteTheme.BG0.
+		// Repeated colours are memoized so images with few unique tones convert quickly.
+		internal static byte[,] ToIndices(byte[] rgba, int w, int h, Palette pal)
+		{
+			var pr = new byte[pal.Length];
+			var pg = new byte[pal.Length];
+			var pb = new byte[pal.Length];
+			var pa = new byte[pal.Length];
+			for (int i = 0; i < pal.Length; i++)
+			{
+				Colour c = pal[i];
+				pa[i] = c.A; pr[i] = c.R; pg[i] = c.G; pb[i] = c.B;
+			}
+
+			var memo = new Dictionary<int, byte>();
+			var out_ = new byte[h, w];
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+			{
+				int i = (y * w + x) * 4;
+				if (rgba[i + 3] < 128) { out_[y, x] = CassetteTheme.BG0; continue; }
+
+				int key = (rgba[i] << 16) | (rgba[i + 1] << 8) | rgba[i + 2];
+				if (!memo.TryGetValue(key, out byte idx))
+				{
+					byte r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+					idx = CassetteTheme.BG0;
+					int best = int.MaxValue;
+					for (int j = 1; j < pal.Length; j++)
+					{
+						if (pa[j] == 0) continue;
+						int dr = r - pr[j], dg = g - pg[j], db = b - pb[j];
+						int dist = dr * dr + dg * dg + db * db;
+						if (dist < best) { best = dist; idx = (byte)j; }
+					}
+					memo[key] = idx;
+				}
+				out_[y, x] = idx;
+			}
+			return out_;
+		}
+
+
 		private static readonly byte[] _sig = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
 		// Returns flat RGBA bytes (width*height*4), or null on failure.

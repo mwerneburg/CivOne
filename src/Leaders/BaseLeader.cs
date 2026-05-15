@@ -7,10 +7,12 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using CivOne.Enums;
 using CivOne.Graphics;
-using System.Collections.Generic;
-using System.Linq;
+using CivOne.Graphics.ImageFormats;
 
 namespace CivOne.Leaders
 {
@@ -37,12 +39,46 @@ namespace CivOne.Leaders
 		private readonly int _overlayX;
 		private readonly int _overlayY;
 		private Picture _picture, _portraitSmall;
+		private Picture _pngPortrait;
 
 		protected abstract Leader Leader { get; }
+
+		private static string LeaderArtPath(string name)
+		{
+			try
+			{
+				string file = name.ToLower()
+					.Replace('.', '_').Replace(' ', '_') + ".png";
+				string path = Path.Combine(Settings.Instance.DataDirectory, "leader_art", file);
+				return File.Exists(path) ? path : null;
+			}
+			catch { return null; }
+		}
+
+		private Picture LoadPngPortrait()
+		{
+			if (_pngPortrait != null) return _pngPortrait;
+			string path = LeaderArtPath(Name);
+			if (path == null) return null;
+			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
+			if (rgba == null) return null;
+			Palette pal = Common.DefaultPalette;
+			CassetteTheme.ApplyTo(pal);
+			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
+			var pic = new Picture(w, h, pal);
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				pic.Bitmap[x, y] = idx[y, x];
+			_pngPortrait = pic;
+			return _pngPortrait;
+		}
 
 		private IBitmap _modifiedPicture, _modifiedPortraitSmall;
 		public Picture GetPortrait(FaceState state = FaceState.Neutral)
 		{
+			Picture png = LoadPngPortrait();
+			if (png != null) return png;
+
 			if (_modifications.ContainsKey(Leader))
 			{
 				if (_modifiedPicture == null)

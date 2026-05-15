@@ -7,26 +7,19 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-namespace CivOne.Enums
+using CivOne.Enums;
+
+namespace CivOne.Leaders
 {
-	public enum Leader : byte
+	public class Deng : BaseLeader
 	{
-		Atilla,
-		Caesar,
-		Hammurabi,
-		Frederick,
-		Ramesses,
-		Lincoln,
-		Alexander,
-		Gandhi,
-		Stalin,
-		Shaka,
-		Napoleon,
-		Montezuma,
-		Mao,
-		Elizabeth,
-		Genghis,
-		Peter,
-		Deng,
+		protected override Leader Leader => Leader.Deng;
+
+		public Deng() : base("Deng Xiaoping")
+		{
+			Aggression  = AggressionLevel.Normal;
+			Militarism  = MilitarismLevel.Civilized;
+			Development = DevelopmentLevel.Perfectionist;
+		}
 	}
 }
