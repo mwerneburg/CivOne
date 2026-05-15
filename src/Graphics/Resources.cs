@@ -138,7 +138,10 @@ namespace CivOne.Graphics
 			string key = $"letter{colour}|{font}|{letter}";
 			if (!_textCache.ContainsKey(key))
 			{
-				_textCache.Add(key, Font(font).GetLetter(letter, colour));
+				// Characters above ASCII 127 are special glyphs (♥, ★, etc.) defined only
+				// in DefaultFont; the Civ1 bitmap fonts only cover 32–127.
+				IFont f = letter > 127 ? _defaultFont : Font(font);
+				_textCache.Add(key, f.GetLetter(letter, colour));
 			}
 			return _textCache[key];
 		}
