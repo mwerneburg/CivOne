@@ -159,6 +159,7 @@ namespace CivOne
 		public bool HasWonder(IWonder wonder) => _wonders.Any(w => w.Id == wonder.Id);
 		public bool HasWonder(Type type) => _wonders.Any(w => w.GetType() == type);
 		public bool HasWonder<T>() where T : IWonder => _wonders.Any(w => w is T);
+		public bool HasDomeWonder() => _wonders.Any(w => w is Wonders.IDomeComponent);
 
 		// True when a friendly city on the same continent holds the Hoover Dam
 		private bool HooverDamActive => Tile is not null && Game.Started

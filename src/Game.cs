@@ -73,6 +73,36 @@ namespace CivOne
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
 
+		// Dome path: which player (owner byte) is assigned to which dome wonder component.
+		// Populated when the Tau Ceti approach warning fires.
+		internal readonly Dictionary<byte, Enums.Wonder> DomeAssignments = new();
+
+		// Set when any player builds the first dome component (hard exclusivity gate).
+		internal bool DomePathCommitted => BuiltWonders.Any(w => w is Wonders.IDomeComponent);
+
+		// Set when all five dome components are built — triggers victory sequence.
+		internal bool DomeComplete => _domeVictoryFired || _domeFiveComponents.All(w => WonderBuilt(w));
+
+		private bool _domeVictoryFired = false;
+
+		private static readonly Wonders.IWonder[] _domeFiveComponents =
+		{
+			new Wonders.DomeEmitterArray(),
+			new Wonders.DomeSensorNet(),
+			new Wonders.DomePowerCore(),
+			new Wonders.DomeCommandHub(),
+			new Wonders.DomeKineticRing(),
+		};
+
+		private static readonly Enums.Wonder[] _domeFiveWonderIds =
+		{
+			Enums.Wonder.DomeEmitterArray,
+			Enums.Wonder.DomeSensorNet,
+			Enums.Wonder.DomePowerCore,
+			Enums.Wonder.DomeCommandHub,
+			Enums.Wonder.DomeKineticRing,
+		};
+
 		// Log of terminal transmissions shown during this game
 		internal readonly List<TransmissionRecord> Transmissions = new();
 
@@ -392,9 +422,23 @@ namespace CivOne
 				if (TauCetiEscalationTurn > 0 && _gameTurn >= TauCetiEscalationTurn && !ProbeDispatched)
 				{
 					TauCetiEscalationTurn = 0;
+					AssignDomeComponents();
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType)));
+				}
+
+				// Check for dome victory (all five components built)
+				if (!_domeVictoryFired && _domeFiveComponents.All(w => WonderBuilt(w)))
+				{
+					_domeVictoryFired = true;
+					string gameDate = GameYear;
+					RecordTransmission("DomeComplete", gameDate);
+					int domeFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Dome Victory");
+					var doneScreen = new Screens.DomeCompleteTransmission(gameDate, VisitorType);
+					var finalScore = new Screens.Reports.FinalScore("Dome Victory");
+					GameTask.Enqueue(Show.Screen(doneScreen));
+					GameTask.Enqueue(Show.Screen(finalScore));
 				}
 
 				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
@@ -815,6 +859,34 @@ namespace CivOne
 			if (adj < 60) return 2;
 			if (adj < 80) return 3;
 			return 4;
+		}
+
+		// Assign one dome component to each surviving player (round-robin, shuffled).
+		// Called once when the Tau Ceti approach warning fires.
+		private void AssignDomeComponents()
+		{
+			if (DomeAssignments.Count > 0) return; // already assigned
+
+			Player[] survivors = _players.Where(p => !p.IsDestroyed()).ToArray();
+			if (survivors.Length == 0) return;
+
+			// Shuffle the five components so the assignment isn't always the same
+			var components = _domeFiveWonderIds.ToList();
+			for (int i = components.Count - 1; i > 0; i--)
+			{
+				int j = Common.Random.Next(i + 1);
+				(components[i], components[j]) = (components[j], components[i]);
+			}
+
+			for (int i = 0; i < components.Count; i++)
+				DomeAssignments[PlayerNumber(survivors[i % survivors.Length])] = components[i];
+		}
+
+		// Returns the dome component assigned to this player, or null if none / not yet assigned.
+		internal Enums.Wonder? GetDomeAssignment(Player player)
+		{
+			byte id = PlayerNumber(player);
+			return DomeAssignments.TryGetValue(id, out var w) ? w : (Enums.Wonder?)null;
 		}
 
 		internal void PerformAutoSave()

@@ -52,6 +52,9 @@ namespace CivOne.Persistence
 		public uint TauCetiEscalationTurn { get; set; }
 		public bool ProbeDispatched { get; set; }
 		public int ProbeOutcomeTier { get; set; }
+		// Dome assignments: list of [ownerByte, wonderId] pairs
+		public List<int[]> DomeAssignments { get; set; }
+		public bool DomeVictoryFired { get; set; }
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; }
 		public List<CosReplayEntry> ReplayData { get; set; }

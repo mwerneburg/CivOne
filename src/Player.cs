@@ -431,6 +431,21 @@ namespace CivOne
 			if (wonder is Wonders.SouthPoleExpedition && !Game.Instance.WonderBuilt<Wonders.ApolloProgram>())
 				return false;
 
+			// Dome components and the space race are mutually exclusive per player.
+			byte owner = (byte)this;
+			if (wonder is Wonders.IDomeComponent)
+			{
+				if (Game.Instance.SpaceshipStructural[owner] > 0 ||
+				    Game.Instance.SpaceshipComponent[owner]  > 0 ||
+				    Game.Instance.SpaceshipModule[owner]     > 0)
+					return false;
+			}
+			if (wonder is Buildings.ISpaceShip)
+			{
+				if (Cities.Any(c => c.HasDomeWonder()))
+					return false;
+			}
+
 			// Determine if the building requires a tech
 			if (wonder.RequiredTech is null)
 				return true;

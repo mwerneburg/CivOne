@@ -34,5 +34,10 @@ namespace CivOne.Enums
 		CureForCancer = 21,
 		SouthPoleExpedition = 22,
 		InterstellarProbe   = 23,
+		DomeEmitterArray    = 24,
+		DomeSensorNet       = 25,
+		DomePowerCore       = 26,
+		DomeCommandHub      = 27,
+		DomeKineticRing     = 28,
 	}
 }
