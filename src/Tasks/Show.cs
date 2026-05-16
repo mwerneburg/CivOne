@@ -92,6 +92,22 @@ namespace CivOne.Tasks
 			}
 		}
 
+		public static Show RoadTo
+		{
+			get
+			{
+				if (!(Game.ActiveUnit is Settlers settlers)) return null;
+				GamePlay gamePlay = (GamePlay)Common.Screens.First(s => (s is GamePlay));
+				Goto gotoScreen = new Goto(gamePlay.X, gamePlay.Y);
+				gotoScreen.Closed += (s, a) =>
+				{
+					if (gotoScreen.X == -1 || gotoScreen.Y == -1) return;
+					settlers.RoadTo = new Point(gotoScreen.X, gotoScreen.Y);
+				};
+				return new Show(gotoScreen);
+			}
+		}
+
 		public static Show TaxRate => new Show(SetRate.Taxes);
 
 		public static Show LuxuryRate => new Show(SetRate.Luxuries);

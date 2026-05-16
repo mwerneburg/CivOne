@@ -26,7 +26,7 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0);
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || !RoadTo.IsEmpty);
 			}
 			set
 			{
@@ -37,8 +37,10 @@ namespace CivOne.Units
 				BuildingFortress = 0;
 				BuildingCleanPollution = 0;
 				AutoClean = false;
+				RoadTo = Point.Empty;
 			}
 		}
+		public Point RoadTo { get; set; } = Point.Empty;
 		public int BuildingRoad { get; private set; }
 		public int BuildingIrrigation { get; private set; }
 		public int BuildingMine { get; private set; }
@@ -325,6 +327,30 @@ namespace CivOne.Units
 						AutoClean = false;
 				}
 			}
+
+			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0)
+			{
+				if (X == RoadTo.X && Y == RoadTo.Y)
+				{
+					RoadTo = Point.Empty;
+				}
+				else
+				{
+					ITile tile = Map[X, Y];
+					bool needsRoad = (!tile.Road || (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.RailRoad))
+				                 && tile.City is null && !tile.IsOcean;
+					if (needsRoad)
+						BuildRoad();
+					else
+					{
+						ITile next = Common.GotoStep(this, RoadTo.X, RoadTo.Y);
+						if (next is not null)
+							Goto = new Point(next.X, next.Y);
+						else
+							RoadTo = Point.Empty;
+					}
+				}
+			}
 		}
 
 		private MenuItem<int> MenuFoundCity() => MenuItem<int>
@@ -336,6 +362,11 @@ namespace CivOne.Units
 			.Create((Map[X, Y].Road) ? "Build RailRoad" : "Build Road")
 			.SetShortcut("r")
 			.OnSelect((s, a) => BuildRoad());
+
+		private MenuItem<int> MenuBuildRoadTo() => MenuItem<int>
+			.Create("Build Road To...")
+			.SetShortcut("t")
+			.OnSelect((s, a) => GameTask.Enqueue(Show.RoadTo));
 
 		private MenuItem<int> MenuBuildIrrigation() => MenuItem<int>
 			.Create((Map[X, Y] is Forest) ? "Change to Plains" :
@@ -395,8 +426,9 @@ namespace CivOne.Units
 					yield return MenuFoundCity();
 				}
 				if (!tile.IsOcean && (!tile.Road || (Human.HasAdvance<RailRoad>() && !tile.RailRoad)))
-				{	
+				{
 					yield return MenuBuildRoad();
+					yield return MenuBuildRoadTo();
 				}
 				if (!tile.Irrigation && ((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River) || (tile is Forest) || (tile is Jungle) || (tile is Swamp)))
 				{

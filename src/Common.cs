@@ -223,9 +223,10 @@ namespace CivOne
 
 		// A* pathfinder for GoTo orders. Returns the next tile to move into, or null if unreachable.
 		// Cost units: railroad=1, road=3, terrain=Movement*9 (max 18 for hills/forest).
-		public static ITile GotoStep(IUnit unit)
+		public static ITile GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
+
+		public static ITile GotoStep(IUnit unit, int gx, int gy)
 		{
-			int gx = unit.Goto.X, gy = unit.Goto.Y;
 			int sx = unit.X, sy = unit.Y;
 			if (sx == gx && sy == gy) return null;
 
