@@ -102,7 +102,16 @@ namespace CivOne.Tasks
 				gotoScreen.Closed += (s, a) =>
 				{
 					if (gotoScreen.X == -1 || gotoScreen.Y == -1) return;
-					settlers.RoadTo = new Point(gotoScreen.X, gotoScreen.Y);
+					int gx = gotoScreen.X, gy = gotoScreen.Y;
+					settlers.RoadTo = new Point(gx, gy);
+					if (settlers.X == gx && settlers.Y == gy)
+					{
+						settlers.RoadTo = Point.Empty;
+						return;
+					}
+					// Start immediately this turn: build here if needed, else begin moving.
+					if (!settlers.BuildRoad())
+						settlers.Goto = new Point(gx, gy);
 				};
 				return new Show(gotoScreen);
 			}
