@@ -301,6 +301,27 @@ namespace CivOne.Graphics
 
 		public Bytemap Special(Terrain type)
 		{
+			string specialSection = type switch
+			{
+				Terrain.Ocean     => "special_ocean",
+				Terrain.Jungle    => "special_jungle",
+				Terrain.Mountains => "special_mountains",
+				Terrain.Desert    => "special_desert",
+				Terrain.Forest    => "special_forest",
+				Terrain.Plains    => "special_plains",
+				Terrain.Hills     => "special_hills",
+				Terrain.Swamp     => "special_swamp",
+				Terrain.Arctic    => "special_arctic",
+				Terrain.Tundra    => "special_tundra",
+				_ => null
+			};
+			if (specialSection is not null)
+			{
+				byte[] loaded = TryLoadTile(specialSection);
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+			}
+
 			switch(type)
 			{
 				case Terrain.Ocean:
