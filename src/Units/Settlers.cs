@@ -441,6 +441,9 @@ namespace CivOne.Units
 				if (!tile.IsOcean && (!tile.Road || (Human.HasAdvance<RailRoad>() && !tile.RailRoad)))
 				{
 					yield return MenuBuildRoad();
+				}
+				if (!tile.IsOcean)
+				{
 					yield return MenuBuildRoadTo();
 				}
 				if (!tile.Irrigation && ((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River) || (tile is Forest) || (tile is Jungle) || (tile is Swamp)))
