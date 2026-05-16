@@ -251,6 +251,10 @@ namespace CivOne.Units
 			if (tile is null)
 				return false;
 
+			// Military units may not enter a tile currently worked by a city.
+			if (Attack > 0 && Game.Instance.IsWorkedTile(tile.X, tile.Y))
+				return false;
+
 			// If the tile is not an ocean tile, movement is allowed
 			if (tile.Type != Terrain.Ocean)
 				return true;

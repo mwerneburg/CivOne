@@ -31,10 +31,12 @@ namespace CivOne.Screens.Reports
 		private Dictionary<byte, int>   _nodeIdx;   // advance ID → index into _nodes
 		private int _treeW, _treeTop, _scrollX;
 		private bool _dirty;
+		private IAdvance _selected;      // node clicked for path highlight
+		private HashSet<byte> _pathIds; // ancestor IDs of _selected (including itself)
 
 		// layout constants (computed from font)
 		private int _fontH, _nodeH, _rowH, _colW, _nodeW;
-		private const int PAD_X = 4, PAD_Y = 2, CONNECTOR = 18;
+		private const int PAD_X = 4, PAD_Y = 2, CONNECTOR = 18, ROW_GAP = 10;
 
 		// ── state helpers ─────────────────────────────────────────────────────────
 
@@ -42,13 +44,26 @@ namespace CivOne.Screens.Reports
 		private bool IsResearching(IAdvance a) => Human.CurrentResearch?.Id == a.Id;
 		private bool CanResearch(IAdvance a)   => !PlayerHas(a) && a.RequiredTechs.All(r => PlayerHas(r));
 
+		// All ancestors of target (prerequisites, recursively), including target itself.
+		private HashSet<byte> ComputePath(IAdvance target)
+		{
+			var ids = new HashSet<byte>();
+			void Recurse(IAdvance a)
+			{
+				if (!ids.Add(a.Id)) return;
+				foreach (var req in a.RequiredTechs) Recurse(req);
+			}
+			Recurse(target);
+			return ids;
+		}
+
 		// ── layout ───────────────────────────────────────────────────────────────────
 
 		private void BuildLayout()
 		{
 			_fontH = Resources.GetFontHeight(0);
 			_nodeH = _fontH + PAD_Y * 2;
-			_rowH  = _nodeH + 3;
+			_rowH  = _nodeH + ROW_GAP;
 
 			var all = Common.Advances.Where(a => !(a is FutureTech)).ToArray();
 
@@ -135,17 +150,26 @@ namespace CivOne.Screens.Reports
 		private void DrawEdge(TechNode from, TechNode to)
 		{
 			int x0 = from.X + from.W - _scrollX;
-			int xm = to.X - CONNECTOR / 2 - _scrollX;   // elbow x
+			int xm = to.X - CONNECTOR / 2 - _scrollX;
 			int x1 = to.X - _scrollX;
 			int y0 = from.Y + from.H / 2 + _treeTop;
 			int y1 = to.Y   + to.H   / 2 + _treeTop;
 
-			// Cull edges fully off-screen horizontally.
 			if (x1 < 0 || x0 > Width) return;
 
-			byte col = PlayerHas(from.Advance) && PlayerHas(to.Advance) ? CassetteTheme.PHOS_DIM :
-			           PlayerHas(from.Advance)                           ? CassetteTheme.INK_MID  :
-			                                                               CassetteTheme.BG3;
+			byte col;
+			if (_pathIds != null)
+			{
+				bool fromOnPath = _pathIds.Contains(from.Advance.Id);
+				bool toOnPath   = _pathIds.Contains(to.Advance.Id);
+				col = (fromOnPath && toOnPath) ? CassetteTheme.PHOS_GLOW : CassetteTheme.BG2;
+			}
+			else
+			{
+				col = PlayerHas(from.Advance) && PlayerHas(to.Advance) ? CassetteTheme.PHOS_DIM :
+				      PlayerHas(from.Advance)                           ? CassetteTheme.INK_MID  :
+				                                                          CassetteTheme.BG3;
+			}
 			HLine(x0, y0, xm, col);
 			VLine(xm, y0, y1, col);
 			HLine(xm, y1, x1, col);
@@ -157,34 +181,66 @@ namespace CivOne.Screens.Reports
 		{
 			int sx = node.X - _scrollX;
 			int sy = node.Y + _treeTop;
-			if (sx + node.W < 0 || sx >= Width)            return;
-			if (sy + node.H < _treeTop || sy >= Height)    return;
+			if (sx + node.W < 0 || sx >= Width)         return;
+			if (sy + node.H < _treeTop || sy >= Height) return;
 
-			byte bg, fg;
-			if (IsResearching(node.Advance))
+			bool onPath   = _pathIds != null && _pathIds.Contains(node.Advance.Id);
+			bool isTarget = _selected != null && node.Advance.Id == _selected.Id;
+
+			byte bg, fg, border;
+			if (isTarget)
 			{
-				bg = CassetteTheme.PHOS_DIM;
-				fg = CassetteTheme.PHOS_GLOW;
+				bg     = CassetteTheme.PHOS;
+				fg     = CassetteTheme.BG0;
+				border = CassetteTheme.PHOS_GLOW;
+			}
+			else if (_pathIds != null && onPath && !PlayerHas(node.Advance))
+			{
+				bg     = CassetteTheme.BG1;
+				fg     = CassetteTheme.PHOS_GLOW;
+				border = CassetteTheme.PHOS;
+			}
+			else if (_pathIds != null && onPath && PlayerHas(node.Advance))
+			{
+				bg     = CassetteTheme.BG2;
+				fg     = CassetteTheme.PHOS_DIM;
+				border = CassetteTheme.BORDER;
+			}
+			else if (_pathIds != null)
+			{
+				// Off-path: dim everything
+				bg     = CassetteTheme.BG0;
+				fg     = CassetteTheme.BG3;
+				border = CassetteTheme.BG1;
+			}
+			else if (IsResearching(node.Advance))
+			{
+				bg     = CassetteTheme.PHOS_DIM;
+				fg     = CassetteTheme.PHOS_GLOW;
+				border = CassetteTheme.BORDER;
 			}
 			else if (PlayerHas(node.Advance))
 			{
-				bg = CassetteTheme.BG2;
-				fg = Game.GetAdvanceOrigin(node.Advance, Human)
-				   ? CassetteTheme.PHOS : CassetteTheme.INK_HIGH;
+				bg     = CassetteTheme.BG2;
+				fg     = Game.GetAdvanceOrigin(node.Advance, Human)
+				       ? CassetteTheme.PHOS : CassetteTheme.INK_HIGH;
+				border = CassetteTheme.BORDER;
 			}
 			else if (CanResearch(node.Advance))
 			{
-				bg = CassetteTheme.BG1;
-				fg = CassetteTheme.INK_MID;
+				bg     = CassetteTheme.BG1;
+				fg     = CassetteTheme.INK_MID;
+				border = CassetteTheme.BORDER;
 			}
 			else
 			{
-				bg = CassetteTheme.BG0;
-				fg = CassetteTheme.INK_LOW;
+				bg     = CassetteTheme.BG0;
+				fg     = CassetteTheme.INK_LOW;
+				border = CassetteTheme.BORDER;
 			}
 
 			this.FillRectangle(sx, sy, node.W, node.H, bg);
-			this.DrawRectangle(sx, sy, node.W, node.H, CassetteTheme.BORDER);
+			this.DrawRectangle(sx, sy, node.W, node.H, border);
 			this.DrawText(node.Advance.Name, 0, fg, sx + PAD_X, sy + PAD_Y);
 		}
 
@@ -195,7 +251,9 @@ namespace CivOne.Screens.Reports
 			if (_treeW <= Width) return;
 			int maxScroll = _treeW - Width;
 			int pct = maxScroll > 0 ? (int)(100.0 * _scrollX / maxScroll) : 0;
-			string hint = $"[ < > to scroll  {pct}% ]";
+			string hint = _selected != null
+				? $"[ < > scroll  {pct}%  click tech to clear  any key closes ]"
+				: $"[ < > scroll  {pct}%  click a tech to show its path ]";
 			this.DrawText(hint, 0, CassetteTheme.INK_LOW, Width / 2, _treeTop + 1, TextAlign.Center);
 		}
 
@@ -254,19 +312,55 @@ namespace CivOne.Screens.Reports
 				_dirty = true;
 				return true;
 			}
+			if (_selected != null)
+			{
+				_selected = null;
+				_pathIds  = null;
+				_dirty    = true;
+				return true;
+			}
 			Destroy();
 			return true;
 		}
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{
+			foreach (var node in _nodes)
+			{
+				int sx = node.X - _scrollX;
+				int sy = node.Y + _treeTop;
+				if (args.X >= sx && args.X < sx + node.W &&
+				    args.Y >= sy && args.Y < sy + node.H)
+				{
+					if (_selected?.Id == node.Advance.Id)
+					{
+						_selected = null;
+						_pathIds  = null;
+					}
+					else
+					{
+						_selected = node.Advance;
+						_pathIds  = ComputePath(node.Advance);
+					}
+					_dirty = true;
+					return true;
+				}
+			}
+			// Click on empty space: clear selection, or close if nothing was selected.
+			if (_selected != null)
+			{
+				_selected = null;
+				_pathIds  = null;
+				_dirty    = true;
+				return true;
+			}
 			Destroy();
 			return true;
 		}
 
 		// ── constructor ───────────────────────────────────────────────────────────
 
-		public ScienceReport() : base("SCIENCE REPORT", 1)
+		public ScienceReport() : base("SCIENCE REPORT", 1, MouseCursor.Pointer)
 		{
 			// Research progress bar (positioned just below the header)
 			if (Human.CurrentResearch is not null)

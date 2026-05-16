@@ -809,6 +809,11 @@ namespace CivOne
 
 		public City[] GetCities() => _cities.ToArray();
 
+		// True when the tile is currently worked by any city (but not a city centre itself).
+		public bool IsWorkedTile(int x, int y) =>
+			_cities.Any(c => !(c.X == x && c.Y == y) &&
+			                 c.ResourceTiles.Any(t => t.X == x && t.Y == y));
+
 		public IWonder[] BuiltWonders => _cities.SelectMany(c => c.Wonders).ToArray();
 
 		public bool WonderBuilt<T>() where T : IWonder => BuiltWonders.Any(w => w is T);
