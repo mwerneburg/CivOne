@@ -46,6 +46,8 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[0, 160, 16, 16];
 		}
 
+		private static Bytemap GetLakeBase() => Free.LakeTile();
+
 		private static bool DrawCoastCorners(ref Bytemap output, Direction land)
 		{
 			if (!Resources.Exists("SP299")) return false;
@@ -334,8 +336,9 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 		
-		public static readonly ISprite LandBase = new CachedSprite(GetLandBase);
+		public static readonly ISprite LandBase  = new CachedSprite(GetLandBase);
 		public static readonly ISprite OceanBase = new CachedSprite(GetOceanBase);
+		public static readonly ISprite LakeBase  = new CachedSprite(GetLakeBase);
 		public static readonly ISpriteCollection<Direction> Arctic = new CachedSpriteCollection<Direction>(GetTileLayer<Arctic>);
 		public static readonly ISpriteCollection<Direction> Desert = new CachedSpriteCollection<Direction>(GetTileLayer<Desert>);
 		public static readonly ISpriteCollection<Direction> Forest = new CachedSpriteCollection<Direction>(GetTileLayer<Forest>);
@@ -396,7 +399,12 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 
-		public static ISprite TileBase(ITile tile) => tile.IsOcean ? OceanBase : LandBase;
+		public static ISprite TileBase(ITile tile)
+		{
+			if (tile.IsOcean && tile.X >= 0 && Map.Instance.IsFreshwaterAt(tile.X, tile.Y))
+				return LakeBase;
+			return tile.IsOcean ? OceanBase : LandBase;
+		}
 		public static ISprite TileLayer(ITile tile)
 		{
 			Direction directions = None, riverDirections = None;

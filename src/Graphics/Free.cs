@@ -115,6 +115,15 @@ namespace CivOne.Graphics
 			}
 		}
 
+		public Bytemap LakeTile()
+		{
+			byte[] loaded = TryLoadTile("lakes");
+			if (loaded is not null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+			// Fallback: CYAN(17) primary with sparse deep-blue(18) specks — visually lighter than ocean.
+			return new Bytemap(16, 16).FromByteArray(GenerateNoise(17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 18).Take(16 * 16).ToArray());
+		}
+
 		public Bytemap Plains => new Bytemap(16, 16).FromByteArray(GenerateNoise(0, 0, 0, 47, 0, 0, 0, 7, 0, 0, 0, 0).Take(16 * 16).ToArray());
 
 		public Bytemap Arctic => new Bytemap(16, 16).FromByteArray(GenerateNoise(16, 7, 17, 18, 7, 15, 20, 19, 15).Skip(380).Take(16 * 16).ToArray());

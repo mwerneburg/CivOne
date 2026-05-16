@@ -39,8 +39,6 @@ namespace CivOne
 		{
 			_freshwater = new bool[WIDTH, HEIGHT];
 
-			int lakeMax = Math.Max(20, (WIDTH * HEIGHT) / 120);  // ≈33 for 80×50
-
 			var label  = new int[WIDTH, HEIGHT];
 			var sizes  = new List<int> { 0 };  // index 0 unused
 			int next   = 1;
@@ -77,11 +75,20 @@ namespace CivOne
 				sizes.Add(size);
 			}
 
+			// The largest connected ocean region is the main ocean; all smaller
+			// regions are enclosed inland lakes regardless of their absolute size.
+			int mainOceanId   = 0;
+			int mainOceanSize = 0;
+			for (int id = 1; id < sizes.Count; id++)
+			{
+				if (sizes[id] > mainOceanSize) { mainOceanSize = sizes[id]; mainOceanId = id; }
+			}
+
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
 			{
 				int id = label[x, y];
-				if (id > 0 && sizes[id] <= lakeMax)
+				if (id > 0 && id != mainOceanId)
 					_freshwater[x, y] = true;
 				else if (_tiles[x, y].Type == Terrain.Swamp)
 					_freshwater[x, y] = true;
