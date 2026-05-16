@@ -121,12 +121,26 @@ namespace CivOne.Graphics
 
 		public Bytemap Tundra => new Bytemap(16, 16).FromByteArray(GenerateNoise(7, 0, 0, 0, 0, 0, 7, 0, 15).Skip(590).Take(16 * 16).ToArray());
 
-		public Bytemap Desert => new Bytemap(16, 16).FromByteArray(GenerateNoise(42, 0, 43, 0, 44, 0, 45, 0, 46, 0, 47).Skip(914).Take(16 * 16).ToArray());
+		public Bytemap Desert
+		{
+			get
+			{
+				byte[] loaded = TryLoadTile("desert");
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+
+				return new Bytemap(16, 16).FromByteArray(GenerateNoise(42, 0, 43, 0, 44, 0, 45, 0, 46, 0, 47).Skip(914).Take(16 * 16).ToArray());
+			}
+		}
 
 		public Bytemap Forest
 		{
 			get
 			{
+				byte[] loaded = TryLoadTile("forest");
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+
 				return new Bytemap(16, 16).FromByteArray(
 					0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 					0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -206,6 +220,10 @@ namespace CivOne.Graphics
 		{
 			get
 			{
+				byte[] loaded = TryLoadTile("jungle");
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+
 				return new Bytemap(16, 16).FromByteArray(
 					0,  0,  0,  0,  0,  0,  0,  5,  0,  5,  0,  0,  0,  5,  0,  0,
 					0,  0,  0,  5,  0,  0,  5, 39,  5, 39,  5,  0,  5,  0,  5,  0,
