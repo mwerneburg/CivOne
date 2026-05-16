@@ -235,24 +235,36 @@ namespace CivOne
 
 			var gScore = new Dictionary<int, int>();
 			var cameFrom = new Dictionary<int, int>();
-			// open set: list of (f, encoded position), kept sorted by insertion into a list
-			var open = new List<(int f, int pos)>();
+			// open set: (f, euclidSq to goal, encoded position)
+			// Primary sort: lowest f. Tiebreaker: lowest squared Euclidean distance to goal,
+			// which breaks equal-cost ties in favour of the geometrically straight path.
+			var open = new List<(int f, int euclid, int pos)>();
 
 			// Scale the heuristic to match actual step costs so A* stays directed.
 			// Land units can use railroad (cost=1); sea/air minimum is one ocean step (cost=9).
 			int minStepCost = (unit.Class == UnitClass.Land) ? 1 : 9;
 
 			int Encode(int x, int y) => y * w + x;
+			int EuclidSq(int x1, int y1, int x2, int y2)
+			{
+				int ddx = Math.Min(Math.Abs(x2 - x1), w - Math.Abs(x2 - x1));
+				int ddy = Math.Abs(y2 - y1);
+				return ddx * ddx + ddy * ddy;
+			}
+
 			int startPos = Encode(sx, sy);
 			gScore[startPos] = 0;
-			open.Add((DistanceToTile(sx, sy, gx, gy) * minStepCost, startPos));
+			open.Add((DistanceToTile(sx, sy, gx, gy) * minStepCost, EuclidSq(sx, sy, gx, gy), startPos));
 
 			while (open.Count > 0)
 			{
-				// Pop node with lowest f (linear scan — fine for Civ map sizes)
+				// Pop node with lowest f; break ties with lowest squared Euclidean distance to goal
 				int minIdx = 0;
 				for (int i = 1; i < open.Count; i++)
+				{
 					if (open[i].f < open[minIdx].f) minIdx = i;
+					else if (open[i].f == open[minIdx].f && open[i].euclid < open[minIdx].euclid) minIdx = i;
+				}
 				int curPos = open[minIdx].pos;
 				open.RemoveAt(minIdx);
 
@@ -307,7 +319,7 @@ namespace CivOne
 					{
 						gScore[nextPos] = tentativeG;
 						cameFrom[nextPos] = curPos;
-						open.Add((tentativeG + DistanceToTile(nx, ny, gx, gy) * minStepCost, nextPos));
+						open.Add((tentativeG + DistanceToTile(nx, ny, gx, gy) * minStepCost, EuclidSq(nx, ny, gx, gy), nextPos));
 					}
 				}
 			}
