@@ -1010,8 +1010,6 @@ namespace CivOne.Screens
 			Destroy();
 			if (Skipped is not null)
 				Skipped(this, null);
-			else
-				HandleClose();
 			return true;
 		}
 
