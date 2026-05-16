@@ -85,8 +85,7 @@ namespace CivOne.Units
 				else
 				{
 					ITile tile = Map[X, Y];
-					bool needsRoad = (!tile.Road || (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.RailRoad))
-					                 && tile.City is null && !tile.IsOcean;
+					bool needsRoad = !tile.Road && tile.City is null && !tile.IsOcean;
 					if (needsRoad)
 					{
 						BuildRoad();
@@ -356,8 +355,7 @@ namespace CivOne.Units
 				else
 				{
 					ITile tile = Map[X, Y];
-					bool needsRoad = (!tile.Road || (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.RailRoad))
-				                 && tile.City is null && !tile.IsOcean;
+					bool needsRoad = !tile.Road && tile.City is null && !tile.IsOcean;
 					if (needsRoad)
 						BuildRoad();
 					else
