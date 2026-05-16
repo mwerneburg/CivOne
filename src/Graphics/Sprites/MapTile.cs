@@ -156,6 +156,12 @@ namespace CivOne.Graphics.Sprites
 				return Free.Mountains;
 			if (typeof(T) == typeof(Swamp))
 				return Free.Swamp;
+			if (typeof(T) == typeof(Forest))
+				return Free.Forest;
+			if (typeof(T) == typeof(Jungle))
+				return Free.Jungle;
+			if (typeof(T) == typeof(Desert))
+				return Free.Desert;
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -191,6 +197,18 @@ namespace CivOne.Graphics.Sprites
 				return Free.Special(Terrain.Mountains);
 			if (typeof(T) == typeof(Desert))
 				return Free.Special(Terrain.Desert);
+			if (typeof(T) == typeof(Forest))
+				return Free.Special(Terrain.Forest);
+			if (typeof(T) == typeof(Plains))
+				return Free.Special(Terrain.Plains);
+			if (typeof(T) == typeof(Hills))
+				return Free.Special(Terrain.Hills);
+			if (typeof(T) == typeof(Swamp))
+				return Free.Special(Terrain.Swamp);
+			if (typeof(T) == typeof(Arctic))
+				return Free.Special(Terrain.Arctic);
+			if (typeof(T) == typeof(Tundra))
+				return Free.Special(Terrain.Tundra);
 			if (typeof(T) == typeof(Grassland))
 				return Free.HayBale();
 			int terrainId = (int)new T().Type;

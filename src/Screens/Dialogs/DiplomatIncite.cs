@@ -41,6 +41,8 @@ namespace CivOne.Screens.Dialogs
 			Show captureCity = Show.CaptureCity(_cityToIncite);
 			captureCity.Done += (s1, a1) =>
 			{
+				foreach (IUnit unit in _cityToIncite.Tile.Units.Where(u => u.Owner == _cityToIncite.Owner).ToArray())
+					Game.DisbandUnit(unit);
 				Game.DisbandUnit(_diplomat);
 				_cityToIncite.Owner = _diplomat.Owner;
 				_cityToIncite.TechStolen = false;
