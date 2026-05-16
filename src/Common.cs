@@ -237,10 +237,14 @@ namespace CivOne
 			// open set: list of (f, encoded position), kept sorted by insertion into a list
 			var open = new List<(int f, int pos)>();
 
+			// Scale the heuristic to match actual step costs so A* stays directed.
+			// Land units can use railroad (cost=1); sea/air minimum is one ocean step (cost=9).
+			int minStepCost = (unit.Class == UnitClass.Land) ? 1 : 9;
+
 			int Encode(int x, int y) => y * w + x;
 			int startPos = Encode(sx, sy);
 			gScore[startPos] = 0;
-			open.Add((DistanceToTile(sx, sy, gx, gy), startPos));
+			open.Add((DistanceToTile(sx, sy, gx, gy) * minStepCost, startPos));
 
 			while (open.Count > 0)
 			{
@@ -302,7 +306,7 @@ namespace CivOne
 					{
 						gScore[nextPos] = tentativeG;
 						cameFrom[nextPos] = curPos;
-						open.Add((tentativeG + DistanceToTile(nx, ny, gx, gy), nextPos));
+						open.Add((tentativeG + DistanceToTile(nx, ny, gx, gy) * minStepCost, nextPos));
 					}
 				}
 			}
