@@ -603,6 +603,7 @@ namespace CivOne
 				{
 					if (HasBuilding<Palace>() && building is Courthouse) continue;
 					if (building is Shipyard && !coastal) continue;
+					if (building is HydroPlant && !CityTiles.Any(t => t.Type == Terrain.River)) continue;
 					yield return building;
 				}
 				foreach (IWonder wonder in Reflect.GetWonders().Where(b => Player.ProductionAvailable(b)))
