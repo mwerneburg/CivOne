@@ -26,7 +26,7 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || !RoadTo.IsEmpty);
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0);
 			}
 			set
 			{
@@ -75,6 +75,25 @@ namespace CivOne.Units
 			base.MovementDone(previousTile);
 			if (AutoClean && Map[X, Y].Pollution)
 				CleanPollution();
+			if (!RoadTo.IsEmpty)
+			{
+				if (X == RoadTo.X && Y == RoadTo.Y)
+				{
+					RoadTo = Point.Empty;
+					Goto = Point.Empty;
+				}
+				else
+				{
+					ITile tile = Map[X, Y];
+					bool needsRoad = (!tile.Road || (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.RailRoad))
+					                 && tile.City is null && !tile.IsOcean;
+					if (needsRoad)
+					{
+						BuildRoad();
+						Goto = Point.Empty;
+					}
+				}
+			}
 		}
 
 		internal void SetBuildProgress(int road, int irrigation, int mine, int fortress)
@@ -342,13 +361,7 @@ namespace CivOne.Units
 					if (needsRoad)
 						BuildRoad();
 					else
-					{
-						ITile next = Common.GotoStep(this, RoadTo.X, RoadTo.Y);
-						if (next is not null)
-							Goto = new Point(next.X, next.Y);
-						else
-							RoadTo = Point.Empty;
-					}
+						Goto = new Point(RoadTo.X, RoadTo.Y);
 				}
 			}
 		}
