@@ -416,7 +416,7 @@ namespace CivOne.Screens
 					defense = 50;
 					break;
 				case Terrain.Swamp:
-					DrawTerrainTextValues(ref yy, "Swamp", "1");
+					DrawTerrainTextValues(ref yy, "Wetland", "1");
 					DrawTerrainTextValues(ref yy, "Oil", "1", "4");
 					move = 2;
 					defense = 50;

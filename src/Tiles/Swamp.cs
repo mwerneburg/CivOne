@@ -26,7 +26,7 @@ namespace CivOne.Tiles
 		public Swamp(int x, int y, bool special) : base(x, y, special)
 		{
 			Type = Terrain.Swamp;
-			Name = "Swamp";
+			Name = "Wetland";
 		}
 		public Swamp() : this(-1, -1, false)
 		{

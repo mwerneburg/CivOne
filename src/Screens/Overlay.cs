@@ -85,7 +85,7 @@ namespace CivOne.Screens
 						case Terrain.Mountains: text = (tile.Special ? "Gold" : "Mountains"); break;
 						case Terrain.Tundra: text = (tile.Special ? "Game" : "Tundra"); break;
 						case Terrain.Arctic: text = (tile.Special ? "Seals" : "Arctic"); break;
-						case Terrain.Swamp: text = (tile.Special ? "Oil" : "Swamp"); break;
+						case Terrain.Swamp: text = (tile.Special ? "Oil" : "Wetland"); break;
 						case Terrain.Jungle: text = (tile.Special ? "Gems" : "Jungle"); break;
 						case Terrain.Ocean: text = Map.Instance.IsFreshwaterAt(tile.X, tile.Y) ? "Lake" : (tile.Special ? "Fish" : "Ocean"); break;
 						case Terrain.River: text = "River"; break;
