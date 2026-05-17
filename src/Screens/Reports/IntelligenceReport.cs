@@ -39,7 +39,7 @@ namespace CivOne.Screens.Reports
 					.DrawText($"Emperor {player.LeaderName}", 0, CassetteTheme.INK_HIGH, OX + 62, y);
 
 				foreach (string line in player.Civilization.Leader.Traits())
-					this.DrawText(line, 0, CassetteTheme.INK_LOW, OX + 24, (y += fontHeight));
+					this.DrawText(line, 0, CassetteTheme.INK_MID, OX + 24, (y += fontHeight));
 
 				this.DrawText("Capital:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4))
 					.DrawText(player.Capital, 0, CassetteTheme.INK_HIGH, OX + 63, y)
@@ -76,7 +76,7 @@ namespace CivOne.Screens.Reports
 
 					this.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.BG0, OX + 8, yy + 3)
 						.DrawText($"{player.TribeNamePlural}: {player.LeaderName}", 0, CassetteTheme.INK_HIGH, OX + 8, yy + 2)
-						.DrawText($"{player.Government.Name}, {player.Gold}$, {unitCount} Units.", 0, colour, OX + 160, yy + 2);
+						.DrawText($"{player.Government.Name}, {player.Gold}$, {unitCount} Units.", 0, CassetteTheme.INK_MID, OX + 160, yy + 2);
 
 					if (!player.IsHuman)
 					{
@@ -86,7 +86,7 @@ namespace CivOne.Screens.Reports
 				}
 				else
 				{
-					this.DrawText("No embassy established.", 0, colour, OX + 160, yy + 2, TextAlign.Center);
+					this.DrawText("No embassy established.", 0, CassetteTheme.INK_LOW, OX + 160, yy + 2, TextAlign.Center);
 				}
 
 				yy += 24;
