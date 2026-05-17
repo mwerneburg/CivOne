@@ -459,7 +459,10 @@ namespace CivOne.Graphics.Sprites
 				case Hills _: return Hills[directions];
 				case Jungle _: return Jungle[directions];
 				case Mountains _: return Mountains[directions];
-				case Ocean _: return Ocean[(directions, riverDirections)];
+				case Ocean _:
+					if (tile.X >= 0 && Map.Instance.IsFreshwaterAt(tile.X, tile.Y))
+						return null;
+					return Ocean[(directions, riverDirections)];
 				case Plains _: return Plains[directions];
 				case River _: return River[directions];
 				case Swamp _: return Swamp[directions];
