@@ -48,6 +48,7 @@ namespace CivOne.Persistence
 		public string FirstExplorer { get; set; }
 		public bool MapRevealedNotified { get; set; }
 		public uint SETISignalTurn { get; set; }
+		public bool SETISignalReceived { get; set; }
 		public int VisitorArchetype { get; set; }
 		public uint TauCetiEscalationTurn { get; set; }
 		public bool ProbeDispatched { get; set; }

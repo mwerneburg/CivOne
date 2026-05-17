@@ -211,6 +211,7 @@ namespace CivOne
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					MapRevealedNotified  = MapRevealedNotified,
 					SETISignalTurn          = SETISignalTurn,
+					SETISignalReceived      = SETISignalReceived,
 					VisitorArchetype        = (int)VisitorType,
 					TauCetiEscalationTurn   = TauCetiEscalationTurn,
 					ProbeDispatched         = ProbeDispatched,
@@ -322,6 +323,7 @@ namespace CivOne
 
 			MapRevealedNotified   = g.MapRevealedNotified;
 			SETISignalTurn        = g.SETISignalTurn;
+			SETISignalReceived    = g.SETISignalReceived;
 			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
 			ProbeDispatched       = g.ProbeDispatched;

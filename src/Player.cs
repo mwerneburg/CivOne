@@ -402,6 +402,10 @@ namespace CivOne
 
 			if (building is ISpaceShip)
 			{
+				// Spaceship is a response to the Tau Ceti threat — not available until
+				// the approach warning has fired and the decision is contextualized.
+				if (!Game.Instance.SETISignalReceived || Game.Instance.DomeAssignments.Count == 0)
+					return false;
 				// Requires Apollo Program
 				if (!Game.Instance.WonderBuilt<ApolloProgram>())
 					return false;
@@ -431,10 +435,24 @@ namespace CivOne
 			if (wonder is Wonders.SouthPoleExpedition && !Game.Instance.WonderBuilt<Wonders.ApolloProgram>())
 				return false;
 
-			// Dome components and the space race are mutually exclusive per player.
+			// Interstellar Probe is only available once the SETI signal has been received
+			if (wonder is Wonders.InterstellarProbe && !Game.Instance.SETISignalReceived)
+				return false;
+
 			byte owner = (byte)this;
 			if (wonder is Wonders.IDomeComponent)
 			{
+				// Dome components only become available once the Tau Ceti approach warning has
+				// fired and dome assignments have been distributed across civilizations.
+				if (Game.Instance.DomeAssignments.Count == 0)
+					return false;
+
+				// Each player may only build their assigned component.
+				Enums.Wonder? assignment = Game.Instance.GetDomeAssignment(this);
+				if (!assignment.HasValue || wonder.Id != (byte)assignment.Value)
+					return false;
+
+				// Dome path and spaceship path are mutually exclusive per player.
 				if (Game.Instance.SpaceshipStructural[owner] > 0 ||
 				    Game.Instance.SpaceshipComponent[owner]  > 0 ||
 				    Game.Instance.SpaceshipModule[owner]     > 0)

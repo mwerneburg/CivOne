@@ -61,6 +61,10 @@ namespace CivOne
 		// Turn on which the SETI signal transmission should fire (0 = not scheduled)
 		internal uint SETISignalTurn;
 
+		// Set permanently once the SETI signal transmission has been shown.
+		// Gates the InterstellarProbe wonder and both response paths (dome / spaceship).
+		internal bool SETISignalReceived;
+
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;
 
@@ -407,6 +411,7 @@ namespace CivOne
 				if (SETISignalTurn > 0 && _gameTurn >= SETISignalTurn)
 				{
 					SETISignalTurn = 0;
+					SETISignalReceived = true;
 					if (VisitorType == VisitorArchetype.None)
 						VisitorType = Common.Random.Next(10) == 0
 							? VisitorArchetype.Conquerors
