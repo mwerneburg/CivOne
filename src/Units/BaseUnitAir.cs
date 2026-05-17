@@ -10,7 +10,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using CivOne.Enums;
-using CivOne.IO;
 using CivOne.Screens;
 using CivOne.Tasks;
 using CivOne.Tiles;
@@ -32,18 +31,38 @@ namespace CivOne.Units
 				return;
 			}
 			if (MovesLeft > 0 || FuelLeft > 0) return;
-			
-			// Air unit is out of fuel
+
 			Game.DisbandUnit(this);
-			GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText("ERROR/FUEL")));
+			if (Human == Owner)
+				GameTask.Enqueue(Message.Error("-- Civilization Note --",
+					"Your air unit has run out of fuel.",
+					"Fighter/Nuclear units must return",
+					"to a city or Carrier at the end of",
+					"each turn. Bomber units must return",
+					"at the end of their second turn."));
 		}
 
 		protected override void MovementDone(ITile previousTile)
 		{
 			base.MovementDone(previousTile);
-			
+
 			FuelLeft--;
 			HandleFuel();
+		}
+
+		public override void NewTurn()
+		{
+			if (Map[X, Y].City is not null || Map[X, Y].Units.Any(u => u is Carrier))
+				FuelLeft = TotalFuel;
+
+			if (FuelLeft < Move)
+			{
+				MovesLeft = 0;
+				FuelLeft = 0;
+				HandleFuel();
+				return;
+			}
+			base.NewTurn();
 		}
 
 		public override void SkipTurn()
