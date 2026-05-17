@@ -177,7 +177,10 @@ namespace CivOne.Units
 				if (((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)) && tile.City is null)
 				{
 					if (Human == Owner)
-						GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText("ERROR/NOWATER")));
+						GameTask.Enqueue(Message.Error("-- Civilization Note --",
+						"This tile has no water source.",
+						"Needs a neighboring river, lake,",
+						"swamp, or irrigated tile."));
 					return true;
 				}
 				if (Human == Owner)
