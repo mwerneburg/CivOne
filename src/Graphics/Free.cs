@@ -448,8 +448,12 @@ namespace CivOne.Graphics
 		private static readonly string ShoresFilePath =
 			Path.Combine(Environment.CurrentDirectory, "shore_tiles.txt");
 
+		private static readonly string LakeShoresFilePath =
+			Path.Combine(Environment.CurrentDirectory, "lake_shores.txt");
+
 		private Dictionary<string, byte[]> _tileOverrides;
 		private Dictionary<string, byte[]> _shoreOverrides;
+		private Dictionary<string, byte[]> _lakeShoreOverrides;
 
 		private byte[] TryLoadTile(string name)
 		{
@@ -509,6 +513,86 @@ namespace CivOne.Graphics
 					any = true;
 				}
 			}
+
+			return any ? output : null;
+		}
+
+		private byte[] TryLoadLakeShore(string name)
+		{
+			if (_lakeShoreOverrides is null)
+				_lakeShoreOverrides = ParseTilesFile(LakeShoresFilePath);
+			return _lakeShoreOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		// Composite per-direction shore overlays for lake tiles from lake_shores.txt.
+		// Falls back to the same foam/sand pattern as CoastLayer when the file is absent.
+		public Bytemap LakeShoreLayer(Direction land)
+		{
+			if (_lakeShoreOverrides is null)
+				_lakeShoreOverrides = ParseTilesFile(LakeShoresFilePath);
+
+			bool hasFile = _lakeShoreOverrides.Count > 0;
+			Bytemap output = new Bytemap(16, 16);
+			bool any = false;
+
+			if (hasFile)
+			{
+				foreach (var pair in ((Direction, string)[])
+				[
+					(North, "lake_N"),
+					(South, "lake_S"),
+					(East,  "lake_E"),
+					(West,  "lake_W"),
+				])
+				{
+					if (!land.And(pair.Item1)) continue;
+					byte[] tile = TryLoadLakeShore(pair.Item2);
+					if (tile is null) continue;
+					output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
+					any = true;
+				}
+
+				foreach (var pair in ((Direction, Direction, Direction, string)[])
+				[
+					(NorthWest, North, West, "lake_NW"),
+					(NorthEast, North, East, "lake_NE"),
+					(SouthWest, South, West, "lake_SW"),
+					(SouthEast, South, East, "lake_SE"),
+				])
+				{
+					if (land.And(pair.Item1) && land.Not(pair.Item2) && land.Not(pair.Item3))
+					{
+						byte[] tile = TryLoadLakeShore(pair.Item4);
+						if (tile is null) continue;
+						output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
+						any = true;
+					}
+				}
+
+				return any ? output : null;
+			}
+
+			// Fallback: same two-pixel foam/sand strip as CoastLayer
+			const byte foam = 8;
+			const byte sand = 7;
+			bool[] wH = { true, false, false, true, false, true, false, false,
+			              true, false, false, true, true, false, false, true };
+			bool[] wV = { false, true, false, false, true, true, false, true,
+			              false, false, true, false, true, false, false, true };
+
+			if (land.And(North))
+				for (int x = 0; x < 16; x++) { output[x, 0] = foam; if (wH[x]) output[x, 1] = sand; any = true; }
+			if (land.And(South))
+				for (int x = 0; x < 16; x++) { output[x, 15] = foam; if (wH[x]) output[x, 14] = sand; any = true; }
+			if (land.And(East))
+				for (int y = 0; y < 16; y++) { output[15, y] = foam; if (wV[y]) output[14, y] = sand; any = true; }
+			if (land.And(West))
+				for (int y = 0; y < 16; y++) { output[0, y] = foam; if (wV[y]) output[1, y] = sand; any = true; }
+
+			if (land.And(NorthWest) && land.Not(North | West)) { output[0, 0] = foam; output[1, 0] = sand; output[0, 1] = sand; any = true; }
+			if (land.And(NorthEast) && land.Not(North | East)) { output[15, 0] = foam; output[14, 0] = sand; output[15, 1] = sand; any = true; }
+			if (land.And(SouthWest) && land.Not(South | West)) { output[0, 15] = foam; output[1, 15] = sand; output[0, 14] = sand; any = true; }
+			if (land.And(SouthEast) && land.Not(South | East)) { output[15, 15] = foam; output[14, 15] = sand; output[15, 14] = sand; any = true; }
 
 			return any ? output : null;
 		}

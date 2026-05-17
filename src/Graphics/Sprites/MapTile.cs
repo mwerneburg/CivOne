@@ -48,6 +48,12 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetLakeBase() => Free.LakeTile();
 
+		private static Bytemap GetLakeShoreLayer(Direction directions)
+		{
+			if (directions == None) return null;
+			return Free.LakeShoreLayer(directions);
+		}
+
 		private static bool DrawCoastCorners(ref Bytemap output, Direction land)
 		{
 			if (!Resources.Exists("SP299")) return false;
@@ -339,6 +345,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite LandBase  = new CachedSprite(GetLandBase);
 		public static readonly ISprite OceanBase = new CachedSprite(GetOceanBase);
 		public static readonly ISprite LakeBase  = new CachedSprite(GetLakeBase);
+		public static readonly ISpriteCollection<Direction> LakeShore = new CachedSpriteCollection<Direction>(GetLakeShoreLayer);
 		public static readonly ISpriteCollection<Direction> Arctic = new CachedSpriteCollection<Direction>(GetTileLayer<Arctic>);
 		public static readonly ISpriteCollection<Direction> Desert = new CachedSpriteCollection<Direction>(GetTileLayer<Desert>);
 		public static readonly ISpriteCollection<Direction> Forest = new CachedSpriteCollection<Direction>(GetTileLayer<Forest>);
@@ -461,7 +468,7 @@ namespace CivOne.Graphics.Sprites
 				case Mountains _: return Mountains[directions];
 				case Ocean _:
 					if (tile.X >= 0 && Map.Instance.IsFreshwaterAt(tile.X, tile.Y))
-						return null;
+						return LakeShore[directions];
 					return Ocean[(directions, riverDirections)];
 				case Plains _: return Plains[directions];
 				case River _: return River[directions];
