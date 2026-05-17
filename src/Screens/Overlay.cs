@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -131,8 +132,10 @@ namespace CivOne.Screens
 				{
 					int cx = Settings.RightSideBar ? 0 : 80;
 					int cy = 8;
+					int tilesX = (int)Math.Ceiling((double)(Width - 80) / 16);
+					int tilesY = (int)Math.Ceiling((double)(Height - cy) / 16);
 
-					this.AddLayer(Map[_x, _y, 15, 12].ToBitmap(TileSettings.Terrain, Human), cx, cy, dispose: true);
+					this.AddLayer(Map[_x, _y, tilesX, tilesY].ToBitmap(TileSettings.Terrain, Human), cx, cy, dispose: true);
 				}
 
 				_update = false;
