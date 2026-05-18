@@ -208,7 +208,7 @@ namespace CivOne.Screens.GamePlayPanels
 					dx *= 16; dy *= 16;
 					
 					// blink status
-					TileSettings setting = ((gameTick % 4) < 2) ? TileSettings.BlinkOn : TileSettings.BlinkOff;
+					TileSettings setting = ((gameTick / 2) % 3 < 2) ? TileSettings.BlinkOn : TileSettings.BlinkOff;
 					this.AddLayer(tile.ToBitmap(setting), dx, dy, dispose: true);
 
 					DrawHelperArrows(dx, dy);
