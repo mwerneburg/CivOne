@@ -28,40 +28,48 @@ namespace CivOne.Graphics.Sprites
 			byte colourLight = Common.ColourLight[unit.PlayerNumber];
 			int unitId = (int)unit.Type;
 
-			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap pngOutput))
+			// Collect art as a transparent-background bytemap (index 0 = transparent)
+			Bytemap art;
+			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap pngArt))
 			{
-				pngOutput.FillRectangle(0, 13, 16, 2, colourLight);
-				pngOutput.FillRectangle(0, 15, 16, 1, colourDark);
-				return pngOutput;
-			}
-
-			IBitmap baseSprite = BaseSprite(unit.Type);
-			Bytemap output;
-			if (baseSprite is not null)
-			{
-				output = baseSprite.MatchColours(Common.DefaultPalette, 1, 15);
+				art = pngArt;
 			}
 			else
 			{
-				string resFile = GFX256 ? "SP257" : "SPRITES";
-				int xx = (unitId % 20) * 16;
-				int yy = unitId < 20 ? 160 : 176;
-
-				if (unitId <= 27 && Resources.Exists(resFile))
+				IBitmap baseSprite = BaseSprite(unit.Type);
+				if (baseSprite is not null)
 				{
-					output = Resources[resFile].Bitmap[xx, yy, 16, 16]
-						.FillRectangle(0, 0, 16, 1, 0)
-						.FillRectangle(0, 1, 1, 15, 0);
+					art = baseSprite.MatchColours(Common.DefaultPalette, 1, 15);
 				}
 				else
 				{
-					output = Free.GetUnit(unit.Type);
+					string resFile = GFX256 ? "SP257" : "SPRITES";
+					int xx = (unitId % 20) * 16;
+					int yy = unitId < 20 ? 160 : 176;
+
+					if (unitId <= 27 && Resources.Exists(resFile))
+					{
+						art = Resources[resFile].Bitmap[xx, yy, 16, 16]
+							.FillRectangle(0, 0, 16, 1, 0)
+							.FillRectangle(0, 1, 1, 15, 0);
+					}
+					else
+					{
+						art = Free.GetUnit(unit.Type);
+					}
 				}
+				art.ColourReplace((10, CassetteTheme.PHOS_DIM), (2, CassetteTheme.BG3));
 			}
-			
-			output.ColourReplace((10, CassetteTheme.PHOS_DIM), (2, CassetteTheme.BG3));
-			output.FillRectangle(0, 13, 16, 2, colourLight);
-			output.FillRectangle(0, 15, 16, 1, colourDark);
+
+			// Cassette tile: BG0 fill → art → orange trim (3 sides) → player bar (bottom)
+			Bytemap output = new Bytemap(16, 16);
+			output.FillRectangle(0, 0, 16, 16, CassetteTheme.BG0);
+			output.AddLayer(art, 0, 0);
+			output.FillRectangle(0,  0, 16,  1, CassetteTheme.PHOS);  // top
+			output.FillRectangle(0,  1,  1, 12, CassetteTheme.PHOS);  // left (rows 1–12)
+			output.FillRectangle(15, 1,  1, 12, CassetteTheme.PHOS);  // right (rows 1–12)
+			output.FillRectangle(0, 13, 16,  2, colourLight);          // bar
+			output.FillRectangle(0, 15, 16,  1, colourDark);           // bar underline
 			
 			return output;
 		}
