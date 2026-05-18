@@ -52,8 +52,9 @@ namespace CivOne.Graphics.Sprites
 				}
 			}
 			
-			if (colourDark == 8) output.ColourReplace((7, 3), (10, colourLight), (2, colourDark));
-			else output.ColourReplace((10, colourLight), (2, colourDark));
+			output.ColourReplace((10, CassetteTheme.PHOS_DIM), (2, CassetteTheme.BG3));
+			output.FillRectangle(0, 13, 16, 2, colourLight);
+			output.FillRectangle(0, 15, 16, 1, colourDark);
 			
 			return output;
 		}

@@ -401,10 +401,10 @@ namespace CivOne.Graphics
 			};
 			
 			if (city.Tile.Units.Length > 0)
-				output.FillRectangle(0, 0, 16, 16, 5);
-			output.FillRectangle(1, 1, 14, 14, 15)
-				.FillRectangle(2, 1, 13, 13, Common.ColourDark[city.Owner])
-				.FillRectangle(2, 2, 12, 12, Common.ColourLight[city.Owner]);
+				output.FillRectangle(0, 0, 16, 16, CassetteTheme.BORDER);
+			output.FillRectangle(1, 1, 14, 14, CassetteTheme.INK_LOW)
+				.FillRectangle(2, 1, 13, 13, CassetteTheme.BG3)
+				.FillRectangle(2, 2, 12, 12, CassetteTheme.BORDER);
 			
 			IBitmap resource;
 			if (Resources.Exists("SP257"))
@@ -417,7 +417,7 @@ namespace CivOne.Graphics
 			}
 			resource
 				.ColourReplace(3, 0)
-				.ColourReplace(5, Common.ColourDark[city.Owner]);
+				.ColourReplace(5, CassetteTheme.INK_MID);
 				
 			if (city.IsInDisorder)
 			{
@@ -427,7 +427,7 @@ namespace CivOne.Graphics
 			else
 			{
 				output.AddLayer(resource, 0, 0)
-					.DrawText($"{city.Size}", (smallFont ? 1 : 0), 5, 9, 5, TextAlign.Center);
+					.DrawText($"{city.Size}", (smallFont ? 1 : 0), 5, 9, CassetteTheme.INK_HIGH, TextAlign.Center);
 			}
 
 			resource?.Dispose();
@@ -436,7 +436,9 @@ namespace CivOne.Graphics
 			{
 				output.AddLayer(Generic.Fortify, 0, 0);
 			}
-			
+
+			output.FillRectangle(0, 13, 16, 2, Common.ColourLight[city.Owner]);
+			output.FillRectangle(0, 15, 16, 1, Common.ColourDark[city.Owner]);
 			return output;
 		}
 	}
