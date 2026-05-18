@@ -10,12 +10,14 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Buildings;
 using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Graphics;
+using CivOne.Graphics.ImageFormats;
 using CivOne.IO;
 using CivOne.Screens;
 using CivOne.Tasks;
@@ -924,10 +926,56 @@ namespace CivOne.Units
 			return _modifications[type].LastOrDefault(x => x.Sprite is not null && x.Sprite.GifToBitmap() is not null)?.Sprite.GifToBitmap();
 		}
 
+		private static Dictionary<UnitType, Bytemap> _pngOverrides = new Dictionary<UnitType, Bytemap>();
+
+		internal static bool GetPngOverride(UnitType type, out Bytemap copy)
+		{
+			if (_pngOverrides.TryGetValue(type, out Bytemap bmap))
+			{
+				copy = bmap[0, 0, bmap.Width, bmap.Height];
+				return true;
+			}
+			copy = null;
+			return false;
+		}
+
+		private static void LoadUnitTiles()
+		{
+			_pngOverrides.Clear();
+			string tilesDir = Path.Combine(Settings.Instance.StorageDirectory, "unit_tiles");
+			if (!Directory.Exists(tilesDir)) return;
+			foreach (string file in Directory.GetFiles(tilesDir, "*.png"))
+			{
+				string name = Path.GetFileNameWithoutExtension(file);
+				if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) continue;
+				Bytemap bmap = LoadPngTile(file);
+				if (bmap is not null)
+				{
+					_pngOverrides[unitType] = bmap;
+					Log($"Loaded unit tile: {name}");
+				}
+			}
+		}
+
+		private static Bytemap LoadPngTile(string path)
+		{
+			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
+			if (rgba is null || w != 16 || h != 16) return null;
+			Palette pal = Common.DefaultPalette;
+			CassetteTheme.ApplyTo(pal);
+			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
+			var bmap = new Bytemap(w, h);
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				bmap[x, y] = idx[y, x] == CassetteTheme.BG0 ? (byte)0 : idx[y, x];
+			return bmap;
+		}
+
 		private static Dictionary<UnitType, List<UnitModification>> _modifications = new Dictionary<UnitType, List<UnitModification>>();
 		internal static void LoadModifications()
 		{
 			_modifications.Clear();
+			LoadUnitTiles();
 
 			UnitModification[] unitModifications = Reflect.GetModifications<UnitModification>().ToArray();
 			if (unitModifications.Length == 0) return;

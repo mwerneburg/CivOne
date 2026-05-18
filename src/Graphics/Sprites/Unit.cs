@@ -28,6 +28,13 @@ namespace CivOne.Graphics.Sprites
 			byte colourLight = Common.ColourLight[unit.PlayerNumber];
 			int unitId = (int)unit.Type;
 
+			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap pngOutput))
+			{
+				pngOutput.FillRectangle(0, 13, 16, 2, colourLight);
+				pngOutput.FillRectangle(0, 15, 16, 1, colourDark);
+				return pngOutput;
+			}
+
 			IBitmap baseSprite = BaseSprite(unit.Type);
 			Bytemap output;
 			if (baseSprite is not null)
