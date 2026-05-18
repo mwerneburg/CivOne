@@ -147,6 +147,7 @@ namespace CivOne
 					StartX           = player.StartX,
 					GovernmentId     = player.Government?.Id ?? 0,
 					Advances         = player.Advances.Select(a => (int)a.Id).ToArray(),
+					CurrentResearch  = player.CurrentResearch?.Id,
 					FutureTechs      = player.FutureTechs,
 					AtWarWith        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].IsAtWar(_players[j]))
@@ -316,6 +317,8 @@ namespace CivOne
 					if (advanceFirst.TryGetValue(adv.Id, out int civId) && civId == civ.Id)
 						SetAdvanceOrigin(adv, player);
 				}
+				if (pd.CurrentResearch.HasValue)
+					player.CurrentResearch = Common.Advances.FirstOrDefault(a => a.Id == pd.CurrentResearch.Value);
 			}
 
 			// War state
@@ -372,7 +375,6 @@ namespace CivOne
 				TauCetiEscalationTurn = Math.Max(TauCetiEscalationTurn, (uint)(_gameTurn + 5));
 			CityNames    = g.CityNames;
 			HumanPlayer  = _players[g.HumanPlayer];
-			HumanPlayer.CurrentResearch = null; // set below after advances loaded
 			_anthologyTurn = (ushort)g.AnthologyTurn;
 			_currentPlayer = g.HumanPlayer;
 
