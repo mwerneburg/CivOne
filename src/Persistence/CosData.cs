@@ -170,6 +170,9 @@ namespace CivOne.Persistence
 		public int? BuildingIrrigation { get; set; }
 		public int? BuildingMine { get; set; }
 		public int? BuildingFortress { get; set; }
+		// Settler "build road to" destination (null = no road-to order)
+		public int? RoadToX { get; set; }
+		public int? RoadToY { get; set; }
 		// Air unit fuel (null = full / not an air unit)
 		public int? FuelLeft { get; set; }
 	}

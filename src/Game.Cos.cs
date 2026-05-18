@@ -89,12 +89,14 @@ namespace CivOne
 				int homeCityId = unit.Home is not null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
 
 				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
+				int? roadToX = null, roadToY = null;
 				if (unit is Settlers settlers)
 				{
 					if (settlers.BuildingRoad > 0)       buildRoad = settlers.BuildingRoad;
 					if (settlers.BuildingIrrigation > 0) buildIrr  = settlers.BuildingIrrigation;
 					if (settlers.BuildingMine > 0)       buildMine = settlers.BuildingMine;
 					if (settlers.BuildingFortress > 0)   buildFort = settlers.BuildingFortress;
+					if (!settlers.RoadTo.IsEmpty) { roadToX = settlers.RoadTo.X; roadToY = settlers.RoadTo.Y; }
 				}
 				int? fuelLeft = null;
 				if (unit is BaseUnitAir airUnit && airUnit.FuelLeft < airUnit.TotalFuel)
@@ -116,6 +118,8 @@ namespace CivOne
 					BuildingIrrigation = buildIrr,
 					BuildingMine       = buildMine,
 					BuildingFortress   = buildFort,
+					RoadToX            = roadToX,
+					RoadToY            = roadToY,
 					FuelLeft           = fuelLeft
 				});
 			}
@@ -450,8 +454,12 @@ namespace CivOne
 				if (ud.GotoX.HasValue) unit.Goto = new Point(ud.GotoX.Value, ud.GotoY ?? 0);
 				if (ud.HomeCityId >= 0 && cityById.TryGetValue(ud.HomeCityId, out var homeCity))
 					unit.SetHome(homeCity);
-				if (unit is Settlers s && (ud.BuildingRoad > 0 || ud.BuildingIrrigation > 0 || ud.BuildingMine > 0 || ud.BuildingFortress > 0))
-					s.SetBuildProgress(ud.BuildingRoad ?? 0, ud.BuildingIrrigation ?? 0, ud.BuildingMine ?? 0, ud.BuildingFortress ?? 0);
+				if (unit is Settlers s)
+				{
+					if (ud.BuildingRoad > 0 || ud.BuildingIrrigation > 0 || ud.BuildingMine > 0 || ud.BuildingFortress > 0)
+						s.SetBuildProgress(ud.BuildingRoad ?? 0, ud.BuildingIrrigation ?? 0, ud.BuildingMine ?? 0, ud.BuildingFortress ?? 0);
+					if (ud.RoadToX.HasValue) s.RoadTo = new Point(ud.RoadToX.Value, ud.RoadToY ?? 0);
+				}
 				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)
 					airU.FuelLeft = ud.FuelLeft.Value;
 				_units.Add(unit);
