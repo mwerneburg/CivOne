@@ -27,7 +27,7 @@ namespace CivOne
 
 		public void SaveCos(string cosFile)
 		{
-			var playerCount = _players.Length;
+			var playerCount = _players.Count;
 
 			// Advance origin: advance-id → civilization-id (not player-index)
 			var advanceOrigin = new Dictionary<int, int>();
@@ -261,16 +261,22 @@ namespace CivOne
 			var g = cos.Game;
 			_difficulty  = g.Difficulty;
 			_competition = g.Competition;
-			_players     = new Player[_competition + 1];
-			_cities      = new List<City>();
-			_units       = new List<IUnit>();
+			int slotCount = cos.Players.Count;
+			_players  = new List<Player>(Enumerable.Repeat<Player>(null, slotCount));
+			_cities   = new List<City>();
+			_units    = new List<IUnit>();
+			SpaceshipLaunchTurn  = new int[slotCount];
+			SpaceshipArrivalTurn = new int[slotCount];
+			SpaceshipStructural  = new int[slotCount];
+			SpaceshipComponent   = new int[slotCount];
+			SpaceshipModule      = new int[slotCount];
 
 			// Map must come first so tiles exist when cities set resource tiles
 			Map.Instance.LoadFromCos(cos.Map);
 
 			// Players
 			var advanceFirst = g.AdvanceOrigin ?? new Dictionary<int, int>();
-			for (int i = 0; i < _players.Length; i++)
+			for (int i = 0; i < _players.Count; i++)
 			{
 				var pd  = cos.Players[i];
 				var civ = Common.Civilizations.FirstOrDefault(c => c.Id == pd.CivilizationId)
@@ -309,7 +315,7 @@ namespace CivOne
 			}
 
 			// War state
-			for (int i = 0; i < _players.Length; i++)
+			for (int i = 0; i < _players.Count; i++)
 			{
 				var warList = cos.Players[i].AtWarWith;
 				if (warList is null) continue;
@@ -318,7 +324,7 @@ namespace CivOne
 			}
 
 			// Future techs and human player
-			for (int i = 0; i < _players.Length; i++)
+			for (int i = 0; i < _players.Count; i++)
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
 
 			MapRevealedNotified   = g.MapRevealedNotified;
@@ -348,7 +354,7 @@ namespace CivOne
 				for (int y = 0; y < Map.HEIGHT; y++)
 				{
 					byte pIdx = FirstExplorer[x, y];
-					if (pIdx < _players.Length)
+					if (pIdx < _players.Count)
 						_players[pIdx].ExplorationCredits++;
 				}
 			}
@@ -453,19 +459,19 @@ namespace CivOne
 
 			// Spaceship
 			if (g.SpaceshipLaunch is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipLaunch.Length, 8); i++)
+				for (int i = 0; i < Math.Min(g.SpaceshipLaunch.Length, _players.Count); i++)
 					SpaceshipLaunchTurn[i] = g.SpaceshipLaunch[i];
 			if (g.SpaceshipArrival is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, 8); i++)
+				for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, _players.Count); i++)
 					SpaceshipArrivalTurn[i] = g.SpaceshipArrival[i];
 			if (g.SpaceshipStructural is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, 8); i++)
+				for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, _players.Count); i++)
 					SpaceshipStructural[i] = g.SpaceshipStructural[i];
 			if (g.SpaceshipComponent is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, 8); i++)
+				for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, _players.Count); i++)
 					SpaceshipComponent[i] = g.SpaceshipComponent[i];
 			if (g.SpaceshipModule is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, 8); i++)
+				for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, _players.Count); i++)
 					SpaceshipModule[i] = g.SpaceshipModule[i];
 			// Migrate: old COS saves stored SS parts as city buildings; convert and strip them.
 			if (g.SpaceshipStructural is null && g.SpaceshipComponent is null && g.SpaceshipModule is null)

@@ -28,19 +28,19 @@ namespace CivOne
 	public partial class Game : BaseInstance
 	{
 		private readonly int _difficulty, _competition;
-		private readonly Player[] _players;
+		private List<Player> _players;
 		private readonly List<City> _cities;
 		private readonly List<IUnit> _units;
 		private readonly Dictionary<byte, byte> _advanceOrigin = new();
 		private readonly List<ReplayData> _replayData = new();
 
-		// [0]=barbarians, [1-7]=civs; 0 = not yet launched
-		internal readonly int[] SpaceshipLaunchTurn = new int[8];
-		internal readonly int[] SpaceshipArrivalTurn = new int[8];
+		// [0]=barbarians, [1+]=civs; 0 = not yet launched; sized to player count at init, resized by AddPlayer()
+		internal int[] SpaceshipLaunchTurn;
+		internal int[] SpaceshipArrivalTurn;
 		// SS part inventories — incremented when a city finishes a part; not stored as city buildings
-		internal readonly int[] SpaceshipStructural = new int[8];
-		internal readonly int[] SpaceshipComponent  = new int[8];
-		internal readonly int[] SpaceshipModule     = new int[8];
+		internal int[] SpaceshipStructural;
+		internal int[] SpaceshipComponent;
+		internal int[] SpaceshipModule;
 
 		// Per-turn score snapshots: each int[] is [gameTurn, score0, score1, ..., scoreN]
 		private readonly List<int[]> _scoreHistory = new();
@@ -48,9 +48,9 @@ namespace CivOne
 
 		internal void RecordScoreSnapshot()
 		{
-			var snap = new int[_players.Length + 1];
+			var snap = new int[_players.Count + 1];
 			snap[0] = _gameTurn;
-			for (int i = 0; i < _players.Length; i++)
+			for (int i = 0; i < _players.Count; i++)
 				snap[i + 1] = _players[i].Score;
 			_scoreHistory.Add(snap);
 		}
@@ -273,12 +273,24 @@ namespace CivOne
 
 		internal Player GetPlayer(byte number)
 		{
-			if (_players.Length < number)
+			if (_players.Count < number)
 				return null;
 			return _players[number];
 		}
 
 		internal IEnumerable<Player> Players => _players;
+
+		internal void AddPlayer(Player player)
+		{
+			_players.Add(player);
+			player.Destroyed += PlayerDestroyed;
+			int n = _players.Count;
+			Array.Resize(ref SpaceshipLaunchTurn,  n);
+			Array.Resize(ref SpaceshipArrivalTurn, n);
+			Array.Resize(ref SpaceshipStructural,  n);
+			Array.Resize(ref SpaceshipComponent,   n);
+			Array.Resize(ref SpaceshipModule,      n);
+		}
 
 		internal void ClearSpaceShipProduction(int playerIndex)
 		{
@@ -390,7 +402,7 @@ namespace CivOne
 				player.IsDestroyed();
 			}
 
-			if (++_currentPlayer >= _players.Length)
+			if (++_currentPlayer >= _players.Count)
 			{
 				_currentPlayer = 0;
 				HandleGlobalWarming();
@@ -447,7 +459,7 @@ namespace CivOne
 				}
 
 				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
-				for (int p = 1; p < _players.Length; p++)
+				for (int p = 1; p < _players.Count; p++)
 				{
 					if (_players[p].IsDestroyed()) continue;
 					if (_players[p] == HumanPlayer) continue;
@@ -479,7 +491,7 @@ namespace CivOne
 
 				// Check for spaceship arrivals
 				int bestArrival = int.MaxValue;
-				for (int p = 1; p < _players.Length; p++)
+				for (int p = 1; p < _players.Count; p++)
 					if (SpaceshipArrivalTurn[p] > 0 && SpaceshipArrivalTurn[p] < bestArrival)
 						bestArrival = SpaceshipArrivalTurn[p];
 
@@ -497,7 +509,7 @@ namespace CivOne
 					}
 					else
 					{
-						for (int p = 1; p < _players.Length; p++)
+						for (int p = 1; p < _players.Count; p++)
 						{
 							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
 							GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));

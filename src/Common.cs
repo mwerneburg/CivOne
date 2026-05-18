@@ -46,8 +46,9 @@ namespace CivOne
 		public static IBuilding[] Buildings = Reflect.GetBuildings().ToArray();
 		public static IWonder[] Wonders = Reflect.GetWonders().ToArray();
 		public static ICivilization[] Civilizations => Reflect.GetCivilizations().ToArray();
-		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7];
-		public static byte[] ColourDark = [4, 7, 2, 1, 10, 3, 4, 8];
+		// Slots 0–7: original civs (0=Barbarians). Slots 8–15: reserved for narrative factions (Olvir=8, Others=9).
+		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7,  17, 16, 14, 13, 12, 11, 15,  7];
+		public static byte[] ColourDark  = [ 4,  7,  2, 1, 10,  3,  4, 8,   5,  4,  3,  4,  4,  3,  5,  3];
 		
 		internal static IEnumerable<string> AllCityNames => Civilizations.Select(x => x.CityNames).SelectMany(x => x);
 

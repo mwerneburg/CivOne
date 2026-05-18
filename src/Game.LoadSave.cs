@@ -58,8 +58,8 @@ namespace CivOne
 				gameData.ActiveCivilizations = _players.Select(x => (x.Civilization is Barbarian) || (x.Cities.Any(c => c.Size > 0) || GetUnits().Any(u => x == u.Owner))).ToArray();
 				gameData.CivilizationIdentity = _players.Select(x => (byte)(x.Civilization.Id > 7 ? 1 : 0)).ToArray();
 				gameData.CurrentResearch = HumanPlayer.CurrentResearch?.Id ?? 0;
-				byte[][] discoveredAdvanceIDs = new byte[_players.Length][];
-				for (int p = 0; p < _players.Length; p++)
+				byte[][] discoveredAdvanceIDs = new byte[_players.Count][];
+				for (int p = 0; p < _players.Count; p++)
 					discoveredAdvanceIDs[p] = _players[p].Advances.Select(x => x.Id).ToArray();
 				gameData.DiscoveredAdvanceIDs = discoveredAdvanceIDs;
 				gameData.LeaderNames = _players.Select(x => x.LeaderName).ToArray();
@@ -73,8 +73,8 @@ namespace CivOne
 				gameData.StartingPositionX = _players.Select(x => (ushort)x.StartX).ToArray();
 				gameData.Government = _players.Select(x => (ushort)x.Government.Id).ToArray();
 				ushort[] diplomacyOut = new ushort[8 * 8];
-				for (int i = 0; i < _players.Length; i++)
-				for (int j = 0; j < _players.Length; j++)
+				for (int i = 0; i < _players.Count; i++)
+				for (int j = 0; j < _players.Count; j++)
 				{
 					if (i == j) continue;
 					diplomacyOut[i * 8 + j] = _players[i].IsAtWar(_players[j]) ? (ushort)0x2 : (ushort)0x0;
@@ -89,7 +89,7 @@ namespace CivOne
 					wonders[wonder.Id] = i;
 				}
 				gameData.Wonders = wonders;
-				bool[][,] visibility = new bool[_players.Length][,];
+				bool[][,] visibility = new bool[_players.Count][,];
 				for (int p = 0; p < visibility.Length; p++)
 				{
 					visibility[p] = new bool[80, 50];
@@ -117,7 +117,7 @@ namespace CivOne
 					Palace
 				};
 				gameData.NextAnthologyTurn = _anthologyTurn;
-				gameData.OpponentCount = (ushort)(_players.Length - 2);
+				gameData.OpponentCount = (ushort)(_players.Count - 2);
 				gameData.ReplayData = _replayData.ToArray();
 				File.WriteAllBytes(sveFile, gameData.GetBytes());
 			}
@@ -149,8 +149,8 @@ namespace CivOne
 				bw.Write((byte)0xFF);
 				foreach (int t in SpaceshipLaunchTurn)  bw.Write(t);
 				foreach (int t in SpaceshipArrivalTurn) bw.Write(t);
-				for (int i = 0; i < _players.Length; i++) bw.Write(_players[i].FutureTechs);
-				for (int i = _players.Length; i < 8; i++) bw.Write(0);
+				for (int i = 0; i < _players.Count; i++) bw.Write(_players[i].FutureTechs);
+				for (int i = _players.Count; i < 8; i++) bw.Write(0);
 				foreach (int v in SpaceshipStructural) bw.Write(v);
 				foreach (int v in SpaceshipComponent)  bw.Write(v);
 				foreach (int v in SpaceshipModule)     bw.Write(v);
@@ -191,7 +191,7 @@ namespace CivOne
 						for (int i = 0; i < 8 && br.BaseStream.Position < br.BaseStream.Length; i++)
 						{
 							int ft = br.ReadInt32();
-							if (i < _players.Length) _players[i].SetFutureTechs(ft);
+							if (i < _players.Count) _players[i].SetFutureTechs(ft);
 						}
 						// SS part counts (added after future techs — absent in older queue files)
 						bool hasSsParts = br.BaseStream.Position < br.BaseStream.Length;
@@ -225,13 +225,19 @@ namespace CivOne
 		{
 			_difficulty = gameData.Difficulty;
 			_competition = (gameData.OpponentCount + 1);
-			_players = new Player[_competition + 1];
+			int slotCount = _competition + 1;
+			_players = new List<Player>(Enumerable.Repeat<Player>(null, slotCount));
 			_cities = new List<City>();
 			_units = new List<IUnit>();
+			SpaceshipLaunchTurn  = new int[slotCount];
+			SpaceshipArrivalTurn = new int[slotCount];
+			SpaceshipStructural  = new int[slotCount];
+			SpaceshipComponent   = new int[slotCount];
+			SpaceshipModule      = new int[slotCount];
 
 			ushort[] advanceFirst = gameData.AdvanceFirstDiscovery;
 			bool[][,] visibility = gameData.TileVisibility;
-			for (int i = 0; i < _players.Length; i++)
+			for (int i = 0; i < _players.Count; i++)
 			{
 				ICivilization[] civs = Common.Civilizations.Where(c => c.PreferredPlayerNumber == i).ToArray();
 				ICivilization civ = civs[gameData.CivilizationIdentity[i] % civs.Length];
@@ -265,8 +271,8 @@ namespace CivOne
 
 			// Load war/peace state from the Diplomacy matrix (0x2 = at war)
 			ushort[] diplomacy = gameData.Diplomacy;
-			for (int i = 0; i < _players.Length; i++)
-			for (int j = 0; j < _players.Length; j++)
+			for (int i = 0; i < _players.Count; i++)
+			for (int j = 0; j < _players.Count; j++)
 			{
 				if (i == j) continue;
 				if (diplomacy[i * 8 + j] == 0x2)
