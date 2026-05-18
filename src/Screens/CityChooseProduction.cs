@@ -299,7 +299,7 @@ namespace CivOne.Screens
 			if (queue.Count > 0)
 			{
 				int footerY = PanelY + HeaderH + ListH + 2;
-				int qy = footerY + FooterH;   // past the divider+header row
+				int qy = footerY + FooterH + FooterH - 2;   // past divider + "QUEUE:" header row
 				int xBtn = px + pw - 16;
 				for (int i = 0; i < QueueVisible; i++)
 				{
