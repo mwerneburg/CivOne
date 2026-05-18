@@ -102,11 +102,10 @@ namespace CivOne.Screens
 		{
 			_availableAdvances = Human.AvailableResearch.Take(8).ToArray();
 
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
-			{
-				Palette = Common.DefaultPalette;
-				Palette.MergePalette(cassette, 1, 17);
-			}
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 		}
 	}
 }

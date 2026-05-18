@@ -436,13 +436,13 @@ namespace CivOne.Screens
 
 		public Civilopedia(ICivilopedia[] pages) : base(MouseCursor.Pointer)
 		{
-			Palette = BuildPalette();
+			using Palette pal = BuildPalette(); Palette = pal;
 			_pages = pages;
 		}
 
 		public Civilopedia(ICivilopedia page, bool discovered = false, bool icon = true) : base(MouseCursor.Pointer)
 		{
-			Palette = BuildPalette();
+			using Palette pal = BuildPalette(); Palette = pal;
 			_discovered = discovered;
 			_singlePage = page;
 			if (!Game.CivilopediaText) _pageNumber++;

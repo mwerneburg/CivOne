@@ -64,7 +64,7 @@ namespace CivOne.Screens.Reports
 			{
 				Portrait[i] = Icons.GovernmentPortrait(Human.Government, (Advisor)Enum.Parse(typeof(Advisor), $"{i}"), modernGovernment);
 			}
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				p.MergePalette(cassette, 1, 17);
 			p.MergePalette(Portrait[0].Palette, 144);

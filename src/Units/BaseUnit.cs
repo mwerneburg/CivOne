@@ -999,7 +999,7 @@ namespace CivOne.Units
 		{
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
 			if (rgba is null || w != 16 || h != 16) return null;
-			Palette pal = Common.DefaultPalette;
+			using Palette pal = Common.DefaultPalette;
 			CassetteTheme.ApplyTo(pal);
 			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
 			var bmap = new Bytemap(w, h);

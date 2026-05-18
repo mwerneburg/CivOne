@@ -773,7 +773,7 @@ namespace CivOne.Screens
 			_city     = city;
 			_cityMap  = new CityMap(_city);
 
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;

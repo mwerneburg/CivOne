@@ -85,11 +85,10 @@ namespace CivOne.Screens
 			_message = message;
 			_date    = $"January 1, {Common.YearString(Game.GameTurn)}";
 
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
-			{
-				Palette = Common.DefaultPalette;
-				Palette.MergePalette(cassette, 1, 17);
-			}
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
 
 			Render();
 			OnResize += (s, a) => { Render(); _update = true; };

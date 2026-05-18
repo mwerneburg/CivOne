@@ -144,7 +144,8 @@ namespace CivOne.Screens
 
 		public DebugOptions() : base(MouseCursor.Pointer)
 		{
-			Palette = Common.DefaultPalette;
+			using var p = Common.DefaultPalette;
+			Palette = p;
 			this.AddLayer(Common.Screens.Last(), 0, 0)
 				.FillRectangle(24, 16, 133, 113, 5);
 		}

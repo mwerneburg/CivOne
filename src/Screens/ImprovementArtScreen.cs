@@ -118,7 +118,7 @@ namespace CivOne.Screens
 			_cityName = cityName;
 			OnResize += (s, e) => _update = true;
 
-			Palette pal = BuildPalette();
+			using Palette pal = BuildPalette();
 			Palette = pal;
 			_rawRgba = PngFile.ReadRgba(artPath, out _rawW, out _rawH);
 		}

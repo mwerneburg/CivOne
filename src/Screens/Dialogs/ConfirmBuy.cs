@@ -86,7 +86,7 @@ namespace CivOne.Screens.Dialogs
 			_line2 = $"{name}: ${price}";
 			_line3 = $"Treasury: ${treasury}";
 
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;

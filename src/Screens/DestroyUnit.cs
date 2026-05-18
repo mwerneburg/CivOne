@@ -224,7 +224,8 @@ namespace CivOne.Screens
 			_x = Common.GamePlay.X;
 			_y = Common.GamePlay.Y;
 
-			Palette = Common.DefaultPalette;
+			using var p = Common.DefaultPalette;
+			Palette = p;
 			_gameMap = GameMap;
 			_animation = Settings.DestroyAnimation;
 			if (!Resources.Exists("SP257"))

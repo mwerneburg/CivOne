@@ -236,7 +236,7 @@ namespace CivOne.Screens
 		// ── constructor ──────────────────────────────────────────────────────────
 		public LoadGame(Palette palette)
 		{
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette c = CassetteTheme.CreatePalette())
 				p.MergePalette(c, 1, 17);
 			Palette = p;

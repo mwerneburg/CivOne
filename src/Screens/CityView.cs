@@ -83,7 +83,7 @@ namespace CivOne.Screens
 
 		private static Picture NativeBackground()
 		{
-			Palette pal = BuildNativePalette();
+			using Palette pal = BuildNativePalette();
 			var pic = new Picture(320, 200, pal);
 
 			// Sky

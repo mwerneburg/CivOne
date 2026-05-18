@@ -62,7 +62,7 @@ namespace CivOne.Leaders
 			if (path is null) return null;
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
 			if (rgba is null) return null;
-			Palette pal = Common.DefaultPalette;
+			using Palette pal = Common.DefaultPalette;
 			CassetteTheme.ApplyTo(pal);
 			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
 			var pic = new Picture(w, h, pal);

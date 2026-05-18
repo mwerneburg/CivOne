@@ -274,7 +274,8 @@ namespace CivOne.Screens.Debug
 
 		public SpawnUnit()
 		{
-			Palette = Common.DefaultPalette;
+			using var p = Common.DefaultPalette;
+			Palette = p;
 
 			int fontHeight = Resources.GetFontHeight(0);
 			int hh = (fontHeight * (Game.Players.Count() + 1)) + 5;

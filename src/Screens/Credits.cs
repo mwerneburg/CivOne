@@ -310,7 +310,7 @@ namespace CivOne.Screens
 
 		private Picture BuildProceduralTitle()
 		{
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				p.MergePalette(cassette, 1, 17);
 			Picture pic = new Picture(320, 200, p);

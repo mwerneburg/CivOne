@@ -75,7 +75,7 @@ namespace CivOne.Screens.Dialogs
 
 		public ConfirmRetire() : base(MouseCursor.Pointer)
 		{
-			Palette p = Common.DefaultPalette;
+			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;
