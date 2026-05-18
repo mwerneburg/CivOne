@@ -251,9 +251,17 @@ namespace CivOne.Units
 			if (tile is null)
 				return false;
 
-			// Only Settlers may enter a tile worked by another civilization (to build improvements).
-			if (!(this is Settlers) && Game.Instance.IsWorkedByOther(tile.X, tile.Y, Owner))
-				return false;
+			// Settlers and Caravans may always enter tiles worked by another civilization.
+			// Military units (Attack > 0) may enter if at war with the working civ.
+			// All others are blocked.
+			if (Game.Instance.IsWorkedByOther(tile.X, tile.Y, Owner))
+			{
+				if (!(this is Settlers || this is Caravan))
+				{
+					if (Attack == 0 || !Player.IsAtWar(Game.Instance.GetWorkerOfTile(tile.X, tile.Y, Owner)))
+						return false;
+				}
+			}
 
 			// If the tile is not an ocean tile, movement is allowed
 			if (tile.Type != Terrain.Ocean)

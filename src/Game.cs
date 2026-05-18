@@ -832,6 +832,13 @@ namespace CivOne
 			                 !(c.X == x && c.Y == y) &&
 			                 c.ResourceTiles.Any(t => t.X == x && t.Y == y));
 
+		// Returns the Player whose city works (x,y) for someone other than `owner`, or null.
+		public Player GetWorkerOfTile(int x, int y, byte owner) =>
+			_cities
+				.Where(c => c.Owner != owner && !(c.X == x && c.Y == y) && c.ResourceTiles.Any(t => t.X == x && t.Y == y))
+				.Select(c => GetPlayer(c.Owner))
+				.FirstOrDefault();
+
 		public IWonder[] BuiltWonders => _cities.SelectMany(c => c.Wonders).ToArray();
 
 		public bool WonderBuilt<T>() where T : IWonder => BuiltWonders.Any(w => w is T);
