@@ -41,9 +41,9 @@ namespace CivOne.Graphics
 
 		public IEnumerable<Colour> Entries => Enumerable.Range(0, Length).Select(x => this[x]);
 
-		public Palette Copy() => Palette.Copy(this);
+		public Palette Copy() => Copy(this);
 
-		public void MergePalette(Palette source, int startIndex = -1, int count = -1)
+		public Palette Merge(Palette source, int startIndex = -1, int count = -1)
 		{
 			if (startIndex == -1) startIndex = 0;
 			if (count == -1) count = Length - startIndex;
@@ -51,7 +51,10 @@ namespace CivOne.Graphics
 			{
 				WriteInt(i * 4, source.ToInt(i));
 			}
+			return this;
 		}
+
+		public void MergePalette(Palette source, int startIndex = -1, int count = -1) => Merge(source, startIndex, count);
 
 		public static Palette Copy(Palette source) => new Palette(source);
 
@@ -65,10 +68,6 @@ namespace CivOne.Graphics
 
 		private Palette(Palette source) : base(source)
 		{
-			for (int i = 0; i < source.Length; i++)
-			{
-				this[i] = source[i];
-			}
 		}
 
 		public Palette(int length = 256) : base(length * 4)
