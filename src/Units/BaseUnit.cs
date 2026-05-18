@@ -944,6 +944,7 @@ namespace CivOne.Units
 			_pngOverrides.Clear();
 			string tilesDir = Path.Combine(Settings.Instance.StorageDirectory, "unit_tiles");
 			if (!Directory.Exists(tilesDir)) return;
+
 			foreach (string file in Directory.GetFiles(tilesDir, "*.png"))
 			{
 				string name = Path.GetFileNameWithoutExtension(file);
@@ -955,6 +956,43 @@ namespace CivOne.Units
 					Log($"Loaded unit tile: {name}");
 				}
 			}
+
+			// unit_tiles.txt: same [section_name] + 256-index format as free_tiles.txt.
+			// Sections override any PNG of the same name.
+			string txtPath = Path.Combine(tilesDir, "unit_tiles.txt");
+			if (!File.Exists(txtPath)) return;
+
+			string currentSection = null;
+			var pixels = new List<byte>();
+			foreach (string raw in File.ReadAllLines(txtPath))
+			{
+				string line = raw.Trim();
+				if (line.Length == 0 || line.StartsWith("#")) continue;
+				if (line.StartsWith("[") && line.EndsWith("]"))
+				{
+					FlushTxtSection(currentSection, pixels);
+					currentSection = line.Substring(1, line.Length - 2);
+					pixels = new List<byte>();
+				}
+				else if (currentSection is not null)
+				{
+					foreach (string tok in line.Split([' ', '\t', ','], StringSplitOptions.RemoveEmptyEntries))
+						if (byte.TryParse(tok, out byte v)) pixels.Add(v);
+				}
+			}
+			FlushTxtSection(currentSection, pixels);
+		}
+
+		private static void FlushTxtSection(string name, List<byte> pixels)
+		{
+			if (name is null || pixels.Count != 256) return;
+			if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) return;
+			var bmap = new Bytemap(16, 16);
+			for (int y = 0; y < 16; y++)
+			for (int x = 0; x < 16; x++)
+				bmap[x, y] = pixels[y * 16 + x];
+			_pngOverrides[unitType] = bmap;
+			Log($"Loaded unit tile from txt: {name}");
 		}
 
 		private static Bytemap LoadPngTile(string path)

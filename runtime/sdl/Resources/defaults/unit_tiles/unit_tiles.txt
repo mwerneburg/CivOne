@@ -1,0 +1,31 @@
+# unit_tiles.txt
+#
+# Hand-crafted 16x16 unit tile overrides, using the same format as free_tiles.txt.
+#
+# Format:
+#   [UnitTypeName]        -- section header; name matches the UnitType enum (case-insensitive)
+#   16 rows of 16 space- or comma-separated palette indices (256 values total)
+#   Index 0 = transparent (shows the BG0 background underneath)
+#
+# Sections defined here override any matching PNG file in this directory.
+# PNG files are loaded first; txt sections win if both exist for the same unit.
+#
+# Example:
+#
+# [Cavalry]
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
