@@ -37,7 +37,8 @@ namespace CivOne.Screens
 		private int _timer = 0;
 
 		private Picture _background, _overlay;
-		
+
+		private string HumanName => Game.CurrentPlayer.LeaderName;
 
 		private void SetPalette()
 		{
@@ -65,7 +66,7 @@ namespace CivOne.Screens
 
 		protected override bool HasUpdate(uint gameTick)
 		{
-			if (++_timer > NOISE_COUNT)
+			if (_enemy >= 0 && ++_timer > NOISE_COUNT)
 			{
 				_timer = 0;
 				_step++;
@@ -82,11 +83,18 @@ namespace CivOne.Screens
 					_enemy++;
 					if (_enemy > _enemies.GetUpperBound(0))
 					{
-						Destroy();
+						_step = 4;
+						_enemy = -1;
+						_timer = 0;
 						return true;
 					}
 					SetPalette();
 				}
+			}
+			else if (++_timer > NOISE_COUNT && _step == 5)
+			{
+				Destroy();
+				return true;
 			}
 
 			switch (_step)
@@ -113,6 +121,11 @@ namespace CivOne.Screens
 						.DrawText($"{_enemies[_enemy].Civilization.Name} civilization!", 5, 20, 159, 168, TextAlign.Center)
 						.DrawText($"{_enemies[_enemy].Civilization.Name} civilization!", 5, 23, 159, 167, TextAlign.Center);
 					break;
+				case 4:
+					this.AddLayer(_background)
+						.DrawText($"The entire world hails", 5, 22, 159, 153, TextAlign.Center)
+						.DrawText($"{HumanName} the CONQUEROR!", 5, 22, 159, 168, TextAlign.Center);
+					break;
 			}
 
 			return true;
@@ -124,6 +137,11 @@ namespace CivOne.Screens
 			{
 				_timer = NOISE_COUNT;
 				_step = 1;
+			}
+			if (_step == 4)
+			{
+				_timer = 0;
+				_step = 5;
 			}
 		}
 
