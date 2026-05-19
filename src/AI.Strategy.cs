@@ -782,7 +782,8 @@ namespace CivOne
 					new Pyramids(), new ShakespearesTheatre(), new IsaacNewtonsCollege(),
 					new JSBachsCathedral(), new HangingGardens(), new Oracle(),
 					new GreatLibrary(), new DarwinsVoyage(), new CopernicusObservatory(),
-					new Colossus(), new Lighthouse(), new MagellansExpedition()
+					new Colossus(), new Lighthouse(), new MagellansExpedition(),
+					new MarcoPoloVoyage(), new ZhengHeVoyage()
 				};
 			}
 

@@ -338,17 +338,28 @@ namespace CivOne.Units
 
 					if (Human == capturedCity.Owner || Human == Owner)
 					{
-						Show captureCity = Show.CaptureCity(capturedCity);
-						captureCity.Done += (s1, a1) =>
+						Show captureScreen;
+						if (Human == Owner)
+						{
+							bool isLiberation = capturedCity.OriginalOwner == Owner;
+							string artKey = isLiberation ? "cityliberated" : "cityconquered";
+							string caption = isLiberation ? $"{capturedCity.Name} liberated!" : $"{capturedCity.Name} conquered!";
+							captureScreen = Show.EventArt(artKey, caption);
+						}
+						else
+						{
+							captureScreen = Show.CaptureCity(capturedCity);
+						}
+						captureScreen.Done += (s1, a1) =>
 						{
 							changeOwner();
-							
+
 							if (capturedCity.Size == 0 || Human != Owner) return;
 							GameTask.Insert(Show.CityManager(capturedCity));
 						};
-						GameTask.Insert(captureCity);
+						GameTask.Insert(captureScreen);
 
-						if (advancesToSteal.Any())
+						if (Human == Owner && advancesToSteal.Any())
 							GameTask.Enqueue(Tasks.Show.SelectAdvanceAfterCityCapture(Player, advancesToSteal));
 					}
 					else
@@ -362,16 +373,13 @@ namespace CivOne.Units
 			}
 			else if (this is Nuclear)
 			{
-				int xx = (X - Common.GamePlay.X + relX) * 16;
-				int yy = (Y - Common.GamePlay.Y + relY) * 16;
-				Show nuke = Show.Nuke(xx, yy);
-
 				if (Map[X, Y][relX, relY].City is not null)
 					PlaySound("airnuke");
 				else
 					PlaySound("s_nuke");
 
-				nuke.Done += (s, a) =>
+				Show nukeShow = Show.EventArt("nuclearbombdetonation", "Nuclear bomb detonated!");
+				nukeShow.Done += (s, a) =>
 				{
 					foreach (ITile tile in Map.QueryMapPart(X + relX - 1, Y + relY - 1, 3, 3))
 					{
@@ -381,7 +389,7 @@ namespace CivOne.Units
 						}
 					}
 				};
-				GameTask.Enqueue(nuke);
+				GameTask.Enqueue(nukeShow);
 			}
 			else if (AttackOutcome(this, Map[X, Y][relX, relY]))
 			{

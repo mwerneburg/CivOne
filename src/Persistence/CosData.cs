@@ -131,6 +131,7 @@ namespace CivOne.Persistence
 		public int Y { get; set; }
 		public int NameId { get; set; }
 		public int Owner { get; set; }
+		public int? OriginalOwner { get; set; }
 		public int Size { get; set; }
 		public int Food { get; set; }
 		public int Shields { get; set; }

@@ -464,6 +464,10 @@ namespace CivOne
 					return false;
 			}
 
+			// Secondary prerequisite checks (wonders that need two techs)
+			if (wonder is Wonders.MarcoPoloVoyage && !HasAdvance<MapMaking>()) return false;
+			if (wonder is Wonders.ZhengHeVoyage  && !HasAdvance<Writing>())   return false;
+
 			// Determine if the building requires a tech
 			if (wonder.RequiredTech is null)
 				return true;
@@ -555,6 +559,15 @@ namespace CivOne
 		{
 			if (tile is null) return false;
 			return Visible(tile.GetBorderTile(direction));
+		}
+
+		internal void RevealTiles(IEnumerable<ITile> tiles)
+		{
+			foreach (ITile t in tiles)
+			{
+				_explored[t.X, t.Y] = true;
+				_visible[t.X, t.Y]  = true;
+			}
 		}
 
 		public void MergeVisibility(Player other)

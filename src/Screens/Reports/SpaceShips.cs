@@ -14,6 +14,7 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.IO;
+using CivOne.Tasks;
 
 namespace CivOne.Screens.Reports
 {
@@ -333,6 +334,13 @@ namespace CivOne.Screens.Reports
 							+ (int)Math.Ceiling(Game.SpaceshipFlightYears(str, cmp, mod));
 						Game.Instance.ClearSpaceShipProduction(pid);
 						Game.Instance.PerformAutoSave();
+						string eta = Common.YearString((ushort)Game.Instance.SpaceshipArrivalTurn[pid]);
+						bool intercepted = Game.Instance.VisitorType == VisitorArchetype.Conquerors;
+						string artKey = intercepted ? "spaceshipintercepted" : "spaceshiplaunched";
+						string launchCaption = intercepted
+							? "Our spaceship has been intercepted!"
+							: $"Our spaceship has launched! Arrival: {eta}";
+						GameTask.Enqueue(Show.EventArt(artKey, launchCaption));
 						_update = true;
 					}
 				}

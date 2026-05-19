@@ -63,6 +63,7 @@ namespace CivOne
 					Y              = city.Y,
 					NameId         = city.NameId,
 					Owner          = city.Owner,
+					OriginalOwner  = city.OriginalOwner != city.Owner ? (int?)city.OriginalOwner : null,
 					Size           = city.Size,
 					Food           = city.Food,
 					Shields        = city.Shields,
@@ -390,12 +391,13 @@ namespace CivOne
 				}
 				var city = new City((byte)cd.Owner)
 				{
-					X       = (byte)cd.X,
-					Y       = (byte)cd.Y,
-					NameId  = cd.NameId,
-					Size    = (byte)cd.Size,
-					Food    = cd.Food,
-					Shields = cd.Shields
+					X             = (byte)cd.X,
+					Y             = (byte)cd.Y,
+					NameId        = cd.NameId,
+					OriginalOwner = (byte)(cd.OriginalOwner ?? cd.Owner),
+					Size          = (byte)cd.Size,
+					Food          = cd.Food,
+					Shields       = cd.Shields
 				};
 				var prod = Reflect.GetProduction().FirstOrDefault(p => p.GetType().Name == cd.Production);
 				if (prod is not null) city.SetProduction(prod);

@@ -390,7 +390,7 @@ namespace CivOne
 				}
 			}
 
-			GameTask.Enqueue(Message.Newspaper(null, "Global temperature", "rises! Icecaps melt.", "Severe Drought."));
+			GameTask.Enqueue(Show.EventArt("globalwarming", "Global warming! Icecaps melt."));
 		}
 
 		public void EndTurn()
@@ -425,9 +425,7 @@ namespace CivOne
 					SETISignalTurn = 0;
 					SETISignalReceived = true;
 					if (VisitorType == VisitorArchetype.None)
-						VisitorType = Common.Random.Next(10) == 0
-							? VisitorArchetype.Conquerors
-							: (VisitorArchetype)(Common.Random.Next(3) + 1);
+						VisitorType = VisitorArchetype.Refugees; // TEMP: force Olvir path for testing
 					TauCetiEscalationTurn = (uint)(_gameTurn + 20);
 					SETISignalTransmission.EnsureConfigFile();
 					string gameDate = GameYear;
@@ -502,7 +500,7 @@ namespace CivOne
 					{
 						PlaySound("wintune");
 						int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
-						GameTask.Enqueue(Message.Newspaper(null, "Spaceship reaches", "Alpha Centauri!", $"Score: {HumanPlayer.Score}"));
+						GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
 						GameTask spaceFt;
 						GameTask.Enqueue(spaceFt = Show.Screen(new FinalScore("Space Race Victory")));
 						spaceFt.Done += (s, a) => EndSequence.ChainAfterFinal(spaceFame, () => Runtime.Quit());
@@ -683,11 +681,13 @@ namespace CivOne
 			if (_cities.Any(c => c.X == x && c.Y == y))
 				return null;
 
-			City city = new City(PlayerNumber(player))
+			byte ownerNum = PlayerNumber(player);
+			City city = new City(ownerNum)
 			{
 				X = (byte)x,
 				Y = (byte)y,
 				NameId = nameId,
+				OriginalOwner = ownerNum,
 				Size = 1
 			};
 			if (!_cities.Any(c => c.Size > 0 && c.Owner == city.Owner))

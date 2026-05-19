@@ -209,6 +209,9 @@ namespace CivOne.Tasks
 
 		public static Show Screen(IScreen screen) => new Show(screen);
 
+		internal static Show EventArt(string key, string caption)
+			=> new Show(new EventArtScreen(EventArtScreen.FindPath(key), caption));
+
 		private Show(IScreen screen)
 		{
 			_screen = screen;

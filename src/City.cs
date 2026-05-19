@@ -30,6 +30,7 @@ namespace CivOne
 		internal int NameId { get; set; }
 		internal byte X;
 		internal byte Y;
+		internal byte OriginalOwner { get; set; }
 		private byte _owner;
 		internal byte Owner
 		{
@@ -608,7 +609,8 @@ namespace CivOne
 				}
 				foreach (IWonder wonder in Reflect.GetWonders().Where(b => Player.ProductionAvailable(b)))
 				{
-					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus)) continue;
+					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus || wonder is ZhengHeVoyage)) continue;
+					if (wonder is ZhengHeVoyage && !Map.AllTiles().Any(t => t.ContinentId != Tile.ContinentId && t.ContinentId > 0 && t.City is not null && t.City.Owner != 0)) continue;
 					if (wonder is Wonders.SETIProgram && !HasBuilding<UniversityBuilding>()) continue;
 					if (wonder is Wonders.SETIProgram && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<ObservatoryBuilding>()) < 5) continue;
 					yield return wonder;
@@ -931,7 +933,7 @@ namespace CivOne
 			candidates[Common.Random.Next(candidates.Count)].Pollution = true;
 
 			if (Human == Owner)
-				GameTask.Enqueue(Message.Newspaper(this, "Pollution in", $"{Name}!", "Health problems feared."));
+				GameTask.Enqueue(Show.EventArt("pollution", $"Pollution in {Name}!"));
 		}
 
 		private void ExecuteMeltdown()
@@ -960,7 +962,7 @@ namespace CivOne
 				int px = (X - (Common.GamePlay?.X ?? 0)) * 16;
 				int py = (Y - (Common.GamePlay?.Y ?? 0)) * 16;
 				GameTask.Insert(Show.Nuke(px, py));
-				GameTask.Insert(Message.Newspaper(this, $"Meltdown in {Name}!", "Radioactive fallout", "contaminates region!"));
+				GameTask.Insert(Show.EventArt("nuclearmeltdown", $"Nuclear meltdown in {Name}!"));
 			}
 
 			Log($"Nuclear meltdown in {Name} (owned by {Player.TribeName})");
@@ -989,8 +991,7 @@ namespace CivOne
 				{
 					if (Player == Human)
 					{
-						Show disorderCity = Show.DisorderCity(this);
-						GameTask.Insert(disorderCity);
+						GameTask.Insert(Show.EventArt("civilunrest0", $"Civil disorder in {Name}!"));
 					}
 					Log($"City {Name} belonging to {Player.TribeName} has gone into disorder");
 				}
@@ -1006,7 +1007,7 @@ namespace CivOne
 							{
 								RemoveBuilding<Buildings.MarketPlace>();
 								if (Player == Human)
-									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Marketplace burned", "by angry citizens!"));
+									GameTask.Insert(Show.EventArt("civilunrest1", $"Marketplace burned in {Name}!"));
 							}
 							break;
 						case 2:
@@ -1014,13 +1015,13 @@ namespace CivOne
 							{
 								RemoveBuilding<Bank>();
 								if (Player == Human)
-									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Bank looted", "by angry citizens!"));
+									GameTask.Insert(Show.EventArt("civilunrest2", $"Bank looted in {Name}!"));
 							}
 							else if (HasBuilding<Cathedral>())
 							{
 								RemoveBuilding<Cathedral>();
 								if (Player == Human)
-									GameTask.Insert(Message.Newspaper(this, $"Civil Disorder in {Name}:", "Cathedral burned", "by angry citizens!"));
+									GameTask.Insert(Show.EventArt("civilunrest2", $"Cathedral burned in {Name}!"));
 							}
 							break;
 						case 3:
@@ -1028,7 +1029,7 @@ namespace CivOne
 							{
 								Player.Revolt();
 								if (Player == Human)
-									GameTask.Insert(Message.Newspaper(null, "The government has", "COLLAPSED due to", "widespread disorder!"));
+									GameTask.Insert(Show.EventArt("governmentcollapses", "The government has COLLAPSED!"));
 							}
 							break;
 					}
@@ -1077,6 +1078,8 @@ namespace CivOne
 							}
 						}
 					}
+					if (Human == Owner)
+						GameTask.Enqueue(Show.EventArt("welovethekingday", $"We Love the King Day in {Name}!"));
 					WLTKNotifications.Add(Name);
 				}
 				else
@@ -1098,7 +1101,7 @@ namespace CivOne
 				Size--;
 				if (Human == Owner)
 				{
-					GameTask.Enqueue(Message.Newspaper(this, "Food storage exhausted", $"in {Name}!", "Famine feared."));
+					GameTask.Enqueue(Show.EventArt("famine", $"Famine in {Name}!"));
 				}
 				if (Size == 0) return;
 			}
@@ -1319,6 +1322,52 @@ namespace CivOne
 							Game.Instance.RecordTransmission("ProbeResult", gameDate);
 							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(
 								new ProbeResultTransmission(gameDate, Game.Instance.VisitorType, tier, techNames)));
+						}
+						if (wonder is MarcoPoloVoyage)
+						{
+							int continentId = Tile.ContinentId;
+							Player.RevealTiles(Map.ContinentTiles(continentId));
+							Player contact = Map.ContentCities(continentId)
+								.Where(c => c.Owner != Owner && c.Owner != 0)
+								.GroupBy(c => c.Owner)
+								.OrderByDescending(g => g.Count())
+								.Select(g => Game.GetPlayer(g.Key))
+								.FirstOrDefault();
+							if (contact is not null && !Player.HasEmbassy(contact))
+								Player.EstablishEmbassy(contact);
+							if (Player == Human)
+							{
+								string line3 = contact is not null ? $"contacts the {contact.TribeName}!" : "maps the continent.";
+								impTask.Done += (s, a) => GameTask.Enqueue(
+									Message.Advisor(Advisor.Foreign, false, "Marco Polo's Voyage:", "Continent revealed,", line3));
+							}
+						}
+						if (wonder is ZhengHeVoyage)
+						{
+							int myContinentId = Tile.ContinentId;
+							var foreignGroup = Map.AllTiles()
+								.Where(t => t.ContinentId != myContinentId && t.ContinentId > 0 && t.City is not null && t.City.Owner != 0)
+								.GroupBy(t => t.ContinentId)
+								.OrderByDescending(g => g.Count())
+								.FirstOrDefault();
+							if (foreignGroup is not null)
+							{
+								Player.RevealTiles(Map.ContinentTiles(foreignGroup.Key));
+								Player contact = foreignGroup
+									.Select(t => t.City)
+									.GroupBy(c => c.Owner)
+									.OrderByDescending(g => g.Count())
+									.Select(g => Game.GetPlayer(g.Key))
+									.FirstOrDefault();
+								if (contact is not null && !Player.HasEmbassy(contact))
+									Player.EstablishEmbassy(contact);
+								if (Player == Human && contact is not null)
+								{
+									string tribeName = contact.TribeName;
+									impTask.Done += (s, a) => GameTask.Enqueue(
+										Message.Advisor(Advisor.Foreign, false, "Zheng He's Voyage:", "New continent found,", $"contacts the {tribeName}!"));
+								}
+							}
 						}
 						GameTask.Enqueue(impTask);
 					}
