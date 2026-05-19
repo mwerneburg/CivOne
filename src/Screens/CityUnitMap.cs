@@ -34,6 +34,7 @@ namespace CivOne.Screens
 			for (int x = 0; x < Map.WIDTH; x++)
 			for (int y = 0; y < Map.HEIGHT; y++)
 			{
+				if (!Settings.RevealWorld && !Human.Visible(x, y)) continue;
 				ITile tile = Map[x, y];
 				Terrain type = tile.Type;
 				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
