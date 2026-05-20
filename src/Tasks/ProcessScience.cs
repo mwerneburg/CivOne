@@ -25,13 +25,6 @@ namespace CivOne.Tasks
 			EndTask();
 		}
 
-		private void ClosedDiscovery(object sender, EventArgs args)
-		{
-			Screens.Civilopedia civilopedia = new Screens.Civilopedia(_player.CurrentResearch, discovered: true);
-			civilopedia.Closed += CivilopediaClosed;
-			Common.AddScreen(civilopedia);
-		}
-		
 		public override void Run()
 		{
 			if (_player.CurrentResearch is null)
@@ -74,17 +67,9 @@ namespace CivOne.Tasks
 				return;
 			}
 
-			IScreen discovery;
-			if (Game.Animations)
-			{
-				discovery = new Discovery(_player.CurrentResearch);
-			}
-			else
-			{
-				discovery = new Newspaper(null, [$"{_player.TribeName} scholars", "discover the secret", $"of {_player.CurrentResearch.Name}!"], showGovernment: false);
-			}
-			discovery.Closed += ClosedDiscovery;
-			Common.AddScreen(discovery);
+			Civilopedia civilopedia = new Civilopedia(_player.CurrentResearch, discovered: true);
+			civilopedia.Closed += CivilopediaClosed;
+			Common.AddScreen(civilopedia);
 		}
 
 		public ProcessScience(Player player)

@@ -396,7 +396,6 @@ namespace CivOne
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
-				if (!Player.Visible(tx, ty)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;
 				int score = SiteSuitability(tile);
 				if (score > bestScore) { bestScore = score; best = tile; }
@@ -811,11 +810,25 @@ namespace CivOne
 			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 			if (defenders < 1)                Consider(BestDefender());
 
+			int ownCities = Player.Cities.Length;
+			int maxCities = Leader.Development == Expansionistic ? 13
+			              : Leader.Development == Normal          ? 10 : 7;
+
+			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers immediately
+			// after first defender so the civ doesn't stagnate.
+			// Safe minSize: solo city can be size 1 (game protects it), otherwise 2.
+			if (ownCities < 3 && stance != StrategyStance.Consolidate)
+			{
+				int minSize = ownCities == 1 ? 1 : 2;
+				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+					Consider(new Settlers());
+			}
+
 			// Explorer: one per 3 cities while the map still has fog-of-war to reveal
 			{
 				byte ownId = Game.PlayerNumber(Player);
 				int ownExplorers = Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer);
-				int explorerCap  = Math.Max(1, Player.Cities.Length / 3);
+				int explorerCap  = Math.Max(1, ownCities / 3);
 				if (ownExplorers < explorerCap) Consider(new Explorer());
 			}
 
@@ -836,14 +849,11 @@ namespace CivOne
 			}
 
 			// Expand: settlers when city is large enough
-			if (stance == StrategyStance.Expand)
+			if (stance == StrategyStance.Expand && ownCities >= 3)
 			{
 				int minSize = Leader.Development == Expansionistic ? 2
 				            : Leader.Development == Normal          ? 3 : 4;
-				int maxCities = Leader.Development == Expansionistic ? 13
-				              : Leader.Development == Normal          ? 10 : 7;
-				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers)
-				    && Player.Cities.Length < maxCities)
+				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 

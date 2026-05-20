@@ -77,19 +77,27 @@ namespace CivOne.Units
 				CleanPollution();
 			if (!RoadTo.IsEmpty)
 			{
+				Log($"[Settlers.MovementDone] RoadTo=({RoadTo.X},{RoadTo.Y}) now at ({X},{Y}) ML={MovesLeft}");
 				if (X == RoadTo.X && Y == RoadTo.Y)
 				{
+					Log("[Settlers.MovementDone] Reached destination, clearing RoadTo+Goto");
 					RoadTo = Point.Empty;
 					Goto = Point.Empty;
 				}
 				else
 				{
 					ITile tile = Map[X, Y];
-					bool needsRoad = !tile.Road && tile.City is null && !tile.IsOcean;
+					bool needsRoad = !tile.Road && !tile.RailRoad && tile.City is null && !tile.IsOcean;
+					Log($"[Settlers.MovementDone] needsRoad={needsRoad} (road={tile.Road} rail={tile.RailRoad} city={tile.City is not null} ocean={tile.IsOcean})");
 					if (needsRoad)
 					{
 						BuildRoad();
+						Log($"[Settlers.MovementDone] After BuildRoad: Goto cleared, BuildingRoad={BuildingRoad}");
 						Goto = Point.Empty;
+					}
+					else
+					{
+						Log($"[Settlers.MovementDone] No road needed, keeping Goto=({Goto.X},{Goto.Y})");
 					}
 				}
 			}
@@ -114,21 +122,27 @@ namespace CivOne.Units
 		public bool BuildRoad()
 		{
 			ITile tile = Map[X, Y];
+			Log($"[BuildRoad] ({X},{Y}) road={tile.Road} rail={tile.RailRoad} ocean={tile.IsOcean} city={tile.City is not null} ML={MovesLeft}");
 			if (tile.RailRoad)
 			{
 				// There is already a RailRoad here, don't build another one
+				Log("[BuildRoad] -> false (railroad exists)");
 				return false;
 			}
 			if (!tile.IsOcean && !tile.Road && tile.City is null)
 			{
 				if ((tile is River) && !Game.CurrentPlayer.HasAdvance<BridgeBuilding>())
+				{
+					Log("[BuildRoad] -> false (river, no BridgeBuilding)");
 					return false;
+				}
 				if (tile is Plains || tile is Grassland)
 					tile.Road = true;  // instant on easy terrain
 				else
 					BuildingRoad = 1;
 				MovesLeft = 0;
 				PartMoves = 0;
+				Log($"[BuildRoad] -> true (road building started, BuildingRoad={BuildingRoad})");
 				return true;
 			}
 			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && !tile.RailRoad && tile.City is null)
@@ -136,8 +150,10 @@ namespace CivOne.Units
 				BuildingRoad = 2;
 				MovesLeft = 0;
 				PartMoves = 0;
+				Log("[BuildRoad] -> true (railroad building started)");
 				return true;
 			}
+			Log("[BuildRoad] -> false (no applicable case)");
 			return false;
 		}
 
@@ -358,7 +374,7 @@ namespace CivOne.Units
 				else
 				{
 					ITile tile = Map[X, Y];
-					bool needsRoad = !tile.Road && tile.City is null && !tile.IsOcean;
+					bool needsRoad = !tile.Road && !tile.RailRoad && tile.City is null && !tile.IsOcean;
 					if (needsRoad)
 						BuildRoad();
 					else

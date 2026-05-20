@@ -110,7 +110,11 @@ namespace CivOne.Tasks
 						return;
 					}
 					// Start immediately this turn: build here if needed, else begin moving.
-					if (!settlers.BuildRoad())
+					ITile startTile = Map[settlers.X, settlers.Y];
+					Log($"[RoadTo] Settler ({settlers.X},{settlers.Y}) -> ({gx},{gy}). Tile road={startTile.Road} rail={startTile.RailRoad} ML={settlers.MovesLeft}");
+					bool built = settlers.BuildRoad();
+					Log($"[RoadTo] BuildRoad()={built}. After: ML={settlers.MovesLeft} BuildingRoad={settlers.BuildingRoad}");
+					if (!built)
 						settlers.Goto = new Point(gx, gy);
 				};
 				return new Show(gotoScreen);

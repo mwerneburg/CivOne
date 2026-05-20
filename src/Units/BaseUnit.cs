@@ -591,7 +591,11 @@ namespace CivOne.Units
 
 		protected virtual void MovementDone(ITile previousTile)
 		{
-			if (MovesLeft > 0) MovesLeft--;
+			bool railRailMove = previousTile.RailRoad && Tile.RailRoad;
+			Log($"[MovementDone] {GetType().Name} ({previousTile.X},{previousTile.Y})->({X},{Y}) prevRail={previousTile.RailRoad} curRail={Tile.RailRoad} railRailMove={railRailMove} ML={MovesLeft}");
+			if (MovesLeft > 0 && !railRailMove)
+				MovesLeft--;
+			Log($"[MovementDone] ML after decrement={MovesLeft}");
 
 			Tile.Visit(Owner);
 
