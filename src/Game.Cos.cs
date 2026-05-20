@@ -221,6 +221,9 @@ namespace CivOne
 					VisitorArchetype        = (int)VisitorType,
 					TauCetiEscalationTurn   = TauCetiEscalationTurn,
 					ProbeDispatched         = ProbeDispatched,
+					ProbeDispatchTurn       = ProbeDispatchTurn,
+					ProbeInterimPhase       = ProbeInterimPhase,
+					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					DomeAssignments         = DomeAssignments.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList(),
 					DomeVictoryFired        = _domeVictoryFired,
@@ -340,8 +343,11 @@ namespace CivOne
 			SETISignalReceived    = g.SETISignalReceived;
 			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
-			ProbeDispatched       = g.ProbeDispatched;
-			ProbeOutcomeTier      = g.ProbeOutcomeTier;
+			ProbeDispatched         = g.ProbeDispatched;
+			ProbeDispatchTurn       = g.ProbeDispatchTurn;
+			ProbeInterimPhase       = g.ProbeInterimPhase;
+			ProbeGrantedAdvanceIds  = g.ProbeGrantedAdvanceIds ?? System.Array.Empty<int>();
+			ProbeOutcomeTier        = g.ProbeOutcomeTier;
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

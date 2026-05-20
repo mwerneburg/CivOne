@@ -253,8 +253,8 @@ namespace CivOne.Units
 
 			// Settlers and Caravans may always enter tiles worked by another civilization.
 			// Military units (Attack > 0) may enter if at war with the working civ.
-			// All others are blocked.
-			if (Game.Instance.IsWorkedByOther(tile.X, tile.Y, Owner))
+			// All others are blocked. Barbarians (Owner 0) are exempt — they raid freely.
+			if (Owner != 0 && Game.Instance.IsWorkedByOther(tile.X, tile.Y, Owner))
 			{
 				if (!(this is Settlers || this is Caravan))
 				{

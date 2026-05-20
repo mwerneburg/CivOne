@@ -1303,27 +1303,23 @@ namespace CivOne
 						if (wonder is Wonders.InterstellarProbe && Player == Human)
 						{
 							Game.Instance.ProbeDispatched = true;
+							Game.Instance.ProbeDispatchTurn = Game.Instance.GameTurn;
+							Game.Instance.ProbeInterimPhase = 0;
+
 							int quality = Game.CalcProbeQuality(Player);
 							int tier    = Game.CalcProbeOutcomeTier(quality, Game.Instance.VisitorType);
 							Game.Instance.ProbeOutcomeTier = tier;
 
+							// Tech grants are held and applied when the result transmission fires.
 							int techCount = tier >= 4 ? 2 : tier >= 3 ? 1 : 0;
-							string[] techNames = null;
 							if (techCount > 0)
 							{
-								var grants = Human.AvailableResearch
+								Game.Instance.ProbeGrantedAdvanceIds = Human.AvailableResearch
 									.Where(a => !(a is FutureTech))
 									.Take(techCount)
+									.Select(a => (int)a.Id)
 									.ToArray();
-								techNames = grants.Select(a => (a as ICivilopedia)?.Name).ToArray();
-								foreach (var adv in grants)
-									Human.AddAdvance(adv);
 							}
-
-							string gameDate = Game.GameYear;
-							Game.Instance.RecordTransmission("ProbeResult", gameDate);
-							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(
-								new ProbeResultTransmission(gameDate, Game.Instance.VisitorType, tier, techNames)));
 						}
 						if (wonder is MarcoPoloVoyage)
 						{

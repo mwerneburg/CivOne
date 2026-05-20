@@ -52,6 +52,9 @@ namespace CivOne.Persistence
 		public int VisitorArchetype { get; set; }
 		public uint TauCetiEscalationTurn { get; set; }
 		public bool ProbeDispatched { get; set; }
+		public uint ProbeDispatchTurn { get; set; }
+		public int ProbeInterimPhase { get; set; }
+		public int[] ProbeGrantedAdvanceIds { get; set; }
 		public int ProbeOutcomeTier { get; set; }
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; }

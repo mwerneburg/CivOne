@@ -74,6 +74,17 @@ namespace CivOne
 		// Set when the probe wonder is built, cancels the approach warning (Phase 2)
 		internal bool ProbeDispatched;
 
+		// Turn on which the probe wonder was completed; drives interim + result scheduling.
+		// 0 = probe not yet dispatched. Old saves with ProbeDispatched=true but this=0
+		// have already shown their result and need no further action.
+		internal uint ProbeDispatchTurn;
+
+		// Which interim report fires next: 0=none yet, 1-3=phases, 4=result fired.
+		internal int ProbeInterimPhase;
+
+		// Advance IDs to grant the human player when the probe result fires (may be empty).
+		internal int[] ProbeGrantedAdvanceIds = System.Array.Empty<int>();
+
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
 
@@ -441,6 +452,43 @@ namespace CivOne
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType)));
+				}
+
+				// Probe interim reports and final result
+				if (ProbeDispatchTurn > 0 && ProbeInterimPhase < 4)
+				{
+					uint[] interimTurns = { ProbeDispatchTurn + 8, ProbeDispatchTurn + 18, ProbeDispatchTurn + 28 };
+					uint resultTurn = ProbeDispatchTurn + 35;
+
+					if (ProbeInterimPhase < 3 && _gameTurn >= interimTurns[ProbeInterimPhase])
+					{
+						int phase = ++ProbeInterimPhase;
+						string gameDate = GameYear;
+						RecordTransmission($"ProbeInterim{phase}", gameDate);
+						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
+					}
+					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
+					{
+						ProbeInterimPhase = 4;
+						string gameDate = GameYear;
+						int tier = ProbeOutcomeTier;
+						string[] techNames = null;
+						if (ProbeGrantedAdvanceIds.Length > 0)
+						{
+							var grants = ProbeGrantedAdvanceIds
+								.Select(id => HumanPlayer.Advances.Concat(HumanPlayer.AvailableResearch)
+									.FirstOrDefault(a => a.Id == id))
+								.Where(a => a is not null)
+								.ToArray();
+							techNames = grants.Select(a => (a as ICivilopedia)?.Name).ToArray();
+							foreach (var adv in grants)
+								if (!HumanPlayer.HasAdvance(adv))
+									HumanPlayer.AddAdvance(adv);
+							ProbeGrantedAdvanceIds = System.Array.Empty<int>();
+						}
+						RecordTransmission("ProbeResult", gameDate);
+						GameTask.Enqueue(Show.Screen(new Screens.ProbeResultTransmission(gameDate, VisitorType, tier, techNames)));
+					}
 				}
 
 				// Check for dome victory (all five components built)
