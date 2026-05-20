@@ -566,8 +566,9 @@ namespace CivOne
 					return;
 				}
 
-				// 2100 AD: game ends by score
-				if (Common.TurnToYear(_gameTurn) >= 2100)
+				// 2100 AD: game ends by score — waived if the SETI storyline is active,
+				// since the alien contact arc has its own endings (dome, probe result).
+				if (Common.TurnToYear(_gameTurn) >= 2100 && !SETISignalReceived)
 				{
 					Player winner = _players
 						.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
