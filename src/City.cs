@@ -1326,7 +1326,7 @@ namespace CivOne
 						if (wonder is MarcoPoloVoyage)
 						{
 							int continentId = Tile.ContinentId;
-							Player.RevealTiles(Map.ContinentTiles(continentId));
+							Player.RevealTiles(Map.ContinentTiles(continentId).Where(t => !t.IsOcean));
 							Player contact = Map.ContentCities(continentId)
 								.Where(c => c.Owner != Owner && c.Owner != 0)
 								.GroupBy(c => c.Owner)
