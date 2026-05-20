@@ -240,7 +240,7 @@ namespace CivOne.Screens
 			}
 			for (int i = 0; i < routes.Length; i++)
 			{
-				string name = routes[i].Partner.Name.ToUpper();
+				string name = $"{routes[i].Partner.Name.ToUpper()} ({routes[i].Value})";
 				this.DrawText(name, 0, CassetteTheme.OK, px + 4, py + 8 + i * fh);
 			}
 		}

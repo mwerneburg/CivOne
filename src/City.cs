@@ -87,9 +87,11 @@ namespace CivOne
 
 		internal class TradeRoute
 		{
+			private readonly City _home;
 			internal City Partner { get; }
 			internal string Commodity { get; }
-			internal TradeRoute(City partner, string commodity) { Partner = partner; Commodity = commodity; }
+			internal int Value => _home.RouteBonus(Partner);
+			internal TradeRoute(City home, City partner, string commodity) { _home = home; Partner = partner; Commodity = commodity; }
 		}
 
 		private readonly List<TradeRoute> _tradeRoutes = new();
@@ -134,7 +136,7 @@ namespace CivOne
 		{
 			if (partner is null) return;
 			if (_tradeRoutes.Count >= 3) _tradeRoutes.RemoveAt(0);
-			_tradeRoutes.Add(new TradeRoute(partner, commodity));
+			_tradeRoutes.Add(new TradeRoute(this, partner, commodity));
 			InvalidateCache();
 		}
 
