@@ -35,10 +35,9 @@ namespace CivOne.Units
 		{
 			int count = 0;
 			int w = Map.WIDTH, h = Map.HEIGHT;
-			for (int dy = -2; dy <= 2; dy++)
-			for (int dx = -2; dx <= 2; dx++)
+			for (int dy = -1; dy <= 1; dy++)
+			for (int dx = -1; dx <= 1; dx++)
 			{
-				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
 				int tx = (x + dx + w) % w;
 				int ty = y + dy;
 				if (ty < 0 || ty >= h) continue;
