@@ -458,7 +458,7 @@ namespace CivOne
 					OlvirArrivalTurn = (uint)(_gameTurn + 80);
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
-					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType)));
+					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType, ProbeDispatched, ProbeInterimPhase)));
 				}
 
 				// Probe interim reports and final result

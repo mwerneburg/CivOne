@@ -15,7 +15,7 @@ namespace CivOne.Screens
 {
 	internal class TauCetiApproachWarning : TerminalScreen
 	{
-		private static string[] BuildLines(string gameDate, VisitorArchetype archetype)
+		private static string[] BuildLines(string gameDate, VisitorArchetype archetype, bool probeDispatched, int probeInterimPhase)
 		{
 			string[] archetypeLines = archetype switch
 			{
@@ -69,14 +69,26 @@ namespace CivOne.Screens
 
 			lines.AddRange(archetypeLines);
 
+			string[] optionA = probeDispatched
+				? new[]
+				{
+					"",
+					"OPTION A: PROBE MISSION — ALREADY ACTIVE.",
+					$"  {probeInterimPhase} INTERIM TRANSMISSION(S) RECEIVED TO DATE.",
+					"  PROBE IS EN ROUTE. FURTHER TRANSMISSIONS EXPECTED.",
+				}
+				: new[]
+				{
+					"",
+					"OPTION A: DISPATCH PROBE TO TAU CETI IMMEDIATELY.",
+					"  Estimated transit: 40 years. Return signal: 40 years later.",
+					"  Risk: probe may not survive approach. Benefit: direct observation.",
+				};
+
+			lines.AddRange(new[] { "", "RESPONSE OPTIONS — SCIENTIFIC COUNCIL BRIEFING:" });
+			lines.AddRange(optionA);
 			lines.AddRange(new[]
 			{
-				"",
-				"RESPONSE OPTIONS — SCIENTIFIC COUNCIL BRIEFING:",
-				"",
-				"OPTION A: DISPATCH PROBE TO TAU CETI IMMEDIATELY.",
-				"  Estimated transit: 40 years. Return signal: 40 years later.",
-				"  Risk: probe may not survive approach. Benefit: direct observation.",
 				"",
 				"OPTION B: ACCELERATE ALPHA CENTAURI COLONIZATION.",
 				"  Establish human presence beyond Earth before arrival.",
@@ -117,9 +129,9 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal TauCetiApproachWarning(string gameDate, VisitorArchetype archetype)
+		internal TauCetiApproachWarning(string gameDate, VisitorArchetype archetype, bool probeDispatched = false, int probeInterimPhase = 0)
 		{
-			_lines = BuildLines(gameDate, archetype);
+			_lines = BuildLines(gameDate, archetype, probeDispatched, probeInterimPhase);
 			InitTypewriter();
 		}
 	}
