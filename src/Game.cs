@@ -448,10 +448,11 @@ namespace CivOne
 				}
 
 				// Fire the Tau Ceti approach warning 20 turns after the SETI signal
-				if (TauCetiEscalationTurn > 0 && _gameTurn >= TauCetiEscalationTurn && !ProbeDispatched)
+				if (TauCetiEscalationTurn > 0 && _gameTurn >= TauCetiEscalationTurn)
 				{
 					TauCetiEscalationTurn = 0;
 					AssignDomeComponents();
+					OlvirArrivalTurn = (uint)(_gameTurn + 80);
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType)));
@@ -491,10 +492,6 @@ namespace CivOne
 						}
 						RecordTransmission("ProbeResult", gameDate);
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeResultTransmission(gameDate, VisitorType, tier, techNames)));
-
-						// Schedule Olvir arrival 20–40 turns after probe result
-						if (OlvirArrivalTurn == 0)
-							OlvirArrivalTurn = (uint)(_gameTurn + 20 + Common.Random.Next(0, 21));
 					}
 				}
 
@@ -502,18 +499,21 @@ namespace CivOne
 				if (OlvirArrivalTurn > 0 && _gameTurn >= OlvirArrivalTurn)
 				{
 					OlvirArrivalTurn = 0;
-					string artCaption = VisitorType switch
-					{
-						VisitorArchetype.Conquerors => "FIRST CONTACT — ULTIMATUM",
-						VisitorArchetype.Owners     => "FIRST CONTACT — DISPUTED TERRITORY",
-						VisitorArchetype.Evaluators => "FIRST CONTACT — EVALUATION",
-						_                           => "FIRST CONTACT",
-					};
+					bool probeWasSent = (ProbeInterimPhase == 4);
+					string artCaption = probeWasSent
+						? VisitorType switch
+						{
+							VisitorArchetype.Conquerors => "FIRST CONTACT — ULTIMATUM",
+							VisitorArchetype.Owners     => "FIRST CONTACT — DISPUTED TERRITORY",
+							VisitorArchetype.Evaluators => "FIRST CONTACT — EVALUATION",
+							_                           => "FIRST CONTACT",
+						}
+						: "UNANNOUNCED CONTACT";
 					string gameDate = GameYear;
 					RecordTransmission("OlvirArrival", gameDate);
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
 						EventArtScreen.FindPath("MeetTheOlvir"), artCaption)));
-					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType)));
+					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent)));
 				}
 
 				// Check for dome victory (all five components built)

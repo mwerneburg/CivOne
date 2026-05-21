@@ -15,7 +15,8 @@ namespace CivOne.Screens
 {
 	internal class OlvirArrivalTransmission : TerminalScreen
 	{
-		private static string[] ArrivalDetails(VisitorArchetype archetype) => archetype switch
+		// ── Probe-sent path: archetype is known ────────────────────────────
+		private static string[] PreparedDetails(VisitorArchetype archetype) => archetype switch
 		{
 			VisitorArchetype.Refugees => new[]
 			{
@@ -83,7 +84,7 @@ namespace CivOne.Screens
 			},
 		};
 
-		private static string[] BuildLines(string gameDate, VisitorArchetype archetype)
+		private static string[] BuildPreparedLines(string gameDate, VisitorArchetype archetype)
 		{
 			var lines = new List<string>
 			{
@@ -94,9 +95,7 @@ namespace CivOne.Screens
 				"TAU CETI VESSEL HAS ACHIEVED EARTH ORBIT.",
 				"",
 			};
-
-			lines.AddRange(ArrivalDetails(archetype));
-
+			lines.AddRange(PreparedDetails(archetype));
 			lines.AddRange(new[]
 			{
 				"",
@@ -105,9 +104,34 @@ namespace CivOne.Screens
 				"",
 				"TRANSMISSION ENDS.",
 			});
-
 			return lines.ToArray();
 		}
+
+		// ── No-probe path: archetype is unknown ────────────────────────────
+		private static string[] BuildUnannouncedLines(string gameDate) => new[]
+		{
+			"PRIORITY ALERT — CLASSIFICATION: BEYOND OMEGA",
+			$"CONTACT TIMESTAMP: {gameDate}",
+			"STATUS: UNANNOUNCED — NO ADVANCE INTELLIGENCE",
+			"",
+			"TAU CETI VESSEL HAS ACHIEVED EARTH ORBIT.",
+			"NO PROBE WAS DISPATCHED. INTENTIONS UNKNOWN.",
+			"",
+			"INITIAL OBSERVATIONS:",
+			">> VESSEL COUNT: UNCLEAR. SENSOR RETURNS INCONSISTENT.",
+			">> PROPULSION SIGNATURE: NO MATCH IN ANY DATABASE.",
+			">> BROADCAST DETECTED ON MULTIPLE FREQUENCIES.",
+			">> TRANSLATION IN PROGRESS. ETA: UNKNOWN.",
+			"",
+			"WE DO NOT KNOW WHAT THEY WANT.",
+			"WE DO NOT KNOW IF THEY KNOW WE ARE HERE.",
+			"",
+			"ALL PLANETARY DEFENCE ASSETS ON STANDBY.",
+			"WORLD GOVERNMENTS CONVENING — EMERGENCY SESSION.",
+			"FURTHER TRANSMISSIONS TO FOLLOW AS DATA IS RECEIVED.",
+			"",
+			"TRANSMISSION ENDS.",
+		};
 
 		protected override byte ColorFor(int lineIndex, string text)
 		{
@@ -115,11 +139,15 @@ namespace CivOne.Screens
 			if (text.StartsWith("CONTACT TIMESTAMP") ||
 			    text.StartsWith("STATUS:"))                                  return CassetteTheme.PHOS_DIM;
 			if (text == "TAU CETI VESSEL HAS ACHIEVED EARTH ORBIT.")         return CassetteTheme.PHOS_GLOW;
+			if (text == "NO PROBE WAS DISPATCHED. INTENTIONS UNKNOWN.")      return CassetteTheme.ALERT;
+			if (text == "INITIAL OBSERVATIONS:")                             return CassetteTheme.INK_HIGH;
+			if (text.StartsWith(">> "))                                      return CassetteTheme.PHOS;
+			if (text.StartsWith("WE DO NOT KNOW"))                          return CassetteTheme.ALERT;
+			if (text.StartsWith("ALL PLANETARY DEFENCE"))                    return CassetteTheme.ALERT;
 			if (text.StartsWith("VESSEL CLASS:") ||
 			    text.StartsWith("POPULATION:") ||
 			    text.StartsWith("COMMUNICATION:"))                           return CassetteTheme.INK_MID;
 			if (text == "FIRST TRANSMISSION (TRANSLATED):")                  return CassetteTheme.INK_HIGH;
-			if (text.StartsWith(">> "))                                      return CassetteTheme.PHOS;
 			if (text.StartsWith("ASSESSMENT:"))                              return CassetteTheme.INK_HIGH;
 			if (text.StartsWith("WORLD GOVERNMENTS") ||
 			    text.StartsWith("FURTHER TRANSMISSIONS"))                    return CassetteTheme.PHOS_DIM;
@@ -127,9 +155,11 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype)
+		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype, bool probeWasSent)
 		{
-			_lines = BuildLines(gameDate, archetype);
+			_lines = probeWasSent
+				? BuildPreparedLines(gameDate, archetype)
+				: BuildUnannouncedLines(gameDate);
 			InitTypewriter();
 		}
 	}
