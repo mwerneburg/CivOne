@@ -1,0 +1,42 @@
+# South Pole Expedition – editable text configuration
+# {game year} is replaced with the current game year.
+
+[intel_report]
+Satellite analysis reveals an anomalous formation at the South Pole.
+Norwegian scientists have confirmed the structure is of non-terrestrial origin.
+A classified expedition has been dispatched. Further details: EYES ONLY.
+
+[expedition_log]
+EXPEDITION LOG – SOUTH POLE MISSION
+CLASSIFIED: EYES ONLY
+TRANSMISSION TIMESTAMP: {game year}
+
+SUBJECT: UNEXPECTED FINDINGS – SOUTH POLE, ANTARCTICA
+
+DIRECTIVE COMPLIANCE: Primary mission objectives achieved.
+Team intact. Coordinates secured.
+
+DISCOVERY: Anomalous structure located 800 meters SSE of geographic
+pole. Non-terrestrial origin confirmed. Structure exhibits properties
+inconsistent with known human engineering. No organic or inorganic
+life detected. No signs of habitation.
+
+RECOVERED COMPONENTS:
+
+1. PRIMARY CORE UNIT
+   Composition: Unknown alloy.
+   Thermal signature: -196°C (stable).
+   Structural integrity: Intact. No corrosion.
+   No known terrestrial equivalent.
+
+2. SECONDARY DRIVE CASING
+   Composition: Unknown alloy.
+   Surface etching: Geometric patterns (non-Euclidean).
+   Magnetic resonance: Anomalous.
+   No power source identified.
+
+ANALYSIS: Components exhibit characteristics consistent with
+propulsion system technology. No manuals, schematics, or
+instructions recovered. No damage observed. No signs of wear.
+
+TRANSMISSION ENDS.
