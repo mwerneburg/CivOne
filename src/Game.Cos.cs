@@ -226,6 +226,9 @@ namespace CivOne
 					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
+					OlvirImprovements       = OlvirImprovements.Count > 0
+					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
+					                          : null,
 					DomeAssignments         = DomeAssignments.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList(),
 					DomeVictoryFired        = _domeVictoryFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
@@ -350,6 +353,10 @@ namespace CivOne
 			ProbeGrantedAdvanceIds  = g.ProbeGrantedAdvanceIds ?? System.Array.Empty<int>();
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;
+			if (g.OlvirImprovements is not null)
+				foreach (var triple in g.OlvirImprovements)
+					if (triple.Length == 3)
+						OlvirImprovements[(triple[0], triple[1])] = (Enums.OlvirImprovementType)triple[2];
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

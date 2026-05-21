@@ -204,6 +204,9 @@ namespace CivOne.Tiles
 			if (tile.DrawHut()) output.AddLayer(MapTile.Hut);
 			if (tile.Pollution && !tile.IsOcean) output.AddLayer(MapTile.Pollution);
 
+			if (Game is not null && Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirImp))
+				output.AddLayer(OlvirSprites.Get(olvirImp));
+
 			if (player is not null)
 			{
 				Direction fog = Direction.None;

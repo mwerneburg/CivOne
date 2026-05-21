@@ -57,6 +57,8 @@ namespace CivOne.Persistence
 		public int[] ProbeGrantedAdvanceIds { get; set; }
 		public int ProbeOutcomeTier { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
+		// Olvir improvements: list of [x, y, type] triples
+		public List<int[]> OlvirImprovements { get; set; }
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; }
 		public bool DomeVictoryFired { get; set; }

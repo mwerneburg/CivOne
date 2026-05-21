@@ -848,11 +848,15 @@ namespace CivOne
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());
 			}
 
-			// Expand: settlers when city is large enough
+			// Expand: infrastructure before settlers, then settlers when city is large enough.
+			// Granary goes first so food investment lands before population is spent.
+			// minSize raised so cities consolidate at size 3+ before spawning settlers.
 			if (stance == StrategyStance.Expand && ownCities >= 3)
 			{
-				int minSize = Leader.Development == Expansionistic ? 2
-				            : Leader.Development == Normal          ? 3 : 4;
+				if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) Consider(new Granary());
+				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
+				int minSize = Leader.Development == Expansionistic ? 3
+				            : Leader.Development == Normal          ? 4 : 4;
 				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
@@ -930,8 +934,8 @@ namespace CivOne
 			if (ownMilitia < ownCities * 4 && plan.All(x => !(x is Militia)))
 				plan.Add(new Militia());
 
-			// 4. Settler — size >= 3 so the city stays viable; cap at 1 per 2 cities
-			if (city.Size >= 3 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
+			// 4. Settler — size >= 4 so the city stays viable at size 3; cap at 1 per 2 cities
+			if (city.Size >= 4 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
 				plan.Add(new Settlers());
 
 			// 5. Temple

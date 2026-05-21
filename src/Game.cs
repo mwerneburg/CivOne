@@ -91,6 +91,9 @@ namespace CivOne
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
 
+		// Olvir land-use improvements keyed by map tile (x, y).
+		internal readonly Dictionary<(int x, int y), Enums.OlvirImprovementType> OlvirImprovements = new();
+
 		// Dome path: which player (owner byte) is assigned to which dome wonder component.
 		// Populated when the Tau Ceti approach warning fires.
 		internal readonly Dictionary<byte, Enums.Wonder> DomeAssignments = new();
@@ -1059,12 +1062,14 @@ namespace CivOne
 			AddPlayer(olvirPlayer);
 			byte owner = PlayerNumber(olvirPlayer);
 
-			// 4) Place cities and settlers.
+			// 4) Place cities, settlement overlays, and settlers.
 			for (int i = 0; i < chosen.Count; i++)
 			{
 				int nameId = nameStart + (i % olvirCiv.CityNames.Length);
 				City city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
 				if (city is null) continue;
+
+				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
 
 				IUnit settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
 				if (settler is not null)
