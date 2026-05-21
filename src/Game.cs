@@ -469,6 +469,9 @@ namespace CivOne
 						int phase = ++ProbeInterimPhase;
 						string gameDate = GameYear;
 						RecordTransmission($"ProbeInterim{phase}", gameDate);
+						if (phase == 3)
+							GameTask.Enqueue(Show.Screen(new EventArtScreen(
+								EventArtScreen.FindPath("OlvirInSpace"), "VISUAL CONTACT — TAU CETI")));
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
 					}
 					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
@@ -509,6 +512,7 @@ namespace CivOne
 							_                           => "FIRST CONTACT",
 						}
 						: "UNANNOUNCED CONTACT";
+					SpawnOlvir();
 					string gameDate = GameYear;
 					RecordTransmission("OlvirArrival", gameDate);
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
@@ -991,6 +995,81 @@ namespace CivOne
 		{
 			byte id = PlayerNumber(player);
 			return DomeAssignments.TryGetValue(id, out var w) ? w : (Enums.Wonder?)null;
+		}
+
+		// ── Olvir arrival ────────────────────────────────────────────────────
+
+		// Chebyshev distance on a horizontally-wrapping map.
+		private static int TileDistance(int x1, int y1, int x2, int y2)
+		{
+			int dx = Math.Abs(x1 - x2);
+			if (dx > Map.WIDTH / 2) dx = Map.WIDTH - dx;
+			return Math.Max(dx, Math.Abs(y1 - y2));
+		}
+
+		private void SpawnOlvir()
+		{
+			ICivilization olvirCiv = Common.Civilizations.First(c => c is Civilizations.Olvir);
+
+			// Compute where Olvir city names start in the flat AllCityNames array.
+			int nameStart = Common.Civilizations
+				.Where(c => c.Id < olvirCiv.Id)
+				.Sum(c => c.CityNames.Length);
+
+			// All non-ocean non-edge land tiles that don't already host a city.
+			bool CityFree(int x, int y) => !_cities.Any(c => c.X == x && c.Y == y && c.Size > 0);
+			bool IsLand(int x, int y) => !(Map[x, y] is Ocean) && y > 0 && y < Map.HEIGHT - 1;
+			bool CoastalTile(ITile t) => t.GetBorderTiles().Any(b => b is Ocean);
+
+			const int MinSpread = 12; // Chebyshev distance between Olvir cities
+			var chosen = new List<(int x, int y)>();
+
+			bool FarEnough(int x, int y) =>
+				chosen.All(p => TileDistance(x, y, p.x, p.y) >= MinSpread);
+
+			// 1) Jungle city first.
+			var jungles = Enumerable.Range(0, Map.WIDTH)
+				.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
+				.Where(t => Map[t.x, t.y] is Jungle && IsLand(t.x, t.y) && CityFree(t.x, t.y))
+				.OrderBy(_ => Common.Random.Next(10000))
+				.ToList();
+
+			(int x, int y) jungleCity = jungles.FirstOrDefault(t => FarEnough(t.x, t.y));
+			if (jungleCity == default) jungleCity = jungles.FirstOrDefault(); // fallback: any jungle
+
+			if (jungleCity != default)
+				chosen.Add(jungleCity);
+
+			// 2) Three more cities: prefer coastal, then any habitable land.
+			IEnumerable<(int x, int y)> CoastalFirst() =>
+				Enumerable.Range(0, Map.WIDTH)
+					.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
+					.Where(t => IsLand(t.x, t.y) && CityFree(t.x, t.y) && FarEnough(t.x, t.y)
+					         && !chosen.Any(p => p.x == t.x && p.y == t.y))
+					.OrderByDescending(t => CoastalTile(Map[t.x, t.y]) ? 1 : 0)
+					.ThenBy(_ => Common.Random.Next(10000));
+
+			foreach (var (x, y) in CoastalFirst().Take(4 - chosen.Count))
+				chosen.Add((x, y));
+
+			if (chosen.Count == 0) return; // safety: nothing found
+
+			// 3) Create the Olvir player.
+			var olvirPlayer = new Player(olvirCiv, "The Council");
+			AddPlayer(olvirPlayer);
+			byte owner = PlayerNumber(olvirPlayer);
+
+			// 4) Place cities and settlers.
+			for (int i = 0; i < chosen.Count; i++)
+			{
+				int nameId = nameStart + (i % olvirCiv.CityNames.Length);
+				City city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
+				if (city is null) continue;
+
+				IUnit settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
+				if (settler is not null)
+					settler.SkipTurn();
+			}
 		}
 
 		internal void PerformAutoSave()

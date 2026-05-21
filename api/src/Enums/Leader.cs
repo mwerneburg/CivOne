@@ -28,5 +28,6 @@ namespace CivOne.Enums
 		Genghis,
 		Peter,
 		Deng,
+		OlvirCouncil,
 	}
 }

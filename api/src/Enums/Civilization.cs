@@ -25,6 +25,7 @@ namespace CivOne.Enums
 		Aztecs,
 		Chinese,
 		English,
-		Mongols
+		Mongols,
+		Olvir = 16
 	}
 }
