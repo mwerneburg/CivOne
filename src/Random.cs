@@ -238,16 +238,16 @@ namespace CivOne
 		public int Next(int max)
 		{
 			_inputs.Add(max);
-			DoRandom(Convert.ToInt16(max));
+			DoRandom((short)Math.Min(max, (int)short.MaxValue));
 			_counter++;
 			_outputs.Add((int)_ax);
 			return _ax;
 		}
-		
+
 		public int Next(int min, int max)
 		{
 			_inputs.Add(max - min);
-			DoRandom(Convert.ToInt16(max - min));
+			DoRandom((short)Math.Min(max - min, (int)short.MaxValue));
 			_counter++;
 			_outputs.Add((int)_ax);
 			return _ax + min;
