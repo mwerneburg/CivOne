@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
@@ -34,6 +35,7 @@ namespace CivOne.Screens
 
 		private readonly Player _enemy;
 		private readonly bool _aiInitiated;
+		private readonly List<AIDemand> _demands;
 
 		private bool _menuAdded = false;
 		private bool _needsRedraw = true;
@@ -140,6 +142,120 @@ namespace CivOne.Screens
 				: [$"Welcome, {Human.LeaderName}.", "What is your purpose here?"];
 		}
 
+		// ── demand helpers ───────────────────────────────────────────────────
+
+		private string[] DemandGreeting()
+		{
+			bool atWar = Human.IsAtWar(_enemy);
+			var agg = _enemy.Civilization.Leader.Aggression;
+			if (atWar)
+				return agg == AggressionLevel.Aggressive
+					? [$"Our cities are occupied, {Human.LeaderName}.", "Return them. Now."]
+					: [$"We demand the return of our cities,", $"{Human.LeaderName}. Peace awaits compliance."];
+			return agg == AggressionLevel.Aggressive
+				? [$"We have expectations, {Human.LeaderName}.", "Meet them or face consequences."]
+				: [$"We come with requests, {Human.LeaderName}.", "Cooperation benefits us both."];
+		}
+
+		private string DemandLabel(AIDemand d) => d.Kind switch
+		{
+			AIDemandKind.ReturnCity => $"Return {d.City.Name} → {d.Duration} turns of peace",
+			AIDemandKind.GiveMap   => $"Share your maps → {d.Duration} turns of goodwill",
+			AIDemandKind.GiveTech  => $"Transfer {d.Advance.Name} → {d.Duration} turns of goodwill",
+			AIDemandKind.GiveMoney => $"Pay ${d.Amount} tribute → {d.Duration} turns of goodwill",
+			AIDemandKind.CedeCity  => $"Cede {d.City.Name} → {d.Duration} turns of goodwill",
+			_                      => "Unknown demand"
+		};
+
+		private void FulfillDemand(AIDemand d)
+		{
+			CloseMenus();
+			byte aiNum = (byte)Game.PlayerNumber(_enemy);
+
+			switch (d.Kind)
+			{
+				case AIDemandKind.ReturnCity:
+					d.City.Owner = aiNum;
+					Human.MakePeace(_enemy);
+					_enemy.SetPeaceTreaty(Human, d.Duration);
+					SetResponse(FaceState.Smiling,
+						$"{d.City.Name} is restored to us.",
+						$"We guarantee {d.Duration} turns of peace.");
+					break;
+
+				case AIDemandKind.GiveMap:
+					Human.MergeVisibility(_enemy);
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					SetResponse(FaceState.Smiling,
+						"Your cartographers are generous.",
+						$"{d.Duration} turns of goodwill — agreed.");
+					break;
+
+				case AIDemandKind.GiveTech:
+					_enemy.AddAdvance(d.Advance, false);
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					SetResponse(FaceState.Smiling,
+						$"{d.Advance.Name} — a worthy gift.",
+						$"{d.Duration} turns of goodwill — agreed.");
+					break;
+
+				case AIDemandKind.GiveMoney:
+					Human.Gold  -= (short)d.Amount;
+					_enemy.Gold += (short)d.Amount;
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					SetResponse(FaceState.Smiling,
+						$"${d.Amount} received. Satisfactory.",
+						$"{d.Duration} turns of goodwill — agreed.");
+					break;
+
+				case AIDemandKind.CedeCity:
+					d.City.Owner = aiNum;
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					SetResponse(FaceState.Smiling,
+						$"{d.City.Name} joins our realm.",
+						$"{d.Duration} turns of goodwill — agreed.");
+					break;
+			}
+		}
+
+		private void DeclineAllDemands(object sender, EventArgs args)
+		{
+			CloseMenus();
+			var agg = _enemy.Civilization.Leader.Aggression;
+			SetResponse(FaceState.Angry,
+				agg == AggressionLevel.Aggressive
+					? "Shortsighted. You will regret this."
+					: "Very well. Do not expect our favor.");
+		}
+
+		private Menu BuildDemandsMenu()
+		{
+			int fh           = Resources.GetFontHeight(FONT_ID);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			int menuY        = BodyY + speechPanelH + PAD + fh + PAD / 2;
+
+			var menu = new Menu(Palette)
+			{
+				X              = RightX,
+				Y              = menuY,
+				MenuWidth      = RightW,
+				ActiveColour   = CassetteTheme.PHOS_FAINT,
+				TextColour     = CassetteTheme.INK_HIGH,
+				DisabledColour = CassetteTheme.INK_LOW,
+				FontId         = FONT_ID,
+				Indent         = PAD
+			};
+
+			foreach (AIDemand demand in _demands)
+			{
+				AIDemand captured = demand;
+				menu.Items.Add(DemandLabel(captured)).OnSelect((s, e) => FulfillDemand(captured));
+			}
+			menu.Items.Add("We want nothing to do with you.").OnSelect(DeclineAllDemands);
+
+			return menu;
+		}
+
 		// ── AI helper ────────────────────────────────────────────────────────
 
 		private bool AIAccepts(int basePct)
@@ -148,6 +264,7 @@ namespace CivOne.Screens
 			int chance = agg == AggressionLevel.Friendly  ? basePct + 25
 			           : agg == AggressionLevel.Aggressive ? basePct - 25
 			           : basePct;
+			if (_enemy.HasAttitudeBonus(Human)) chance += 20;
 			return Common.Random.Next(100) < Math.Max(0, Math.Min(100, chance));
 		}
 
@@ -384,7 +501,10 @@ namespace CivOne.Screens
 			if (!_menuAdded)
 			{
 				_menuAdded = true;
-				AddMenu(BuildMenu(Human.IsAtWar(_enemy)));
+				if (_aiInitiated && _demands is { Count: > 0 })
+					AddMenu(BuildDemandsMenu());
+				else
+					AddMenu(BuildMenu(Human.IsAtWar(_enemy)));
 			}
 
 			return true;
@@ -404,10 +524,11 @@ namespace CivOne.Screens
 
 		// ── constructor ───────────────────────────────────────────────────────
 
-		public King(Player player, bool aiInitiated = false)
+		public King(Player player, bool aiInitiated = false, List<AIDemand> demands = null)
 		{
-			_enemy      = player;
+			_enemy       = player;
 			_aiInitiated = aiInitiated;
+			_demands     = demands;
 
 			// Start with the portrait's full palette so its pixels render correctly,
 			// then overwrite indices 1-17 with the cassette design tokens.
@@ -417,7 +538,7 @@ namespace CivOne.Screens
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;
 
-			_speechLines = GreetingText();
+			_speechLines = (_aiInitiated && demands is { Count: > 0 }) ? DemandGreeting() : GreetingText();
 		}
 	}
 }

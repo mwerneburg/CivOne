@@ -184,7 +184,7 @@ namespace CivOne.Tasks
 		
 		public static Show SelectAdvanceAfterCityCapture(Player player, IList<IAdvance> advances) => new Show(new SelectAdvanceAfterCityCapture(player, advances));
 
-		public static Show MeetKing(Player player, bool aiInitiated = false) => new Show(new King(player, aiInitiated));
+		public static Show MeetKing(Player player, bool aiInitiated = false, List<AIDemand> demands = null) => new Show(new King(player, aiInitiated, demands));
 
 		public static Show Screen<T>() where T : IScreen, new() => new Show(new T());
 

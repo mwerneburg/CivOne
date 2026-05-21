@@ -110,6 +110,8 @@ namespace CivOne
 		private readonly List<byte> _advances = new();
 		private readonly List<byte> _embassies = new();
 		private readonly HashSet<byte> _warWith = new();
+		private readonly Dictionary<byte, int> _peaceTreaty  = new(); // AI won't declare war for N turns
+		private readonly Dictionary<byte, int> _attitudeBonus = new(); // AI acceptance boosted for N turns
 
 		private short _anarchy = 0;
 		private short _gold;
@@ -297,6 +299,11 @@ namespace CivOne
 
 		public bool IsAtWar(Player player) => _warWith.Contains(Game.PlayerNumber(player));
 
+		internal void SetPeaceTreaty(Player other, int turns)  => _peaceTreaty[(byte)Game.PlayerNumber(other)]  = turns;
+		internal bool HasPeaceTreaty(Player other)             => _peaceTreaty.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
+		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
+		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
+
 		internal void SetAtWar(byte playerNumber, bool atWar)
 		{
 			if (atWar) _warWith.Add(playerNumber);
@@ -312,6 +319,7 @@ namespace CivOne
 			if (ownNumber == 0 || enemyNumber == 0) return;
 
 			if (_warWith.Contains(enemyNumber)) return;
+			if (_peaceTreaty.TryGetValue(enemyNumber, out int pt) && pt > 0) return;
 
 			_warWith.Add(enemyNumber);
 			enemy._warWith.Add(ownNumber);
@@ -605,6 +613,11 @@ namespace CivOne
 					AI?.ChooseGovernment();
 			}
 			if (_anarchy > 0) _anarchy--;
+
+			foreach (byte k in _peaceTreaty.Keys.ToArray())
+				if (--_peaceTreaty[k] <= 0) _peaceTreaty.Remove(k);
+			foreach (byte k in _attitudeBonus.Keys.ToArray())
+				if (--_attitudeBonus[k] <= 0) _attitudeBonus.Remove(k);
 
 			// Great Library: auto-acquire any advance that 2+ other civs already possess
 			if (HasWonder<Wonders.GreatLibrary>() && !Game.WonderObsolete<Wonders.GreatLibrary>())

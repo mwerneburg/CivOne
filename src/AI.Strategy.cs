@@ -168,6 +168,55 @@ namespace CivOne
 
 		// ── proactive diplomacy ───────────────────────────────────────────────────
 
+		internal List<AIDemand> GenerateDemands(Player human)
+		{
+			var demands = new List<AIDemand>();
+			byte aiNum    = (byte)Game.PlayerNumber(Player);
+			byte humanNum = (byte)Game.PlayerNumber(human);
+			bool atWar    = Player.IsAtWar(human);
+
+			if (atWar)
+			{
+				// At war: ask for captured cities back in exchange for peace
+				foreach (City city in Game.GetCities().Where(c => c.Owner == humanNum && c.OriginalOwner == aiNum))
+					demands.Add(new AIDemand(AIDemandKind.ReturnCity, city: city, duration: 100));
+			}
+			else
+			{
+				// At peace: extortion for attitude bonus
+				if (human.HasNewVisibilityFor(Player))
+					demands.Add(new AIDemand(AIDemandKind.GiveMap, duration: 50));
+
+				IAdvance[] wantedTechs = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
+				if (wantedTechs.Length > 0)
+				{
+					int topWeight = wantedTechs.Max(a => AdvanceDemandValue(a));
+					IAdvance[] top = wantedTechs.Where(a => AdvanceDemandValue(a) == topWeight).ToArray();
+					demands.Add(new AIDemand(AIDemandKind.GiveTech, advance: top[Common.Random.Next(top.Length)], duration: 50));
+				}
+
+				if (human.Gold >= 25)
+				{
+					int amount = Math.Max(25, (int)(human.Gold * 0.25f));
+					demands.Add(new AIDemand(AIDemandKind.GiveMoney, amount: amount, duration: 50));
+				}
+
+				City[] smallCities = Game.GetCities()
+					.Where(c => c.Owner == humanNum && c.Size <= 2 && !c.HasBuilding<Palace>())
+					.ToArray();
+				if (smallCities.Length > 0)
+				{
+					City[] aiCities = Game.GetCities().Where(c => c.Owner == aiNum).ToArray();
+					City target = aiCities.Length > 0
+						? smallCities.OrderBy(c => aiCities.Min(ac => Common.DistanceToTile(ac.X, ac.Y, c.X, c.Y))).First()
+						: smallCities[Common.Random.Next(smallCities.Length)];
+					demands.Add(new AIDemand(AIDemandKind.CedeCity, city: target, duration: 50));
+				}
+			}
+
+			return demands;
+		}
+
 		internal void ConsiderDiplomacy()
 		{
 			if (Game.PlayerNumber(Player) == 0) return;
@@ -188,10 +237,12 @@ namespace CivOne
 			if (Leader.Militarism == MilitarismLevel.Militaristic) chance += 2;
 			if (Leader.Aggression == AggressionLevel.Friendly)    chance += 4;
 			if (Player.IsAtWar(human))                             chance += 6;
+			if (Player.HasAttitudeBonus(human))                    chance -= 4; // goodwill suppresses war pressure
 
 			if (Common.Random.Next(100) >= chance) return;
 
-			GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true));
+			List<AIDemand> demands = GenerateDemands(human);
+			GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true, demands: demands));
 		}
 
 		// ── background map trading ────────────────────────────────────────────────
