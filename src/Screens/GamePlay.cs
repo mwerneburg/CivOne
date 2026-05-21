@@ -44,6 +44,8 @@ namespace CivOne.Screens
 
 		internal int X => _gameMap.X;
 		internal int Y => _gameMap.Y;
+		internal int TilesX => _gameMap.TilesX;
+		internal int TilesY => _gameMap.TilesY;
 
 		internal void CenterOnPoint(int x, int y) => _gameMap.CenterOnPoint(x, y);
 

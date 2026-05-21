@@ -85,7 +85,9 @@ namespace CivOne.Screens.GamePlayPanels
 					}
 				}
 			}
-			_miniMap.DrawRectangle(31, 18, 18, 11, CassetteTheme.PHOS)
+			int rectW = (GamePlay?.TilesX ?? 15) + 2;
+			int rectH = (GamePlay?.TilesY ?? 12) + 2;
+			_miniMap.DrawRectangle(30, 18, rectW, rectH, CassetteTheme.PHOS)
 				.DrawRectangle(0, 0, 80, 50, CassetteTheme.BORDER);
 		}
 

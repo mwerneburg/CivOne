@@ -37,6 +37,8 @@ namespace CivOne.Screens.GamePlayPanels
 
 		internal int X => _x;
 		internal int Y => _y;
+		internal int TilesX => _tilesX;
+		internal int TilesY => _tilesY;
 
 		private ITile[,] Tiles => Map[_x, _y, _tilesX, _tilesY];
 
