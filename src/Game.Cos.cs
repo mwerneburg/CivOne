@@ -225,6 +225,7 @@ namespace CivOne
 					ProbeInterimPhase       = ProbeInterimPhase,
 					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
+					OlvirArrivalTurn        = OlvirArrivalTurn,
 					DomeAssignments         = DomeAssignments.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList(),
 					DomeVictoryFired        = _domeVictoryFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
@@ -348,6 +349,7 @@ namespace CivOne
 			ProbeInterimPhase       = g.ProbeInterimPhase;
 			ProbeGrantedAdvanceIds  = g.ProbeGrantedAdvanceIds ?? System.Array.Empty<int>();
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
+			OlvirArrivalTurn        = g.OlvirArrivalTurn;
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

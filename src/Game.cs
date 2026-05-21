@@ -85,6 +85,9 @@ namespace CivOne
 		// Advance IDs to grant the human player when the probe result fires (may be empty).
 		internal int[] ProbeGrantedAdvanceIds = System.Array.Empty<int>();
 
+		// Turn on which the Olvir arrival scene fires (0 = not yet scheduled).
+		internal uint OlvirArrivalTurn;
+
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
 
@@ -488,7 +491,29 @@ namespace CivOne
 						}
 						RecordTransmission("ProbeResult", gameDate);
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeResultTransmission(gameDate, VisitorType, tier, techNames)));
+
+						// Schedule Olvir arrival 20–40 turns after probe result
+						if (OlvirArrivalTurn == 0)
+							OlvirArrivalTurn = (uint)(_gameTurn + 20 + Common.Random.Next(0, 21));
 					}
+				}
+
+				// Olvir arrival scene
+				if (OlvirArrivalTurn > 0 && _gameTurn >= OlvirArrivalTurn)
+				{
+					OlvirArrivalTurn = 0;
+					string artCaption = VisitorType switch
+					{
+						VisitorArchetype.Conquerors => "FIRST CONTACT — ULTIMATUM",
+						VisitorArchetype.Owners     => "FIRST CONTACT — DISPUTED TERRITORY",
+						VisitorArchetype.Evaluators => "FIRST CONTACT — EVALUATION",
+						_                           => "FIRST CONTACT",
+					};
+					string gameDate = GameYear;
+					RecordTransmission("OlvirArrival", gameDate);
+					GameTask.Enqueue(Show.Screen(new EventArtScreen(
+						EventArtScreen.FindPath("MeetTheOlvir"), artCaption)));
+					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType)));
 				}
 
 				// Check for dome victory (all five components built)

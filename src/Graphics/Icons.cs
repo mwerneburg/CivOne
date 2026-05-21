@@ -394,48 +394,30 @@ namespace CivOne.Graphics
 		public static IBitmap City(City city, bool smallFont = false)
 		{
 			IBitmap output = new Picture(16, 16);
-			TextSettings settings = new TextSettings()
-			{
-				FontId = smallFont ? 1 : 0,
-				Alignment = TextAlign.Center
-			};
-			
+
+			// Black field
+			output.FillRectangle(0, 0, 16, 16, CassetteTheme.BG0);
+
+			// Units-present: 1-px outline so the unit stack shows behind the icon
 			if (city.Tile.Units.Length > 0)
+			{
 				output.FillRectangle(0, 0, 16, 16, CassetteTheme.BORDER);
-			output.FillRectangle(1, 1, 14, 14, CassetteTheme.INK_LOW)
-				.FillRectangle(2, 1, 13, 13, CassetteTheme.BG3)
-				.FillRectangle(2, 2, 12, 12, CassetteTheme.BORDER);
-			
-			IBitmap resource;
-			if (Resources.Exists("SP257"))
-			{
-				resource = Resources["SP257"][192, 112, 16, 16];
-			}
-			else
-			{
-				resource = new Picture(Free.Instance.City, Common.GetPalette256);
-			}
-			resource
-				.ColourReplace(3, 0)
-				.ColourReplace(5, CassetteTheme.INK_MID);
-				
-			if (city.IsInDisorder)
-			{
-				output.AddLayer(resource, 0, 0)
-					.AddLayer(Icons.Citizen(Enums.Citizen.UnhappyMale), 5, 1);
-			}
-			else
-			{
-				output.AddLayer(resource, 0, 0)
-					.DrawText($"{city.Size}", (smallFont ? 1 : 0), 5, 9, CassetteTheme.INK_HIGH, TextAlign.Center);
+				output.FillRectangle(1, 1, 14, 14, CassetteTheme.BG0);
 			}
 
-			resource?.Dispose();
+			// Heraldic three-merlon crenellation
+			output
+				.FillRectangle(3, 1, 3, 2, CassetteTheme.INK_MID)   // left merlon
+				.FillRectangle(7, 1, 3, 2, CassetteTheme.INK_MID)   // centre merlon
+				.FillRectangle(11, 1, 3, 2, CassetteTheme.INK_MID)  // right merlon
+				.FillRectangle(3, 3, 11, 1, CassetteTheme.INK_MID); // base wall
+
+			// City size numeral: amber phosphor normally, red when in disorder
+			byte numCol = city.IsInDisorder ? CassetteTheme.ALERT : CassetteTheme.PHOS;
+			output.DrawText($"{city.Size}", (smallFont ? 1 : 0), numCol, 8, 6, TextAlign.Center);
 
 			if (city.HasBuilding<CityWalls>())
-			{
 				output.AddLayer(Generic.Fortify, 0, 0);
-			}
 
 			output.FillRectangle(0, 13, 16, 2, Common.ColourLight[city.Owner]);
 			output.FillRectangle(0, 15, 16, 1, Common.ColourDark[city.Owner]);
