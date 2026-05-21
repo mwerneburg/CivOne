@@ -44,7 +44,7 @@ namespace CivOne.Units
 			if (!possible.Any())
 				return null;
 
-			return possible[Common.Random.Next(0, possible.Count - 1)];
+			return possible[Common.Random.Next(possible.Count)];
 		}
 
 		public string Sabotage(City city)

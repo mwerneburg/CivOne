@@ -606,13 +606,21 @@ namespace CivOne
 				return;
 			}
 
-			// Diplomats: head for the nearest visible foreign city
+			// Diplomats: prefer the human player's cities (steal tech / sabotage),
+			// fall back to the nearest other visible foreign city.
 			if (unit is Diplomat)
 			{
-				City target = Game.GetCities()
-				    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y))
-				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				    .FirstOrDefault();
+				Player human = Human;
+				City target =
+					Game.GetCities()
+					    .Where(c => c.Player == human && Player.Visible(c.X, c.Y))
+					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+					    .FirstOrDefault()
+					??
+					Game.GetCities()
+					    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y))
+					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+					    .FirstOrDefault();
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				return;
 			}
