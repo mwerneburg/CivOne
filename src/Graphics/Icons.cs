@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using CivOne.Buildings;
+using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Graphics.Sprites;
 using CivOne.Governments;
@@ -393,6 +394,9 @@ namespace CivOne.Graphics
 
 		public static IBitmap City(City city, bool smallFont = false)
 		{
+			if (Game.Instance?.GetPlayer(city.Owner)?.Civilization is Olvir)
+				return OlvirCity(city, smallFont);
+
 			IBitmap output = new Picture(16, 16);
 
 			// Black field
@@ -413,6 +417,43 @@ namespace CivOne.Graphics
 				.FillRectangle(3, 3, 11, 1, CassetteTheme.INK_MID); // base wall
 
 			// City size numeral: amber phosphor normally, red when in disorder
+			byte numCol = city.IsInDisorder ? CassetteTheme.ALERT : CassetteTheme.PHOS;
+			output.DrawText($"{city.Size}", (smallFont ? 1 : 0), numCol, 8, 6, TextAlign.Center);
+
+			if (city.HasBuilding<CityWalls>())
+				output.AddLayer(Generic.Fortify, 0, 0);
+
+			output.FillRectangle(0, 13, 16, 2, Common.ColourLight[city.Owner]);
+			output.FillRectangle(0, 15, 16, 1, Common.ColourDark[city.Owner]);
+			return output;
+		}
+
+		private static IBitmap OlvirCity(City city, bool smallFont)
+		{
+			IBitmap output = new Picture(16, 16);
+			output.FillRectangle(0, 0, 16, 16, CassetteTheme.BG0);
+
+			if (city.Tile.Units.Length > 0)
+			{
+				output.FillRectangle(0, 0, 16, 16, CassetteTheme.BORDER);
+				output.FillRectangle(1, 1, 14, 14, CassetteTheme.BG0);
+			}
+
+			// Dome silhouette in CYAN
+			const byte dc = CassetteTheme.CYAN;
+			// Top cap (row 1, 6px wide)
+			for (int x = 5; x <= 10; x++) output.Bitmap[x, 1] = dc;
+			// Arc shoulders (row 2)
+			output.Bitmap[4, 2] = dc; output.Bitmap[5, 2] = dc;
+			output.Bitmap[10, 2] = dc; output.Bitmap[11, 2] = dc;
+			// Dome narrows (row 3)
+			output.Bitmap[3, 3] = dc; output.Bitmap[12, 3] = dc;
+			// Vertical sides (rows 4–7)
+			for (int y = 4; y <= 7; y++) { output.Bitmap[2, y] = dc; output.Bitmap[13, y] = dc; }
+			// Base bar (row 8)
+			for (int x = 2; x <= 13; x++) output.Bitmap[x, 8] = dc;
+
+			// City size numeral inside the dome
 			byte numCol = city.IsInDisorder ? CassetteTheme.ALERT : CassetteTheme.PHOS;
 			output.DrawText($"{city.Size}", (smallFont ? 1 : 0), numCol, 8, 6, TextAlign.Center);
 

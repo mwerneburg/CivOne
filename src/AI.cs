@@ -12,6 +12,7 @@ using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Buildings;
+using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Governments;
 using CivOne.Leaders;
@@ -46,6 +47,43 @@ namespace CivOne
 				return;
 			}
 			
+			if (unit is Settlers && Player.Civilization is Olvir)
+			{
+				ITile tile = unit.Tile;
+
+				// Place an Olvir improvement on the current tile if it's unimproved land.
+				if (!tile.IsOcean && tile.City is null
+				    && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
+				{
+					Game.OlvirImprovements[(tile.X, tile.Y)] = OlvirImprovementFor(tile);
+					unit.Goto = System.Drawing.Point.Empty;
+					unit.SkipTurn();
+					return;
+				}
+
+				// Navigate to the next unimproved site near an Olvir city.
+				if (unit.Goto.IsEmpty)
+				{
+					ITile next = BestOlvirImproveSite(unit);
+					if (next is not null && (next.X != tile.X || next.Y != tile.Y))
+						unit.Goto = new System.Drawing.Point(next.X, next.Y);
+				}
+
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile step = Common.GotoStep(unit);
+					if (step is null) { unit.Goto = System.Drawing.Point.Empty; unit.SkipTurn(); return; }
+					if (!unit.MoveTo(step.X - unit.X, step.Y - unit.Y))
+					{
+						unit.Goto = System.Drawing.Point.Empty;
+						unit.SkipTurn();
+					}
+					return;
+				}
+				unit.SkipTurn();
+				return;
+			}
+
 			if (unit is Settlers)
 			{
 				ITile tile = unit.Tile;

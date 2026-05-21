@@ -13,6 +13,7 @@ using System.Drawing;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Buildings;
+using CivOne.Civilizations;
 using CivOne.Enums;
 using CivOne.Tasks;
 using CivOne.Tiles;
@@ -170,6 +171,7 @@ namespace CivOne
 		internal void ConsiderDiplomacy()
 		{
 			if (Game.PlayerNumber(Player) == 0) return;
+			if (Player.Civilization is Olvir) return; // refugees seek coexistence, not negotiation
 			if (Player.Government is Governments.Anarchy) return;
 
 			if (Player.IsDestroyed()) return;
@@ -231,6 +233,7 @@ namespace CivOne
 		{
 			// Barbarians use their own logic; governments in revolution are distracted
 			if (Game.PlayerNumber(Player) == 0) return;
+			if (Player.Civilization is Olvir) return; // refugees do not declare war
 			if (Player.Government is Governments.Anarchy) return;
 
 			// ── Coalition against a runaway human ────────────────────────────────
@@ -1017,6 +1020,48 @@ namespace CivOne
 		    return validIrrigation ? SettlerImprovement.Irrigation :
 		           validMine ? SettlerImprovement.Mine :
 		           validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
+		}
+
+		// ── Olvir improvement helpers ─────────────────────────────────────────
+
+		// Pick the Olvir improvement type that best suits a given tile.
+		internal static OlvirImprovementType OlvirImprovementFor(ITile tile)
+		{
+			if (tile.GetBorderTiles().Any(b => b.IsOcean))        return OlvirImprovementType.Aquafarm;
+			if (tile is Forest || tile is Jungle)                  return OlvirImprovementType.CanopyArray;
+			if (tile is Hills  || tile is Mountains)               return OlvirImprovementType.RepairBay;
+			return (tile.X + tile.Y) % 2 == 0
+				? OlvirImprovementType.ExchangeNode
+				: OlvirImprovementType.BiofilterWall;
+		}
+
+		// Find the nearest unimproved land tile within the working radius of any
+		// Olvir city.  Returns null if everything reachable is already developed.
+		internal ITile BestOlvirImproveSite(IUnit settler)
+		{
+			byte ownId = Game.PlayerNumber(Player);
+			City[] ownCities = Game.GetCities().Where(c => c.Owner == ownId).ToArray();
+			if (ownCities.Length == 0) return null;
+
+			ITile best = null;
+			int bestDist = int.MaxValue;
+
+			foreach (City city in ownCities)
+			{
+				for (int dy = -4; dy <= 4; dy++)
+				for (int dx = -4; dx <= 4; dx++)
+				{
+					int tx = (city.X + dx + Map.WIDTH) % Map.WIDTH;
+					int ty = city.Y + dy;
+					if (ty < 0 || ty >= Map.HEIGHT) continue;
+					ITile tile = Map[tx, ty];
+					if (tile is null || tile.IsOcean || tile.City is not null) continue;
+					if (Game.Instance.OlvirImprovements.ContainsKey((tx, ty))) continue;
+					int dist = Common.DistanceToTile(settler.X, settler.Y, tx, ty);
+					if (dist < bestDist) { bestDist = dist; best = tile; }
+				}
+			}
+			return best;
 		}
 	}
 }
