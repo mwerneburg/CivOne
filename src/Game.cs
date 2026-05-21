@@ -797,7 +797,10 @@ namespace CivOne
 			int cityIdx = _cities.IndexOf(city);
 			_replayData.Add(new ReplayData.CityDestroyed(_gameTurn, cityIdx, city.NameId, city.X, city.Y));
 			foreach (IUnit unit in _units.Where(u => u.Home == city).ToArray())
+			{
+				unit.SetHome(null);
 				_units.Remove(unit);
+			}
 			_cities.Remove(city);
 			city.X = 255;
 			city.Y = 255;
