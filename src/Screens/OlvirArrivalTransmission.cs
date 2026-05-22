@@ -16,7 +16,7 @@ namespace CivOne.Screens
 	internal class OlvirArrivalTransmission : TerminalScreen
 	{
 		// ── Probe-sent path: archetype is known ────────────────────────────
-		private static string[] PreparedDetails(VisitorArchetype archetype) => archetype switch
+		private static string[] PreparedDetails(VisitorArchetype archetype, string landfallYear) => archetype switch
 		{
 			VisitorArchetype.Refugees => new[]
 			{
@@ -29,6 +29,9 @@ namespace CivOne.Screens
 				">> 'WE FOUND YOU BECAUSE WE WERE LOOKING.'",
 				">> 'WE ASK FOR WATER. WE ASK FOR GROUND.'",
 				">> 'WE HAVE KNOWLEDGE WE WILL SHARE.'",
+				"",
+				$"PROJECTED LANDFALL: {landfallYear}.",
+				"SETTLEMENT NEGOTIATIONS UNDERWAY. FURTHER TRANSMISSIONS TO FOLLOW.",
 				"",
 				"ASSESSMENT: THEY ARE NOT INVADERS. THEY ARE SURVIVORS.",
 				"ASSESSMENT: THEY SURVIVED SOMETHING THEIR HOME WORLD DID NOT.",
@@ -46,6 +49,8 @@ namespace CivOne.Screens
 				">> 'DEMONSTRATE COHESION. DEMONSTRATE INTENT.'",
 				">> 'YOU HAVE TIME. USE IT CAREFULLY.'",
 				"",
+				$"THEIR STATED OBSERVATION WINDOW EXPIRES: {landfallYear}.",
+				"",
 				"ASSESSMENT: THEY ARE WATCHING.",
 				"ASSESSMENT: THIS IS A TEST WE DID NOT KNOW WE WERE TAKING.",
 				"ASSESSMENT: THE CRITERIA HAVE NOT BEEN DISCLOSED.",
@@ -62,6 +67,8 @@ namespace CivOne.Screens
 				">> 'YOU HAVE DEVELOPED BEYOND PROJECTED PARAMETERS.'",
 				">> 'STATE YOUR DISPOSITION.'",
 				"",
+				$"RECLASSIFICATION DEADLINE: {landfallYear}.",
+				"",
 				"ASSESSMENT: THEY HELD PRIOR CLAIM TO THIS SYSTEM.",
 				"ASSESSMENT: THEY DID NOT KNOW WE EXISTED.",
 				"ASSESSMENT: OUR EXISTENCE HAS COMPLICATED THEIR PLANS.",
@@ -76,7 +83,7 @@ namespace CivOne.Screens
 				">> 'THIS WORLD IS DESIGNATED FOR ACQUISITION.'",
 				">> 'RESISTANCE IS CATEGORISED AS INEFFICIENT.'",
 				">> 'TRANSFER OF SURFACE ACCESS IS REQUIRED.'",
-				">> 'COMPLIANCE TIMELINE: 60 ORBITAL CYCLES.'",
+				$">> 'COMPLIANCE DEADLINE: {landfallYear}.'",
 				"",
 				"ASSESSMENT: THEY ARE NOT ASKING.",
 				"ASSESSMENT: THEY HAVE DONE THIS BEFORE.",
@@ -84,7 +91,7 @@ namespace CivOne.Screens
 			},
 		};
 
-		private static string[] BuildPreparedLines(string gameDate, VisitorArchetype archetype)
+		private static string[] BuildPreparedLines(string gameDate, VisitorArchetype archetype, string landfallYear)
 		{
 			var lines = new List<string>
 			{
@@ -95,7 +102,7 @@ namespace CivOne.Screens
 				"TAU CETI VESSEL HAS ACHIEVED EARTH ORBIT.",
 				"",
 			};
-			lines.AddRange(PreparedDetails(archetype));
+			lines.AddRange(PreparedDetails(archetype, landfallYear));
 			lines.AddRange(new[]
 			{
 				"",
@@ -108,7 +115,7 @@ namespace CivOne.Screens
 		}
 
 		// ── No-probe path: archetype is unknown ────────────────────────────
-		private static string[] BuildUnannouncedLines(string gameDate) => new[]
+		private static string[] BuildUnannouncedLines(string gameDate, string landfallYear) => new[]
 		{
 			"PRIORITY ALERT — CLASSIFICATION: BEYOND OMEGA",
 			$"CONTACT TIMESTAMP: {gameDate}",
@@ -125,6 +132,8 @@ namespace CivOne.Screens
 			"",
 			"WE DO NOT KNOW WHAT THEY WANT.",
 			"WE DO NOT KNOW IF THEY KNOW WE ARE HERE.",
+			"",
+			$"FIRST CONTACT RESPONSE TEAM DEPLOYING. PROJECTED DEADLINE: {landfallYear}.",
 			"",
 			"ALL PLANETARY DEFENCE ASSETS ON STANDBY.",
 			"WORLD GOVERNMENTS CONVENING — EMERGENCY SESSION.",
@@ -148,6 +157,11 @@ namespace CivOne.Screens
 			    text.StartsWith("POPULATION:") ||
 			    text.StartsWith("COMMUNICATION:"))                           return CassetteTheme.INK_MID;
 			if (text == "FIRST TRANSMISSION (TRANSLATED):")                  return CassetteTheme.INK_HIGH;
+			if (text.StartsWith("PROJECTED LANDFALL:") ||
+			    text.StartsWith("THEIR STATED OBSERVATION WINDOW") ||
+			    text.StartsWith("RECLASSIFICATION DEADLINE:") ||
+			    text.StartsWith("FIRST CONTACT RESPONSE TEAM") ||
+			    text.StartsWith("SETTLEMENT NEGOTIATIONS"))                   return CassetteTheme.PHOS_GLOW;
 			if (text.StartsWith("ASSESSMENT:"))                              return CassetteTheme.INK_HIGH;
 			if (text.StartsWith("WORLD GOVERNMENTS") ||
 			    text.StartsWith("FURTHER TRANSMISSIONS"))                    return CassetteTheme.PHOS_DIM;
@@ -155,11 +169,11 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype, bool probeWasSent)
+		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype, bool probeWasSent, string landfallYear = "")
 		{
 			_lines = probeWasSent
-				? BuildPreparedLines(gameDate, archetype)
-				: BuildUnannouncedLines(gameDate);
+				? BuildPreparedLines(gameDate, archetype, landfallYear)
+				: BuildUnannouncedLines(gameDate, landfallYear);
 			InitTypewriter();
 		}
 	}

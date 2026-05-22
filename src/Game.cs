@@ -517,10 +517,11 @@ namespace CivOne
 						: "UNANNOUNCED CONTACT";
 					SpawnOlvir();
 					string gameDate = GameYear;
+					string landfallYear = Common.YearString((ushort)Math.Min(_gameTurn + 30, ushort.MaxValue));
 					RecordTransmission("OlvirArrival", gameDate);
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
 						EventArtScreen.FindPath("MeetTheOlvir"), artCaption)));
-					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent)));
+					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
 				}
 
 				// Check for dome victory (all five components built)
