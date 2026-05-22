@@ -181,14 +181,14 @@ namespace CivOne
 				foreach (City city in Game.GetCities().Where(c => c.Owner == humanNum && c.OriginalOwner == aiNum))
 					demands.Add(new AIDemand(AIDemandKind.ReturnCity, city: city, duration: 100));
 			}
-			else
+			else if (Game.GameTurn >= 30)
 			{
 				// At peace: extortion for attitude bonus
 				if (human.HasNewVisibilityFor(Player))
 					demands.Add(new AIDemand(AIDemandKind.GiveMap, duration: 50));
 
 				IAdvance[] wantedTechs = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
-				if (wantedTechs.Length > 0)
+				if (wantedTechs.Length >= 2)
 				{
 					int topWeight = wantedTechs.Max(a => AdvanceDemandValue(a));
 					IAdvance[] top = wantedTechs.Where(a => AdvanceDemandValue(a) == topWeight).ToArray();
@@ -201,16 +201,18 @@ namespace CivOne
 					demands.Add(new AIDemand(AIDemandKind.GiveMoney, amount: amount, duration: 50));
 				}
 
-				City[] smallCities = Game.GetCities()
-					.Where(c => c.Owner == humanNum && c.Size <= 2 && !c.HasBuilding<Palace>())
-					.ToArray();
-				if (smallCities.Length > 0)
+				City[] humanCities = Game.GetCities().Where(c => c.Owner == humanNum).ToArray();
+				if (humanCities.Length >= 3)
 				{
-					City[] aiCities = Game.GetCities().Where(c => c.Owner == aiNum).ToArray();
-					City target = aiCities.Length > 0
-						? smallCities.OrderBy(c => aiCities.Min(ac => Common.DistanceToTile(ac.X, ac.Y, c.X, c.Y))).First()
-						: smallCities[Common.Random.Next(smallCities.Length)];
-					demands.Add(new AIDemand(AIDemandKind.CedeCity, city: target, duration: 50));
+					City[] smallCities = humanCities.Where(c => c.Size <= 2 && !c.HasBuilding<Palace>()).ToArray();
+					if (smallCities.Length > 0)
+					{
+						City[] aiCities = Game.GetCities().Where(c => c.Owner == aiNum).ToArray();
+						City target = aiCities.Length > 0
+							? smallCities.OrderBy(c => aiCities.Min(ac => Common.DistanceToTile(ac.X, ac.Y, c.X, c.Y))).First()
+							: smallCities[Common.Random.Next(smallCities.Length)];
+						demands.Add(new AIDemand(AIDemandKind.CedeCity, city: target, duration: 50));
+					}
 				}
 			}
 
