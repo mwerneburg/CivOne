@@ -388,7 +388,7 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null) continue;
-				score += tile.Food * 2 + tile.Shield + tile.Trade;
+				score += tile.Food + tile.Shield * 2 + tile.Trade;
 				if (tile.IsOcean) score += 2;
 				if (tile.Special)  score += 3;
 			}
@@ -412,6 +412,10 @@ namespace CivOne
 			// A river-mouth site combines irrigation, river trade, and ocean trade.
 			if (hasCoastNeighbor && hasRiverNeighbor) score += 6;
 
+			// Natural-hazard risk: disasters are more likely on river tiles and mountain-adjacent sites.
+			if (center is River) score -= 5;
+			if (center.GetBorderTiles().Any(t => t is Mountains)) score -= 3;
+
 			// City proximity penalties
 			foreach (City city in Game.GetCities())
 			{
@@ -423,10 +427,14 @@ namespace CivOne
 					score -= Player.IsAtWar(city.Player) ? 10 : 4;
 			}
 
-			// Prefer sites that extend the empire rather than leap into the void.
-			if (Player.Cities.Any(c =>
-			    Common.DistanceToTile(center.X, center.Y, c.X, c.Y) <= 6))
-				score += 10;
+			// Prefer sites within Chariot-reach (≤5 tiles) of the nearest own city; lone outposts are hard to defend.
+			if (Player.Cities.Length > 0)
+			{
+				int nearestOwn = Player.Cities.Min(c => Common.DistanceToTile(center.X, center.Y, c.X, c.Y));
+				if      (nearestOwn <= 5) score += 15;
+				else if (nearestOwn <= 7) score += 5;
+				else                      score -= 5;
+			}
 
 			return score;
 		}
@@ -870,9 +878,9 @@ namespace CivOne
 
 			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
 
-			// Universal first: barracks and minimum garrison
-			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
+			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
+			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 
 			int ownCities = Player.Cities.Length;
 			int maxCities = Leader.Development == Expansionistic ? 13
@@ -1057,26 +1065,34 @@ namespace CivOne
 		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity)
 		{
 		    StrategyStance stance = GetStance();
-		    
-		    // Expansion phase: build roads to unlock new settlement paths
+		    // Under Despotism the despot penalty cuts any tile yielding >2, so irrigation adds little.
+		    // Build roads first to connect the empire; switch to irrigation once Monarchy removes the penalty.
+		    bool preMonarchy = Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy;
+
+		    // Expansion phase: roads first; skip irrigation under Despotism
 		    if (stance == StrategyStance.Expand)
-		        return validRoad ? SettlerImprovement.Road : 
-		               validIrrigation ? SettlerImprovement.Irrigation :
+		        return validRoad ? SettlerImprovement.Road :
+		               (!preMonarchy && validIrrigation) ? SettlerImprovement.Irrigation :
 		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
-		    
-		    // Consolidation: irrigation → food → growth
+
+		    // Consolidation: irrigation → growth (roads first under Despotism)
 		    if (stance == StrategyStance.Consolidate)
-		        return validIrrigation ? SettlerImprovement.Irrigation :
+		        return (!preMonarchy && validIrrigation) ? SettlerImprovement.Irrigation :
 		               validRoad ? SettlerImprovement.Road :
-		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
-		    
+		               validMine ? SettlerImprovement.Mine :
+		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
+
 		    // Militarization: roads first for rapid troop movement
 		    if (stance == StrategyStance.Militarize)
 		        return validRoad ? SettlerImprovement.Road :
 		               validMine ? SettlerImprovement.Mine :
 		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
-		    
-		    // Default development: prioritize water access, then shields, then roads
+
+		    // Default (Develop): roads first under Despotism; irrigation once Monarchy unlocks it
+		    if (preMonarchy)
+		        return validRoad ? SettlerImprovement.Road :
+		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
+
 		    return validIrrigation ? SettlerImprovement.Irrigation :
 		           validMine ? SettlerImprovement.Mine :
 		           validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
