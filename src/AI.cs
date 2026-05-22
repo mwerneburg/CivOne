@@ -95,7 +95,7 @@ namespace CivOne
 				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
-				bool validRoad = (tile.City is null) && !tile.Road && !tile.RailRoad;
+				bool validRoad = (tile.City is null) && !tile.RailRoad && (!tile.Road || Player.HasAdvance<RailRoad>());
 				int nearestCity = 255;
 				int nearestOwnCity = 255;
 
