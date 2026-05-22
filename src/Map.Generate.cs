@@ -690,7 +690,7 @@ namespace CivOne
 			}
 		}
 
-		private void CalculateContinentSize()
+		internal void CalculateContinentSize()
 		{
 			Log("Map: Calculate continent and ocean sizes");
 

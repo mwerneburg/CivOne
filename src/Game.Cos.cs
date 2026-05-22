@@ -287,6 +287,7 @@ namespace CivOne
 
 			// Map must come first so tiles exist when cities set resource tiles
 			Map.Instance.LoadFromCos(cos.Map);
+			Map.Instance.CalculateContinentSize(); // not persisted in save — recompute from tile topology
 
 			// Players
 			var advanceFirst = g.AdvanceOrigin ?? new Dictionary<int, int>();
