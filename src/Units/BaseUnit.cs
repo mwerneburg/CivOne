@@ -1021,11 +1021,53 @@ namespace CivOne.Units
 			return bmap;
 		}
 
+		// ── garrison icons (32×32, used directly without upscaling) ──────────────
+
+		private static Dictionary<UnitType, Bytemap> _garrisonIcons = new Dictionary<UnitType, Bytemap>();
+
+		internal static bool GetGarrisonIcon(UnitType type, out Bytemap icon)
+		{
+			return _garrisonIcons.TryGetValue(type, out icon);
+		}
+
+		private static void LoadGarrisonIcons()
+		{
+			_garrisonIcons.Clear();
+			string dir = Path.Combine(Settings.Instance.StorageDirectory, "garrison_icons");
+			if (!Directory.Exists(dir)) return;
+			foreach (string file in Directory.GetFiles(dir, "*.png"))
+			{
+				string name = Path.GetFileNameWithoutExtension(file);
+				if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) continue;
+				Bytemap bmap = LoadGarrisonTile(file);
+				if (bmap is not null)
+				{
+					_garrisonIcons[unitType] = bmap;
+					Log($"Loaded garrison icon: {name}");
+				}
+			}
+		}
+
+		private static Bytemap LoadGarrisonTile(string path)
+		{
+			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
+			if (rgba is null || w != 32 || h != 32) return null;
+			using Palette pal = Common.DefaultPalette;
+			CassetteTheme.ApplyTo(pal);
+			byte[,] idx = PngFile.ToIndices(rgba, w, h, pal);
+			var bmap = new Bytemap(w, h);
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				bmap[x, y] = idx[y, x] == CassetteTheme.BG0 ? (byte)0 : idx[y, x];
+			return bmap;
+		}
+
 		private static Dictionary<UnitType, List<UnitModification>> _modifications = new Dictionary<UnitType, List<UnitModification>>();
 		internal static void LoadModifications()
 		{
 			_modifications.Clear();
 			LoadUnitTiles();
+			LoadGarrisonIcons();
 
 			UnitModification[] unitModifications = Reflect.GetModifications<UnitModification>().ToArray();
 			if (unitModifications.Length == 0) return;

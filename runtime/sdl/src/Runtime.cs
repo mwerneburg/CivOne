@@ -186,6 +186,8 @@ namespace CivOne
 			["CivOne.Resources.defaults.unit_tiles.Settlers.png"]    = new[] { "unit_tiles", "Settlers.png" },
 			["CivOne.Resources.defaults.unit_tiles.Submarine.png"]   = new[] { "unit_tiles", "Submarine.png" },
 			["CivOne.Resources.defaults.unit_tiles.Trireme.png"]     = new[] { "unit_tiles", "Trireme.png" },
+			// Garrison icons (32×32, used directly in the city garrison panel)
+			["CivOne.Resources.defaults.garrison_icons.Militia.png"] = new[] { "garrison_icons", "Militia.png" },
 		};
 
 		private static void InstallDefaults(string storageDir)

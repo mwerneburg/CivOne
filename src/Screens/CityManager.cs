@@ -449,9 +449,7 @@ namespace CivOne.Screens
 			foreach (IUnit unit in present)
 			{
 				if (ux + IconSize > px + pw - 2) break;
-				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
-				using (Bytemap scaled = iconSrc.Scale(2))
-					this.AddLayer(scaled, ux, py + 7);
+				DrawGarrisonUnit(unit, ux, py + 7);
 				if (unit.Sentry || unit.Fortify)
 					this.FillRectangle(ux, py + 7, 6, 6, CassetteTheme.INK_LOW);
 				ux += IconSize + 1;
@@ -462,9 +460,7 @@ namespace CivOne.Screens
 			foreach (IUnit unit in remote)
 			{
 				if (ux + IconSize > px + pw - 2) break;
-				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
-				using (Bytemap scaled = iconSrc.Scale(2))
-					this.AddLayer(scaled, ux, py + 7);
+				DrawGarrisonUnit(unit, ux, py + 7);
 				this.FillRectangle(ux + 26, py + 7, 6, 6, CassetteTheme.CYAN);
 				ux += IconSize + 1;
 			}
@@ -479,6 +475,20 @@ namespace CivOne.Screens
 				if (_city.CurrentProduction is IBuilding b) return _city.HasBuilding(b);
 				if (_city.CurrentProduction is IWonder   w) return Game.WonderBuilt(w);
 				return false;
+			}
+		}
+
+		private void DrawGarrisonUnit(IUnit unit, int x, int y)
+		{
+			if (BaseUnit.GetGarrisonIcon(unit.Type, out Bytemap icon32))
+			{
+				this.AddLayer(icon32, x, y);
+			}
+			else
+			{
+				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
+				using (Bytemap scaled = iconSrc.Scale(2))
+					this.AddLayer(scaled, x, y);
 			}
 		}
 
