@@ -160,6 +160,8 @@ namespace CivOne
 			["CivOne.Resources.defaults.data.event_art.spaceshipintercepted.png"] = new[] { "data", "event_art", "spaceshipintercepted.png" },
 			["CivOne.Resources.defaults.data.event_art.spaceshiplaunched.png"]    = new[] { "data", "event_art", "spaceshiplaunched.png" },
 			["CivOne.Resources.defaults.data.event_art.welovethekingday.png"]     = new[] { "data", "event_art", "welovethekingday.png" },
+			["CivOne.Resources.defaults.data.event_art.OlvirInSpace.png"]        = new[] { "data", "event_art", "OlvirInSpace.png" },
+			["CivOne.Resources.defaults.data.event_art.MeetTheOlvir.png"]        = new[] { "data", "event_art", "MeetTheOlvir.png" },
 			// Unit tiles
 			["CivOne.Resources.defaults.unit_tiles.unit_tiles.txt"] = new[] { "unit_tiles", "unit_tiles.txt" },
 			["CivOne.Resources.defaults.unit_tiles.Armor.png"]       = new[] { "unit_tiles", "Armor.png" },
