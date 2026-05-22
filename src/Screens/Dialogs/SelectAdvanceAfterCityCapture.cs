@@ -36,10 +36,8 @@ namespace CivOne.Screens.Dialogs
 		{
 			Menu menu = new Menu(Palette)
 			{
-				// X = 103,
-				// Y = 95,
-				X = 231,
-				Y = 174,
+				X = 103,
+				Y = 100,
 				MenuWidth = 130,
 				ActiveColour = CassetteTheme.PHOS_FAINT,
 				TextColour = CassetteTheme.INK_HIGH,
