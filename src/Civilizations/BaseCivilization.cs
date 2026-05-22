@@ -67,7 +67,9 @@ namespace CivOne.Civilizations
 		public BaseCivilization(Civilization civilization, string name, string namePlural, string tune = null) : base(civilization)
 		{
 			Id = (Civilization == Civilization.Barbarians ? 15 : (int)Civilization);
-			PreferredPlayerNumber = (byte)(Civilization == Civilization.Barbarians ? 0 : ((int)Civilization - 1) % 7 + 1);
+			PreferredPlayerNumber = (byte)(
+				Civilization == Civilization.Barbarians || Civilization == Civilization.Olvir ? 0 :
+				((int)Civilization - 1) % 7 + 1);
 			Name = name;
 			NamePlural = namePlural;
 			Leader = new T();
