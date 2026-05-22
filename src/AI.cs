@@ -88,7 +88,10 @@ namespace CivOne
 			{
 				ITile tile = unit.Tile;
 
-				bool validCity = (tile is Grassland || tile is River || tile is Plains) && (tile.City is null);
+				// Any habitable land tile is a valid city site — Desert, Hills, Jungle etc.
+				// are all legal in Civ 1. Restricting to Grassland/Plains was causing settlers
+				// to mill endlessly after the new arid-interior map generation.
+				bool validCity = !tile.IsOcean && !(tile is Arctic) && !(tile is Mountains) && (tile.City is null);
 				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
@@ -111,31 +114,42 @@ namespace CivOne
 						unit.SkipTurn();
 						return;
 					}
-                    else if (nearestOwnCity < 3)
-                    {
-                        bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
-                        if (!tileAlreadyClaimed)
-                        {
-                            // Prioritize by strategy stance instead of random
-                            var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity);
-                            switch (improvementChoice)
-                            {
-                                case SettlerImprovement.Road:
-                                    if (validRoad) { GameTask.Enqueue(Orders.BuildRoad(unit)); unit.SkipTurn(); return; }
-                                    break;
-                                case SettlerImprovement.Irrigation:
-                                    if (validIrrigation) { GameTask.Enqueue(Orders.BuildIrrigation(unit)); unit.SkipTurn(); return; }
-                                    break;
-                                case SettlerImprovement.Mine:
-                                    if (validMine) { GameTask.Enqueue(Orders.BuildMines(unit)); unit.SkipTurn(); return; }
-                                    break;
-                            }
-                        }
-                    }
+					// Expand improvement radius: secondary cities surrounded by desert can't
+					// get irrigation chains started unless settlers work tiles up to 5 tiles out.
+					else if (nearestOwnCity <= 5)
+					{
+						bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
+						if (!tileAlreadyClaimed)
+						{
+							var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity);
+							switch (improvementChoice)
+							{
+								case SettlerImprovement.Road:
+									if (validRoad) { GameTask.Enqueue(Orders.BuildRoad(unit)); unit.SkipTurn(); return; }
+									break;
+								case SettlerImprovement.Irrigation:
+									if (validIrrigation) { GameTask.Enqueue(Orders.BuildIrrigation(unit)); unit.SkipTurn(); return; }
+									break;
+								case SettlerImprovement.Mine:
+									if (validMine) { GameTask.Enqueue(Orders.BuildMines(unit)); unit.SkipTurn(); return; }
+									break;
+							}
+						}
+					}
 
 					ITile best = BestSettleSite(unit);
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
+					{
 						unit.Goto = new Point(best.X, best.Y);
+					}
+					else if (best is null && ownCities.Any())
+					{
+						// No expansion site found — drift toward the nearest own city rather
+						// than milling in empty terrain indefinitely.
+						City home = ownCities.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y)).First();
+						if (Common.DistanceToTile(home.X, home.Y, unit.X, unit.Y) > 2)
+							unit.Goto = new Point(home.X, home.Y);
+					}
 				}
 
 				if (!unit.Goto.IsEmpty)
