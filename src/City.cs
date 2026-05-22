@@ -100,7 +100,7 @@ namespace CivOne
 
 		// Cached computed values; call InvalidateCache() on any state mutation.
 		private int?          _cachedFoodRaw;
-		private int?          _cachedShieldTotal;
+		private int?          _cachedShieldRaw;
 		private int?          _cachedRawTrade;
 		private int?          _cachedCorruption;
 		private int?          _cachedBaseTrade;
@@ -117,7 +117,7 @@ namespace CivOne
 		internal void InvalidateCache()
 		{
 			_cachedFoodRaw        = null;
-			_cachedShieldTotal    = null;
+			_cachedShieldRaw      = null;
 			_cachedRawTrade       = null;
 			_cachedCorruption     = null;
 			_cachedBaseTrade      = null;
@@ -257,16 +257,17 @@ namespace CivOne
 			return output;
 		}
 
+		private int ShieldRaw => (int)(_cachedShieldRaw ??= ResourceTiles.Sum(t => ShieldValue(t)));
+
 		internal int ShieldTotal
 		{
 			get
 			{
-				if (_cachedShieldTotal.HasValue) return _cachedShieldTotal.Value;
-				int shields = ResourceTiles.Sum(t => ShieldValue(t));
+				int shields = ShieldRaw;
 				if (HasBuilding<Buildings.MassTransit>()) shields = (int)(shields * 1.2);
 				if (_buildings.Any(b => (b is Factory))) shields += (short)Math.Floor((double)shields * (_buildings.Any(b => (b is NuclearPlant || b is PowerPlant || b is HydroPlant)) || HooverDamActive ? 1.0 : 0.5));
 				if (_buildings.Any(b => (b is MfgPlant))) shields += (short)Math.Floor((double)shields * 1.0);
-				return (_cachedShieldTotal = shields).Value;
+				return shields;
 			}
 		}
 
