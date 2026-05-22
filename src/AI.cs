@@ -110,6 +110,7 @@ namespace CivOne
 				{
 					if (validCity && nearestCity > 3)
 					{
+						DecisionLogger.LogSettlerAction(unit, "found");
 						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
 						unit.SkipTurn();
 						return;
@@ -125,13 +126,13 @@ namespace CivOne
 							switch (improvementChoice)
 							{
 								case SettlerImprovement.Road:
-									if (validRoad) { GameTask.Enqueue(Orders.BuildRoad(unit)); unit.SkipTurn(); return; }
+									if (validRoad) { DecisionLogger.LogSettlerAction(unit, "road"); GameTask.Enqueue(Orders.BuildRoad(unit)); unit.SkipTurn(); return; }
 									break;
 								case SettlerImprovement.Irrigation:
-									if (validIrrigation) { GameTask.Enqueue(Orders.BuildIrrigation(unit)); unit.SkipTurn(); return; }
+									if (validIrrigation) { DecisionLogger.LogSettlerAction(unit, "irrigate"); GameTask.Enqueue(Orders.BuildIrrigation(unit)); unit.SkipTurn(); return; }
 									break;
 								case SettlerImprovement.Mine:
-									if (validMine) { GameTask.Enqueue(Orders.BuildMines(unit)); unit.SkipTurn(); return; }
+									if (validMine) { DecisionLogger.LogSettlerAction(unit, "mine"); GameTask.Enqueue(Orders.BuildMines(unit)); unit.SkipTurn(); return; }
 									break;
 							}
 						}
@@ -341,6 +342,7 @@ namespace CivOne
 				? PlanChieftain(city, stance)
 				: PlanProduction(city, stance);
 			city.SetProduction(plan[0]);
+			DecisionLogger.LogCityProduction(city, plan[0], stance.ToString());
 			for (int i = 1; i < plan.Count; i++)
 				city.EnqueueProduction(plan[i]);
 		}

@@ -259,6 +259,7 @@ namespace CivOne
 				var cos  = CosSerializer.Deserialize(text);
 				_instance = new Game(cos);
 				WLTKNotifications.Clear();
+				DecisionLogger.BeginGame();
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
 				return true;
 			}

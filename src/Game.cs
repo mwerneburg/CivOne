@@ -528,6 +528,7 @@ namespace CivOne
 				if (!_domeVictoryFired && _domeFiveComponents.All(w => WonderBuilt(w)))
 				{
 					_domeVictoryFired = true;
+					DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn);
 					string gameDate = GameYear;
 					RecordTransmission("DomeComplete", gameDate);
 					int domeFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Dome Victory");
@@ -580,6 +581,7 @@ namespace CivOne
 					if (humanWins)
 					{
 						PlaySound("wintune");
+						DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: true, turns: _gameTurn);
 						int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
 						GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
 						GameTask spaceFt;
@@ -612,6 +614,7 @@ namespace CivOne
 					if (winner == HumanPlayer)
 					{
 						PlaySound("wintune");
+						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: true, turns: _gameTurn);
 						int scoreFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Score Victory");
 						GameTask.Enqueue(Message.Newspaper(null, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
 						GameTask scoreFt;
@@ -655,6 +658,7 @@ namespace CivOne
 			if (!_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
 			{
 				PlaySound("wintune");
+				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn);
 				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;
 				GameTask.Enqueue(Message.Newspaper(null, "Your civilization", "has conquered", "the entire planet!"));
