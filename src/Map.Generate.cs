@@ -150,7 +150,7 @@ namespace CivOne
 			for (int x = 0; x < WIDTH; x++)
 			{
 				int latitudeIndex = (int)((float)Math.Abs(y * 2 - (HEIGHT - 1)) / HEIGHT * 29);
-				latitudeIndex += Common.Random.Next(7);
+				latitudeIndex += Common.Random.Next(4);
 				if (latitudeIndex < 0) latitudeIndex = -latitudeIndex;
 				latitudeIndex += 1 - _temperature;
 
@@ -407,6 +407,72 @@ namespace CivOne
 			}
 		}
 
+		// After all biome passes have run, reinforce interior deserts: tiles at the
+		// desert latitude that are deep inland (far from any coast) should reliably be
+		// Desert, like the Sahara or Australia's interior, rather than the random
+		// Plains/Grassland that AgeAdjustments can leave behind.
+		private void CreateInteriorDeserts(int[,] latitude, int[,] distToOcean)
+		{
+			Log("Map: Creating interior deserts");
+			int depthThreshold = Math.Max(6, HEIGHT / 6);
+			for (int y = 1; y < HEIGHT - 1; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (_tiles[x, y].IsOcean) continue;
+				if (_tiles[x, y].Type == Terrain.River) continue;
+				if (latitude[x, y] != 1) continue; // desert-latitude band only
+				if (distToOcean[x, y] < depthThreshold) continue;
+
+				bool special = TileIsSpecial(x, y);
+				switch (_tiles[x, y].Type)
+				{
+					case Terrain.Plains:
+						if (Common.Random.Next(3) > 0)
+							_tiles[x, y] = new Desert(x, y, special);
+						break;
+					case Terrain.Grassland1:
+					case Terrain.Grassland2:
+						if (Common.Random.Next(2) == 0)
+							_tiles[x, y] = new Desert(x, y, special);
+						break;
+				}
+			}
+		}
+
+		// Smooth the boundary between Desert and Jungle by interposing a Plains tile.
+		// Any Desert tile directly adjacent to a Jungle tile (or vice versa) becomes
+		// Plains — matching the savanna/scrub transition that exists on Earth between
+		// the Sahara and the Congo rainforest.
+		private void CreateDesertJungleBuffer()
+		{
+			Log("Map: Creating desert-jungle transition buffers");
+			var toConvert = new List<(int x, int y)>();
+
+			for (int y = 1; y < HEIGHT - 1; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				Terrain t = _tiles[x, y].Type;
+				if (t != Terrain.Desert && t != Terrain.Jungle) continue;
+				Terrain opposite = (t == Terrain.Desert) ? Terrain.Jungle : Terrain.Desert;
+
+				bool adjacent = false;
+				for (int dy = -1; dy <= 1 && !adjacent; dy++)
+				for (int dx = -1; dx <= 1 && !adjacent; dx++)
+				{
+					if (dx == 0 && dy == 0) continue;
+					int nx = (x + dx + WIDTH) % WIDTH;
+					int ny = y + dy;
+					if (ny < 0 || ny >= HEIGHT) continue;
+					if (_tiles[nx, ny].Type == opposite) adjacent = true;
+				}
+
+				if (adjacent) toConvert.Add((x, y));
+			}
+
+			foreach (var (x, y) in toConvert)
+				_tiles[x, y] = new Plains(x, y, TileIsSpecial(x, y));
+		}
+
 		// BFS from every ocean tile to give each land tile its exact distance to the
 		// nearest ocean.  Used by CreateRivers to steer rivers inland and to enforce
 		// the minimum coastal buffer stop condition.
@@ -446,11 +512,11 @@ namespace CivOne
 			return dist;
 		}
 
-		private void CreateRivers()
+		private void CreateRivers(int[,] distToOcean = null)
 		{
 			Log("Map: Stage 6 - Create rivers");
 
-			int[,] distToOcean = ComputeDistanceToOcean();
+			distToOcean ??= ComputeDistanceToOcean();
 
 			// Candidate river mouths: land tiles directly adjacent to ocean,
 			// not hills or mountains, away from the polar rows.
@@ -471,7 +537,9 @@ namespace CivOne
 			}
 
 			// Target: enough rivers to give each large continent 1–2 water corridors.
-			int targetRivers = 5 + _climate + _landMass;
+			// Floor scales with map width so large continents always get a few rivers
+			// even on the driest setting.
+			int targetRivers = Math.Max(WIDTH / 8, 5 + _climate + _landMass);
 			int rivers = 0;
 			var allRiverTiles = new HashSet<(int, int)>();
 
@@ -520,11 +588,11 @@ namespace CivOne
 						// After 3 steps inland, don't allow approaching the coast again
 						// (prevents U-turns that loop back to a bay).
 						if (path.Count >= 3 && distToOcean[nx, ny] < 3) continue;
-						// Don't grow within 4 tiles of any already-committed river — the
-						// key guard against parallel rivers forming a grid.
+						// Don't grow within 2 tiles of any already-committed river — prevents
+						// parallel rivers while still allowing paths through tight terrain.
 						bool nearCommitted = false;
-						for (int ry = -4; ry <= 4 && !nearCommitted; ry++)
-						for (int rx = -4; rx <= 4 && !nearCommitted; rx++)
+						for (int ry = -2; ry <= 2 && !nearCommitted; ry++)
+						for (int rx = -2; rx <= 2 && !nearCommitted; rx++)
 						{
 							int rnx = (nx + rx + WIDTH) % WIDTH;
 							int rny = ny + ry;
@@ -888,17 +956,22 @@ namespace CivOne
 		private void GenerateThread()
 		{
 			Log("Generating map (Land Mass: {0}, Temperature: {1}, Climate: {2}, Age: {3})", _landMass, _temperature, _climate, _age);
-			
+
 			_tiles = new ITile[WIDTH, HEIGHT];
-			
+
 			int[,] elevation = GenerateLandMass();
 			int[,] latitude = TemperatureAdjustments();
 			MergeElevationAndLatitude(elevation, latitude);
 			ClimateAdjustments();
+			// Compute ocean distances once here; passed to interior-desert and river passes.
+			// Ocean tiles don't change after ClimateAdjustments so the map stays valid.
+			int[,] distToOcean = ComputeDistanceToOcean();
 			CreateTemperateForest();
 			AgeAdjustments();
 			CreateRainforestBand();
-			CreateRivers();
+			CreateInteriorDeserts(latitude, distToOcean);
+			CreateDesertJungleBuffer();
+			CreateRivers(distToOcean);
 
 			CalculateContinentSize();
 			CreateMountainRanges();
