@@ -341,13 +341,18 @@ namespace CivOne
 			// Only approach if we've spotted at least one of their cities
 			if (!Game.GetCities().Any(c => c.Player == human && Player.Visible(c.X, c.Y))) return;
 
+			// Honour active goodwill / peace-treaty windows: no approaches until they expire.
+			// The war channel stays open so the AI can still seek peace during a conflict.
+			if (!Player.IsAtWar(human) &&
+			    (Player.HasAttitudeBonus(human) || Player.HasPeaceTreaty(human)))
+				return;
+
 			// Base ~3 % per turn; personality and war status nudge the odds
 			int chance = 3;
 			if (Leader.Aggression == AggressionLevel.Aggressive) chance += 4;
 			if (Leader.Militarism == MilitarismLevel.Militaristic) chance += 2;
 			if (Leader.Aggression == AggressionLevel.Friendly)    chance += 4;
 			if (Player.IsAtWar(human))                             chance += 6;
-			if (Player.HasAttitudeBonus(human))                    chance -= 4; // goodwill suppresses war pressure
 
 			if (Common.Random.Next(100) >= chance) return;
 
