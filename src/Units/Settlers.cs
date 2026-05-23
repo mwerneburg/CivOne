@@ -26,7 +26,7 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0);
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0);
 			}
 			set
 			{
@@ -42,6 +42,9 @@ namespace CivOne.Units
 		}
 		public Point RoadTo { get; set; } = Point.Empty;
 		public int BuildingRoad { get; private set; }
+		private bool _buildingTube;
+		public int BuildingCanopyArray { get; private set; }
+		public int BuildingAquafarm { get; private set; }
 		public int BuildingIrrigation { get; private set; }
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
@@ -122,39 +125,63 @@ namespace CivOne.Units
 		public bool BuildRoad()
 		{
 			ITile tile = Map[X, Y];
-			Log($"[BuildRoad] ({X},{Y}) road={tile.Road} rail={tile.RailRoad} ocean={tile.IsOcean} city={tile.City is not null} ML={MovesLeft}");
-			if (tile.RailRoad)
+			Log($"[BuildRoad] ({X},{Y}) road={tile.Road} rail={tile.RailRoad} tube={tile.TransportTube} ocean={tile.IsOcean} city={tile.City is not null} ML={MovesLeft}");
+
+			if (tile.TransportTube) { Log("[BuildRoad] -> false (tube exists)"); return false; }
+
+			if (tile.RailRoad && Game.CurrentPlayer.HasAdvance<TransitConduit>() && tile.City is null)
 			{
-				// There is already a RailRoad here, don't build another one
-				Log("[BuildRoad] -> false (railroad exists)");
-				return false;
-			}
-			if (!tile.IsOcean && !tile.Road && tile.City is null)
-			{
-				if ((tile is River) && !Game.CurrentPlayer.HasAdvance<BridgeBuilding>())
-				{
-					Log("[BuildRoad] -> false (river, no BridgeBuilding)");
-					return false;
-				}
-				if (tile is Plains || tile is Grassland)
-					tile.Road = true;  // instant on easy terrain
-				else
-					BuildingRoad = 1;
-				MovesLeft = 0;
-				PartMoves = 0;
-				Log($"[BuildRoad] -> true (road building started, BuildingRoad={BuildingRoad})");
+				_buildingTube = true;
+				BuildingRoad = 3;
+				MovesLeft = 0; PartMoves = 0;
+				Log("[BuildRoad] -> true (tube building started)");
 				return true;
 			}
-			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && !tile.RailRoad && tile.City is null)
+
+			if (tile.RailRoad) { Log("[BuildRoad] -> false (railroad exists)"); return false; }
+
+			if (!tile.IsOcean && !tile.Road && tile.City is null)
+			{
+				if ((tile is River) && !Game.CurrentPlayer.HasAdvance<BridgeBuilding>()) { Log("[BuildRoad] -> false (river, no BridgeBuilding)"); return false; }
+				if (tile is Plains || tile is Grassland) tile.Road = true;
+				else BuildingRoad = 1;
+				MovesLeft = 0; PartMoves = 0;
+				Log($"[BuildRoad] -> true (road/instant, BuildingRoad={BuildingRoad})");
+				return true;
+			}
+			else if (Game.CurrentPlayer.HasAdvance<RailRoad>() && !tile.IsOcean && tile.Road && tile.City is null)
 			{
 				BuildingRoad = 2;
-				MovesLeft = 0;
-				PartMoves = 0;
+				MovesLeft = 0; PartMoves = 0;
 				Log("[BuildRoad] -> true (railroad building started)");
 				return true;
 			}
 			Log("[BuildRoad] -> false (no applicable case)");
 			return false;
+		}
+
+		public bool BuildCanopyArray()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<CanopyCultivation>()) return false;
+			ITile tile = Map[X, Y];
+			if (!(tile is Forest || tile is Jungle)) return false;
+			if (Game.OlvirImprovements.ContainsKey((tile.X, tile.Y))) return false;
+			BuildingCanopyArray = 4;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildAquafarm()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<BioplexEngineering>()) return false;
+			ITile tile = Map[X, Y];
+			bool coastal = !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean);
+			bool onOcean = tile.IsOcean;
+			if (!coastal && !onOcean) return false;
+			if (Game.OlvirImprovements.ContainsKey((tile.X, tile.Y))) return false;
+			BuildingAquafarm = 4;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
 		}
 
 		public bool BuildIrrigation()
@@ -250,30 +277,30 @@ namespace CivOne.Units
 			if (Map[X, Y].IsOcean)
 			{
 				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = 0;
+				BuildingCanopyArray = BuildingAquafarm = 0;
+				_buildingTube = false;
 				return;
 			}
 			if (BuildingRoad > 0)
 			{
 				BuildingRoad--;
-				if (Map[X, Y].Road)
+				if (_buildingTube)
 				{
-					if (Human.HasAdvance<RailRoad>())
-					{
-						Map[X, Y].RailRoad = true;
-					}
-					else if (BuildingRoad > 0)
-					{
-						foreach (Settlers settlers in Map[X, Y].Units.Where(u => (u is Settlers) && (u as Settlers).BuildingRoad > 0).Select(u => (u as Settlers)))
-						{
-							settlers.BuildingRoad = 0;
-						}
-					}
+					if (BuildingRoad == 0) { Map[X, Y].TransportTube = true; _buildingTube = false; }
+					else { MovesLeft = 0; PartMoves = 0; }
 				}
-				Map[X, Y].Road = true;
-				if (BuildingRoad > 0)
+				else
 				{
-					MovesLeft = 0;
-					PartMoves = 0;
+					if (Map[X, Y].Road)
+					{
+						if (Human.HasAdvance<RailRoad>())
+							Map[X, Y].RailRoad = true;
+						else if (BuildingRoad > 0)
+							foreach (Settlers settlers in Map[X, Y].Units.Where(u => (u is Settlers) && (u as Settlers).BuildingRoad > 0).Select(u => (u as Settlers)))
+								settlers.BuildingRoad = 0;
+					}
+					Map[X, Y].Road = true;
+					if (BuildingRoad > 0) { MovesLeft = 0; PartMoves = 0; }
 				}
 			}
 			else if (BuildingIrrigation > 0)
@@ -338,18 +365,23 @@ namespace CivOne.Units
 			else if (BuildingCleanPollution > 0)
 			{
 				BuildingCleanPollution--;
-				if (BuildingCleanPollution > 0)
-				{
-					MovesLeft = 0;
-					PartMoves = 0;
-				}
-				else
-				{
-					Map[X, Y].Pollution = false;
-				}
+				if (BuildingCleanPollution > 0) { MovesLeft = 0; PartMoves = 0; }
+				else Map[X, Y].Pollution = false;
+			}
+			else if (BuildingCanopyArray > 0)
+			{
+				BuildingCanopyArray--;
+				if (BuildingCanopyArray > 0) { MovesLeft = 0; PartMoves = 0; }
+				else Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.CanopyArray;
+			}
+			else if (BuildingAquafarm > 0)
+			{
+				BuildingAquafarm--;
+				if (BuildingAquafarm > 0) { MovesLeft = 0; PartMoves = 0; }
+				else Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.Aquafarm;
 			}
 
-			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0)
+			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0)
 			{
 				if (Map[X, Y].Pollution && Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, X, Y) <= 3))
 				{
@@ -365,7 +397,7 @@ namespace CivOne.Units
 				}
 			}
 
-			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0)
+			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0)
 			{
 				if (X == RoadTo.X && Y == RoadTo.Y)
 				{
@@ -388,10 +420,24 @@ namespace CivOne.Units
 			.SetShortcut("b")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.FoundCity(this)));
 
-		private MenuItem<int> MenuBuildRoad() => MenuItem<int>
-			.Create((Map[X, Y].Road) ? "Build RailRoad" : "Build Road")
-			.SetShortcut("r")
-			.OnSelect((s, a) => BuildRoad());
+		private MenuItem<int> MenuBuildRoad()
+		{
+			ITile t = Map[X, Y];
+			string label = (t.RailRoad && Human.HasAdvance<TransitConduit>()) ? "Build Transport Tube"
+			             : t.Road ? "Build RailRoad"
+			             : "Build Road";
+			return MenuItem<int>.Create(label).SetShortcut("r").OnSelect((s, a) => BuildRoad());
+		}
+
+		private MenuItem<int> MenuBuildCanopyArray() => MenuItem<int>
+			.Create("Build Canopy Array")
+			.SetShortcut("q")
+			.OnSelect((s, a) => BuildCanopyArray());
+
+		private MenuItem<int> MenuBuildAquafarm() => MenuItem<int>
+			.Create("Build Aquafarm")
+			.SetShortcut("a")
+			.OnSelect((s, a) => BuildAquafarm());
 
 		private MenuItem<int> MenuBuildRoadTo() => MenuItem<int>
 			.Create("Build Road To...")
@@ -451,30 +497,27 @@ namespace CivOne.Units
 				ITile tile = Map[X, Y];
 
 				yield return MenuNoOrders();
-				if (!tile.IsOcean)
-				{
+				if (!tile.IsOcean || Human.HasAdvance<AquaticColonization>())
 					yield return MenuFoundCity();
-				}
-				if (!tile.IsOcean && (!tile.Road || (Human.HasAdvance<RailRoad>() && !tile.RailRoad)))
 				{
-					yield return MenuBuildRoad();
+					bool noInfra     = !tile.Road && !tile.RailRoad && !tile.TransportTube;
+					bool canRailroad = tile.Road  && Human.HasAdvance<RailRoad>()       && !tile.RailRoad && !tile.TransportTube;
+					bool canTube     = tile.RailRoad && Human.HasAdvance<TransitConduit>() && !tile.TransportTube;
+					if (!tile.IsOcean && (noInfra || canRailroad || canTube))
+						yield return MenuBuildRoad();
 				}
-				if (!tile.IsOcean)
-				{
+				if (!tile.IsOcean && !tile.TransportTube)
 					yield return MenuBuildRoadTo();
-				}
 				if (!tile.Irrigation && ((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River) || (tile is Forest) || (tile is Jungle) || (tile is Swamp)))
-				{
 					yield return MenuBuildIrrigation();
-				}
 				if (!tile.Mine && ((tile is Desert) || (tile is Hills) || (tile is Mountains) || (tile is Jungle) || (tile is Grassland) || (tile is Plains) || (tile is Swamp)))
-				{
 					yield return MenuBuildMines();
-				}
 				if (!tile.IsOcean && !tile.Fortress)
-				{
 					yield return MenuBuildFortress();
-				}
+				if (Human.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
+					yield return MenuBuildCanopyArray();
+				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && (!tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean) || tile.IsOcean))
+					yield return MenuBuildAquafarm();
 				if (tile.Pollution)
 				{
 					yield return MenuCleanPollution();
@@ -487,7 +530,7 @@ namespace CivOne.Units
 				yield return MenuWait();
 				yield return MenuSentry();
 				yield return MenuGoTo();
-				if (tile.Irrigation || tile.Mine || tile.Road || tile.RailRoad)
+				if (tile.Irrigation || tile.Mine || tile.Road || tile.RailRoad || tile.TransportTube)
 				{
 					yield return MenuPillage();
 				}

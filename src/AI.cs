@@ -95,11 +95,15 @@ namespace CivOne
 				// Any habitable land tile is a valid city site — Desert, Hills, Jungle etc.
 				// are all legal in Civ 1. Restricting to Grassland/Plains was causing settlers
 				// to mill endlessly after the new arid-interior map generation.
-				bool validCity = !tile.IsOcean && !(tile is Arctic) && !(tile is Mountains) && (tile.City is null);
+				bool validCity = (tile.City is null) && (
+					(!tile.IsOcean && !(tile is Arctic) && !(tile is Mountains)) ||
+					(tile.IsOcean && Player.HasAdvance<AquaticColonization>()));
 				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
-				bool validRoad = (tile.City is null) && !tile.RailRoad && (!tile.Road || Player.HasAdvance<RailRoad>());
+				bool validRoad = (tile.City is null) && !tile.RailRoad && !tile.TransportTube && (!tile.Road || Player.HasAdvance<RailRoad>() || Player.HasAdvance<TransitConduit>());
+				bool validCanopy = Player.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
+				bool validAquafarm = Player.HasAdvance<BioplexEngineering>() && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
 				int nearestCity = 255;
 				int nearestOwnCity = 255;
 
@@ -126,7 +130,11 @@ namespace CivOne
 						bool tileAlreadyClaimed = (unit as Settlers)?.IsTileClaimed(tile.X, tile.Y) ?? false;
 						if (!tileAlreadyClaimed)
 						{
-							var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity);
+							// Post-contact improvements take priority when available.
+						if (validCanopy)  { DecisionLogger.LogSettlerAction(unit, "canopy");   (unit as Settlers)?.BuildCanopyArray(); unit.SkipTurn(); return; }
+						if (validAquafarm) { DecisionLogger.LogSettlerAction(unit, "aquafarm"); (unit as Settlers)?.BuildAquafarm();  unit.SkipTurn(); return; }
+
+						var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity);
 							switch (improvementChoice)
 							{
 								case SettlerImprovement.Road:

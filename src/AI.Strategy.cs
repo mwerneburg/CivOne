@@ -946,8 +946,24 @@ namespace CivOne
 					if (a is Trade)               weight += 5;
 					if (a is TheWheel)            weight += 5;
 					if (a is HorsebackRiding)     weight += 5;
+					if (a is AquaticColonization) weight += 6; // new city sites
+					if (a is TransitConduit)      weight += 5; // fast movement upgrade
 					break;
 			}
+
+			// Post-contact advances — useful in all stances once available.
+			if (a is Xenobiology)           weight += 6; // gifted free, but may need to be researched
+			if (a is Gravitics)             weight += 7; // gateway to sea + tubes
+			if (a is SyntheticEcology)      weight += 6; // tile yield improvements
+			if (a is MemeticProtocols)      weight += 5; // happiness/diplomacy
+			if (a is AquaticColonization)   weight += 5;
+			if (a is TransitConduit)        weight += 6;
+			if (a is BioplexEngineering)    weight += 5;
+			if (a is CanopyCultivation)     weight += 5;
+			if (a is NeuralInterface)       weight += 5;
+			if (a is GravitonEngineering)   weight += 4;
+			if (a is PlanetaryStewardship)  weight += 4;
+			if (a is CollectiveMemory)      weight += 4;
 
 			return weight;
 		}
@@ -1115,6 +1131,12 @@ namespace CivOne
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
 			if (Player.HasAdvance<Computers>()         && !city.HasBuilding<Observatory>())   Consider(new Observatory());
+
+			// Post-contact buildings
+			if (Player.HasAdvance<Xenobiology>()        && !city.HasBuilding<Xenolab>())        Consider(new Xenolab());
+			if (Player.HasAdvance<MemeticProtocols>()   && !city.HasBuilding<ExchangeCenter>()) Consider(new ExchangeCenter());
+			if (Player.HasAdvance<NeuralInterface>()    && !city.HasBuilding<NeuralLab>())      Consider(new NeuralLab());
+			if (Player.HasAdvance<AquaticColonization>() && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean) && !city.HasBuilding<SeaPlatform>()) Consider(new SeaPlatform());
 
 			// Wonder: only for the empire's top production city
 			IWonder wonder = SelectWonder(city, stance);

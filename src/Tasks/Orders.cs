@@ -138,7 +138,7 @@ namespace CivOne.Tasks
 				_y = settlers.Y;
 			}
 
-			if (Map[_x, _y].IsOcean)
+			if (Map[_x, _y].IsOcean && !(_player?.HasAdvance<AquaticColonization>() ?? false))
 			{
 				EndTask();
 				return;
