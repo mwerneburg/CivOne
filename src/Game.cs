@@ -426,6 +426,11 @@ namespace CivOne
 				GameTurn++;
 				RecordScoreSnapshot();
 
+				// Leonardo's Workshop: one free unit upgrade per owner per turn
+				if (!WonderObsolete<LeonardosWorkshop>())
+					foreach (Player lp in _players.Where(p => p != null && !p.IsDestroyed() && p.HasWonder<LeonardosWorkshop>()))
+						ApplyLeonardoUpgrade(lp);
+
 				// Fire the satellite-anomaly intelligence report once Apollo is built
 				if (!MapRevealedNotified && WonderBuilt<ApolloProgram>())
 				{
@@ -1148,6 +1153,32 @@ namespace CivOne
 
 			_units.Remove(unit);
 			_units.Add(upgraded);
+		}
+
+		private void ApplyLeonardoUpgrade(Player owner)
+		{
+			// One free unit upgrade per turn for the wonder owner.
+			(UnitType from, UnitType to, IAdvance req)[] chain =
+			{
+				(UnitType.Militia,    UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Phalanx,    UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Legion,     UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Musketeers, UnitType.Riflemen,   new Conscription()),
+				(UnitType.Riflemen,   UnitType.MechInf,    new LaborUnion()),
+				(UnitType.Chariot,    UnitType.Knights,    new Chivalry()),
+				(UnitType.Knights,    UnitType.Cavalry,    new HorsebackRiding()),
+				(UnitType.Catapult,   UnitType.Cannon,     new Metallurgy()),
+				(UnitType.Cannon,     UnitType.Artillery,  new Robotics()),
+			};
+			byte ownerNum = (byte)PlayerNumber(owner);
+			foreach (var (from, to, req) in chain)
+			{
+				if (!owner.HasAdvance(req)) continue;
+				IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from);
+				if (target is null) continue;
+				UpgradeUnit(target, to, 0);
+				return;
+			}
 		}
 
 		public void DisbandUnit(IUnit unit)

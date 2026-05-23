@@ -39,7 +39,10 @@ namespace CivOne.Enums
 		DomePowerCore       = 26,
 		DomeCommandHub      = 27,
 		DomeKineticRing     = 28,
-		MarcoPoloVoyage     = 29,
-		ZhengHeVoyage       = 30,
+		MarcoPoloVoyage          = 29,
+		ZhengHeVoyage            = 30,
+		LeonardosWorkshop        = 31,
+		SunTzusWarAcademy        = 32,
+		AdamSmithsTradingHouse   = 33,
 	}
 }

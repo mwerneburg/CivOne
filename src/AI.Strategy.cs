@@ -1023,7 +1023,8 @@ namespace CivOne
 			{
 				preferred = new IWonder[]
 				{
-					new GreatWall(), new Colossus(), new MichelangelosChapel()
+					new GreatWall(), new Colossus(), new MichelangelosChapel(),
+					new SunTzusWarAcademy(), new LeonardosWorkshop()
 				};
 			}
 			else if (stance == StrategyStance.Consolidate)
@@ -1031,7 +1032,8 @@ namespace CivOne
 				preferred = new IWonder[]
 				{
 					new ShakespearesTheatre(), new JSBachsCathedral(),
-					new HangingGardens(), new MichelangelosChapel(), new Oracle()
+					new HangingGardens(), new MichelangelosChapel(), new Oracle(),
+					new AdamSmithsTradingHouse()
 				};
 			}
 			else
@@ -1042,6 +1044,8 @@ namespace CivOne
 					new JSBachsCathedral(), new HangingGardens(), new Oracle(),
 					new GreatLibrary(), new DarwinsVoyage(), new CopernicusObservatory(),
 					new Colossus(), new Lighthouse(), new MagellansExpedition(),
+					new LeonardosWorkshop(), new SunTzusWarAcademy(),
+					new AdamSmithsTradingHouse(),
 					new MarcoPoloVoyage(), new ZhengHeVoyage()
 				};
 			}

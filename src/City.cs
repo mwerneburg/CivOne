@@ -448,7 +448,14 @@ namespace CivOne
 			}
 		}
 
-		internal short TotalMaintenance => (short)_buildings.Sum(b => b.Maintenance);
+		internal short TotalMaintenance
+		{
+			get
+			{
+				bool adamSmith = Player.HasWonder<AdamSmithsTradingHouse>();
+				return (short)_buildings.Sum(b => (adamSmith && b.Maintenance == 1) ? 0 : b.Maintenance);
+			}
+		}
 
 		internal byte Status
 		{
@@ -1215,7 +1222,9 @@ namespace CivOne
 				{
 					Shields = 0;
 					IUnit unit = Game.Instance.CreateUnit((CurrentProduction as IUnit).Type, X, Y, Owner);
-					unit.Veteran = (_buildings.Any(b => (b is Barracks)));
+					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
+					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
+						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);
 					if (CurrentProduction is Settlers)
 					{
 						if (Size == 1 && Player.Cities.Length == 1) Size++;
