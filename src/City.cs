@@ -223,6 +223,33 @@ namespace CivOne
 		internal int FoodRequired => (int)(Size + 1) * 10;
 		internal int FoodTotal => HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw;
 
+		// ── Olvir improvement yield bonuses ────────────────────────────────────
+		// Alien technology operates outside normal government efficiency penalties.
+
+		private static int OlvirFoodBonus(OlvirImprovementType imp) => imp switch
+		{
+			OlvirImprovementType.Aquafarm         => 2, // coastal aquaculture
+			OlvirImprovementType.BiofilterWall    => 1, // bio-engineered soil
+			OlvirImprovementType.SettlementCluster => 1, // integrated colony
+			_ => 0
+		};
+
+		private static int OlvirShieldBonus(OlvirImprovementType imp) => imp switch
+		{
+			OlvirImprovementType.CanopyArray => 1, // managed forest output
+			OlvirImprovementType.RepairBay   => 1, // industrial extraction boost
+			_ => 0
+		};
+
+		private static int OlvirTradeBonus(OlvirImprovementType imp) => imp switch
+		{
+			OlvirImprovementType.ExchangeNode      => 1, // trade network hub
+			OlvirImprovementType.SettlementCluster => 1, // colony trade post
+			_ => 0
+		};
+
+		// ── tile yield methods ──────────────────────────────────────────────────
+
 		internal int FoodValue(ITile tile)
 		{
 			int output = tile.Food;
@@ -241,6 +268,8 @@ namespace CivOne
 					break;
 			}
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirF))
+				output += OlvirFoodBonus(olvirF);
 			return output;
 		}
 
@@ -254,6 +283,8 @@ namespace CivOne
 					break;
 			}
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirS))
+				output += OlvirShieldBonus(olvirS);
 			return output;
 		}
 
@@ -305,6 +336,8 @@ namespace CivOne
 					break;
 			}
 			if (output > 0 && HasWonder<Colossus>() && !Game.WonderObsolete<Colossus>()) output += 1;
+			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirT))
+				output += OlvirTradeBonus(olvirT);
 			return output;
 		}
 
