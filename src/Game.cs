@@ -569,7 +569,9 @@ namespace CivOne
 					}
 				}
 
-				// Check for spaceship arrivals
+				// Check for spaceship arrivals.
+				// If the Olvir/post-probe storyline is active the spaceship is a milestone,
+				// not a game-ender — show the event and continue.
 				int bestArrival = int.MaxValue;
 				for (int p = 1; p < _players.Count; p++)
 					if (SpaceshipArrivalTurn[p] > 0 && SpaceshipArrivalTurn[p] < bestArrival)
@@ -578,27 +580,51 @@ namespace CivOne
 				if (bestArrival <= _gameTurn)
 				{
 					bool humanWins = SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] == bestArrival;
-					if (humanWins)
+
+					if (SETISignalReceived)
 					{
-						PlaySound("wintune");
-						DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: true, turns: _gameTurn);
-						int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
-						GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
-						GameTask spaceFt;
-						GameTask.Enqueue(spaceFt = Show.Screen(new FinalScore("Space Race Victory")));
-						spaceFt.Done += (s, a) => EndSequence.ChainAfterFinal(spaceFame, () => Runtime.Quit());
+						// Story arc active: acknowledge the arrival but keep playing.
+						if (humanWins)
+						{
+							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
+								"Your colony ship reaches Alpha Centauri — but the game is far from over."));
+							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;
+						}
+						else
+						{
+							for (int p = 1; p < _players.Count; p++)
+							{
+								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+								GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
+								SpaceshipArrivalTurn[p] = 0;
+								break;
+							}
+						}
 					}
 					else
 					{
-						for (int p = 1; p < _players.Count; p++)
+						if (humanWins)
 						{
-							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-							GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
-							break;
+							PlaySound("wintune");
+							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: true, turns: _gameTurn);
+							int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
+							GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
+							GameTask spaceFt;
+							GameTask.Enqueue(spaceFt = Show.Screen(new FinalScore("Space Race Victory")));
+							spaceFt.Done += (s, a) => EndSequence.ChainAfterFinal(spaceFame, () => Runtime.Quit());
 						}
-						GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+						else
+						{
+							for (int p = 1; p < _players.Count; p++)
+							{
+								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+								GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
+								break;
+							}
+							GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+						}
+						return;
 					}
-					return;
 				}
 
 				// 2100 AD: game ends by score — waived if the SETI storyline is active,
