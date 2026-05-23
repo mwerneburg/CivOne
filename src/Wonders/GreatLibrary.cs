@@ -18,7 +18,7 @@ namespace CivOne.Wonders
 		{
 			Name = "Great Library";
 			RequiredTech = new Literacy();
-			ObsoleteTech = new University();
+			ObsoleteTech = null;
 			SetSmallIcon(5, 0);
 			Type = Wonder.GreatLibrary;
 		}

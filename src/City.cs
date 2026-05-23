@@ -22,6 +22,7 @@ using CivOne.Wonders;
 
 using UniversityBuilding = CivOne.Buildings.University;
 using ObservatoryBuilding = CivOne.Buildings.Observatory;
+using LibraryBuilding = CivOne.Buildings.Library;
 
 namespace CivOne
 {
@@ -649,6 +650,8 @@ namespace CivOne
 					if (wonder is ZhengHeVoyage && !Map.AllTiles().Any(t => t.ContinentId != Tile.ContinentId && t.ContinentId > 0 && t.City is not null && t.City.Owner != 0)) continue;
 					if (wonder is Wonders.SETIProgram && !HasBuilding<UniversityBuilding>()) continue;
 					if (wonder is Wonders.SETIProgram && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<ObservatoryBuilding>()) < 5) continue;
+					if (wonder is Wonders.GreatLibrary && !HasBuilding<LibraryBuilding>()) continue;
+					if (wonder is Wonders.GreatLibrary && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<LibraryBuilding>()) < 5) continue;
 					yield return wonder;
 				}
 			}
