@@ -114,6 +114,49 @@ namespace CivOne
 			           .Sum(u => u.Attack + u.Defense);
 		}
 
+		// ── tax/science slider management ─────────────────────────────────────
+
+		internal void ConsiderSliders()
+		{
+			if (Player.IsDestroyed()) return;
+			if (Player.Government is Gov.Anarchy) return;
+
+			// AI manages happiness through buildings; wind down any luxury spending.
+			if (Player.LuxuriesRate > 0)
+			{
+				Player.LuxuriesRate--;
+				return;
+			}
+
+			StrategyStance stance = GetStance();
+			int gold = Player.Gold;
+			int tax  = Player.TaxesRate;
+
+			// Base target tax rate by strategic stance.
+			int target = stance switch
+			{
+				StrategyStance.Militarize  => 6, // wars drain gold; lean on taxes
+				StrategyStance.Develop     => 4, // peace dividend goes to science
+				StrategyStance.Consolidate => 5,
+				_                          => 5, // Expand
+			};
+
+			// Gold overlay: tighten taxes when broke, ease off when flush.
+			if      (gold <  20) target = Math.Max(target, 8);
+			else if (gold <  60) target = Math.Max(target, 7);
+			else if (gold < 120) target = Math.Max(target, 6);
+			else if (gold > 500) target = Math.Min(target, 4);
+			else if (gold > 250) target = Math.Min(target, 5);
+
+			// Keep science in [2, 8] and taxes in [2, 8].
+			if (target < 2) target = 2;
+			if (target > 8) target = 8;
+
+			// Move one point per turn so the economy shifts smoothly.
+			if      (tax < target) Player.TaxesRate = tax + 1;
+			else if (tax > target) Player.TaxesRate = tax - 1;
+		}
+
 		// ── government progression ────────────────────────────────────────────
 
 		private static int GovernmentScore(IGovernment gov, StrategyStance stance)
