@@ -496,6 +496,8 @@ namespace CivOne
 									HumanPlayer.AddAdvance(adv);
 							ProbeGrantedAdvanceIds = System.Array.Empty<int>();
 						}
+						if (tier >= 3)
+							HumanPlayer.AwardMilestone(tier >= 4 ? 100 : 50);
 						RecordTransmission("ProbeResult", gameDate);
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeResultTransmission(gameDate, VisitorType, tier, techNames)));
 					}
@@ -528,6 +530,7 @@ namespace CivOne
 				if (!_domeVictoryFired && _domeFiveComponents.All(w => WonderBuilt(w)))
 				{
 					_domeVictoryFired = true;
+					HumanPlayer.AwardMilestone(150);
 					DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn);
 					string gameDate = GameYear;
 					RecordTransmission("DomeComplete", gameDate);
@@ -586,6 +589,7 @@ namespace CivOne
 						// Story arc active: acknowledge the arrival but keep playing.
 						if (humanWins)
 						{
+							HumanPlayer.AwardMilestone(100);
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
 								"Your colony ship reaches Alpha Centauri — but the game is far from over."));
 							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;

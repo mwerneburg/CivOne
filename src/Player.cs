@@ -204,6 +204,11 @@ namespace CivOne
 		public int FutureTechs => _futureTechs;
 		internal void SetFutureTechs(int count) => _futureTechs = count;
 
+		private int _milestoneScore;
+		public int MilestoneScore => _milestoneScore;
+		internal void AwardMilestone(int points) => _milestoneScore += points;
+		internal void SetMilestoneScore(int score) => _milestoneScore = score;
+
 		internal int ExplorationCredits;
 
 		public int Score =>
@@ -211,7 +216,8 @@ namespace CivOne
 			_advances.Count * 3 +                    // 3 pts per advance
 			Cities.Sum(c => c.Wonders.Length) * 4 +  // 4 pts per wonder
 			_futureTechs * 5 +                       // 5 pts per future tech
-			ExplorationCredits / 10;                 // 1 pt per 10 tiles first explored
+			ExplorationCredits / 10 +                // 1 pt per 10 tiles first explored
+			_milestoneScore;                         // narrative milestone bonuses
 
 		public short Gold
 		{
@@ -355,9 +361,11 @@ namespace CivOne
 		{
 			get
 			{
+				bool setiActive = Game.Started && (Game.Instance?.SETISignalReceived ?? false);
 				bool any = false;
 				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id) && !(a is FutureTech)))
 				{
+					if (advance is Advances.BasePostContactAdvance && !setiActive) continue;
 					if (advance.RequiredTechs.Length > 0 && !advance.RequiredTechs.All(a => _advances.Contains(a.Id))) continue;
 					any = true;
 					yield return advance;

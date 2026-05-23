@@ -150,6 +150,7 @@ namespace CivOne
 					Advances         = player.Advances.Select(a => (int)a.Id).ToArray(),
 					CurrentResearch  = player.CurrentResearch?.Id,
 					FutureTechs      = player.FutureTechs,
+					MilestoneScore   = player.MilestoneScore,
 					AtWarWith        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].IsAtWar(_players[j]))
 				                   .ToArray(),
@@ -340,9 +341,12 @@ namespace CivOne
 					_players[i].SetAtWar((byte)j, true);
 			}
 
-			// Future techs and human player
+			// Future techs, milestone scores, and human player
 			for (int i = 0; i < _players.Count; i++)
+			{
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
+				_players[i].SetMilestoneScore(cos.Players[i].MilestoneScore ?? 0);
+			}
 
 			MapRevealedNotified   = g.MapRevealedNotified;
 			SETISignalTurn        = g.SETISignalTurn;
