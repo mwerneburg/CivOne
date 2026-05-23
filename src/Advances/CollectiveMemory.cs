@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class CollectiveMemory : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"COLLECTIVE MEMORY is the synthesis",
+			"of neural interface and graviton",
+			"engineering: a civilization-wide",
+			"network of shared experience.",
+			"No knowledge is lost. No discovery",
+			"need be made twice. Humanity and",
+			"its allies think as one mind.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.CollectiveMemory;
 		public override string Name => "Collective Memory";
 		public CollectiveMemory() : base(Advance.NeuralInterface, Advance.GravitonEngineering) { }

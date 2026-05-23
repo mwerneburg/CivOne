@@ -38,6 +38,9 @@ namespace CivOne
 		private int _turnsAtWar      = 0;
 		private int _peacetimeCities = 0; // city count when we were last at peace
 
+		// Grievance-demand cooldown: turn on which the last GrievancePack was issued.
+		internal int LastGrievanceTurn = -50;
+
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;

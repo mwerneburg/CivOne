@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class AquaticColonization : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"AQUATIC COLONIZATION applies",
+			"gravitics to the deep ocean,",
+			"allowing habitats to withstand",
+			"crushing pressures and cultivate",
+			"the seafloor. Enables the Sea",
+			"Platform and advances toward",
+			"Graviton Engineering.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.AquaticColonization;
 		public override string Name => "Aquatic Colonization";
 		public AquaticColonization() : base(Advance.Gravitics) { }

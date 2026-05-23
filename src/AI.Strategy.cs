@@ -291,15 +291,37 @@ namespace CivOne
 			}
 			else if (Game.GameTurn >= 30)
 			{
-				// At peace: extortion for attitude bonus
+				// Check for grievance: AI has 2+ cities held by the human.
+				City[] capturedByHuman = Game.GetCities()
+					.Where(c => c.Owner == humanNum && c.OriginalOwner == aiNum)
+					.ToArray();
+				if (capturedByHuman.Length >= 2 && Game.GameTurn - LastGrievanceTurn >= 40)
+				{
+					// Formal grievance: one city back + one tech + gold.
+					City wantBack = capturedByHuman.OrderByDescending(c => c.Size).First();
+
+					IAdvance[] wantedTechs = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
+					IAdvance wantedTech = wantedTechs.Length >= 1
+						? wantedTechs.OrderByDescending(a => AdvanceDemandValue(a)).First()
+						: null;
+
+					int goldAmount = human.Gold >= 25 ? Math.Max(25, (int)(human.Gold * 0.2f)) : 0;
+
+					LastGrievanceTurn = Game.GameTurn;
+					demands.Add(new AIDemand(AIDemandKind.GrievancePack,
+						city: wantBack, advance: wantedTech, amount: goldAmount, duration: 75));
+					return demands;
+				}
+
+				// At peace: standard extortion for attitude bonus
 				if (human.HasNewVisibilityFor(Player))
 					demands.Add(new AIDemand(AIDemandKind.GiveMap, duration: 50));
 
-				IAdvance[] wantedTechs = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
-				if (wantedTechs.Length >= 2)
+				IAdvance[] techOptions = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
+				if (techOptions.Length >= 2)
 				{
-					int topWeight = wantedTechs.Max(a => AdvanceDemandValue(a));
-					IAdvance[] top = wantedTechs.Where(a => AdvanceDemandValue(a) == topWeight).ToArray();
+					int topWeight = techOptions.Max(a => AdvanceDemandValue(a));
+					IAdvance[] top = techOptions.Where(a => AdvanceDemandValue(a) == topWeight).ToArray();
 					demands.Add(new AIDemand(AIDemandKind.GiveTech, advance: top[Common.Random.Next(top.Length)], duration: 50));
 				}
 

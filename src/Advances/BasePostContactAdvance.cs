@@ -29,6 +29,7 @@ namespace CivOne.Advances
 		public IBitmap Icon => new Picture(112, 68);
 		public byte PageCount => 1;
 		public Picture DrawPage(byte pageNumber) => new Picture(320, 200);
+		public virtual string[] GetPageText(byte pageNumber) => System.Array.Empty<string>();
 		public bool Requires(byte id) => RequiredTechs.Any(t => t.Id == id);
 		public bool Is<T>() where T : IAdvance => this is T;
 		public bool Not<T>() where T : IAdvance => !(this is T);

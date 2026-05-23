@@ -13,6 +13,20 @@ namespace CivOne.Advances
 {
 	internal class CanopyCultivation : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"CANOPY CULTIVATION engineers the",
+			"upper strata of living ecosystems",
+			"into productive zones. Drawing on",
+			"synthetic ecology, it transforms",
+			"forest canopies and orbital",
+			"biospheres into food and resource",
+			"sources. Advances Planetary",
+			"Stewardship.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.CanopyCultivation;
 		public override string Name => "Canopy Cultivation";
 		public CanopyCultivation() : base(Advance.SyntheticEcology) { }

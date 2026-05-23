@@ -13,6 +13,20 @@ namespace CivOne.Advances
 {
 	internal class PlanetaryStewardship : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"PLANETARY STEWARDSHIP is the art",
+			"of managing a world as a living",
+			"system. Built on Bioplex",
+			"Engineering and Canopy",
+			"Cultivation, it treats every",
+			"ecosystem as infrastructure to",
+			"be maintained for all who share",
+			"the planet.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.PlanetaryStewardship;
 		public override string Name => "Planetary Stewardship";
 		public PlanetaryStewardship() : base(Advance.BioplexEngineering, Advance.CanopyCultivation) { }

@@ -81,12 +81,24 @@ namespace CivOne.Screens
 					string[] custom = bb.GetPageText(pageNumber);
 					if (custom.Length > 0) return custom;
 				}
+				if (_singlePage is BaseWonder bw)
+				{
+					string[] custom = bw.GetPageText(pageNumber);
+					if (custom.Length > 0) return custom;
+				}
 				return Resources.GetCivilopediaText("BLURB1/" + _singlePage.Name.ToUpper() + suffix);
 			}
 			if (_singlePage is IUnit)
 				return Resources.GetCivilopediaText("BLURB2/" + _singlePage.Name.ToUpper() + suffix);
 			if (_singlePage is IAdvance)
+			{
+				if (_singlePage is BasePostContactAdvance bpca)
+				{
+					string[] custom = bpca.GetPageText(pageNumber);
+					if (custom.Length > 0) return custom;
+				}
 				return Resources.GetCivilopediaText("BLURB0/" + _singlePage.Name.ToUpper() + suffix);
+			}
 			if (_singlePage is IConcept)
 				return Resources.GetCivilopediaText("BLURB4/" + _singlePage.Name.ToUpper() + suffix);
 			return new string[0];
@@ -238,6 +250,17 @@ namespace CivOne.Screens
 			return false;
 		}
 
+		private const int LIST_Y     = 32;
+		private const int LIST_LINE  = 9;
+		private const int LIST_PAD   = 10;
+
+		private void GetListLayout(out int perCol, out int numCols, out int colWidth)
+		{
+			perCol   = Math.Max(1, (Height - LIST_Y - LIST_PAD) / LIST_LINE);
+			numCols  = Math.Min(3, Math.Max(1, (int)Math.Ceiling((double)_pages.Length / perCol)));
+			colWidth = (Width - 2 * LIST_PAD) / numCols;
+		}
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
@@ -248,16 +271,23 @@ namespace CivOne.Screens
 
 			if (_singlePage is null)
 			{
-				int xx = OX + 10, yy = 32;
-				int columns = (int)Math.Ceiling((float)_pages.Length / 26);
-				int columnWidth = (columns < 3) ? 150 : 100;
+				GetListLayout(out int perCol, out int numCols, out int colWidth);
+				int maxChars = Math.Max(8, colWidth / 6);
+
+				int xx = LIST_PAD, yy = LIST_Y;
 				for (int i = _startIndex; i < _pages.Length; i++)
 				{
 					string name = _pages[i].Name;
-					if (columns >= 3 && name.Length >= 18) name = $"{name.Substring(0, 17)}.";
+					if (name.Length > maxChars) name = name.Substring(0, maxChars - 1) + ".";
 					this.DrawText(name, 0, CassetteTheme.INK_HIGH, xx, yy);
-					yy += 7;
-					if (yy > Height - 10) { xx += columnWidth; if (xx > OX + 300) break; yy = 32; }
+					_links.Add(new PageLink { X = xx, Y = yy, W = colWidth, Target = _pages[i] });
+					yy += LIST_LINE;
+					if (yy > Height - LIST_LINE - LIST_PAD)
+					{
+						xx += colWidth;
+						if (xx >= LIST_PAD + numCols * colWidth) break;
+						yy = LIST_Y;
+					}
 				}
 			}
 			else
@@ -308,19 +338,14 @@ namespace CivOne.Screens
 				return true;
 			}
 
-			int lx = OX + 10, ly = 32;
-			int cols = (int)Math.Ceiling((float)_pages.Length / 26);
-			int colWidth = (cols < 3) ? 150 : 100;
-			for (int i = _startIndex; i < _pages.Length; i++)
+			foreach (PageLink link in _links)
 			{
-				if (args.X > lx + colWidth) { i += 25; lx += colWidth; continue; }
-				if (args.Y >= ly && args.Y <= ly + 7)
+				if (args.X >= link.X && args.X < link.X + link.W &&
+				    args.Y >= link.Y && args.Y < link.Y + LIST_LINE)
 				{
-					Common.AddScreen(new Civilopedia(_pages[i]));
+					Common.AddScreen(new Civilopedia(link.Target));
 					return true;
 				}
-				ly += 7;
-				if (ly > Height - 10) { lx += colWidth; if (lx > OX + 300) break; ly = 32; }
 			}
 			return false;
 		}

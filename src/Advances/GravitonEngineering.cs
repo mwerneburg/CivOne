@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class GravitonEngineering : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"GRAVITON ENGINEERING manipulates",
+			"the fundamental carrier of",
+			"gravity itself. Built on Aquatic",
+			"Colonization and Transit Conduit",
+			"research, it unlocks feats once",
+			"considered impossible, and leads",
+			"toward Collective Memory.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.GravitonEngineering;
 		public override string Name => "Graviton Engineering";
 		public GravitonEngineering() : base(Advance.AquaticColonization, Advance.TransitConduit) { }

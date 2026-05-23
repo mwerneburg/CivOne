@@ -14,6 +14,32 @@ namespace CivOne.Wonders
 {
 	internal class SunTzusWarAcademy : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"SUN TZU'S WAR ACADEMY spreads the",
+			"master strategist's principles",
+			"throughout your empire. Every",
+			"land combat unit you build starts",
+			"its service as a veteran, in any",
+			"city, until Gunpowder transforms",
+			"the art of war.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Sun Tzu wrote The Art of War in",
+			"the 5th century BC. Its influence",
+			"never faded: generals of China,",
+			"Persia, and Europe all applied",
+			"its principles independently. Its",
+			"genius lay not in tactics but in",
+			"understanding war as a problem",
+			"of information, patience, and will.",
+		};
+
+		public override string[] GetPageText(byte pageNumber)
+			=> pageNumber == 1 ? _page1 : _page2;
+
 		public SunTzusWarAcademy() : base(20)
 		{
 			Name = "Sun Tzu's War Academy";

@@ -13,6 +13,20 @@ namespace CivOne.Advances
 {
 	internal class SyntheticEcology : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"SYNTHETIC ECOLOGY engineers living",
+			"systems from first principles.",
+			"Merging genetic science and",
+			"recycling technology, it produces",
+			"designed ecosystems that sustain",
+			"themselves without intervention.",
+			"Enables Bioplex Engineering and",
+			"Canopy Cultivation.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.SyntheticEcology;
 		public override string Name => "Synthetic Ecology";
 		public SyntheticEcology() : base(Advance.GeneticEngineering, Advance.Recycling) { }

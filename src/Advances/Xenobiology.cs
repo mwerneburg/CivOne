@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class Xenobiology : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"XENOBIOLOGY is the empirical study",
+			"of life beyond Earth. Gifted to",
+			"all civilizations at first contact",
+			"with the Olvir, it unlocks the",
+			"Xenolab, which boosts science by",
+			"50%, and forms the basis of",
+			"Transit Conduit research.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.Xenobiology;
 		public override string Name => "Xenobiology";
 		public Xenobiology() : base(Advance.GeneticEngineering, Advance.SpaceFlight) { }

@@ -148,6 +148,10 @@ namespace CivOne.Screens
 		{
 			bool atWar = Human.IsAtWar(_enemy);
 			var agg = _enemy.Civilization.Leader.Aggression;
+			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))
+				return agg == AggressionLevel.Aggressive
+					? [$"You seized our cities, {Human.LeaderName}.", "We demand reparations."]
+					: [$"You hold our people's cities, {Human.LeaderName}.", "We insist on a just settlement."];
 			if (atWar)
 				return agg == AggressionLevel.Aggressive
 					? [$"Our cities are occupied, {Human.LeaderName}.", "Return them. Now."]
@@ -157,15 +161,25 @@ namespace CivOne.Screens
 				: [$"We come with requests, {Human.LeaderName}.", "Cooperation benefits us both."];
 		}
 
-		private string DemandLabel(AIDemand d) => d.Kind switch
+		private string DemandLabel(AIDemand d)
 		{
-			AIDemandKind.ReturnCity => $"Return {d.City.Name} → {d.Duration} turns of peace",
-			AIDemandKind.GiveMap   => $"Share your maps → {d.Duration} turns of goodwill",
-			AIDemandKind.GiveTech  => $"Transfer {d.Advance.Name} → {d.Duration} turns of goodwill",
-			AIDemandKind.GiveMoney => $"Pay ${d.Amount} tribute → {d.Duration} turns of goodwill",
-			AIDemandKind.CedeCity  => $"Cede {d.City.Name} → {d.Duration} turns of goodwill",
-			_                      => "Unknown demand"
-		};
+			if (d.Kind == AIDemandKind.GrievancePack)
+			{
+				var parts = new System.Collections.Generic.List<string> { $"Return {d.City.Name}" };
+				if (d.Advance is not null) parts.Add(d.Advance.Name);
+				if (d.Amount > 0) parts.Add($"${d.Amount}");
+				return $"Accept settlement: {string.Join(" + ", parts)} → {d.Duration} turns of peace";
+			}
+			return d.Kind switch
+			{
+				AIDemandKind.ReturnCity => $"Return {d.City.Name} → {d.Duration} turns of peace",
+				AIDemandKind.GiveMap   => $"Share your maps → {d.Duration} turns of goodwill",
+				AIDemandKind.GiveTech  => $"Transfer {d.Advance.Name} → {d.Duration} turns of goodwill",
+				AIDemandKind.GiveMoney => $"Pay ${d.Amount} tribute → {d.Duration} turns of goodwill",
+				AIDemandKind.CedeCity  => $"Cede {d.City.Name} → {d.Duration} turns of goodwill",
+				_                      => "Unknown demand"
+			};
+		}
 
 		private void FulfillDemand(AIDemand d)
 		{
@@ -215,6 +229,22 @@ namespace CivOne.Screens
 						$"{d.City.Name} joins our realm.",
 						$"{d.Duration} turns of goodwill — agreed.");
 					break;
+
+				case AIDemandKind.GrievancePack:
+					d.City.Owner = aiNum;
+					if (d.Advance is not null) _enemy.AddAdvance(d.Advance, false);
+					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
+					_enemy.SetPeaceTreaty(Human, d.Duration);
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					var responseLines = new System.Collections.Generic.List<string>
+					{
+						$"{d.City.Name} is restored to us."
+					};
+					if (d.Advance is not null) responseLines.Add($"{d.Advance.Name} received.");
+					if (d.Amount > 0) responseLines.Add($"${d.Amount} received.");
+					responseLines.Add($"{d.Duration} turns of peace — agreed.");
+					SetResponse(FaceState.Smiling, responseLines.ToArray());
+					break;
 			}
 		}
 
@@ -222,10 +252,21 @@ namespace CivOne.Screens
 		{
 			CloseMenus();
 			var agg = _enemy.Civilization.Leader.Aggression;
-			SetResponse(FaceState.Angry,
-				agg == AggressionLevel.Aggressive
-					? "Shortsighted. You will regret this."
-					: "Very well. Do not expect our favor.");
+			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))
+			{
+				SetResponse(FaceState.Angry,
+					agg == AggressionLevel.Aggressive
+						? "Thievery without reparations."
+						: "Your intransigence is noted.",
+					"This matter is not settled.");
+			}
+			else
+			{
+				SetResponse(FaceState.Angry,
+					agg == AggressionLevel.Aggressive
+						? "Shortsighted. You will regret this."
+						: "Very well. Do not expect our favor.");
+			}
 		}
 
 		private Menu BuildDemandsMenu()

@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class Gravitics : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"GRAVITICS is the applied mastery",
+			"of gravitational fields, made",
+			"possible by fusion power and a",
+			"deep understanding of gravity's",
+			"nature. It enables Aquatic",
+			"Colonization and the Transit",
+			"Conduit.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.Gravitics;
 		public override string Name => "Gravitics";
 		public Gravitics() : base(Advance.FusionPower, Advance.TheoryOfGravity) { }

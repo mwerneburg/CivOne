@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class NeuralInterface : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"NEURAL INTERFACE technology allows",
+			"direct communication between",
+			"biological minds and digital",
+			"systems. Pioneered through the",
+			"study of alien cognition, it",
+			"enables the Neural Lab and",
+			"advances toward Collective Memory.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.NeuralInterface;
 		public override string Name => "Neural Interface";
 		public NeuralInterface() : base(Advance.MemeticProtocols) { }

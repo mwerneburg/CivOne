@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class NeuralLab : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A NEURAL LAB bridges biological",
+			"and digital cognition through",
+			"direct mind-machine interfaces.",
+			"Citizens who train here report a",
+			"profound sense of purpose,",
+			"reducing unrest by one citizen.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Neural interfaces were among the",
+			"most controversial Olvir gifts.",
+			"Critics feared the loss of a",
+			"private self; advocates argued",
+			"that loneliness was humanity's",
+			"oldest disease. Neural Labs show",
+			"that both were right, and that",
+			"citizens choose connection anyway.",
+		};
+
+		public override string[] GetPageText(byte pageNumber)
+			=> pageNumber == 1 ? _page1 : _page2;
+
 		public NeuralLab() : base(16, 3)
 		{
 			Name = "Neural Lab";

@@ -14,6 +14,30 @@ namespace CivOne.Buildings
 {
 	internal class Xenolab : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A XENOLAB is a research center",
+			"dedicated to the study of alien",
+			"life sciences. Incorporating Olvir",
+			"methodologies, it amplifies the",
+			"city's total science output by 50%.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The first Xenolabs were founded on",
+			"translated Olvir research packets.",
+			"Human scientists found that alien",
+			"empirical methods overturned",
+			"centuries of assumption. The",
+			"greatest insights came not from",
+			"alien data, but from learning to",
+			"question what we thought was fact.",
+		};
+
+		public override string[] GetPageText(byte pageNumber)
+			=> pageNumber == 1 ? _page1 : _page2;
+
 		public Xenolab() : base(12, 2)
 		{
 			Name = "Xenolab";

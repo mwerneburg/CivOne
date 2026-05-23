@@ -20,6 +20,8 @@ namespace CivOne.Wonders
 		public virtual IBitmap Icon => null;
 		public virtual IBitmap SmallIcon { get; protected set; }
 		public byte PageCount => 2;
+
+		public virtual string[] GetPageText(byte pageNumber) => System.Array.Empty<string>();
 		public Picture DrawPage(byte pageNumber)
 		{
 			string[] text = new string[0];

@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class TransitConduit : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"TRANSIT CONDUIT technology creates",
+			"channels through which matter and",
+			"energy can be transmitted across",
+			"distances, merging gravitic field",
+			"science with xenobiological",
+			"structure principles. A step",
+			"toward Graviton Engineering.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.TransitConduit;
 		public override string Name => "Transit Conduit";
 		public TransitConduit() : base(Advance.Gravitics, Advance.Xenobiology) { }

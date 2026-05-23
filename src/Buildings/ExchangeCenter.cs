@@ -14,6 +14,30 @@ namespace CivOne.Buildings
 {
 	internal class ExchangeCenter : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"An EXCHANGE CENTER hosts ongoing",
+			"cultural dialogue between citizens",
+			"and alien representatives. Mutual",
+			"understanding eases social tensions",
+			"and reduces unrest by one citizen.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Memetic Protocols revealed that",
+			"many human conflicts arose from",
+			"failures of translation. Alien",
+			"observers had no concept of",
+			"ideological war. Their bafflement",
+			"proved instructive: an Exchange",
+			"Center teaches citizens to see",
+			"their disputes from the outside.",
+		};
+
+		public override string[] GetPageText(byte pageNumber)
+			=> pageNumber == 1 ? _page1 : _page2;
+
 		public ExchangeCenter() : base(8, 1)
 		{
 			Name = "Exchange Center";

@@ -13,6 +13,19 @@ namespace CivOne.Advances
 {
 	internal class MemeticProtocols : BasePostContactAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MEMETIC PROTOCOLS decode the",
+			"information patterns used by",
+			"alien intelligences. Where",
+			"computers give the capacity and",
+			"philosophy the framework, Memetic",
+			"Protocols yield understanding.",
+			"Enables the Exchange Center.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => _page1;
+
 		public override byte Id => (byte)Advance.MemeticProtocols;
 		public override string Name => "Memetic Protocols";
 		public MemeticProtocols() : base(Advance.Computers, Advance.Philosophy) { }
