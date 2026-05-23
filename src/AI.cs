@@ -336,6 +336,17 @@ namespace CivOne
 		{
 			if (city is null || city.Size == 0 || city.Tile is null || Player != city.Owner) return;
 
+			// Stalled city: no net production. Rerunning the full plan every turn just
+			// thrashes the queue and spams the journal. Ensure a cheap defender exists
+			// and leave everything else alone until income recovers.
+			if (city.ShieldIncome <= 0)
+			{
+				int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+				if (defenders < 1)
+					city.SetProduction(BestDefender());
+				return;
+			}
+
 			city.ClearProductionQueue();
 			var stance = GetStance();
 			var plan = Game.Difficulty == 0
