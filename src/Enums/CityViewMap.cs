@@ -34,7 +34,7 @@ namespace CivOne.Enums
 		NuclearPlant,
 		HangingGardens,
 		Lighthouse,
-		Oracle,
+		AngkorWat,
 		DarwinsVoyage,
 		Occupied = 255
 	}

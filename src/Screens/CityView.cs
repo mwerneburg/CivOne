@@ -392,14 +392,26 @@ namespace CivOne.Screens
 			else if (typeof(T) == typeof(Oracle))
 			{
 				if (x < 0 || y < 0) return;
-				// Three columns with pediment
-				picture.FillRectangle(x + 2,  y + 2, 2, 46, CassetteTheme.WHITE);
-				picture.FillRectangle(x + 20, y + 2, 2, 46, CassetteTheme.WHITE);
-				picture.FillRectangle(x + 38, y + 2, 2, 46, CassetteTheme.WHITE);
-				// Pediment cap
-				picture.FillRectangle(x, y, 44, 4, CassetteTheme.BG3);
-				// Base
-				picture.FillRectangle(x, y + 44, 44, 4, CassetteTheme.BG3);
+				// Angkor Wat: three spired towers in profile, stepped terrace, moat
+				// Left tower
+				picture.FillRectangle(x + 3,  y + 15, 2,  2, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 2,  y + 17, 4,  2, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 1,  y + 19, 6,  9, CassetteTheme.BORDER);
+				// Center tower (tallest, stepped tiers)
+				picture.FillRectangle(x + 20, y + 2,  4,  3, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 19, y + 5,  6,  3, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 17, y + 8,  10, 3, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 15, y + 11, 14, 17, CassetteTheme.BORDER);
+				// Right tower
+				picture.FillRectangle(x + 39, y + 15, 2,  2, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 38, y + 17, 4,  2, CassetteTheme.BORDER);
+				picture.FillRectangle(x + 37, y + 19, 6,  9, CassetteTheme.BORDER);
+				// Shared terrace platform
+				picture.FillRectangle(x,      y + 28, 44, 4, CassetteTheme.BORDER);
+				// Moat (reflecting pool)
+				picture.FillRectangle(x,      y + 36, 44, 2, CassetteTheme.CYAN);
+				// Ground
+				picture.FillRectangle(x,      y + 44, 44, 4, CassetteTheme.BG3);
 			}
 			else if (typeof(T) == typeof(DarwinsVoyage))
 			{
@@ -641,7 +653,7 @@ namespace CivOne.Screens
 						else if (type == typeof(NuclearPlant))     id = CityViewMap.NuclearPlant;
 						else if (type == typeof(Lighthouse))       id = CityViewMap.Lighthouse;
 						else if (type == typeof(HangingGardens))  { id = CityViewMap.HangingGardens; sizeX = 3; sizeY = 3; }
-						else if (type == typeof(Oracle))           { id = CityViewMap.Oracle;         sizeX = 3; sizeY = 3; }
+						else if (type == typeof(Oracle))           { id = CityViewMap.AngkorWat;      sizeX = 3; sizeY = 3; }
 						else if (type == typeof(DarwinsVoyage))    { id = CityViewMap.DarwinsVoyage;  sizeX = 3; sizeY = 3; }
 						else continue;
 
@@ -758,7 +770,7 @@ namespace CivOne.Screens
 					case CityViewMap.NuclearPlant:   DrawBuildingOverlay<NuclearPlant>(dx, dy);     continue;
 					case CityViewMap.Lighthouse:     DrawWonderOverlay<Lighthouse>(dx, dy, -52);    continue;
 					case CityViewMap.HangingGardens: DrawWonderOverlay<HangingGardens>(dx, dy, -19); continue;
-					case CityViewMap.Oracle:         DrawWonderOverlay<Oracle>(dx, dy, -20);        continue;
+					case CityViewMap.AngkorWat:      DrawWonderOverlay<Oracle>(dx, dy, -20);        continue;
 					case CityViewMap.DarwinsVoyage:  DrawWonderOverlay<DarwinsVoyage>(dx, dy, -16); continue;
 					default: continue;
 				}
