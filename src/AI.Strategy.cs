@@ -157,6 +157,71 @@ namespace CivOne
 			else if (tax > target) Player.TaxesRate = tax - 1;
 		}
 
+		// ── rush-buy logic ─────────────────────────────────────────────────────
+
+		internal void ConsiderRushBuy()
+		{
+			if (Player.IsDestroyed()) return;
+			if (Player.Government is Gov.Anarchy) return;
+			if (Player.Gold < 20) return;
+
+			StrategyStance stance = GetStance();
+
+			foreach (City city in Player.Cities)
+			{
+				if (city.CurrentProduction is null) continue;
+				if (city.Shields <= 0) continue; // no tail-end discount without prior investment
+				if (city.IsInDisorder && city.CurrentProduction is IBuilding) continue;
+
+				int fullCost = city.CurrentProduction.Price * 10;
+				int gold     = Player.Gold;
+				short buy    = city.BuyPrice;
+				double done  = (double)city.Shields / fullCost;
+
+				// Emergency: undefended city with an enemy land unit adjacent.
+				// Rush the current production if it's a defender, even at low completion.
+				if (city.CurrentProduction is IUnit emergUnit
+				    && emergUnit.Role == UnitRole.Defense
+				    && city.Tile.Units.Count(u => u.Role == UnitRole.Defense) == 0
+				    && city.Tile.GetBorderTiles().Any(t =>
+				           t.Units.Any(u => u.Owner != city.Owner
+				                        && u.Role == UnitRole.LandAttack))
+				    && gold >= buy)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+					continue;
+				}
+
+				// Wonder: clinch it once > 70 % done — higher reserve to avoid going broke.
+				if (city.CurrentProduction is IWonder
+				    && done >= 0.7 && buy <= gold / 2 && gold - buy >= 60)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+					continue;
+				}
+
+				// Tail-end: > 60 % done, affordable — matches how a human shops.
+				// Keep 30g reserve to cover maintenance.
+				if (done >= 0.6 && buy <= gold / 3 && gold - buy >= 30)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+					continue;
+				}
+
+				// Militarize: more aggressive about completing attackers (> 50 % done).
+				if (stance == StrategyStance.Militarize
+				    && city.CurrentProduction is IUnit
+				    && done >= 0.5 && buy <= gold / 4 && gold - buy >= 30)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+				}
+			}
+		}
+
 		// ── government progression ────────────────────────────────────────────
 
 		private static int GovernmentScore(IGovernment gov, StrategyStance stance)

@@ -632,6 +632,7 @@ namespace CivOne
 
 			AI?.ConsiderGovernment();
 			AI?.ConsiderSliders();
+			AI?.ConsiderRushBuy();
 			AI?.ConsiderWar();
 			AI?.ConsiderDiplomacy();
 			AI?.ConsiderMapTrade();
