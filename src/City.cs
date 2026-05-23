@@ -269,6 +269,7 @@ namespace CivOne
 					break;
 			}
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			if (tile.IsOcean && HasBuilding<SeaPlatform>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirF))
 				output += OlvirFoodBonus(olvirF);
 			return output;
@@ -439,6 +440,7 @@ namespace CivOne
 				if (HasBuilding<Library>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<UniversityBuilding>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<ObservatoryBuilding>()) science += (short)Math.Floor(science * libUniBonus);
+				if (HasBuilding<Xenolab>()) science += (short)Math.Floor(science * 0.5);
 				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
 				if (Player.HasWonder<SETIProgram>()) science += (short)Math.Floor((double)science * 0.5);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
@@ -795,6 +797,8 @@ namespace CivOne
 					unhappyCount -= 2;
 				}
 				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
+				if (HasBuilding<ExchangeCenter>()) unhappyCount -= 1;
+				if (HasBuilding<NeuralLab>()) unhappyCount -= 1;
 				bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
 					Tile is not null &&
 					Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());

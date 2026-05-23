@@ -201,6 +201,7 @@ namespace CivOne.Persistence
 		public int Y { get; set; }
 		public bool Road { get; set; }
 		public bool Railroad { get; set; }
+		public bool TransportTube { get; set; }
 		public bool Irrigation { get; set; }
 		public bool Mine { get; set; }
 		public bool Hut { get; set; }

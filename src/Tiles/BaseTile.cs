@@ -176,14 +176,20 @@ namespace CivOne.Tiles
 		{
 			get
 			{
-				return _road && !RailRoad;
+				return _road && !RailRoad && !TransportTube;
 			}
 			set
 			{
 				_road = value;
 			}
 		}
-		public virtual bool RailRoad { get; set; }
+		private bool _railroad;
+		public virtual bool RailRoad
+		{
+			get => _railroad && !TransportTube;
+			set => _railroad = value;
+		}
+		public virtual bool TransportTube { get; set; }
 		public virtual bool Irrigation { get; set; }
 		public virtual bool Mine { get; set; }
 		public virtual bool Fortress { get; set; }

@@ -1083,6 +1083,16 @@ namespace CivOne
 				if (settler is not null)
 					settler.SkipTurn();
 			}
+
+			// 5) Gift Xenobiology to all surviving civs — contact with the Olvir makes
+			//    the advance immediately researchable through observation.
+			IAdvance xenobiology = Common.Advances.FirstOrDefault(a => a is Xenobiology);
+			if (xenobiology is not null)
+			{
+				foreach (Player p in _players.Where(p => p != null && !p.IsDestroyed() && p != olvirPlayer))
+					if (!p.HasAdvance<Xenobiology>())
+						p.AddAdvance(xenobiology, false);
+			}
 		}
 
 		internal void PerformAutoSave()

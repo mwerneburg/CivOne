@@ -39,5 +39,9 @@ namespace CivOne.Enums
 		SewerSystem = 25,
 		Observatory = 26,
 		SamBattery = 27,
+		Xenolab = 28,
+		ExchangeCenter = 29,
+		NeuralLab = 30,
+		SeaPlatform = 31,
 	}
 }

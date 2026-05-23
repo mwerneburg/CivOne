@@ -35,6 +35,7 @@ namespace CivOne.Tiles
 		byte Borders { get; }
 		bool Road { get; set; }
 		bool RailRoad { get; set; }
+		bool TransportTube { get; set; }
 		bool Irrigation { get; set; }
 		bool Fortress { get; set; }
 		bool Mine { get; set; }

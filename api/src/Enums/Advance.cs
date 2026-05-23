@@ -78,6 +78,18 @@ namespace CivOne.Enums
 		Robotics,
 		Conscription,
 		LaborUnion,
-		FusionPower
+		FusionPower,
+		Xenobiology,
+		Gravitics,
+		SyntheticEcology,
+		MemeticProtocols,
+		AquaticColonization,
+		TransitConduit,
+		BioplexEngineering,
+		CanopyCultivation,
+		NeuralInterface,
+		GravitonEngineering,
+		PlanetaryStewardship,
+		CollectiveMemory
 	}
 }

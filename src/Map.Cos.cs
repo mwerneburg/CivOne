@@ -62,15 +62,16 @@ namespace CivOne
 			for (int x = 0; x < WIDTH; x++)
 			{
 				var t = _tiles[x, y];
-				if (!t.Road && !t.RailRoad && !t.Irrigation && !t.Mine && !t.Hut) continue;
+				if (!t.Road && !t.RailRoad && !t.TransportTube && !t.Irrigation && !t.Mine && !t.Hut) continue;
 				improvements.Add(new CosImprovement
 				{
 					X = x, Y = y,
-					Road      = t.Road,
-					Railroad  = t.RailRoad,
-					Irrigation = t.Irrigation,
-					Mine      = t.Mine,
-					Hut       = t.Hut
+					Road          = t.Road,
+					Railroad      = t.RailRoad,
+					TransportTube = t.TransportTube,
+					Irrigation    = t.Irrigation,
+					Mine          = t.Mine,
+					Hut           = t.Hut
 				});
 			}
 
@@ -121,11 +122,12 @@ namespace CivOne
 				{
 					if (imp.X < 0 || imp.X >= WIDTH || imp.Y < 0 || imp.Y >= HEIGHT) continue;
 					var t = _tiles[imp.X, imp.Y];
-					t.Road       = imp.Road;
-					t.RailRoad   = imp.Railroad;
-					t.Irrigation = imp.Irrigation;
-					t.Mine       = imp.Mine;
-					t.Hut        = imp.Hut;
+					t.Road          = imp.Road;
+					t.RailRoad      = imp.Railroad;
+					t.TransportTube = imp.TransportTube;
+					t.Irrigation    = imp.Irrigation;
+					t.Mine          = imp.Mine;
+					t.Hut           = imp.Hut;
 				}
 			}
 
