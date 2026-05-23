@@ -397,6 +397,48 @@ namespace CivOne
 			if (Player.Civilization is Olvir) return; // refugees do not declare war
 			if (Player.Government is Governments.Anarchy) return;
 
+			// ── Track war duration and peacetime city baseline ───────────────────
+			bool atWar = Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p));
+			if (atWar)
+				_turnsAtWar++;
+			else
+			{
+				_turnsAtWar      = 0;
+				_peacetimeCities = Player.Cities.Length;
+			}
+
+			// ── AI-vs-AI peace initiatives ───────────────────────────────────────
+			if (atWar)
+			{
+				Player[] aiEnemies = Game.Players
+				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
+				             && Game.PlayerNumber(p) != 0 && Player.IsAtWar(p))
+				    .ToArray();
+
+				if (aiEnemies.Length > 0)
+				{
+					// Sustained territory loss: net fewer cities than when the war began.
+					bool losingTerritory = Player.Cities.Length < _peacetimeCities
+					                    && Player.Cities.Length > 0;
+
+					// War exhaustion: long campaign with an empty treasury.
+					bool exhausted = _turnsAtWar > 40 && Player.Gold < 50;
+
+					if (losingTerritory || exhausted)
+					{
+						int peaceChance = losingTerritory ? 30 : 20;
+						foreach (Player enemy in aiEnemies)
+						{
+							if (Common.Random.Next(100) < peaceChance)
+							{
+								Player.MakePeace(enemy);
+								break; // one treaty per turn
+							}
+						}
+					}
+				}
+			}
+
 			// ── Coalition against a runaway human ────────────────────────────────
 			if (HumanIsDominant())
 			{
@@ -450,6 +492,20 @@ namespace CivOne
 			int ownScore = MilitaryScore(Player);
 			if (ownScore == 0) return; // no army, no war
 
+			// ── Expansion gate ───────────────────────────────────────────────────
+			// Civs that still have room to grow prefer settlers to swords.
+			// Militaristic/aggressive leaders can still fight but take a penalty;
+			// everyone else waits until their empire is built out.
+			int mapScale  = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			int cityTarget = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
+			               : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
+			               :                                         (4 * mapScale) + Game.Difficulty;
+			bool stillExpanding = Player.Cities.Length < cityTarget && !atWar;
+
+			bool warMinded = Leader.Militarism == MilitarismLevel.Militaristic
+			              || Leader.Aggression == AggressionLevel.Aggressive;
+			if (stillExpanding && !warMinded) return;
+
 			foreach (Player enemy in Game.Players)
 			{
 				if (enemy == Player || enemy.IsDestroyed()) continue;
@@ -468,6 +524,9 @@ namespace CivOne
 				if (ownScore > their)             chance += 5;
 				if (ownScore > their * 3 / 2)     chance += 5; // notably stronger
 				if (their > ownScore * 3 / 2)     chance -= 20; // notably weaker — don't be reckless
+
+				// Expansion penalty: even war-minded leaders are less eager while still settling
+				if (stillExpanding) chance -= 10;
 
 				if (Common.Random.Next(100) < chance)
 				{

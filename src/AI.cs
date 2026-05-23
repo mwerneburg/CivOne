@@ -34,6 +34,10 @@ namespace CivOne
 		// The city this civ is currently marshalling forces to attack.
 		private City _attackTarget;
 
+		// War-state tracking for peace initiatives.
+		private int _turnsAtWar      = 0;
+		private int _peacetimeCities = 0; // city count when we were last at peace
+
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;
