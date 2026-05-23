@@ -753,8 +753,8 @@ namespace CivOne
 			int[] used = _cities.Select(c => c.NameId).ToArray();
 			int[] available = Enumerable.Range(0, CityNames.Length)
 				.Where(i => !used.Contains(i))
+				.Where(i => civilization is Civilizations.Olvir || i < spareIndex)
 				.OrderBy(i => (i >= startIndex && i < startIndex + civilization.CityNames.Length) ? 0 : 1)
-				.ThenBy(i => (i >= spareIndex) ? 0 : 1)
 				.ThenBy(i => i)
 				.ToArray();
 			if (player.CityNamesSkipped >= available.Length)
