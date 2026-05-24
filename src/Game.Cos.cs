@@ -154,6 +154,9 @@ namespace CivOne
 					AtWarWith        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].IsAtWar(_players[j]))
 				                   .ToArray(),
+					Embassies        = Enumerable.Range(0, playerCount)
+				                   .Where(j => j != p && _players[p].HasEmbassy(_players[j]))
+				                   .ToArray(),
 					Visibility       = PackVisibility(vis)
 				});
 			}
@@ -339,6 +342,15 @@ namespace CivOne
 				if (warList is null) continue;
 				foreach (int j in warList)
 					_players[i].SetAtWar((byte)j, true);
+			}
+
+			// Embassies
+			for (int i = 0; i < _players.Count; i++)
+			{
+				var embassyList = cos.Players[i].Embassies;
+				if (embassyList is null) continue;
+				foreach (int j in embassyList.Where(j => j >= 0 && j < _players.Count && _players[j] is not null))
+					_players[i].EstablishEmbassy(_players[j]);
 			}
 
 			// Future techs, milestone scores, and human player
