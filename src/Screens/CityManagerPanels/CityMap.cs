@@ -90,6 +90,20 @@ namespace CivOne.Screens.CityManagerPanels
 				}
 			}
 
+			// Palette index 0 is transparent in SDL; fill unexplored/null tile slots with a
+			// solid dark colour so they never bleed through to the background game map.
+			if (!Settings.RevealWorld)
+			{
+				Player owner = Game.GetPlayer(_city.Owner);
+				for (int xx = 0; xx < 5; xx++)
+				for (int yy = 0; yy < 5; yy++)
+				{
+					ITile tile = tiles[xx, yy];
+					if (tile is not null && owner is not null && owner.Visible(tile)) continue;
+					this.FillRectangle(1 + xx * _tileSize, 1 + yy * _tileSize, _tileSize, _tileSize, CassetteTheme.BG0);
+				}
+			}
+
 			for (int xx = 0; xx < 5; xx++)
 			for (int yy = 0; yy < 5; yy++)
 			{
