@@ -464,9 +464,8 @@ namespace CivOne
 				if (Game.Instance.DomeAssignments.Count == 0)
 					return false;
 
-				// Each player may only build their assigned component.
-				Enums.Wonder? assignment = Game.Instance.GetDomeAssignment(this);
-				if (!assignment.HasValue || wonder.Id != (byte)assignment.Value)
+				// Each player may only build their assigned component(s).
+				if (!Game.Instance.GetDomeAssignments(this).Any(w => wonder.Id == (byte)w))
 					return false;
 
 				// Spaceship launch does not block dome — both paths can coexist.

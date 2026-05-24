@@ -235,7 +235,9 @@ namespace CivOne
 					OlvirImprovements       = OlvirImprovements.Count > 0
 					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null,
-					DomeAssignments         = DomeAssignments.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList(),
+					DomeAssignments         = DomeAssignments
+					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
+					                          .ToList(),
 					DomeVictoryFired        = _domeVictoryFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
@@ -383,7 +385,13 @@ namespace CivOne
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)
 					if (pair.Length == 2)
-						DomeAssignments[(byte)pair[0]] = (Enums.Wonder)pair[1];
+					{
+						byte pid = (byte)pair[0];
+						if (!DomeAssignments.TryGetValue(pid, out var list))
+							DomeAssignments[pid] = list = new List<Enums.Wonder>();
+						list.Add((Enums.Wonder)pair[1]);
+					}
+			FixDomeAssignmentsIfNeeded();
 			if (g.Transmissions is not null)
 				foreach (var t in g.Transmissions)
 					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });

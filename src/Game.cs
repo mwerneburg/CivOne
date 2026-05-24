@@ -94,9 +94,9 @@ namespace CivOne
 		// Olvir land-use improvements keyed by map tile (x, y).
 		internal readonly Dictionary<(int x, int y), Enums.OlvirImprovementType> OlvirImprovements = new();
 
-		// Dome path: which player (owner byte) is assigned to which dome wonder component.
+		// Dome path: which player (owner byte) is assigned to which dome wonder component(s).
 		// Populated when the Tau Ceti approach warning fires.
-		internal readonly Dictionary<byte, Enums.Wonder> DomeAssignments = new();
+		internal readonly Dictionary<byte, List<Enums.Wonder>> DomeAssignments = new();
 
 		// Set when any player builds the first dome component (hard exclusivity gate).
 		internal bool DomePathCommitted => BuiltWonders.Any(w => w is Wonders.IDomeComponent);
@@ -464,15 +464,15 @@ namespace CivOne
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType, ProbeDispatched, ProbeInterimPhase)));
-					var domeAssignment = GetDomeAssignment(HumanPlayer);
-					if (domeAssignment.HasValue)
+					var humanDomeComponents = GetDomeAssignments(HumanPlayer).ToList();
+					if (humanDomeComponents.Count > 0)
 					{
-						string componentName = DomeFiveComponents
-							.First(w => (Enums.Wonder)w.Id == domeAssignment.Value).Name.ToUpper();
+						string nameList = string.Join(" + ", humanDomeComponents
+							.Select(w => DomeFiveComponents.First(c => (Enums.Wonder)c.Id == w).Name.ToUpper()));
 						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 							"Science brief: our role",
-							$"in the Dome project is",
-							$"to build the {componentName}.",
+							"in the Dome project is",
+							$"to build: {nameList}.",
 							"Open World menu to track."));
 					}
 				}
@@ -1026,14 +1026,20 @@ namespace CivOne
 			return 4;
 		}
 
-		// Assign one dome component to each surviving player (round-robin, shuffled).
+		// Assign dome components to eligible civs (round-robin, shuffled).
+		// Excludes Barbarians and Olvir. If fewer than 5 eligible civs, some get multiple.
 		// Called once when the Tau Ceti approach warning fires.
 		private void AssignDomeComponents()
 		{
 			if (DomeAssignments.Count > 0) return; // already assigned
 
-			Player[] survivors = _players.Where(p => !p.IsDestroyed()).ToArray();
-			if (survivors.Length == 0) return;
+			Player[] eligible = _players
+				.Where(p => !p.IsDestroyed()
+				         && !(p.Civilization is Civilizations.Barbarian)
+				         && !(p.Civilization is Civilizations.Olvir))
+				.OrderByDescending(p => p.Advances.Length)
+				.ToArray();
+			if (eligible.Length == 0) return;
 
 			// Shuffle the five components so the assignment isn't always the same
 			var components = _domeFiveWonderIds.ToList();
@@ -1044,14 +1050,42 @@ namespace CivOne
 			}
 
 			for (int i = 0; i < components.Count; i++)
-				DomeAssignments[PlayerNumber(survivors[i % survivors.Length])] = components[i];
+			{
+				byte pid = PlayerNumber(eligible[i % eligible.Length]);
+				if (!DomeAssignments.TryGetValue(pid, out var list))
+					DomeAssignments[pid] = list = new List<Enums.Wonder>();
+				list.Add(components[i]);
+			}
 		}
 
-		// Returns the dome component assigned to this player, or null if none / not yet assigned.
-		internal Enums.Wonder? GetDomeAssignment(Player player)
+		// Removes any dome assignments held by Barbarians, Olvir, or destroyed civs,
+		// then redistributes those components among eligible civs. Called on COS load.
+		private void FixDomeAssignmentsIfNeeded()
+		{
+			if (DomeAssignments.Count == 0) return;
+
+			var badKeys = DomeAssignments.Keys
+				.Where(pid =>
+				{
+					if (pid >= _players.Count || _players[pid] is null) return true;
+					var p = _players[pid];
+					return p.IsDestroyed()
+					    || p.Civilization is Civilizations.Barbarian
+					    || p.Civilization is Civilizations.Olvir;
+				})
+				.ToList();
+
+			if (badKeys.Count == 0) return;
+
+			DomeAssignments.Clear();
+			AssignDomeComponents();
+		}
+
+		// Returns the dome components assigned to this player (empty if none / not yet assigned).
+		internal IEnumerable<Enums.Wonder> GetDomeAssignments(Player player)
 		{
 			byte id = PlayerNumber(player);
-			return DomeAssignments.TryGetValue(id, out var w) ? w : (Enums.Wonder?)null;
+			return DomeAssignments.TryGetValue(id, out var list) ? list : Enumerable.Empty<Enums.Wonder>();
 		}
 
 		// ── Olvir arrival ────────────────────────────────────────────────────

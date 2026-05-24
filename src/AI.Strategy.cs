@@ -1031,11 +1031,10 @@ namespace CivOne
 		{
 			if (!IsTopProductionCity(city)) return null;
 
-			// Prioritise the dome component assigned to this civilisation, if any
-			Enums.Wonder? assignment = Game.Instance.GetDomeAssignment(Player);
-			if (assignment.HasValue)
+			// Prioritise dome component(s) assigned to this civilisation, if any
+			foreach (var wonderId in Game.Instance.GetDomeAssignments(Player))
 			{
-				IWonder assigned = Reflect.GetWonders().FirstOrDefault(w => w.Id == (byte)assignment.Value);
+				IWonder assigned = Reflect.GetWonders().FirstOrDefault(w => w.Id == (byte)wonderId);
 				if (assigned is not null && !Game.WonderBuilt(assigned) && Player.ProductionAvailable(assigned))
 					return assigned;
 			}

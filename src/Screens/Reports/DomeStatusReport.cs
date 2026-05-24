@@ -130,17 +130,13 @@ namespace CivOne.Screens.Reports
 				byte? assignedOwner = null;
 				string assignedName = "—";
 
-				if (Game.Instance.DomeAssignments.TryGetValue((byte)w, out _))
+				foreach (var kv in Game.Instance.DomeAssignments)
 				{
-					// find which owner has this component assigned
-					foreach (var kv in Game.Instance.DomeAssignments)
+					if (kv.Value.Contains(w))
 					{
-						if (kv.Value == w)
-						{
-							assignedOwner = kv.Key;
-							assignedName = Game.GetPlayer(kv.Key)?.Civilization?.Name ?? "Unknown";
-							break;
-						}
+						assignedOwner = kv.Key;
+						assignedName = Game.GetPlayer(kv.Key)?.Civilization?.Name ?? "Unknown";
+						break;
 					}
 				}
 
