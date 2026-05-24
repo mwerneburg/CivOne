@@ -266,6 +266,7 @@ namespace CivOne
 				var text = File.ReadAllText(cosFile);
 				var cos  = CosSerializer.Deserialize(text);
 				_instance = new Game(cos);
+				_instance.FixDomeAssignmentsIfNeeded();
 				WLTKNotifications.Clear();
 				DecisionLogger.BeginGame();
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
@@ -391,7 +392,6 @@ namespace CivOne
 							DomeAssignments[pid] = list = new List<Enums.Wonder>();
 						list.Add((Enums.Wonder)pair[1]);
 					}
-			FixDomeAssignmentsIfNeeded();
 			if (g.Transmissions is not null)
 				foreach (var t in g.Transmissions)
 					Transmissions.Add(new TransmissionRecord { Type = t.Type, Year = t.Year });

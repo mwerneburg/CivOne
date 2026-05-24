@@ -1060,7 +1060,7 @@ namespace CivOne
 
 		// Removes any dome assignments held by Barbarians, Olvir, or destroyed civs,
 		// then redistributes those components among eligible civs. Called on COS load.
-		private void FixDomeAssignmentsIfNeeded()
+		internal void FixDomeAssignmentsIfNeeded()
 		{
 			if (DomeAssignments.Count == 0) return;
 
