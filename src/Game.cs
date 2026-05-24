@@ -102,11 +102,11 @@ namespace CivOne
 		internal bool DomePathCommitted => BuiltWonders.Any(w => w is Wonders.IDomeComponent);
 
 		// Set when all five dome components are built — triggers victory sequence.
-		internal bool DomeComplete => _domeVictoryFired || _domeFiveComponents.All(w => WonderBuilt(w));
+		internal bool DomeComplete => _domeVictoryFired || DomeFiveComponents.All(w => WonderBuilt(w));
 
 		private bool _domeVictoryFired = false;
 
-		private static readonly Wonders.IWonder[] _domeFiveComponents =
+		internal static readonly Wonders.IWonder[] DomeFiveComponents =
 		{
 			new Wonders.DomeEmitterArray(),
 			new Wonders.DomeSensorNet(),
@@ -464,6 +464,17 @@ namespace CivOne
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType, ProbeDispatched, ProbeInterimPhase)));
+					var domeAssignment = GetDomeAssignment(HumanPlayer);
+					if (domeAssignment.HasValue)
+					{
+						string componentName = DomeFiveComponents
+							.First(w => (Enums.Wonder)w.Id == domeAssignment.Value).Name.ToUpper();
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"Science brief: our role",
+							$"in the Dome project is",
+							$"to build the {componentName}.",
+							"Open World menu to track."));
+					}
 				}
 
 				// Probe interim reports and final result
@@ -532,7 +543,7 @@ namespace CivOne
 				}
 
 				// Check for dome victory (all five components built)
-				if (!_domeVictoryFired && _domeFiveComponents.All(w => WonderBuilt(w)))
+				if (!_domeVictoryFired && DomeFiveComponents.All(w => WonderBuilt(w)))
 				{
 					_domeVictoryFired = true;
 					HumanPlayer.AwardMilestone(150);

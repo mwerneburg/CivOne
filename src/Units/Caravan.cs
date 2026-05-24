@@ -79,15 +79,22 @@ namespace CivOne.Units
 			if (moveTarget is null) return false;
 
 			City city = moveTarget.City;
-			if (city is not null && city != Home && city.Owner == Owner)
+			if (city is not null && city != Home)
 			{
-				bool tooClose = Home is not null && moveTarget.DistanceTo(Home) < 10;
-				bool buildingWonder = city.CurrentProduction is IWonder;
-
-				if (!tooClose || buildingWonder)
+				if (city.Owner == Owner)
 				{
-					if (Game.Human == Owner)
-						GameTask.Enqueue(Show.CaravanChoice(this, city));
+					bool tooClose = Home is not null && moveTarget.DistanceTo(Home) < 10;
+					bool buildingWonder = city.CurrentProduction is IWonder;
+					if (!tooClose || buildingWonder)
+					{
+						if (Game.Human == Owner)
+							GameTask.Enqueue(Show.CaravanChoice(this, city));
+						return true;
+					}
+				}
+				else if (Game.Human == Owner && city.CurrentProduction is Wonders.IDomeComponent)
+				{
+					GameTask.Enqueue(Show.CaravanChoice(this, city));
 					return true;
 				}
 			}

@@ -45,9 +45,13 @@ namespace CivOne.Screens.Dialogs
 			Destroy();
 		}
 
+		private bool IsOwnCity  => _city.Owner == _unit.Owner;
+		private bool IsForeignDome => !IsOwnCity && _city.CurrentProduction is CivOne.Wonders.IDomeComponent;
+		private bool ShowHelpWonder => IsOwnCity && _city.CurrentProduction is IWonder;
+
 		private bool AllowEstablishTradeRoute => (_unit.Home is null) || (_unit.Home.Tile.DistanceTo(_city) >= 10);
 
-		private int ChoiceCount => (_city.CurrentProduction is IWonder) ? 3 : 2;
+		private int ChoiceCount => (ShowHelpWonder || IsForeignDome) ? 3 : 2;
 
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -82,8 +86,10 @@ namespace CivOne.Screens.Dialogs
 
 			menu.Items.Add("Keep moving").OnSelect(KeepMoving);
 			menu.Items.Add("Establish trade route").OnSelect(EstablishTradeRoute).SetEnabled(AllowEstablishTradeRoute);
-			if (_city.CurrentProduction is IWonder)
+			if (ShowHelpWonder)
 				menu.Items.Add("Help build WONDER.").OnSelect(HelpBuildWonder);
+			else if (IsForeignDome)
+				menu.Items.Add("Assist dome construction").OnSelect(HelpBuildWonder);
 
 			AddMenu(menu);
 			return true;

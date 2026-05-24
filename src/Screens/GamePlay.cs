@@ -123,6 +123,8 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("History Replay").OnSelect((s, a) => Common.AddScreen(new GameReplay()));
 			_gameMenu.Items.Add("Demographics").OnSelect((s, a) => Common.AddScreen(new Demographics()));
 			_gameMenu.Items.Add("Spaceships").OnSelect((s, a) => Common.AddScreen(new SpaceShips()));
+			if (Game.Instance.DomeAssignments.Count > 0)
+				_gameMenu.Items.Add("Dome Status").OnSelect((s, a) => Common.AddScreen(new Dome()));
 			
 			_menuX = 144;
 			_menuY = 8;

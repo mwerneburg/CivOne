@@ -469,11 +469,7 @@ namespace CivOne
 				if (!assignment.HasValue || wonder.Id != (byte)assignment.Value)
 					return false;
 
-				// Dome path and spaceship path are mutually exclusive per player.
-				if (Game.Instance.SpaceshipStructural[owner] > 0 ||
-				    Game.Instance.SpaceshipComponent[owner]  > 0 ||
-				    Game.Instance.SpaceshipModule[owner]     > 0)
-					return false;
+				// Spaceship launch does not block dome — both paths can coexist.
 			}
 			if (wonder is Buildings.ISpaceShip)
 			{
