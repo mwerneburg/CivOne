@@ -650,6 +650,7 @@ namespace CivOne
 				{
 					if (HasBuilding<Palace>() && building is Courthouse) continue;
 					if (building is Shipyard && !coastal) continue;
+					if (building is SeaPlatform && !coastal) continue;
 					if (building is HydroPlant && !CityTiles.Any(t => t.Type == Terrain.River)) continue;
 					yield return building;
 				}
