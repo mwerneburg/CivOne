@@ -70,7 +70,9 @@ namespace CivOne.Screens
 
 		private void Confirm()
 		{
-			_city.SetProduction(Filtered[_selection]);
+			IProduction choice = Filtered[_selection];
+			_city.SetProduction(choice);
+			DecisionLogger.LogCityProduction(_city, choice, "Human", isHuman: true);
 			Destroy();
 		}
 

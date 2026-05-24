@@ -174,7 +174,7 @@ namespace CivOne
 			}));
 		}
 
-		internal static void LogCityProduction(City city, IProduction choice, string stance)
+		internal static void LogCityProduction(City city, IProduction choice, string stance, bool isHuman = false)
 		{
 			if (!_active) return;
 			if (city is null || choice is null) return;
@@ -205,7 +205,7 @@ namespace CivOne
 				KV("type",          "city_prod"),
 				KV("game_id",       _gameId),
 				KV("turn",          game.GameTurn),
-				KV("is_human",      false),
+				KV("is_human",      isHuman),
 				KV("city_size",     city.Size),
 				KV("food_surplus",  city.FoodIncome),
 				KV("shields",       city.ShieldIncome),

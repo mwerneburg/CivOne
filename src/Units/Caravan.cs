@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Tasks;
@@ -44,6 +45,15 @@ namespace CivOne.Units
 			if (Game.GetPlayer(Owner).HasAdvance<Flight>() && Game.GetPlayer(targetCity.Owner).HasAdvance<Flight>()) multiplier *= 0.66F;
 
 			return (int)(multiplier * (float)((distance + 10) * (tradeHome + tradeTarget) / 24));
+		}
+
+		private static bool HasUnbuiltDomeAssignment(int ownerIndex)
+		{
+			var player = Game.GetPlayer((byte)ownerIndex);
+			if (player is null) return false;
+			return Game.Instance.GetDomeAssignments(player)
+				.Any(w => !Game.Instance.WonderBuilt(
+					Game.DomeFiveComponents.First(c => (Wonder)c.Id == w)));
 		}
 
 		internal void KeepMoving(City city) => MovementTo(city.X - X, city.Y - Y);
@@ -92,7 +102,7 @@ namespace CivOne.Units
 						return true;
 					}
 				}
-				else if (Game.Human == Owner && city.CurrentProduction is Wonders.IDomeComponent)
+				else if (Game.Human == Owner && HasUnbuiltDomeAssignment(city.Owner))
 				{
 					GameTask.Enqueue(Show.CaravanChoice(this, city));
 					return true;

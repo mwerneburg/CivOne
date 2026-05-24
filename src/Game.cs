@@ -1058,8 +1058,9 @@ namespace CivOne
 			}
 		}
 
-		// Removes any dome assignments held by Barbarians, Olvir, or destroyed civs,
-		// then redistributes those components among eligible civs. Called on COS load.
+		// Removes dome assignments held by Barbarians, Olvir, or destroyed civs,
+		// then redistributes only those orphaned components. Valid assignments are preserved.
+		// Called on COS load after _instance is set.
 		internal void FixDomeAssignmentsIfNeeded()
 		{
 			if (DomeAssignments.Count == 0) return;
@@ -1077,8 +1078,44 @@ namespace CivOne
 
 			if (badKeys.Count == 0) return;
 
-			DomeAssignments.Clear();
-			AssignDomeComponents();
+			// Collect orphaned components, skipping any already built.
+			var orphaned = new List<Enums.Wonder>();
+			foreach (var key in badKeys)
+			{
+				foreach (var w in DomeAssignments[key])
+				{
+					var comp = DomeFiveComponents.FirstOrDefault(c => (Enums.Wonder)c.Id == w);
+					if (comp is not null && !WonderBuilt(comp))
+						orphaned.Add(w);
+				}
+				DomeAssignments.Remove(key);
+			}
+
+			if (orphaned.Count == 0) return;
+
+			// Shuffle, then distribute to eligible civs.
+			for (int i = orphaned.Count - 1; i > 0; i--)
+			{
+				int j = Common.Random.Next(i + 1);
+				(orphaned[i], orphaned[j]) = (orphaned[j], orphaned[i]);
+			}
+
+			Player[] eligible = _players
+				.Where(p => p is not null && !p.IsDestroyed()
+				         && !(p.Civilization is Civilizations.Barbarian)
+				         && !(p.Civilization is Civilizations.Olvir))
+				.OrderByDescending(p => p.Advances.Length)
+				.ToArray();
+
+			if (eligible.Length == 0) return;
+
+			for (int i = 0; i < orphaned.Count; i++)
+			{
+				byte pid = PlayerNumber(eligible[i % eligible.Length]);
+				if (!DomeAssignments.TryGetValue(pid, out var list))
+					DomeAssignments[pid] = list = new List<Enums.Wonder>();
+				list.Add(orphaned[i]);
+			}
 		}
 
 		// Returns the dome components assigned to this player (empty if none / not yet assigned).

@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Linq;
 using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
@@ -46,7 +47,8 @@ namespace CivOne.Screens.Dialogs
 		}
 
 		private bool IsOwnCity  => _city.Owner == _unit.Owner;
-		private bool IsForeignDome => !IsOwnCity && _city.CurrentProduction is CivOne.Wonders.IDomeComponent;
+		private bool IsForeignDome => !IsOwnCity && Game.Instance.GetDomeAssignments(Game.GetPlayer(_city.Owner))
+			.Any(w => !Game.Instance.WonderBuilt(Game.DomeFiveComponents.First(c => (CivOne.Enums.Wonder)c.Id == w)));
 		private bool ShowHelpWonder => IsOwnCity && _city.CurrentProduction is IWonder;
 
 		private bool AllowEstablishTradeRoute => (_unit.Home is null) || (_unit.Home.Tile.DistanceTo(_city) >= 10);
