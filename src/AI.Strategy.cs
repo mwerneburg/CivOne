@@ -1102,10 +1102,11 @@ namespace CivOne
 			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers immediately
 			// after first defender so the civ doesn't stagnate.
 			// Safe minSize: solo city can be size 1 (game protects it), otherwise 2.
+			// Never build settlers from a starving city — that accelerates population loss.
 			if (ownCities < 3 && stance != StrategyStance.Consolidate)
 			{
 				int minSize = ownCities == 1 ? 1 : 2;
-				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
@@ -1142,7 +1143,7 @@ namespace CivOne
 				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
 				int minSize = Leader.Development == Expansionistic ? 3
 				            : Leader.Development == Normal          ? 4 : 4;
-				if (city.Size >= minSize && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
@@ -1225,8 +1226,8 @@ namespace CivOne
 			if (ownMilitia < ownCities * 4 && plan.All(x => !(x is Militia)))
 				plan.Add(new Militia());
 
-			// 4. Settler — size >= 4 so the city stays viable at size 3; cap at 1 per 2 cities
-			if (city.Size >= 4 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
+			// 4. Settler — size >= 4 so the city stays viable at size 3; cap at 1 per 2 cities; never from a starving city
+			if (city.Size >= 4 && city.FoodIncome >= 0 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
 				plan.Add(new Settlers());
 
 			// 5. Temple
