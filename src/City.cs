@@ -345,7 +345,7 @@ namespace CivOne
 
 		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)));
 
-		private int BaseTrade => (int)(_cachedBaseTrade ??= RawTrade - Corruption);
+		private int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
 
 		private int RouteBonus(City partner)
 		{
