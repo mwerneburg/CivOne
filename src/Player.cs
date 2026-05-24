@@ -121,6 +121,7 @@ namespace CivOne
 		public event EventHandler Destroyed;
 
 		internal int CityNamesSkipped = 0;
+		internal short AnarchyTurnsLeft { get => _anarchy; set => _anarchy = value; }
 
 		internal short StartX { get; set; }
 		

@@ -157,6 +157,8 @@ namespace CivOne
 					Embassies        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].HasEmbassy(_players[j]))
 				                   .ToArray(),
+					CityNamesSkipped = player.CityNamesSkipped,
+					Anarchy          = player.AnarchyTurnsLeft != 0 ? (int?)player.AnarchyTurnsLeft : null,
 					Visibility       = PackVisibility(vis)
 				});
 			}
@@ -308,7 +310,9 @@ namespace CivOne
 				player.TaxesRate    = pd.TaxRate;
 				player.LuxuriesRate = 10 - pd.ScienceRate - pd.TaxRate;
 				player.StartX       = (short)pd.StartX;
-				player.Government   = Reflect.GetGovernments().FirstOrDefault(gov => gov.Id == pd.GovernmentId);
+				player.Government        = Reflect.GetGovernments().FirstOrDefault(gov => gov.Id == pd.GovernmentId);
+				player.CityNamesSkipped  = pd.CityNamesSkipped;
+				player.AnarchyTurnsLeft  = (short)(pd.Anarchy ?? 0);
 
 				// Visibility
 				if (!string.IsNullOrEmpty(pd.Visibility))

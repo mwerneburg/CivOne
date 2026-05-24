@@ -128,6 +128,8 @@ namespace CivOne.Persistence
 		public int? MilestoneScore { get; set; }
 		public int[] AtWarWith { get; set; }
 		public int[] Embassies { get; set; }
+		public int CityNamesSkipped { get; set; }
+		public int? Anarchy { get; set; }
 		// base64-encoded bitset: bit (y*80+x) set if player has explored that tile
 		public string Visibility { get; set; }
 	}
