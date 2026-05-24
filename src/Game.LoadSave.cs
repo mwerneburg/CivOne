@@ -281,6 +281,18 @@ namespace CivOne
 
 			GameTurn = gameData.GameTurn;
 			CityNames = gameData.CityNames;
+			// Extend CityNames if this save pre-dates a civilization addition (e.g. Olvir).
+			{
+				string[] canonical = Common.AllCityNames.ToArray();
+				if (CityNames.Length < canonical.Length)
+				{
+					var extended = new string[canonical.Length];
+					CityNames.CopyTo(extended, 0);
+					for (int i = CityNames.Length; i < canonical.Length; i++)
+						extended[i] = canonical[i];
+					CityNames = extended;
+				}
+			}
 			HumanPlayer = _players[gameData.HumanPlayer];
 			HumanPlayer.CurrentResearch = Common.Advances.FirstOrDefault(a => a.Id == gameData.CurrentResearch);
 		

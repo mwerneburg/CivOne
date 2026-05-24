@@ -396,6 +396,18 @@ namespace CivOne
 			if (TauCetiEscalationTurn > 0 && !ProbeDispatched)
 				TauCetiEscalationTurn = Math.Max(TauCetiEscalationTurn, (uint)(_gameTurn + 5));
 			CityNames    = g.CityNames;
+			// Extend CityNames if this save pre-dates a civilization addition (e.g. Olvir).
+			{
+				string[] canonical = Common.AllCityNames.ToArray();
+				if (CityNames.Length < canonical.Length)
+				{
+					var extended = new string[canonical.Length];
+					CityNames.CopyTo(extended, 0);
+					for (int i = CityNames.Length; i < canonical.Length; i++)
+						extended[i] = canonical[i];
+					CityNames = extended;
+				}
+			}
 			HumanPlayer  = _players[g.HumanPlayer];
 			_anthologyTurn = (ushort)g.AnthologyTurn;
 			_currentPlayer = g.HumanPlayer;
