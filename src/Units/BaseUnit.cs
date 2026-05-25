@@ -523,7 +523,8 @@ namespace CivOne.Units
 			// TODO: This implementation was done by observation, may need a revision
 			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.TransportTube || Tile.City is not null;
 			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.TransportTube || moveTarget.City is not null;
-			bool riverBonus = Tile is River && moveTarget is River;
+			bool riverBonus = (Tile is River && moveTarget is River)
+				|| (Player.Civilization is Civilizations.Olvir && Tile is Jungle && moveTarget is Jungle);
 			if (srcRoad && dstRoad || riverBonus)
 			{
 				// Handle movement in MovementDone
