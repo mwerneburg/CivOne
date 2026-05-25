@@ -832,13 +832,15 @@ namespace CivOne.Units
 		
 		public void Pillage()
 		{
-			if (!(Tile.Irrigation || Tile.Mine || Tile.Road || Tile.RailRoad))
+			if (!(Tile.Irrigation || Tile.Mine || Tile.TransportTube || Tile.Road || Tile.RailRoad))
 				return;
-			
+
 			if (Tile.Irrigation)
 				Tile.Irrigation = false;
 			else if (Tile.Mine)
 				Tile.Mine = false;
+			else if (Tile.TransportTube)
+				Tile.TransportTube = false;
 			else if (Tile.Road)
 				Tile.Road = false;
 			else if (Tile.RailRoad)
