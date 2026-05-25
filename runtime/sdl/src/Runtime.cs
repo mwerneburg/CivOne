@@ -196,6 +196,7 @@ namespace CivOne
 			foreach (var pair in _defaultAssets)
 			{
 				string targetPath = Path.Combine(new[] { storageDir }.Concat(pair.Value).ToArray());
+				if (File.Exists(targetPath)) continue;
 				using (Stream src = asm.GetManifestResourceStream(pair.Key))
 				{
 					if (src == null) continue;
