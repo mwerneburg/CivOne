@@ -104,7 +104,10 @@ namespace CivOne
 				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
-				bool validRoad = (tile.City is null) && !tile.RailRoad && !tile.TransportTube && (!tile.Road || Player.HasAdvance<RailRoad>() || Player.HasAdvance<TransitConduit>());
+				bool validRoad = (tile.City is null) && !tile.TransportTube && (
+					(!tile.Road && !tile.RailRoad) ||
+					(tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) ||
+					(tile.RailRoad && Player.HasAdvance<TransitConduit>()));
 				bool validCanopy = Player.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
 				bool validAquafarm = Player.HasAdvance<BioplexEngineering>() && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
 				int nearestCity = 255;
