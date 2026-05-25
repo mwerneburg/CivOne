@@ -43,8 +43,8 @@ namespace CivOne.Units
 		public Point RoadTo { get; set; } = Point.Empty;
 		public int BuildingRoad { get; private set; }
 		private bool _buildingTube;
-		public int BuildingCanopyArray { get; private set; }
-		public int BuildingAquafarm { get; private set; }
+		public int BuildingCanopyArray { get; internal set; }
+		public int BuildingAquafarm { get; internal set; }
 		public int BuildingIrrigation { get; private set; }
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
@@ -277,9 +277,8 @@ namespace CivOne.Units
 			if (Map[X, Y].IsOcean)
 			{
 				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = 0;
-				BuildingCanopyArray = BuildingAquafarm = 0;
 				_buildingTube = false;
-				return;
+				if (BuildingAquafarm == 0) return;
 			}
 			if (BuildingRoad > 0)
 			{

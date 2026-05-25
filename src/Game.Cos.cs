@@ -90,13 +90,16 @@ namespace CivOne
 				int homeCityId = unit.Home is not null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
 
 				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
+				int? buildCanopy = null, buildAqua = null;
 				int? roadToX = null, roadToY = null;
 				if (unit is Settlers settlers)
 				{
-					if (settlers.BuildingRoad > 0)       buildRoad = settlers.BuildingRoad;
-					if (settlers.BuildingIrrigation > 0) buildIrr  = settlers.BuildingIrrigation;
-					if (settlers.BuildingMine > 0)       buildMine = settlers.BuildingMine;
-					if (settlers.BuildingFortress > 0)   buildFort = settlers.BuildingFortress;
+					if (settlers.BuildingRoad > 0)        buildRoad   = settlers.BuildingRoad;
+					if (settlers.BuildingIrrigation > 0)  buildIrr    = settlers.BuildingIrrigation;
+					if (settlers.BuildingMine > 0)        buildMine   = settlers.BuildingMine;
+					if (settlers.BuildingFortress > 0)    buildFort   = settlers.BuildingFortress;
+					if (settlers.BuildingCanopyArray > 0) buildCanopy = settlers.BuildingCanopyArray;
+					if (settlers.BuildingAquafarm > 0)    buildAqua   = settlers.BuildingAquafarm;
 					if (!settlers.RoadTo.IsEmpty) { roadToX = settlers.RoadTo.X; roadToY = settlers.RoadTo.Y; }
 				}
 				int? fuelLeft = null;
@@ -119,6 +122,8 @@ namespace CivOne
 					BuildingIrrigation = buildIrr,
 					BuildingMine       = buildMine,
 					BuildingFortress   = buildFort,
+					BuildingCanopyArray = buildCanopy,
+					BuildingAquafarm   = buildAqua,
 					RoadToX            = roadToX,
 					RoadToY            = roadToY,
 					FuelLeft           = fuelLeft
@@ -519,6 +524,8 @@ namespace CivOne
 				{
 					if (ud.BuildingRoad > 0 || ud.BuildingIrrigation > 0 || ud.BuildingMine > 0 || ud.BuildingFortress > 0)
 						s.SetBuildProgress(ud.BuildingRoad ?? 0, ud.BuildingIrrigation ?? 0, ud.BuildingMine ?? 0, ud.BuildingFortress ?? 0);
+					if (ud.BuildingCanopyArray > 0) s.BuildingCanopyArray = ud.BuildingCanopyArray.Value;
+					if (ud.BuildingAquafarm > 0)    s.BuildingAquafarm    = ud.BuildingAquafarm.Value;
 					if (ud.RoadToX.HasValue) s.RoadTo = new Point(ud.RoadToX.Value, ud.RoadToY ?? 0);
 				}
 				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)

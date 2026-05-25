@@ -182,6 +182,8 @@ namespace CivOne.Persistence
 		public int? BuildingIrrigation { get; set; }
 		public int? BuildingMine { get; set; }
 		public int? BuildingFortress { get; set; }
+		public int? BuildingCanopyArray { get; set; }
+		public int? BuildingAquafarm { get; set; }
 		// Settler "build road to" destination (null = no road-to order)
 		public int? RoadToX { get; set; }
 		public int? RoadToY { get; set; }
