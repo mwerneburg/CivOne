@@ -828,13 +828,12 @@ namespace CivOne
 				palace.SetFree();
 				city.AddBuilding(palace);
 			}
-			if ((Map[x, y] is Desert) || (Map[x, y] is Grassland) || (Map[x, y] is Hills) || (Map[x, y] is Plains) || (Map[x, y] is River))
+			if (!Map[x, y].IsOcean)
 			{
-				Map[x, y].Irrigation = true;
-			}
-			if (!Map[x, y].RailRoad)
-			{
-				Map[x, y].Road = true;
+				if ((Map[x, y] is Desert) || (Map[x, y] is Grassland) || (Map[x, y] is Hills) || (Map[x, y] is Plains) || (Map[x, y] is River))
+					Map[x, y].Irrigation = true;
+				if (!Map[x, y].RailRoad)
+					Map[x, y].Road = true;
 			}
 			_cities.Add(city);
 			Game.UpdateResources(city.Tile);
@@ -1144,10 +1143,10 @@ namespace CivOne
 				.Where(c => c.Id < olvirCiv.Id)
 				.Sum(c => c.CityNames.Length);
 
-			// All non-ocean non-edge land tiles that don't already host a city.
 			bool CityFree(int x, int y) => !_cities.Any(c => c.X == x && c.Y == y && c.Size > 0);
 			bool IsLand(int x, int y) => !(Map[x, y] is Ocean) && y > 0 && y < Map.HEIGHT - 1;
 			bool CoastalTile(ITile t) => t.GetBorderTiles().Any(b => b is Ocean);
+			bool IsEquatorial(int y) => y > Map.HEIGHT / 4 && y < 3 * Map.HEIGHT / 4;
 
 			const int MinSpread = 12; // Chebyshev distance between Olvir cities
 			var chosen = new List<(int x, int y)>();
@@ -1155,7 +1154,20 @@ namespace CivOne
 			bool FarEnough(int x, int y) =>
 				chosen.All(p => TileDistance(x, y, p.x, p.y) >= MinSpread);
 
-			// 1) Jungle city first.
+			// 1) One ocean city — equatorial, away from poles, far from existing civs.
+			var oceans = Enumerable.Range(0, Map.WIDTH)
+				.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
+				.Where(t => Map[t.x, t.y] is Ocean && IsEquatorial(t.y) && CityFree(t.x, t.y))
+				.OrderBy(_ => Common.Random.Next(10000))
+				.ToList();
+
+			(int x, int y) oceanCity = oceans.FirstOrDefault(t => FarEnough(t.x, t.y));
+			if (oceanCity == default) oceanCity = oceans.FirstOrDefault(); // fallback: any equatorial ocean
+
+			if (oceanCity != default)
+				chosen.Add(oceanCity);
+
+			// 2) One jungle city.
 			var jungles = Enumerable.Range(0, Map.WIDTH)
 				.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
 				.Where(t => Map[t.x, t.y] is Jungle && IsLand(t.x, t.y) && CityFree(t.x, t.y))
@@ -1168,7 +1180,7 @@ namespace CivOne
 			if (jungleCity != default)
 				chosen.Add(jungleCity);
 
-			// 2) Three more cities: prefer coastal, then any habitable land.
+			// 3) Fill remaining slots: prefer coastal land, then any habitable land.
 			IEnumerable<(int x, int y)> CoastalFirst() =>
 				Enumerable.Range(0, Map.WIDTH)
 					.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
@@ -1196,9 +1208,13 @@ namespace CivOne
 
 				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
 
-				IUnit settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
-				if (settler is not null)
-					settler.SkipTurn();
+				// Ocean cities don't get a settler — land settlers can't work ocean tiles.
+				if (!Map[chosen[i].x, chosen[i].y].IsOcean)
+				{
+					IUnit settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
+					if (settler is not null)
+						settler.SkipTurn();
+				}
 			}
 
 			// 5) Gift Xenobiology to all surviving civs — contact with the Olvir makes
