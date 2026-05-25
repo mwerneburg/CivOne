@@ -1344,16 +1344,17 @@ namespace CivOne
 
 			foreach (City city in ownCities)
 			{
-				for (int dy = -4; dy <= 4; dy++)
-				for (int dx = -4; dx <= 4; dx++)
+				for (int dy = -2; dy <= 2; dy++)
+				for (int dx = -2; dx <= 2; dx++)
 				{
+					if ((dx == -2 || dx == 2) && (dy == -2 || dy == 2)) continue; // skip corners (match CityRadius)
 					int tx = (city.X + dx + Map.WIDTH) % Map.WIDTH;
 					int ty = city.Y + dy;
 					if (ty < 0 || ty >= Map.HEIGHT) continue;
 					ITile tile = Map[tx, ty];
 					if (tile is null || tile.IsOcean || tile.City is not null) continue;
 					if (Game.Instance.OlvirImprovements.ContainsKey((tx, ty))) continue;
-					int dist = Common.DistanceToTile(settler.X, settler.Y, tx, ty);
+					int dist = Common.DistanceToTile(city.X, city.Y, tx, ty);
 					if (dist < bestDist) { bestDist = dist; best = tile; }
 				}
 			}
