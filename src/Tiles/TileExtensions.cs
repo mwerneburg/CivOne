@@ -31,8 +31,12 @@ namespace CivOne.Tiles
 
 		private static TextSettings CityLabel = TextSettings.ShadowText(15, 5);
 
-		public static bool DrawRoad(this ITile tile) => (tile.Road || tile.RailRoad) && (!tile.RailRoad || (tile.RailRoad && tile.BorderRoads() != tile.BorderRailRoads()));
-		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad;
+		public static bool DrawRoad(this ITile tile)
+		{
+			bool hasRail = tile.RailRoad || tile.TransportTube;
+			return (tile.Road || hasRail) && (!hasRail || tile.BorderRoads() != tile.BorderRailRoads());
+		}
+		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad || tile.TransportTube;
 		public static bool DrawIrrigation(this ITile tile) => tile.Irrigation && tile.City is null;
 		public static bool DrawMine(this ITile tile) => tile.Mine;
 		public static bool DrawFortress(this ITile tile) => tile.Fortress && tile.City is null;
@@ -96,7 +100,7 @@ namespace CivOne.Tiles
 			for (int i = 1; i <= 128; i *= 2)
 			{
 				ITile borderTile = GetBorderTile(tile, (Direction)i);
-				if (borderTile is null || (!borderTile.Road && !borderTile.RailRoad && borderTile.City is null)) continue;
+				if (borderTile is null || (!borderTile.Road && !borderTile.RailRoad && !borderTile.TransportTube && borderTile.City is null)) continue;
 				output += i;
 			}
 			return output;
@@ -108,7 +112,7 @@ namespace CivOne.Tiles
 			for (int i = 1; i <= 128; i *= 2)
 			{
 				ITile borderTile = GetBorderTile(tile, (Direction)i);
-				if (borderTile is null || (!borderTile.RailRoad && borderTile.City is null)) continue;
+				if (borderTile is null || (!borderTile.RailRoad && !borderTile.TransportTube && borderTile.City is null)) continue;
 				output += i;
 			}
 			return output;
@@ -116,7 +120,8 @@ namespace CivOne.Tiles
 
 		public static Direction DrawRoadDirections(this ITile tile)
 		{
-			if (tile.RailRoad)
+			bool hasRail = tile.RailRoad || tile.TransportTube;
+			if (hasRail)
 				return (Direction)(BorderRoads(tile) - BorderRailRoads(tile));
 			if (!tile.Road)
 				return Direction.None;
@@ -125,7 +130,7 @@ namespace CivOne.Tiles
 
 		public static Direction DrawRailRoadDirections(this ITile tile)
 		{
-			if (!tile.RailRoad)
+			if (!tile.RailRoad && !tile.TransportTube)
 				return Direction.None;
 			return BorderRailRoads(tile);
 		}
