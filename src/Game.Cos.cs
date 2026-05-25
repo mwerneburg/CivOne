@@ -357,7 +357,7 @@ namespace CivOne
 				var embassyList = cos.Players[i].Embassies;
 				if (embassyList is null) continue;
 				foreach (int j in embassyList.Where(j => j >= 0 && j < _players.Count && _players[j] is not null))
-					_players[i].EstablishEmbassy(_players[j]);
+					_players[i].EstablishEmbassy((byte)j);
 			}
 
 			// Future techs, milestone scores, and human player

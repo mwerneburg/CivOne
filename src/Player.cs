@@ -297,9 +297,10 @@ namespace CivOne
 
 		public bool HasEmbassy(Player player) => _embassies.Any(e => e == Game.PlayerNumber(player));
 
-		public void EstablishEmbassy(Player player)
+		public void EstablishEmbassy(Player player) => EstablishEmbassy(Game.PlayerNumber(player));
+
+		internal void EstablishEmbassy(byte playerNumber)
 		{
-			byte playerNumber = Game.PlayerNumber(player);
 			if (_embassies.Contains(playerNumber)) return;
 			_embassies.Add(playerNumber);
 		}
