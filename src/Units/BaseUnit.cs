@@ -521,8 +521,8 @@ namespace CivOne.Units
 			}
 
 			// TODO: This implementation was done by observation, may need a revision
-			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.City is not null;
-			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.City is not null;
+			bool srcRoad = Tile.Road || Tile.RailRoad || Tile.TransportTube || Tile.City is not null;
+			bool dstRoad = moveTarget.Road || moveTarget.RailRoad || moveTarget.TransportTube || moveTarget.City is not null;
 			bool riverBonus = Tile is River && moveTarget is River;
 			if (srcRoad && dstRoad || riverBonus)
 			{
@@ -591,7 +591,7 @@ namespace CivOne.Units
 
 		protected virtual void MovementDone(ITile previousTile)
 		{
-			bool railRailMove = previousTile.RailRoad && Tile.RailRoad;
+			bool railRailMove = (previousTile.RailRoad || previousTile.TransportTube) && (Tile.RailRoad || Tile.TransportTube);
 			Log($"[MovementDone] {GetType().Name} ({previousTile.X},{previousTile.Y})->({X},{Y}) prevRail={previousTile.RailRoad} curRail={Tile.RailRoad} railRailMove={railRailMove} ML={MovesLeft}");
 			if (MovesLeft > 0 && !railRailMove)
 				MovesLeft--;
