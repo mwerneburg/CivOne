@@ -516,7 +516,7 @@ namespace CivOne.Units
 					yield return MenuBuildFortress();
 				if (Human.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
 					yield return MenuBuildCanopyArray();
-				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && (!tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean) || tile.IsOcean))
+				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && ((!tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean)) || tile.IsOcean))
 					yield return MenuBuildAquafarm();
 				if (tile.Pollution)
 				{
