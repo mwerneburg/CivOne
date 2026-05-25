@@ -188,12 +188,12 @@ namespace CivOne
 				while (unit.Tile.City is not null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)
 				{
 					IUnit disband = null;
-					IUnit[] units = unit.Tile.Units.Where(x => x != unit).ToArray();
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Militia)) is not null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Phalanx)) is not null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Musketeers)) is not null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is Riflemen)) is not null) { Game.DisbandUnit(disband); continue; }
-					if ((disband = unit.Tile.Units.FirstOrDefault(x => x is MechInf)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Militia)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Phalanx)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Musketeers)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Riflemen)) is not null) { Game.DisbandUnit(disband); continue; }
+					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is MechInf)) is not null) { Game.DisbandUnit(disband); continue; }
+					break; // unit itself is the only remaining candidate — leave it alone
 				}
 
 				// Chieftain: militia explore toward fog-of-war instead of fortifying immediately,
