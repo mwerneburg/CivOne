@@ -221,7 +221,7 @@ namespace CivOne
 
 		private int FoodRaw => (int)(_cachedFoodRaw ??= ResourceTiles.Sum(t => FoodValue(t)));
 		internal int FoodIncome => (HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw) - FoodCosts;
-		internal int FoodRequired => Player.Civilization is Civilizations.Olvir
+		internal int FoodRequired => (Game.Started && Player.Civilization is Civilizations.Olvir)
 			? (int)(Size + 1) * 5
 			: (int)(Size + 1) * 10;
 		internal int FoodTotal => HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw;
