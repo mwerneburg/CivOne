@@ -326,6 +326,9 @@ namespace CivOne
 			// Barbarians (player 0) are always hostile — no formal war state needed
 			if (ownNumber == 0 || enemyNumber == 0) return;
 
+			// Olvir refugees seek coexistence and never initiate war
+			if (Civilization is Civilizations.Olvir) return;
+
 			if (_warWith.Contains(enemyNumber)) return;
 			if (_peaceTreaty.TryGetValue(enemyNumber, out int pt) && pt > 0) return;
 
