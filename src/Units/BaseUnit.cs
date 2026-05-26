@@ -972,7 +972,9 @@ namespace CivOne.Units
 				}
 			}
 
-			// unit_tiles.txt: same [section_name] + 256-index format as free_tiles.txt.
+			// unit_tiles.txt: [section_name] sections with palette-index pixel data.
+			// 256 pixels (16×16) → map unit tile override.
+			// 1024 pixels (32×32) → garrison icon override.
 			// Sections override any PNG of the same name.
 			string txtPath = Path.Combine(tilesDir, "unit_tiles.txt");
 			if (!File.Exists(txtPath)) return;
@@ -1000,14 +1002,26 @@ namespace CivOne.Units
 
 		private static void FlushTxtSection(string name, List<byte> pixels)
 		{
-			if (name is null || pixels.Count != 256) return;
+			if (name is null) return;
 			if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) return;
-			var bmap = new Bytemap(16, 16);
-			for (int y = 0; y < 16; y++)
-			for (int x = 0; x < 16; x++)
-				bmap[x, y] = pixels[y * 16 + x];
-			_pngOverrides[unitType] = bmap;
-			Log($"Loaded unit tile from txt: {name}");
+			if (pixels.Count == 256)
+			{
+				var bmap = new Bytemap(16, 16);
+				for (int y = 0; y < 16; y++)
+				for (int x = 0; x < 16; x++)
+					bmap[x, y] = pixels[y * 16 + x];
+				_pngOverrides[unitType] = bmap;
+				Log($"Loaded unit tile from txt: {name}");
+			}
+			else if (pixels.Count == 1024)
+			{
+				var bmap = new Bytemap(32, 32);
+				for (int y = 0; y < 32; y++)
+				for (int x = 0; x < 32; x++)
+					bmap[x, y] = pixels[y * 32 + x];
+				_garrisonIcons[unitType] = bmap;
+				Log($"Loaded garrison icon from txt: {name}");
+			}
 		}
 
 		private static Bytemap LoadPngTile(string path)
