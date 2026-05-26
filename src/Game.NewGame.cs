@@ -212,7 +212,7 @@ namespace CivOne
 					continue;
 				}
 				
-				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i).ToArray();
+				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i && !(civ is Civilizations.Olvir)).ToArray();
 				int r = Common.Random.Next(civs.Length);
 				
 				_players[i] = new Player(civs[r]);
