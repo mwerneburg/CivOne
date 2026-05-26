@@ -144,6 +144,8 @@ namespace CivOne
 			["CivOne.Resources.defaults.data.improvement_art.south_pole_expedition.png"]   = new[] { "data", "improvement_art", "south_pole_expedition.png" },
 			["CivOne.Resources.defaults.data.improvement_art.united_nations.png"]          = new[] { "data", "improvement_art", "united_nations.png" },
 			["CivOne.Resources.defaults.data.improvement_art.women's_suffrage.png"]        = new[] { "data", "improvement_art", "women's_suffrage.png" },
+			["CivOne.Resources.defaults.data.improvement_art.taj_mahal.png"]               = new[] { "data", "improvement_art", "taj_mahal.png" },
+			["CivOne.Resources.defaults.data.improvement_art.hagia_sofia.png"]             = new[] { "data", "improvement_art", "hagia_sofia.png" },
 			// Event art
 			["CivOne.Resources.defaults.data.event_art.civilunrest0.png"]       = new[] { "data", "event_art", "civilunrest0.png" },
 			["CivOne.Resources.defaults.data.event_art.civilunrest1.png"]       = new[] { "data", "event_art", "civilunrest1.png" },
