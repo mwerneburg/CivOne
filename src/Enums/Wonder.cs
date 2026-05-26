@@ -44,5 +44,7 @@ namespace CivOne.Enums
 		LeonardosWorkshop        = 31,
 		SunTzusWarAcademy        = 32,
 		AdamSmithsTradingHouse   = 33,
+		TajMahal                 = 34,
+		HagiaSofia               = 35,
 	}
 }

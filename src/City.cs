@@ -780,6 +780,7 @@ namespace CivOne
 			int happyCount = (int)Math.Floor((double)Luxuries / 2);
 			if (Player.HasWonder<HangingGardens>() && !Game.WonderObsolete<HangingGardens>()) happyCount++;
 			if (Player.HasWonder<CureForCancer>()) happyCount++;
+			if (Player.HasWonder<TajMahal>()) happyCount++;
 
 			int unhappyCount = Size - (6 - Game.Difficulty) - happyCount;
 			if (Player.RepublicDemocratic)
@@ -809,11 +810,13 @@ namespace CivOne
 				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
 				if (HasBuilding<ExchangeCenter>()) unhappyCount -= 1;
 				if (HasBuilding<NeuralLab>()) unhappyCount -= 1;
+				if (HasBuilding<CivicMonument>()) unhappyCount -= 1;
 				bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&
 					Tile is not null &&
 					Map.ContentCities(Tile.ContinentId).Any(x => x.Size > 0 && x.Owner == Owner && x.HasWonder<MichelangelosChapel>());
+				bool hagiaSofiaActive = Player.HasWonder<HagiaSofia>() && !Game.WonderObsolete<HagiaSofia>();
 				if (HasBuilding<Cathedral>())
-					unhappyCount -= chapelOnContinent ? 6 : 4;
+					unhappyCount -= chapelOnContinent ? (hagiaSofiaActive ? 8 : 6) : (hagiaSofiaActive ? 6 : 4);
 				else if (chapelOnContinent)
 					unhappyCount -= 4;
 			}
@@ -1147,6 +1150,8 @@ namespace CivOne
 				WasWeLoveKing = false;
 			}
  			Food += inDisorder ? 0 : foodIncome;
+			if (!inDisorder && foodIncome > 0 && HasBuilding<SurplusDepot>())
+				Player.Gold += (short)(foodIncome / 2);
 
 			if (Food < 0)
 			{

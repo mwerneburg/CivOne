@@ -43,5 +43,8 @@ namespace CivOne.Enums
 		ExchangeCenter = 29,
 		NeuralLab = 30,
 		SeaPlatform = 31,
+		InfrastructureBond = 32,
+		SurplusDepot = 33,
+		CivicMonument = 34,
 	}
 }

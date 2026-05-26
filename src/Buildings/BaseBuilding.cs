@@ -72,7 +72,7 @@ namespace CivOne.Buildings
 		protected Building Type { get; set; }
 		
 		public IAdvance RequiredTech { get; protected set; }
-		public short SellPrice { get; private set; }
+		public short SellPrice { get; protected set; }
 		public short BuyPrice { get; private set; }
 		public byte ProductionId => (byte)(255 - Type);
 		public byte Price { get; protected set; }
