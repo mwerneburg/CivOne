@@ -22,6 +22,13 @@ namespace CivOne.Units
 			}
 		}
 
+		public override void NewTurn()
+		{
+			base.NewTurn();
+			if (Game.GetPlayer(Owner).HasAdvance<Combustion>())
+				MovesLeft += 2;
+		}
+
 		public Transport() : base(5, 0, 3, 4)
 		{
 			Type = UnitType.Transport;

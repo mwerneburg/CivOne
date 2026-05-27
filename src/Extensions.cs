@@ -288,11 +288,9 @@ namespace CivOne
 				case Leader.Lincoln: return new Lincoln();
 				case Leader.Alexander: return new Alexander();
 				case Leader.Gandhi: return new Gandhi();
-				case Leader.Stalin: return new Stalin();
 				case Leader.Shaka: return new Shaka();
 				case Leader.Napoleon: return new Napoleon();
 				case Leader.Montezuma: return new Montezuma();
-				case Leader.Mao: return new Mao();
 				case Leader.Elizabeth: return new Elizabeth();
 				case Leader.Genghis: return new Genghis();
 				default: return null;
