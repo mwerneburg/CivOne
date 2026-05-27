@@ -13,6 +13,10 @@ using CivOne.Graphics;
 
 namespace CivOne.Advances
 {
+	// Advances in this group are hidden from the research menu until Game.SETISignalReceived
+	// is true. The gate is enforced in Player.AvailableResearch — all prereqs may be met,
+	// but the advance still won't appear until first contact. Subclasses must implement
+	// GetPageText() for Civilopedia display; icons and page art are stubbed (no legacy assets).
 	internal abstract class BasePostContactAdvance : IAdvance
 	{
 		private readonly Advance[] _prereqs;

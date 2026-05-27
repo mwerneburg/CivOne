@@ -17,6 +17,10 @@ namespace CivOne.Civilizations
 		string Name { get; }
 		string NamePlural { get; }
 		ILeader Leader { get; }
+		// Slot 0 is the Barbarian pseudo-player; civs assigned there are excluded from the
+		// new-game pool. Slots 1–7 are AI slots. The 14 original civs cycle 1–7 twice,
+		// creating buddy pairs that can respawn in each other's slot before 0 AD.
+		// Olvir also uses 0 even though it is not Barbarian — it enters via the story arc.
 		byte PreferredPlayerNumber { get; }
 		byte StartX { get; }
 		byte StartY { get; }

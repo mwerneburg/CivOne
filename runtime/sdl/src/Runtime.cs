@@ -209,6 +209,10 @@ namespace CivOne
 			["CivOne.Resources.defaults.garrison_icons.Militia.png"] = new[] { "garrison_icons", "Militia.png" },
 		};
 
+		// Deploys embedded assets on first run. Only files listed in _defaultAssets are installed;
+		// adding a new file here is not enough — it must also be added as an EmbeddedResource in
+		// the .csproj. Files under defaults/data/ are covered by the repo's **/data/** .gitignore
+		// rule and must be staged with 'git add -f' before they will be tracked in the repository.
 		private static void InstallDefaults(string storageDir)
 		{
 			Assembly asm = Assembly.GetExecutingAssembly();

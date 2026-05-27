@@ -67,6 +67,8 @@ namespace CivOne.Civilizations
 		public BaseCivilization(Civilization civilization, string name, string namePlural, string tune = null) : base(civilization)
 		{
 			Id = (Civilization == Civilization.Barbarians ? 15 : (int)Civilization);
+			// Barbarians and Olvir share slot 0; all other civs cycle 1–7 twice,
+			// pairing each original civ with a buddy 7 IDs away for pre-0AD respawns.
 			PreferredPlayerNumber = (byte)(
 				Civilization == Civilization.Barbarians || Civilization == Civilization.Olvir ? 0 :
 				((int)Civilization - 1) % 7 + 1);

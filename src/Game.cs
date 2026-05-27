@@ -993,6 +993,10 @@ namespace CivOne
 
 		public bool WonderBuilt(IWonder wonder) => BuiltWonders.Any(w => w.Id == wonder.Id);
 
+		// Wonder effects must check BOTH HasWonder<T>() AND !WonderObsolete<T>().
+		// HasWonder alone is insufficient: the wonder object remains in the city after
+		// its ObsoleteTech is researched by any player. WonderObsolete fires as soon as
+		// any player — not just the owner — discovers the obsoleting advance.
 		public bool WonderObsolete<T>() where T : IWonder, new() => WonderObsolete(new T());
 
 		public bool WonderObsolete(IWonder wonder) => (wonder.ObsoleteTech is not null && _players.Any(x => x.HasAdvance(wonder.ObsoleteTech)));
@@ -1402,6 +1406,9 @@ namespace CivOne
 
 		public IUnit MovingUnit => _units.FirstOrDefault(u => u.Moving);
 
+		// False during map generation and save loading; true once the Game singleton is live.
+		// Guards in City, tile, and unit code that read live game state (Player, wonder checks,
+		// replay log) must test this flag to avoid running against a partially-initialised world.
 		public static bool Started => (_instance is not null);
 		
 		private static Game _instance;
