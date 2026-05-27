@@ -9,6 +9,10 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// AI leader city development focus. Perfectionist builds fewer, larger cities;
+	/// Expansionistic prioritizes rapid settler output and new city founding.
+	/// </summary>
 	public enum DevelopmentLevel
 	{
 		Perfectionist = 0,

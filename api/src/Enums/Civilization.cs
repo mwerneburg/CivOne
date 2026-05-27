@@ -9,6 +9,12 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Civilization IDs. Values 0–14 are original Civ 1 civilizations and map to player slots
+	/// in .sve saves; Barbarians (0) is a special pseudo-player, not a playable civ. Olvir is
+	/// a CivOne-exclusive civilization assigned value 16, deliberately skipping 15 (Persians,
+	/// unused in Civ 1) to leave a gap for potential future additions.
+	/// </summary>
 	public enum Civilization : byte
 	{
 		Barbarians,

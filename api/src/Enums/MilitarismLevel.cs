@@ -9,6 +9,10 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// AI leader military preference. Militaristic leaders build more units and attack sooner;
+	/// Civilized leaders prioritize infrastructure and expansion over combat.
+	/// </summary>
 	public enum MilitarismLevel
 	{
 		Civilized = 0,

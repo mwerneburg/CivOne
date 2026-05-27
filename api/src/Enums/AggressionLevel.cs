@@ -9,6 +9,7 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>AI leader aggression tendency, affecting how readily the leader declares war.</summary>
 	public enum AggressionLevel
 	{
 		Friendly = 0,

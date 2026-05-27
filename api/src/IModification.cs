@@ -9,6 +9,13 @@
 
 namespace CivOne
 {
+	/// <summary>
+	/// Marker interface for all modification types. Implement one of the concrete base classes
+	/// (<see cref="Units.UnitModification"/>, <see cref="Leaders.LeaderModification"/>,
+	/// <see cref="Civilizations.CivilizationModification"/>,
+	/// <see cref="UserInterface.MenuModification"/>) rather than this interface directly.
+	/// CivOne discovers implementations via reflection at startup.
+	/// </summary>
 	public interface IModification
 	{
 	}

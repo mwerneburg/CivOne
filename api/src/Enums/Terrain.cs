@@ -9,6 +9,12 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Map tile terrain types. Two non-obvious points: (1) Grassland is split into two values —
+	/// Grassland1 produces a bonus shield, Grassland2 does not; the distinction is stored in each
+	/// tile's terrain byte. (2) River is a full terrain type, not an overlay drawn on top of
+	/// another terrain.
+	/// </summary>
 	public enum Terrain
 	{
 		None = -1,

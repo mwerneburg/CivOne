@@ -9,6 +9,10 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Tile improvement types built by Olvir settlers. These parallel the human improvement
+	/// system but are placed on Olvir-controlled tiles and have Olvir-specific effects.
+	/// </summary>
 	public enum OlvirImprovementType : byte
 	{
 		SettlementCluster = 0,

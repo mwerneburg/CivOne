@@ -9,6 +9,10 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Unit type IDs. Values are persisted verbatim in the Civ 1 .sve save format and must
+	/// not be reordered. New CivOne unit types should be appended after the last original value.
+	/// </summary>
 	public enum UnitType
 	{
 		Settlers = 0,

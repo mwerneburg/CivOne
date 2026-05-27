@@ -9,6 +9,12 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Tech tree advance IDs. Values 0–79 are original Civ 1 advances; they are persisted
+	/// verbatim in .sve save files and must not be reordered. Values 80 and above are
+	/// CivOne post-contact advances (unlocked after the SETI signal); they are stored only
+	/// in the COS save format and may be extended freely.
+	/// </summary>
 	public enum Advance
 	{
 		None = -1,

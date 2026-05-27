@@ -11,6 +11,11 @@ using System.Collections.Generic;
 
 namespace CivOne
 {
+	/// <summary>
+	/// Base class for game events recorded in the replay log. Each subclass captures one
+	/// notable event with the game turn it occurred on. The full log drives the end-game
+	/// replay sequence shown after a win or loss.
+	/// </summary>
 	public abstract class ReplayData
 	{
 		public class CityBuilt : ReplayData

@@ -9,6 +9,11 @@
 
 namespace CivOne.Enums
 {
+	/// <summary>
+	/// Leader IDs. OlvirCouncil is a CivOne-exclusive leader for the Olvir civilization.
+	/// Leader values are not persisted in save files — leader assignment is resolved from
+	/// civilization identity at load time, so values may be reordered freely.
+	/// </summary>
 	public enum Leader : byte
 	{
 		Atilla,
