@@ -175,6 +175,14 @@ namespace CivOne
 
 		private Game(int difficulty, int competition, ICivilization tribe, string leaderName, string tribeName, string tribeNamePlural)
 		{
+			// New-game setup sequence:
+			//   1. Apply game options (animations, sound, advice level, etc.).
+			//   2. Assign player slots: the human player goes into tribe.PreferredPlayerNumber;
+			//      each AI slot picks randomly from civs that share that PreferredPlayerNumber
+			//      (Olvir is excluded — it only enters via the post-contact story arc).
+			//   3. Place starting Settlers for each AI player (AddStartingUnits).
+			//   4. Score each starting position (CalculateHandicap) and distribute bonus
+			//      units/techs to players who drew weaker positions (ApplyBonus).
 			_difficulty = difficulty;
 			_competition = competition;
 			Log("Game instance created (difficulty: {0}, competition: {1})", _difficulty, _competition);

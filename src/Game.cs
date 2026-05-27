@@ -412,6 +412,20 @@ namespace CivOne
 
 		public void EndTurn()
 		{
+			// EndTurn has two phases separated by the _currentPlayer wrap-around check:
+			//
+			// Phase A — per-player advance (runs every call):
+			//   Sweep destroyed players, advance _currentPlayer. If it hasn't wrapped
+			//   yet, queue unit/city/player turns for the new current player and return.
+			//
+			// Phase B — global tick (runs once per full round, when _currentPlayer wraps
+			//   back to 0):
+			//   Global warming → Leonardo upgrade → story-arc events (Apollo intel,
+			//   SETI signal, Tau Ceti approach, probe reports, Olvir arrival) →
+			//   victory checks (dome, spaceship, 2100 AD score) → autosave →
+			//   disasters + barbarian spawns.
+			//   Victory checks in Phase B return early if the game ends, so conquest
+			//   (last-AI-destroyed) is checked after the wrap-around guard as well.
 			_waitingUnits.Clear();
 			_activeUnitExplicit = false;
 			foreach (Player player in _players.Where(x => !(x.Civilization is Barbarian)))

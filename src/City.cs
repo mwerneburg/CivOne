@@ -772,6 +772,20 @@ namespace CivOne
 
 		private IEnumerable<Citizen> ComputeCitizens()
 		{
+			// Happiness pipeline — runs in two passes:
+			//
+			// Pass 1 (budget): derive the net happy and unhappy integers.
+			//   happyCount  starts from luxury income and wonder bonuses.
+			//   unhappyCount starts from (size - difficulty_floor), then grows for
+			//   Republic/Democracy military-away penalties, then shrinks for each
+			//   happiness building/wonder that applies.
+			//
+			// Pass 2 (assignment): walk the Size citizen slots and emit Citizen
+			//   values. Working slots (index < working) pull from the happy/unhappy
+			//   budgets; any remaining slots past the worked tiles become specialists.
+			//   Specialists are never happy or unhappy — their mood is irrelevant to
+			//   disorder.
+
 			// Sync specialist list length with current city size and worked tiles.
 			int resourceCount = ResourceTiles.Count();
 			while (_specialists.Count < Size - (resourceCount - 1)) _specialists.Add(Citizen.Entertainer);
@@ -1026,6 +1040,16 @@ namespace CivOne
 
 		public void NewTurn()
 		{
+			// Turn processing order — each stage feeds the next:
+			//   1. UpdateResources + ExecutePollution  — tile state settled first.
+			//   2. Cache snapshot — ShieldIncome/FoodIncome/Citizens computed once;
+			//      later mutations don't invalidate mid-turn reads.
+			//   3. Disorder — riots escalate (burning buildings, revolt); or order restored.
+			//   4. We Love the King — triggers on happiness surplus; grants growth or Caravan.
+			//   5. Food — grows or starves the city; Granary half-refill applied here.
+			//   6. Shields — accumulate toward production; negative shield income disbands
+			//      the most distant home unit.
+			//   7. Production completion — unit/building/wonder/SS part built when shields full.
 			UpdateResources();
 			ExecutePollution();
 
