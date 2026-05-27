@@ -36,6 +36,8 @@ namespace CivOne.Units
 				BuildingMine = 0;
 				BuildingFortress = 0;
 				BuildingCleanPollution = 0;
+				BuildingCanopyArray = 0;
+				BuildingAquafarm = 0;
 				AutoClean = false;
 				RoadTo = Point.Empty;
 			}
