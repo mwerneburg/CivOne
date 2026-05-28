@@ -32,5 +32,15 @@ namespace CivOne.Enums
 		Peter,
 		Deng,
 		OlvirCouncil,
+		Tokugawa,
+		Cyrus,
+		SittingBull,
+		HarunAlRashid,
+		Jayavarman,
+		MansaMusa,
+		Pachacuti,
+		Suleiman,
+		HaileSelassie,
+		Hiawatha,
 	}
 }

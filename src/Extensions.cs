@@ -179,19 +179,32 @@ namespace CivOne
 		{
 			switch (leader)
 			{
-				case Leader.Atilla: return new Atilla();
-				case Leader.Caesar: return new Caesar();
-				case Leader.Hammurabi: return new Hammurabi();
-				case Leader.Frederick: return new Frederick();
-				case Leader.Ramesses: return new Ramesses();
-				case Leader.Lincoln: return new Lincoln();
-				case Leader.Alexander: return new Alexander();
-				case Leader.Gandhi: return new Gandhi();
-				case Leader.Shaka: return new Shaka();
-				case Leader.Napoleon: return new Napoleon();
-				case Leader.Montezuma: return new Montezuma();
-				case Leader.Elizabeth: return new Elizabeth();
-				case Leader.Genghis: return new Genghis();
+				case Leader.Atilla:        return new Atilla();
+				case Leader.Caesar:        return new Caesar();
+				case Leader.Hammurabi:     return new Hammurabi();
+				case Leader.Frederick:     return new Frederick();
+				case Leader.Ramesses:      return new Ramesses();
+				case Leader.Lincoln:       return new Lincoln();
+				case Leader.Alexander:     return new Alexander();
+				case Leader.Gandhi:        return new Gandhi();
+				case Leader.Shaka:         return new Shaka();
+				case Leader.Napoleon:      return new Napoleon();
+				case Leader.Montezuma:     return new Montezuma();
+				case Leader.Elizabeth:     return new Elizabeth();
+				case Leader.Genghis:       return new Genghis();
+				case Leader.Peter:         return new Peter();
+				case Leader.Deng:          return new Deng();
+				case Leader.OlvirCouncil:  return new OlvirCouncil();
+				case Leader.Tokugawa:      return new Tokugawa();
+				case Leader.Cyrus:         return new Cyrus();
+				case Leader.SittingBull:   return new SittingBull();
+				case Leader.HarunAlRashid: return new HarunAlRashid();
+				case Leader.Jayavarman:    return new Jayavarman();
+				case Leader.MansaMusa:     return new MansaMusa();
+				case Leader.Pachacuti:     return new Pachacuti();
+				case Leader.Suleiman:      return new Suleiman();
+				case Leader.HaileSelassie: return new HaileSelassie();
+				case Leader.Hiawatha:      return new Hiawatha();
 				default: return null;
 			}
 		}

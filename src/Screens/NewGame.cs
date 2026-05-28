@@ -104,7 +104,7 @@ namespace CivOne.Screens
 		
 		private void SetCompetition(object sender, MenuItemEventArgs<int> args)
 		{
-			_competition = (7 - args.Value);
+			_competition = (17 - args.Value);
 			CloseMenus();
 			Log("Competition: {0} Civilizations", _competition);
 			
@@ -365,7 +365,7 @@ namespace CivOne.Screens
 				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor", "Deity (toughest)"];
 			else
 				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor (toughest)"];
-			_menuItemsCompetition = Enumerable.Range(3, 5).Reverse().Select(i => $"{i} Civilizations").ToArray();
+			_menuItemsCompetition = Enumerable.Range(3, 15).Reverse().Select(i => $"{i} Civilizations").ToArray();
 		}
 	}
 }
