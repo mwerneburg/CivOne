@@ -1050,6 +1050,9 @@ namespace CivOne
 			//   6. Shields — accumulate toward production; negative shield income disbands
 			//      the most distant home unit.
 			//   7. Production completion — unit/building/wonder/SS part built when shields full.
+			// Reset cached tile yields so changes from the previous turn (irrigation,
+			// railroad, pollution) are reflected before any income is read this turn.
+			InvalidateCache();
 			UpdateResources();
 			ExecutePollution();
 

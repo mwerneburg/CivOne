@@ -302,6 +302,7 @@ namespace CivOne.Units
 					}
 					Map[X, Y].Road = true;
 					if (BuildingRoad > 0) { MovesLeft = 0; PartMoves = 0; }
+					else Game.InvalidateCitiesAt(X, Y);
 				}
 			}
 			else if (BuildingIrrigation > 0)
@@ -317,17 +318,20 @@ namespace CivOne.Units
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
 					Map.ChangeTileType(X, Y, Terrain.Plains);
+					Game.InvalidateCitiesAt(X, Y);
 				}
 				else if ((Map[X, Y] is Jungle) || (Map[X, Y] is Swamp))
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
 					Map.ChangeTileType(X, Y, Terrain.Grassland1);
+					Game.InvalidateCitiesAt(X, Y);
 				}
 				else
 				{
 					Map[X, Y].Irrigation = true;
 					Map[X, Y].Mine = false;
+					Game.InvalidateCitiesAt(X, Y);
 				}
 			}
 			else if (BuildingMine > 0)
@@ -343,11 +347,13 @@ namespace CivOne.Units
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
 					Map.ChangeTileType(X, Y, Terrain.Forest);
+					Game.InvalidateCitiesAt(X, Y);
 				}
 				else
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = true;
+					Game.InvalidateCitiesAt(X, Y);
 				}
 			}
 			else if (BuildingFortress > 0)
@@ -367,19 +373,19 @@ namespace CivOne.Units
 			{
 				BuildingCleanPollution--;
 				if (BuildingCleanPollution > 0) { MovesLeft = 0; PartMoves = 0; }
-				else Map[X, Y].Pollution = false;
+				else { Map[X, Y].Pollution = false; Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingCanopyArray > 0)
 			{
 				BuildingCanopyArray--;
 				if (BuildingCanopyArray > 0) { MovesLeft = 0; PartMoves = 0; }
-				else Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.CanopyArray;
+				else { Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.CanopyArray; Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingAquafarm > 0)
 			{
 				BuildingAquafarm--;
 				if (BuildingAquafarm > 0) { MovesLeft = 0; PartMoves = 0; }
-				else Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.Aquafarm;
+				else { Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.Aquafarm; Game.InvalidateCitiesAt(X, Y); }
 			}
 
 			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0)

@@ -856,6 +856,19 @@ namespace CivOne
 			return city;
 		}
 
+		// Invalidate the food/shield/trade cache for every city that currently works the
+		// tile at (x, y). Call this after any tile mutation (irrigation, railroad, pollution
+		// removal, terrain conversion) so cached FoodRaw/ShieldRaw values stay accurate.
+		internal static void InvalidateCitiesAt(int x, int y)
+		{
+			if (_instance is null) return;
+			foreach (City c in _instance._cities)
+			{
+				if (c.ResourceTiles.Any(t => t.X == x && t.Y == y))
+					c.InvalidateCache();
+			}
+		}
+
 		public void DestroyCity(City city)
 		{
 			int cityIdx = _cities.IndexOf(city);

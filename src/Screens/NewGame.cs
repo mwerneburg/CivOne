@@ -27,7 +27,8 @@ namespace CivOne.Screens
 	{
 		private ICivilization[] _tribesAvailable;
 		private string[] _menuItemsDifficulty, _menuItemsCompetition, _menuItemsTribes;
-		
+
+		private readonly int _maxCompetition;
 		private readonly Picture _background;
 
 		private int OffsetX => ((Width - 320) / 2);
@@ -104,7 +105,7 @@ namespace CivOne.Screens
 		
 		private void SetCompetition(object sender, MenuItemEventArgs<int> args)
 		{
-			_competition = (17 - args.Value);
+			_competition = (_maxCompetition - args.Value);
 			CloseMenus();
 			Log("Competition: {0} Civilizations", _competition);
 			
@@ -365,7 +366,8 @@ namespace CivOne.Screens
 				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor", "Deity (toughest)"];
 			else
 				_menuItemsDifficulty = ["Chieftain (easiest)", "Warlord", "Prince", "King", "Emperor (toughest)"];
-			_menuItemsCompetition = Enumerable.Range(3, 15).Reverse().Select(i => $"{i} Civilizations").ToArray();
+			_maxCompetition = Math.Min(17, Math.Max(3, Map.WIDTH * Map.HEIGHT / 571));
+		_menuItemsCompetition = Enumerable.Range(3, _maxCompetition - 2).Reverse().Select(i => $"{i} Civilizations").ToArray();
 		}
 	}
 }
