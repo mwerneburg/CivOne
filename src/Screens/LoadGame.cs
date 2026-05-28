@@ -42,12 +42,9 @@ namespace CivOne.Screens
 		private struct SlotInfo
 		{
 			public string CosFile;
-			public string SveFile;
-			public string MapFile;
 			public string Label;
 			public string Year;
 			public bool   Exists;
-			public bool   IsCos;
 			public bool   IsAuto;
 		}
 
@@ -60,10 +57,7 @@ namespace CivOne.Screens
 
 			for (int i = 0; i < MANUAL_SLOTS; i++)
 			{
-				string basePath = Path.Combine(dir, $"CIVIL{i}");
-				slots[i].CosFile = basePath + ".cos";
-				slots[i].SveFile = basePath + ".SVE";
-				slots[i].MapFile = basePath + ".MAP";
+				slots[i].CosFile = Path.Combine(dir, $"CIVIL{i}.cos");
 				slots[i].Label   = "(empty)";
 				slots[i].Year    = "";
 
@@ -75,27 +69,8 @@ namespace CivOne.Screens
 						if (meta is not null)
 						{
 							slots[i].Exists = true;
-							slots[i].IsCos  = true;
 							slots[i].Label  = meta.Name ?? "(unknown)";
 							slots[i].Year   = Common.YearString((ushort)meta.Turn);
-						}
-					}
-					catch { slots[i].Label = "(unreadable)"; }
-				}
-				else if (File.Exists(slots[i].SveFile) && File.Exists(slots[i].MapFile))
-				{
-					try
-					{
-						using (var fs = new FileStream(slots[i].SveFile, FileMode.Open))
-						using (var br = new BinaryReader(fs))
-						{
-							if (fs.Length == 37856)
-							{
-								ushort humanPlayer = Common.BinaryReadUShort(br, 2);
-								slots[i].Exists = true;
-								slots[i].Label  = Common.BinaryReadStrings(br, 16, 112, 14)[humanPlayer];
-								slots[i].Year   = Common.YearString(Common.BinaryReadUShort(br, 0));
-							}
 						}
 					}
 					catch { slots[i].Label = "(unreadable)"; }
@@ -116,7 +91,6 @@ namespace CivOne.Screens
 					if (meta is not null)
 					{
 						slots[8].Exists = true;
-						slots[8].IsCos  = true;
 						slots[8].Label  = $"AUTO: {meta.Name ?? "autosave"}";
 						slots[8].Year   = Common.YearString((ushort)meta.Turn);
 					}
@@ -225,10 +199,7 @@ namespace CivOne.Screens
 			SaveGame.SelectedGame = Math.Min(_selection, MANUAL_SLOTS - 1);
 			Log($"Load game: {s.Label}");
 			Destroy();
-			if (s.IsCos)
-				Game.LoadCos(s.CosFile);
-			else
-				Game.LoadGame(s.SveFile, s.MapFile);
+			Game.LoadCos(s.CosFile);
 			if (Game.Started)
 				Common.AddScreen(new GamePlay());
 		}

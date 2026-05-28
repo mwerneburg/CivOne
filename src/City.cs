@@ -80,7 +80,7 @@ namespace CivOne
 		internal int Shields { get; set; }
 		internal int Food { get; set; }
 		internal IProduction CurrentProduction { get; private set; }
-		// Persisted to <savename>.civ1q alongside the .sve file (see Game.LoadSave.cs).
+		// Persisted in the COS save file (see Game.Cos.cs).
 		private readonly List<IProduction> _productionQueue = new();
 		private List<ITile> _resourceTiles = new();
 		private List<IBuilding> _buildings = new();
