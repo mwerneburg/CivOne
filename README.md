@@ -94,7 +94,7 @@ notebooks/              Analysis tools
 
 ## Game rules and features
 
-See [`docs/README.md`](docs/README.md) for a full description of game rules, rule changes from the original, terrain generation, display configuration, and known issues.
+See [`docs/README.md`](docs/README.md) for a full description of game rules, rule changes from the original, terrain generation, display configuration, the debug menu, and known issues.
 
 ---
 

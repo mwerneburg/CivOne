@@ -127,3 +127,23 @@ On a 2560×1600 display this gives a 640×400 canvas rendered at 4× — chunky 
   └───────────────────┴──────────────────┴────────────────────────────────────────┘
 
 The Scale setting (integer, 1–8) controls the initial window size hint. Set <Scale>4</Scale> if you want the window to open large before you resize it, but the canvas and pixel zoom are otherwise determined by the window size and any explicit ExpandWidth/ExpandHeight you provide.
+
+## Debug menu
+
+There is an in-game debug menu, disabled by default. To enable it: from the main menu open Setup, scroll to "Debug menu: No", and toggle it to Yes. The setting persists across sessions.
+
+Once enabled, a "Debug Options" entry appears in the in-game menu, with:
+
+ + Set Game Year — jump the calendar to any year
+ + Set Player Gold — set the human player's treasury
+ + Set Player Science — set accumulated science toward the current research
+ + Set Player Advances — grant or revoke individual advances
+ + Set City Size — resize any of your cities
+ + Cause City Disaster — trigger a famine, fire, riot, etc. on a chosen city
+ + Change Human Player — hand control to a different civilization
+ + Spawn Unit — place any unit type on the map
+ + Meet With King — open the diplomacy screen with any AI leader
+ + Toggle Reveal World — flip the fog-of-war off and on
+ + Show PowerGraph — show the score/power graph at any time
+
+These are testing/debugging aids — they're cheats and are not balanced for play.
