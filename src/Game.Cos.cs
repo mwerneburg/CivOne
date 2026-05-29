@@ -90,22 +90,30 @@ namespace CivOne
 				int homeCityId = unit.Home is not null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
 
 				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
-				int? buildCanopy = null, buildAqua = null, buildTube = null;
+				int? buildCanopy = null, buildAqua = null, buildTube = null, buildReclaim = null;
+				int? buildLower = null, buildRaise = null, buildForest = null, buildJungle = null, buildThaw = null, buildRiver = null;
 				int? roadToX = null, roadToY = null;
 				if (unit is Settlers settlers)
 				{
-					if (settlers.BuildingRoad > 0)        buildRoad   = settlers.BuildingRoad;
-					if (settlers.BuildingIrrigation > 0)  buildIrr    = settlers.BuildingIrrigation;
-					if (settlers.BuildingMine > 0)        buildMine   = settlers.BuildingMine;
-					if (settlers.BuildingFortress > 0)    buildFort   = settlers.BuildingFortress;
-					if (settlers.BuildingCanopyArray > 0) buildCanopy = settlers.BuildingCanopyArray;
-					if (settlers.BuildingAquafarm > 0)    buildAqua   = settlers.BuildingAquafarm;
+					if (settlers.BuildingRoad > 0)          buildRoad   = settlers.BuildingRoad;
+					if (settlers.BuildingIrrigation > 0)    buildIrr    = settlers.BuildingIrrigation;
+					if (settlers.BuildingMine > 0)          buildMine   = settlers.BuildingMine;
+					if (settlers.BuildingFortress > 0)      buildFort   = settlers.BuildingFortress;
+					if (settlers.BuildingCanopyArray > 0)   buildCanopy = settlers.BuildingCanopyArray;
+					if (settlers.BuildingAquafarm > 0)      buildAqua   = settlers.BuildingAquafarm;
+					if (settlers.BuildingLowerTerrain > 0)  buildLower  = settlers.BuildingLowerTerrain;
+					if (settlers.BuildingRaiseTerrain > 0)  buildRaise  = settlers.BuildingRaiseTerrain;
+					if (settlers.BuildingPlantForest > 0)   buildForest = settlers.BuildingPlantForest;
+					if (settlers.BuildingPlantJungle > 0)   buildJungle = settlers.BuildingPlantJungle;
+					if (settlers.BuildingThawTundra > 0)    buildThaw   = settlers.BuildingThawTundra;
+					if (settlers.BuildingAddRiver > 0)      buildRiver  = settlers.BuildingAddRiver;
 					if (!settlers.RoadTo.IsEmpty) { roadToX = settlers.RoadTo.X; roadToY = settlers.RoadTo.Y; }
 				}
 				else if (unit is HydroEngineer hydro)
 				{
-					if (hydro.BuildingTube > 0)     buildTube = hydro.BuildingTube;
-					if (hydro.BuildingAquafarm > 0) buildAqua = hydro.BuildingAquafarm;
+					if (hydro.BuildingTube > 0)     buildTube    = hydro.BuildingTube;
+					if (hydro.BuildingAquafarm > 0) buildAqua    = hydro.BuildingAquafarm;
+					if (hydro.BuildingReclaim > 0)  buildReclaim = hydro.BuildingReclaim;
 				}
 				int? fuelLeft = null;
 				if (unit is BaseUnitAir airUnit && airUnit.FuelLeft < airUnit.TotalFuel)
@@ -130,6 +138,13 @@ namespace CivOne
 					BuildingCanopyArray = buildCanopy,
 					BuildingAquafarm   = buildAqua,
 					BuildingTube       = buildTube,
+					BuildingReclaim    = buildReclaim,
+					BuildingLowerTerrain = buildLower,
+					BuildingRaiseTerrain = buildRaise,
+					BuildingPlantForest  = buildForest,
+					BuildingPlantJungle  = buildJungle,
+					BuildingThawTundra   = buildThaw,
+					BuildingAddRiver     = buildRiver,
 					RoadToX            = roadToX,
 					RoadToY            = roadToY,
 					FuelLeft           = fuelLeft
@@ -530,14 +545,21 @@ namespace CivOne
 				{
 					if (ud.BuildingRoad > 0 || ud.BuildingIrrigation > 0 || ud.BuildingMine > 0 || ud.BuildingFortress > 0)
 						s.SetBuildProgress(ud.BuildingRoad ?? 0, ud.BuildingIrrigation ?? 0, ud.BuildingMine ?? 0, ud.BuildingFortress ?? 0);
-					if (ud.BuildingCanopyArray > 0) s.BuildingCanopyArray = ud.BuildingCanopyArray.Value;
-					if (ud.BuildingAquafarm > 0)    s.BuildingAquafarm    = ud.BuildingAquafarm.Value;
+					if (ud.BuildingCanopyArray > 0)   s.BuildingCanopyArray   = ud.BuildingCanopyArray.Value;
+					if (ud.BuildingAquafarm > 0)      s.BuildingAquafarm      = ud.BuildingAquafarm.Value;
+					if (ud.BuildingLowerTerrain > 0)  s.BuildingLowerTerrain  = ud.BuildingLowerTerrain.Value;
+					if (ud.BuildingRaiseTerrain > 0)  s.BuildingRaiseTerrain  = ud.BuildingRaiseTerrain.Value;
+					if (ud.BuildingPlantForest > 0)   s.BuildingPlantForest   = ud.BuildingPlantForest.Value;
+					if (ud.BuildingPlantJungle > 0)   s.BuildingPlantJungle   = ud.BuildingPlantJungle.Value;
+					if (ud.BuildingThawTundra > 0)    s.BuildingThawTundra    = ud.BuildingThawTundra.Value;
+					if (ud.BuildingAddRiver > 0)      s.BuildingAddRiver      = ud.BuildingAddRiver.Value;
 					if (ud.RoadToX.HasValue) s.RoadTo = new Point(ud.RoadToX.Value, ud.RoadToY ?? 0);
 				}
 				else if (unit is HydroEngineer h)
 				{
 					if (ud.BuildingTube > 0)     h.BuildingTube     = ud.BuildingTube.Value;
 					if (ud.BuildingAquafarm > 0) h.BuildingAquafarm = ud.BuildingAquafarm.Value;
+					if (ud.BuildingReclaim > 0)  h.BuildingReclaim  = ud.BuildingReclaim.Value;
 				}
 				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)
 					airU.FuelLeft = ud.FuelLeft.Value;

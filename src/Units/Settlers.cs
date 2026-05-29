@@ -26,7 +26,8 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0);
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0
+					|| BuildingLowerTerrain > 0 || BuildingRaiseTerrain > 0 || BuildingPlantForest > 0 || BuildingPlantJungle > 0 || BuildingThawTundra > 0 || BuildingAddRiver > 0);
 			}
 			set
 			{
@@ -38,6 +39,12 @@ namespace CivOne.Units
 				BuildingCleanPollution = 0;
 				BuildingCanopyArray = 0;
 				BuildingAquafarm = 0;
+				BuildingLowerTerrain = 0;
+				BuildingRaiseTerrain = 0;
+				BuildingPlantForest = 0;
+				BuildingPlantJungle = 0;
+				BuildingThawTundra = 0;
+				BuildingAddRiver = 0;
 				AutoClean = false;
 				RoadTo = Point.Empty;
 			}
@@ -51,6 +58,12 @@ namespace CivOne.Units
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
 		public int BuildingCleanPollution { get; private set; }
+		public int BuildingLowerTerrain { get; internal set; }
+		public int BuildingRaiseTerrain { get; internal set; }
+		public int BuildingPlantForest { get; internal set; }
+		public int BuildingPlantJungle { get; internal set; }
+		public int BuildingThawTundra { get; internal set; }
+		public int BuildingAddRiver { get; internal set; }
 		public bool AutoClean { get; private set; }
 
 		internal bool IsTileClaimed(int tx, int ty) =>
@@ -181,6 +194,64 @@ namespace CivOne.Units
 			if (!tile.GetBorderTiles().Any(t => t.IsOcean)) return false;
 			if (Game.OlvirImprovements.ContainsKey((tile.X, tile.Y))) return false;
 			BuildingAquafarm = 4;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildLowerTerrain()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Geoplasticity>()) return false;
+			if (!(Map[X, Y] is Hills)) return false;
+			BuildingLowerTerrain = 5;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildRaiseTerrain()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Geoplasticity>()) return false;
+			if (!(Map[X, Y] is Plains)) return false;
+			BuildingRaiseTerrain = 5;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildPlantForest()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Bioformatting>()) return false;
+			ITile tile = Map[X, Y];
+			if (!(tile is Plains || tile is Grassland || tile is Desert)) return false;
+			BuildingPlantForest = 5;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildPlantJungle()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Bioformatting>()) return false;
+			if (!(Map[X, Y] is Forest)) return false;
+			BuildingPlantJungle = 4;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildThawTundra()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Bioformatting>()) return false;
+			if (!(Map[X, Y] is Tundra)) return false;
+			BuildingThawTundra = 5;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		public bool BuildAddRiver()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Hydroengineering>()) return false;
+			ITile tile = Map[X, Y];
+			if (tile.IsOcean || tile is River) return false;
+			bool adjacentFresh = tile.GetBorderTiles().Any(t => t is River || (t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y)));
+			if (!adjacentFresh) return false;
+			BuildingAddRiver = 6;
 			MovesLeft = 0; PartMoves = 0;
 			return true;
 		}
@@ -386,8 +457,45 @@ namespace CivOne.Units
 				if (BuildingAquafarm > 0) { MovesLeft = 0; PartMoves = 0; }
 				else { Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.Aquafarm; Game.InvalidateCitiesAt(X, Y); }
 			}
+			else if (BuildingLowerTerrain > 0)
+			{
+				BuildingLowerTerrain--;
+				if (BuildingLowerTerrain > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.Plains); Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingRaiseTerrain > 0)
+			{
+				BuildingRaiseTerrain--;
+				if (BuildingRaiseTerrain > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].Irrigation = false; Map.ChangeTileType(X, Y, Terrain.Hills); Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingPlantForest > 0)
+			{
+				BuildingPlantForest--;
+				if (BuildingPlantForest > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.Forest); Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingPlantJungle > 0)
+			{
+				BuildingPlantJungle--;
+				if (BuildingPlantJungle > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map.ChangeTileType(X, Y, Terrain.Jungle); Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingThawTundra > 0)
+			{
+				BuildingThawTundra--;
+				if (BuildingThawTundra > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map.ChangeTileType(X, Y, Terrain.Grassland1); Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingAddRiver > 0)
+			{
+				BuildingAddRiver--;
+				if (BuildingAddRiver > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.River); Game.InvalidateCitiesAt(X, Y); }
+			}
 
-			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0)
+			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0
+				&& BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 && BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 && BuildingAddRiver == 0)
 			{
 				if (Map[X, Y].Pollution && Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, X, Y) <= 3))
 				{
@@ -403,7 +511,8 @@ namespace CivOne.Units
 				}
 			}
 
-			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0)
+			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0
+				&& BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 && BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 && BuildingAddRiver == 0)
 			{
 				if (X == RoadTo.X && Y == RoadTo.Y)
 				{
@@ -444,6 +553,36 @@ namespace CivOne.Units
 			.Create("Build Aquafarm")
 			.SetShortcut("a")
 			.OnSelect((s, a) => BuildAquafarm());
+
+		private MenuItem<int> MenuLowerTerrain() => MenuItem<int>
+			.Create("Lower to Plains")
+			.SetShortcut("l")
+			.OnSelect((s, a) => BuildLowerTerrain());
+
+		private MenuItem<int> MenuRaiseTerrain() => MenuItem<int>
+			.Create("Raise to Hills")
+			.SetShortcut("h")
+			.OnSelect((s, a) => BuildRaiseTerrain());
+
+		private MenuItem<int> MenuPlantForest() => MenuItem<int>
+			.Create("Plant Forest")
+			.SetShortcut("v")
+			.OnSelect((s, a) => BuildPlantForest());
+
+		private MenuItem<int> MenuPlantJungle() => MenuItem<int>
+			.Create("Plant Jungle")
+			.SetShortcut("j")
+			.OnSelect((s, a) => BuildPlantJungle());
+
+		private MenuItem<int> MenuThawTundra() => MenuItem<int>
+			.Create("Thaw to Grassland")
+			.SetShortcut("k")
+			.OnSelect((s, a) => BuildThawTundra());
+
+		private MenuItem<int> MenuAddRiver() => MenuItem<int>
+			.Create("Engineer River")
+			.SetShortcut("e")
+			.OnSelect((s, a) => BuildAddRiver());
 
 		private MenuItem<int> MenuBuildRoadTo() => MenuItem<int>
 			.Create("Build Road To...")
@@ -524,6 +663,18 @@ namespace CivOne.Units
 					yield return MenuBuildCanopyArray();
 				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean))
 					yield return MenuBuildAquafarm();
+				if (Human.HasAdvance<Geoplasticity>() && tile is Hills)
+					yield return MenuLowerTerrain();
+				if (Human.HasAdvance<Geoplasticity>() && tile is Plains)
+					yield return MenuRaiseTerrain();
+				if (Human.HasAdvance<Bioformatting>() && (tile is Plains || tile is Grassland || tile is Desert))
+					yield return MenuPlantForest();
+				if (Human.HasAdvance<Bioformatting>() && tile is Forest)
+					yield return MenuPlantJungle();
+				if (Human.HasAdvance<Bioformatting>() && tile is Tundra)
+					yield return MenuThawTundra();
+				if (Human.HasAdvance<Hydroengineering>() && !tile.IsOcean && !(tile is River) && tile.GetBorderTiles().Any(t => t is River || (t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))))
+					yield return MenuAddRiver();
 				if (tile.Pollution)
 				{
 					yield return MenuCleanPollution();

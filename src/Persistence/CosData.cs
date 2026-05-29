@@ -186,6 +186,15 @@ namespace CivOne.Persistence
 		public int? BuildingAquafarm { get; set; }
 		// Hydro Engineer sea-tube build progress (null = not building)
 		public int? BuildingTube { get; set; }
+		// Hydro Engineer ocean→plains reclamation progress (null = not building)
+		public int? BuildingReclaim { get; set; }
+		// Tier-4 terraform build progress (Settlers; null = not building)
+		public int? BuildingLowerTerrain { get; set; }
+		public int? BuildingRaiseTerrain { get; set; }
+		public int? BuildingPlantForest { get; set; }
+		public int? BuildingPlantJungle { get; set; }
+		public int? BuildingThawTundra { get; set; }
+		public int? BuildingAddRiver { get; set; }
 		// Settler "build road to" destination (null = no road-to order)
 		public int? RoadToX { get; set; }
 		public int? RoadToY { get; set; }

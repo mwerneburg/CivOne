@@ -21,18 +21,20 @@ namespace CivOne.Units
 	{
 		public int BuildingTube { get; internal set; }
 		public int BuildingAquafarm { get; internal set; }
+		public int BuildingReclaim { get; internal set; }
 
 		public override bool Busy
 		{
 			get
 			{
-				return (base.Busy || BuildingTube > 0 || BuildingAquafarm > 0);
+				return (base.Busy || BuildingTube > 0 || BuildingAquafarm > 0 || BuildingReclaim > 0);
 			}
 			set
 			{
 				base.Busy = value;
 				BuildingTube = 0;
 				BuildingAquafarm = 0;
+				BuildingReclaim = 0;
 			}
 		}
 
@@ -65,6 +67,16 @@ namespace CivOne.Units
 			return true;
 		}
 
+		public bool ReclaimLand()
+		{
+			if (!Player.HasAdvance<Hydroengineering>()) return false;
+			if (!Map[X, Y].IsOcean) return false;
+			if (!Map[X, Y].GetBorderTiles().Any(t => !t.IsOcean)) return false;
+			BuildingReclaim = 8;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
 		public override void NewTurn()
 		{
 			base.NewTurn();
@@ -84,6 +96,14 @@ namespace CivOne.Units
 				else { Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.Aquafarm; Game.InvalidateCitiesAt(X, Y); }
 				return;
 			}
+
+			if (BuildingReclaim > 0)
+			{
+				BuildingReclaim--;
+				if (BuildingReclaim > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map.ChangeTileType(X, Y, Terrain.Plains); Game.InvalidateCitiesAt(X, Y); }
+				return;
+			}
 		}
 
 		private MenuItem<int> MenuFoundCity() => MenuItem<int>
@@ -100,6 +120,11 @@ namespace CivOne.Units
 			.Create("Build Aquafarm")
 			.SetShortcut("a")
 			.OnSelect((s, a) => BuildSeaAquafarm());
+
+		private MenuItem<int> MenuReclaimLand() => MenuItem<int>
+			.Create("Reclaim Land")
+			.SetShortcut("r")
+			.OnSelect((s, a) => ReclaimLand());
 
 		public override IEnumerable<MenuItem<int>> MenuItems
 		{
@@ -119,6 +144,8 @@ namespace CivOne.Units
 						yield return MenuBuildTube();
 					if (Player.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
 						yield return MenuBuildAquafarm();
+					if (Player.HasAdvance<Hydroengineering>() && tile.GetBorderTiles().Any(t => !t.IsOcean))
+						yield return MenuReclaimLand();
 				}
 
 				if (tile.City is not null)

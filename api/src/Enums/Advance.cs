@@ -96,6 +96,9 @@ namespace CivOne.Enums
 		NeuralInterface,
 		GravitonEngineering,
 		PlanetaryStewardship,
-		CollectiveMemory
+		CollectiveMemory,
+		Geoplasticity,
+		Bioformatting,
+		Hydroengineering
 	}
 }
