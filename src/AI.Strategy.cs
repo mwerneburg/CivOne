@@ -852,6 +852,8 @@ namespace CivOne
 					// Barbarian cities stay valid until captured; non-barbarian targets
 					// are dropped when the war ends.
 					bool targetStale = _attackTarget is null
+					    || _attackTarget.Size <= 0
+					    || !Game.GetCities().Contains(_attackTarget)
 					    || _attackTarget.Player == Player
 					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player));
 					if (targetStale)
