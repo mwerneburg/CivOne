@@ -285,6 +285,56 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 
+		// Procedurally generated transport-tube sprite (glowing conduit).
+		// Same visual works on land and ocean — cyan reads against grass, sand, and dark blue water.
+		private static Bytemap GetTransportTube(Direction directions)
+		{
+			const byte LINE = 11;
+			const byte HUB  = 15;
+
+			Bytemap output = new Bytemap(16, 16);
+
+			if (directions == Direction.None)
+			{
+				output.FillRectangle(6, 6, 4, 4, LINE);
+				output.FillRectangle(7, 7, 2, 2, HUB);
+				return output;
+			}
+
+			if ((directions & North) != 0) output.FillRectangle(7, 0, 2, 7, LINE);
+			if ((directions & South) != 0) output.FillRectangle(7, 9, 2, 7, LINE);
+			if ((directions & East)  != 0) output.FillRectangle(9, 7, 7, 2, LINE);
+			if ((directions & West)  != 0) output.FillRectangle(0, 7, 7, 2, LINE);
+
+			if ((directions & NorthEast) != 0) DrawDiagonalLine(output, 15, 0, 9, 6, LINE);
+			if ((directions & NorthWest) != 0) DrawDiagonalLine(output, 0, 0, 6, 6, LINE);
+			if ((directions & SouthEast) != 0) DrawDiagonalLine(output, 15, 15, 9, 9, LINE);
+			if ((directions & SouthWest) != 0) DrawDiagonalLine(output, 0, 15, 6, 9, LINE);
+
+			output.FillRectangle(7, 7, 2, 2, HUB);
+			if ((directions & North) != 0) output.FillRectangle(7, 6, 2, 1, HUB);
+			if ((directions & South) != 0) output.FillRectangle(7, 9, 2, 1, HUB);
+			if ((directions & East)  != 0) output.FillRectangle(9, 7, 1, 2, HUB);
+			if ((directions & West)  != 0) output.FillRectangle(6, 7, 1, 2, HUB);
+
+			return output;
+		}
+
+		private static void DrawDiagonalLine(Bytemap b, int x0, int y0, int x1, int y1, byte colour)
+		{
+			int dx = System.Math.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+			int dy = -System.Math.Abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+			int err = dx + dy;
+			while (true)
+			{
+				b.FillRectangle(x0, y0, 1, 1, colour);
+				if (x0 == x1 && y0 == y1) break;
+				int e2 = 2 * err;
+				if (e2 >= dy) { err += dy; x0 += sx; }
+				if (e2 <= dx) { err += dx; y0 += sy; }
+			}
+		}
+
 		private static Bytemap GetIrrigation()
 		{
 			return Free.Irrigation();
@@ -361,6 +411,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISpriteCollection<Direction> Fog = new CachedSpriteCollection<Direction>(GetFog);
 		public static readonly ISpriteCollection<Direction> Road = new CachedSpriteCollection<Direction>(GetRoad);
 		public static readonly ISpriteCollection<Direction> RailRoad = new CachedSpriteCollection<Direction>(GetRailRoad);
+		public static readonly ISpriteCollection<Direction> TransportTube = new CachedSpriteCollection<Direction>(GetTransportTube);
 		public static readonly ISprite Irrigation = new CachedSprite(GetIrrigation);
 		public static readonly ISprite Mine = new CachedSprite(GetMine);
 		public static readonly ISprite Fortress = new CachedSprite(GetFortress);

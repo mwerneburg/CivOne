@@ -33,10 +33,12 @@ namespace CivOne.Tiles
 
 		public static bool DrawRoad(this ITile tile)
 		{
-			bool hasRail = tile.RailRoad || tile.TransportTube;
+			if (tile.TransportTube) return false;
+			bool hasRail = tile.RailRoad;
 			return (tile.Road || hasRail) && (!hasRail || tile.BorderRoads() != tile.BorderRailRoads());
 		}
-		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad || tile.TransportTube;
+		public static bool DrawRailRoad(this ITile tile) => tile.RailRoad && !tile.TransportTube;
+		public static bool DrawTransportTube(this ITile tile) => tile.TransportTube;
 		public static bool DrawIrrigation(this ITile tile) => tile.Irrigation && tile.City is null;
 		public static bool DrawMine(this ITile tile) => tile.Mine;
 		public static bool DrawFortress(this ITile tile) => tile.Fortress && tile.City is null;
@@ -118,6 +120,18 @@ namespace CivOne.Tiles
 			return output;
 		}
 
+		public static Direction BorderTransportTubes(this ITile tile)
+		{
+			Direction output = Direction.None;
+			for (int i = 1; i <= 128; i *= 2)
+			{
+				ITile borderTile = GetBorderTile(tile, (Direction)i);
+				if (borderTile is null || (!borderTile.TransportTube && borderTile.City is null)) continue;
+				output += i;
+			}
+			return output;
+		}
+
 		public static Direction DrawRoadDirections(this ITile tile)
 		{
 			bool hasRail = tile.RailRoad || tile.TransportTube;
@@ -133,6 +147,13 @@ namespace CivOne.Tiles
 			if (!tile.RailRoad && !tile.TransportTube)
 				return Direction.None;
 			return BorderRailRoads(tile);
+		}
+
+		public static Direction DrawTransportTubeDirections(this ITile tile)
+		{
+			if (!tile.TransportTube)
+				return Direction.None;
+			return BorderTransportTubes(tile);
 		}
 
 		public static bool AllowIrrigation(this ITile tile)
@@ -204,6 +225,7 @@ namespace CivOne.Tiles
 			{
 				if (tile.DrawRoad()) output.AddLayer(MapTile.Road[tile.DrawRoadDirections()]);
 				if (tile.DrawRailRoad()) output.AddLayer(MapTile.RailRoad[tile.DrawRailRoadDirections()]);
+				if (tile.DrawTransportTube()) output.AddLayer(MapTile.TransportTube[tile.DrawTransportTubeDirections()]);
 			}
 			if (tile.DrawFortress()) output.AddLayer(MapTile.Fortress);
 			if (tile.DrawHut()) output.AddLayer(MapTile.Hut);
