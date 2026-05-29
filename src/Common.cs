@@ -47,8 +47,9 @@ namespace CivOne
 		public static IWonder[] Wonders = Reflect.GetWonders().ToArray();
 		public static ICivilization[] Civilizations => Reflect.GetCivilizations().ToArray();
 		// Slots 0–7: original civs (0=Barbarians). Slots 8–15: reserved for narrative factions (Olvir=8, Others=9).
-		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7,  17, 16, 14, 13, 12, 11, 15,  7];
-		public static byte[] ColourDark  = [ 4,  7,  2, 1, 10,  3,  4, 8,   5,  4,  3,  4,  4,  3,  5,  3];
+		// Slots 16–19: extra capacity for max-competition games (NewGame caps at 17 civs; with barbarians + Olvir that's 19 slots).
+		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7,  17, 16, 14, 13, 12, 11, 15,  7,  9, 14, 11, 13];
+		public static byte[] ColourDark  = [ 4,  7,  2, 1, 10,  3,  4, 8,   5,  4,  3,  4,  4,  3,  5,  3,  1, 10,  3,  4];
 		
 		internal static IEnumerable<string> AllCityNames => Civilizations.Select(x => x.CityNames).SelectMany(x => x);
 
