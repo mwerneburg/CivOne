@@ -929,6 +929,7 @@ namespace CivOne
 				case UnitType.Diplomat: unit = new Diplomat(); break;
 				case UnitType.Caravan: unit = new Caravan(); break;
 				case UnitType.Explorer: unit = new Explorer(); break;
+				case UnitType.HydroEngineer: unit = new HydroEngineer(); break;
 				default: return null;
 			}
 			unit.X = x;

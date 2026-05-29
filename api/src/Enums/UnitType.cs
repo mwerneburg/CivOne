@@ -44,5 +44,6 @@ namespace CivOne.Enums
 		Diplomat = 26,
 		Caravan = 27,
 		Explorer = 28,
+		HydroEngineer = 29,
 	}
 }

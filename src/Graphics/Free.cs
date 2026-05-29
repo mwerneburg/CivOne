@@ -996,6 +996,20 @@ namespace CivOne.Graphics
 				case UnitType.Diplomat: text = 'D'; break;
 				case UnitType.Caravan: text = 't'; break;
 				case UnitType.Explorer: text = 'e'; break;
+				case UnitType.HydroEngineer:
+					output.AddLayer(new Bytemap(10, 10).FromByteArray(
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0, 11, 11, 11, 11,  0,  0,  0,
+						0,  0, 11, 15, 13, 13, 15, 11,  0,  0,
+						0, 11, 15, 15, 11, 11, 15, 15, 11,  0,
+						0, 11, 15, 15, 13, 13, 15, 15, 11,  0,
+						0,  0,  5,  5,  5,  5,  5,  5,  0,  0,
+						0,  5,  5,  8,  8,  8,  8,  5,  5,  0,
+						0,  5,  8, 11,  8,  8, 11,  8,  5,  0,
+						0,  0,  5,  5,  5,  5,  5,  5,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+					), 3, 3);
+					break;
 			}
 			if (text != ' ')
 			{

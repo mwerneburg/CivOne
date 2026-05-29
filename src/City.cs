@@ -1260,7 +1260,7 @@ namespace CivOne
 					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
 						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);
-					if (CurrentProduction is Settlers)
+					if (CurrentProduction is Settlers || CurrentProduction is HydroEngineer)
 					{
 						if (Size == 1 && Player.Cities.Length == 1) Size++;
 						if (Size > 1) unit.SetHome();
@@ -1270,11 +1270,11 @@ namespace CivOne
 					{
 						unit.SetHome();
 					}
-					if (Human == Owner && (unit is Settlers || unit is Diplomat || unit is Caravan))
+					if (Human == Owner && (unit is Settlers || unit is HydroEngineer || unit is Diplomat || unit is Caravan))
 					{
 						GameTask.Enqueue(new ImprovementBuilt(this, unit));
 					}
-					if (!(CurrentProduction is Settlers || CurrentProduction is Diplomat || CurrentProduction is Caravan))
+					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Diplomat || CurrentProduction is Caravan))
 					{
 						string uname = (CurrentProduction as ICivilopedia)?.Name;
 						if (uname is not null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))

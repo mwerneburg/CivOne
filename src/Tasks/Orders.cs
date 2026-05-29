@@ -123,19 +123,18 @@ namespace CivOne.Tasks
 
 		private void CreateCity()
 		{
-			if (_unit is not null && !(_unit is Settlers))
+			if (_unit is not null && !(_unit is Settlers) && !(_unit is HydroEngineer))
 			{
 				Error("SETTLERS");
 				EndTask();
 				return;
 			}
 
-			Settlers settlers = (_unit as Settlers);
-			if (settlers is not null)
+			if (_unit is not null)
 			{
-				_player = settlers.Player;
-				_x = settlers.X;
-				_y = settlers.Y;
+				_player = Game.GetPlayer(_unit.Owner);
+				_x = _unit.X;
+				_y = _unit.Y;
 			}
 
 			if (Map[_x, _y].IsOcean && !(_player?.HasAdvance<AquaticColonization>() ?? false))

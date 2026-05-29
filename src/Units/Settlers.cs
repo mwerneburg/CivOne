@@ -177,9 +177,8 @@ namespace CivOne.Units
 		{
 			if (!Game.CurrentPlayer.HasAdvance<BioplexEngineering>()) return false;
 			ITile tile = Map[X, Y];
-			bool coastal = !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean);
-			bool onOcean = tile.IsOcean;
-			if (!coastal && !onOcean) return false;
+			if (tile.IsOcean) return false;
+			if (!tile.GetBorderTiles().Any(t => t.IsOcean)) return false;
 			if (Game.OlvirImprovements.ContainsKey((tile.X, tile.Y))) return false;
 			BuildingAquafarm = 4;
 			MovesLeft = 0; PartMoves = 0;
@@ -504,7 +503,7 @@ namespace CivOne.Units
 				ITile tile = Map[X, Y];
 
 				yield return MenuNoOrders();
-				if (!tile.IsOcean || Human.HasAdvance<AquaticColonization>())
+				if (!tile.IsOcean)
 					yield return MenuFoundCity();
 				{
 					bool noInfra     = !tile.Road && !tile.RailRoad && !tile.TransportTube;
@@ -523,7 +522,7 @@ namespace CivOne.Units
 					yield return MenuBuildFortress();
 				if (Human.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
 					yield return MenuBuildCanopyArray();
-				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && ((!tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean)) || tile.IsOcean))
+				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean))
 					yield return MenuBuildAquafarm();
 				if (tile.Pollution)
 				{
