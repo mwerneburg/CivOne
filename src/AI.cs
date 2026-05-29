@@ -185,7 +185,70 @@ namespace CivOne
 				unit.SkipTurn();
 				return;
 			}
-			else if (unit is Militia || unit is Phalanx || unit is Musketeers || unit is Riflemen || unit is MechInf)
+
+			if (unit is HydroEngineer)
+			{
+				ITile tile = unit.Tile;
+				HydroEngineer hydro = (HydroEngineer)unit;
+
+				if (tile.IsOcean && tile.City is null)
+				{
+					int nearestCity = 255;
+					City[] allCities = Game.GetCities();
+					if (allCities.Any()) nearestCity = allCities.Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y));
+
+					int nearestOwnCity = 255;
+					City[] ownCities = allCities.Where(c => c.Owner == unit.Owner).ToArray();
+					if (ownCities.Any()) nearestOwnCity = ownCities.Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y));
+
+					if (nearestCity > 4)
+					{
+						DecisionLogger.LogSettlerAction(unit, "found-floating");
+						hydro.FoundFloatingCity();
+						unit.SkipTurn();
+						return;
+					}
+
+					if (nearestOwnCity <= 3 && Player.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
+					{
+						DecisionLogger.LogSettlerAction(unit, "sea-aquafarm");
+						hydro.BuildSeaAquafarm();
+						unit.SkipTurn();
+						return;
+					}
+
+					if (nearestOwnCity <= 3 && !tile.TransportTube)
+					{
+						DecisionLogger.LogSettlerAction(unit, "sea-tube");
+						hydro.BuildSeaTube();
+						unit.SkipTurn();
+						return;
+					}
+				}
+
+				// Drift toward open ocean: find a deep ocean tile beyond any city's working radius.
+				if (unit.Goto.IsEmpty)
+				{
+					ITile dest = BestFloatingSite(unit);
+					if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
+				}
+
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile next = Common.GotoStep(unit);
+					if (next is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+					{
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+					}
+					return;
+				}
+				unit.SkipTurn();
+				return;
+			}
+
+			if (unit is Militia || unit is Phalanx || unit is Musketeers || unit is Riflemen || unit is MechInf)
 			{
 				// Trim excess defenders in cities (per-city cap of 4)
 				while (unit.Tile.City is not null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)

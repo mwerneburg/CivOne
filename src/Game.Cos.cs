@@ -90,7 +90,7 @@ namespace CivOne
 				int homeCityId = unit.Home is not null && cityByRef.TryGetValue(unit.Home, out var idx) ? idx : -1;
 
 				int? buildRoad = null, buildIrr = null, buildMine = null, buildFort = null;
-				int? buildCanopy = null, buildAqua = null;
+				int? buildCanopy = null, buildAqua = null, buildTube = null;
 				int? roadToX = null, roadToY = null;
 				if (unit is Settlers settlers)
 				{
@@ -101,6 +101,11 @@ namespace CivOne
 					if (settlers.BuildingCanopyArray > 0) buildCanopy = settlers.BuildingCanopyArray;
 					if (settlers.BuildingAquafarm > 0)    buildAqua   = settlers.BuildingAquafarm;
 					if (!settlers.RoadTo.IsEmpty) { roadToX = settlers.RoadTo.X; roadToY = settlers.RoadTo.Y; }
+				}
+				else if (unit is HydroEngineer hydro)
+				{
+					if (hydro.BuildingTube > 0)     buildTube = hydro.BuildingTube;
+					if (hydro.BuildingAquafarm > 0) buildAqua = hydro.BuildingAquafarm;
 				}
 				int? fuelLeft = null;
 				if (unit is BaseUnitAir airUnit && airUnit.FuelLeft < airUnit.TotalFuel)
@@ -124,6 +129,7 @@ namespace CivOne
 					BuildingFortress   = buildFort,
 					BuildingCanopyArray = buildCanopy,
 					BuildingAquafarm   = buildAqua,
+					BuildingTube       = buildTube,
 					RoadToX            = roadToX,
 					RoadToY            = roadToY,
 					FuelLeft           = fuelLeft
@@ -527,6 +533,11 @@ namespace CivOne
 					if (ud.BuildingCanopyArray > 0) s.BuildingCanopyArray = ud.BuildingCanopyArray.Value;
 					if (ud.BuildingAquafarm > 0)    s.BuildingAquafarm    = ud.BuildingAquafarm.Value;
 					if (ud.RoadToX.HasValue) s.RoadTo = new Point(ud.RoadToX.Value, ud.RoadToY ?? 0);
+				}
+				else if (unit is HydroEngineer h)
+				{
+					if (ud.BuildingTube > 0)     h.BuildingTube     = ud.BuildingTube.Value;
+					if (ud.BuildingAquafarm > 0) h.BuildingAquafarm = ud.BuildingAquafarm.Value;
 				}
 				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)
 					airU.FuelLeft = ud.FuelLeft.Value;

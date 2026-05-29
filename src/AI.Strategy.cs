@@ -1164,6 +1164,18 @@ namespace CivOne
 			if (Player.HasAdvance<NeuralInterface>()    && !city.HasBuilding<NeuralLab>())      Consider(new NeuralLab());
 			if (Player.HasAdvance<AquaticColonization>() && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean) && !city.HasBuilding<SeaPlatform>()) Consider(new SeaPlatform());
 
+			// Hydro Engineer: build one per ~4 coastal cities so the AI can colonize ocean tiles.
+			// Skips if the city is starving or has no population to spare.
+			if (Player.HasAdvance<AquaticColonization>() && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean))
+			{
+				byte ownIdH = Game.PlayerNumber(Player);
+				int ownHydro = Game.GetUnits().Count(u => u.Owner == ownIdH && u is HydroEngineer);
+				int coastalCities = Player.Cities.Count(c => Map[c.X, c.Y].GetBorderTiles().Any(t => t.IsOcean));
+				int hydroCap = Math.Max(1, coastalCities / 4);
+				if (ownHydro < hydroCap && city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(u => u is HydroEngineer))
+					Consider(new HydroEngineer());
+			}
+
 			// Wonder: only for the empire's top production city
 			IWonder wonder = SelectWonder(city, stance);
 			if (wonder is not null) Consider(wonder);
@@ -1258,6 +1270,33 @@ namespace CivOne
 				if (tile is null || tile.IsOcean) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
 				int score = CountUnseenTiles(tx, ty) - dist;
+				if (score > bestScore) { bestScore = score; best = tile; }
+			}
+			return best;
+		}
+
+		// Ocean-tile target finder for Hydro Engineer: prefers open ocean far from any city
+		// (a candidate floating-city site) over tiles already inside a city's working radius.
+		internal ITile BestFloatingSite(IUnit unit)
+		{
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
+			ITile best = null;
+			int bestScore = 0;
+			City[] cities = Game.GetCities();
+
+			for (int dy = -8; dy <= 8; dy++)
+			for (int dx = -8; dx <= 8; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int tx = (unit.X + dx + mapWidth) % mapWidth;
+				int ty = unit.Y + dy;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null || !tile.IsOcean || tile.City is not null) continue;
+				if (tile.Units.Any()) continue;
+				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
+				int nearestCity = cities.Any() ? cities.Min(c => Common.DistanceToTile(c.X, c.Y, tx, ty)) : 255;
+				int score = nearestCity - dist;
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
 			return best;

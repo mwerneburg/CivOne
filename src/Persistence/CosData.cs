@@ -184,6 +184,8 @@ namespace CivOne.Persistence
 		public int? BuildingFortress { get; set; }
 		public int? BuildingCanopyArray { get; set; }
 		public int? BuildingAquafarm { get; set; }
+		// Hydro Engineer sea-tube build progress (null = not building)
+		public int? BuildingTube { get; set; }
 		// Settler "build road to" destination (null = no road-to order)
 		public int? RoadToX { get; set; }
 		public int? RoadToY { get; set; }
