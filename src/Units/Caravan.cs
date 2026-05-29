@@ -115,11 +115,16 @@ namespace CivOne.Units
 		protected override bool Confront(int relX, int relY)
 		{
 			ITile moveTarget = Map[X, Y][relX, relY];
+			if (moveTarget is null) return false;
 			City city = moveTarget.City;
 
-			if (city is null || city.Owner != Owner)
+			// No city to trade with — caravan has no attack, refuse the move.
+			if (city is null) return false;
+
+			// Foreign city: deliver the caravan as a trade route.
+			if (city.Owner != Owner)
 			{
-				EstablishTradeRoute(moveTarget.City);
+				EstablishTradeRoute(city);
 				return true;
 			}
 
