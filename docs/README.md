@@ -130,7 +130,7 @@ The Scale setting (integer, 1–8) controls the initial window size hint. Set <S
 
 ## Debug menu
 
-There is an in-game debug menu, disabled by default. To enable it: from the main menu open Setup, scroll to "Debug menu: No", and toggle it to Yes. The setting persists across sessions.
+There is an in-game debug menu, disabled by default. To enable it: start a game, open Game → Options from the menu bar, and toggle "Debug Menu" to on. The setting persists across sessions (stored as `<DebugMenu>1</DebugMenu>` in `default.profile`, so you can also pre-set it there).
 
 Once enabled, a "Debug Options" entry appears in the in-game menu, with:
 
