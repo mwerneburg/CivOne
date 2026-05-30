@@ -101,7 +101,15 @@ namespace CivOne.Units
 			{
 				BuildingReclaim--;
 				if (BuildingReclaim > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map.ChangeTileType(X, Y, Terrain.Plains); Game.InvalidateCitiesAt(X, Y); }
+				else
+				{
+					Map.ChangeTileType(X, Y, Terrain.Plains);
+					Game.InvalidateCitiesAt(X, Y);
+					// Reclaim is the only in-game op that converts Ocean→land. If this tile
+					// (or a chain of them) severs a bay from the global ocean, the cut-off
+					// region becomes a freshwater lake — but only after we rerun the flood-fill.
+					Map.Instance.ComputeFreshwaterLakes();
+				}
 				return;
 			}
 		}
