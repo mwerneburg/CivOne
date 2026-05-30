@@ -47,6 +47,8 @@ namespace CivOne.Screens
 		internal int TilesX => _gameMap.TilesX;
 		internal int TilesY => _gameMap.TilesY;
 
+		internal static (int X, int Y)? CursorTile { get; private set; }
+
 		internal void CenterOnPoint(int x, int y) => _gameMap.CenterOnPoint(x, y);
 
 		internal void RefreshMap() => _gameMap.ForceRefresh();
@@ -357,10 +359,41 @@ namespace CivOne.Screens
 		{
 			if (Cursor == MouseCursor.None) return true;
 			if (_gameMenu is null) return false;
-			
+
 			MouseArgsOffset(ref args, _menuX, _menuY);
 			_update |= _gameMenu.MouseDrag(args);
 			return _update;
+		}
+
+		public override bool MouseMove(ScreenEventArgs args)
+		{
+			(int X, int Y)? previous = CursorTile;
+			CursorTile = ResolveCursorTile(args.X, args.Y);
+			if (Settings.CursorCoords && !Nullable.Equals(previous, CursorTile))
+				_update = true;
+			return false;
+		}
+
+		private (int X, int Y)? ResolveCursorTile(int mouseX, int mouseY)
+		{
+			if (mouseY < 8) return null;
+			int mapPxX, mapPxY = mouseY - 8;
+			if (_rightSideBar)
+			{
+				if (mouseX > (Width - 80)) return null;
+				mapPxX = mouseX;
+			}
+			else
+			{
+				if (mouseX < 80) return null;
+				mapPxX = mouseX - 80;
+			}
+			int tileX = _gameMap.X + (mapPxX / 16);
+			int tileY = _gameMap.Y + (mapPxY / 16);
+			while (tileX < 0) tileX += Map.WIDTH;
+			while (tileX >= Map.WIDTH) tileX -= Map.WIDTH;
+			if (tileY < 0 || tileY >= Map.HEIGHT) return null;
+			return (tileX, tileY);
 		}
 		
 		private void Resize(object sender, ResizeEventArgs args)

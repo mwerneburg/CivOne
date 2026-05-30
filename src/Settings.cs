@@ -39,6 +39,7 @@ namespace CivOne
 		private bool _revealWorld = false;
 		private bool _riverFastMovement = false;
 		private bool _debugMenu = false;
+		private bool _cursorCoords = false;
 		private bool _deityEnabled = false;
 		private bool _arrowHelper = false;
 		private bool _customMapSize = false;
@@ -182,6 +183,17 @@ namespace CivOne
 			{
 				_debugMenu = value;
 				SetSetting("DebugMenu", _debugMenu ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		internal bool CursorCoords
+		{
+			get => _cursorCoords;
+			set
+			{
+				_cursorCoords = value;
+				SetSetting("CursorCoords", _cursorCoords ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -430,6 +442,7 @@ namespace CivOne
 			GetSetting("RevealWorld", ref _revealWorld);
 			GetSetting("RiverFastMovement", ref _riverFastMovement);
 			GetSetting("DebugMenu", ref _debugMenu);
+			GetSetting("CursorCoords", ref _cursorCoords);
 			GetSetting("DeityEnabled", ref _deityEnabled);
 			GetSetting("ArrowHelper", ref _arrowHelper);
 			GetSetting("CustomMapSize", ref _customMapSize);

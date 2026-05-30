@@ -141,6 +141,9 @@ namespace CivOne.Screens.GamePlayPanels
 				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER)
 				.AddScanlines();
 
+			if (Settings.CursorCoords && GamePlay.CursorTile is (int cx, int cy))
+				_gameInfo.DrawText($"{cx}:{cy}", 0, CassetteTheme.INK_MID, 76, 2, TextAlign.Right);
+
 			if (Game.CurrentPlayer != Human || (unit is not null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
 				byte dotColour = (gameTick % 4 < 2) ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
