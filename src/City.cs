@@ -280,6 +280,13 @@ namespace CivOne
 		internal int ShieldValue(ITile tile)
 		{
 			int output = tile.Shield;
+			bool isCenter = (tile.X == X && tile.Y == Y);
+
+			// City-center floor (Civ I baseline): the tile under the city always produces
+			// at least 1 shield, regardless of terrain. Rescues floating cities on Ocean and
+			// land cities founded on Grassland/Hills.
+			if (isCenter && output < 1) output = 1;
+
 			switch (tile.Type)
 			{
 				case Terrain.Hills:
@@ -287,6 +294,9 @@ namespace CivOne
 					break;
 			}
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			// Sea Platform extends floating industry to the worked ocean ring (the center
+			// is already covered by the city-center floor above).
+			if (tile.IsOcean && !isCenter && HasBuilding<SeaPlatform>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirS))
 				output += OlvirShieldBonus(olvirS);
 			return output;
@@ -309,6 +319,10 @@ namespace CivOne
 		internal int TradeValue(ITile tile)
 		{
 			int output = tile.Trade;
+
+			// City-center floor: the tile under the city always produces at least 1 trade
+			// (matches the shield floor in ShieldValue and the original Civ I rule).
+			if (tile.X == X && tile.Y == Y && output < 1) output = 1;
 
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
 			switch (tile.Type)
