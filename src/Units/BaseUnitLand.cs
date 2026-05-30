@@ -47,15 +47,15 @@ namespace CivOne.Units
 			}
 
 			bool riverBonus = previousTile is River && Tile is River;
-			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.City is not null;
-			bool currConnected = Tile.Road || Tile.RailRoad || Tile.City is not null;
+			bool prevConnected = previousTile.Road || previousTile.RailRoad || previousTile.TransportTube || previousTile.City is not null;
+			bool currConnected = Tile.Road || Tile.RailRoad || Tile.TransportTube || Tile.City is not null;
 			if (prevConnected && currConnected || riverBonus)
 			{
-				// Cities are railroad waypoints: city→rail and rail→city cost 0 moves, just like rail→rail.
-				// City→city and road segments cost 1/3 move (road speed).
-				bool srcRail = previousTile.RailRoad || previousTile.City is not null;
-				bool dstRail = Tile.RailRoad || Tile.City is not null;
-				if (srcRail && dstRail && (previousTile.RailRoad || Tile.RailRoad))
+				// Cities are railroad/tube waypoints: city↔rail and city↔tube cost 0 moves, just like rail↔rail.
+				// City↔city and road segments cost 1/3 move (road speed).
+				bool srcRail = previousTile.RailRoad || previousTile.TransportTube || previousTile.City is not null;
+				bool dstRail = Tile.RailRoad || Tile.TransportTube || Tile.City is not null;
+				if (srcRail && dstRail && (previousTile.RailRoad || previousTile.TransportTube || Tile.RailRoad || Tile.TransportTube))
 				{
 					// No moves lost
 				}
