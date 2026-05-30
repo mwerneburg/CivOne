@@ -266,7 +266,11 @@ namespace CivOne.Units
 			// If the tile is not an ocean tile, movement is allowed
 			if (tile.Type != Terrain.Ocean)
 				return true;
-			
+
+			// Ocean tubes (built by Hydro Engineers) and floating cities are walkable bridges for land units.
+			if (tile.TransportTube || tile.City is not null)
+				return true;
+
 			// This query checks if there's a boardable cargo vessel with free slots on the tile.
 			return (tile.Units.Any(x => x.Owner == Owner) && tile.Units.Any(u => (u is IBoardable)) && tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo) > tile.Units.Count(u => u.Class == UnitClass.Land));
 		}

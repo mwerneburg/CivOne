@@ -297,7 +297,7 @@ namespace CivOne
 
 					bool passable;
 					if (unit.Class == UnitClass.Land)
-						passable = !tile.IsOcean || tile.City is not null;
+						passable = !tile.IsOcean || tile.City is not null || tile.TransportTube;
 					else if (unit.Class == UnitClass.Water)
 						passable = tile.IsOcean || tile.City is not null;
 					else
