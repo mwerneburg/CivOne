@@ -694,6 +694,12 @@ namespace CivOne
 				foreach (City city in disasterCities)
 					city.Disaster();
 
+				// Hurricanes/typhoons: every coastal-or-floating city in the tropical or arid
+				// bands rolls independently each turn, plus inland cities one tile from the ocean.
+				// The Hurricane check self-gates by latitude/coast/probability; cheap to call on all.
+				foreach (City city in _cities)
+					city.HurricaneCheck();
+
 				if (Barbarian.IsSeaSpawnTurn)
 				{
 					ITile tile = Barbarian.SeaSpawnPosition;

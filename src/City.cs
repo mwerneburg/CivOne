@@ -1715,6 +1715,112 @@ namespace CivOne
 			}
 		}
 
+		// Hurricanes/typhoons strike coastal and floating cities in the equatorial jungle band
+		// and the two mid-latitude arid bands. Cities one tile removed from the ocean take half
+		// damage. Global warming both increases strike frequency and shifts severity toward
+		// catastrophic. Sea Platform blunts the worst: it eliminates Catastrophic strikes and
+		// prevents building damage in Major ones.
+		public void HurricaneCheck()
+		{
+			// 1. Latitude band: tropical (~equator) or one of the two arid bands.
+			double half = (Map.HEIGHT - 1) / 2.0;
+			double d = Math.Abs(Y - half) / half;
+			bool inBand = d < 0.15 || (d > 0.20 && d < 0.40);
+			if (!inBand) return;
+
+			// 2. Coastal class: full damage when ocean is adjacent (or the city itself is ocean);
+			// half damage when ocean is one ring further out ("one tile removed").
+			bool coastal = Tile.IsOcean || Tile.GetBorderTiles().Any(t => t.IsOcean);
+			bool nearCoast = !coastal && AnyOceanInOuterRing();
+			if (!coastal && !nearCoast) return;
+
+			// 3. Strike probability, intensified by warming.
+			int warming = Game.WarmingIndicator;
+			int strikePct = coastal ? (2 + warming) : (1 + warming / 2);
+			if (Common.Random.Next(0, 100) >= strikePct) return;
+
+			// 4. Severity. 0 = Minor, 1 = Major, 2 = Catastrophic.
+			bool seaPlatform = HasBuilding<SeaPlatform>();
+			int sevRoll = Common.Random.Next(0, 100);
+			int sev;
+			if (coastal)
+			{
+				// Warming widens both Major and Catastrophic, taken from Minor.
+				int catThresh = 90 - warming * 5;   // 90 → 70
+				int majThresh = catThresh - 30;     // 60 → 40
+				if (sevRoll >= catThresh)      sev = 2;
+				else if (sevRoll >= majThresh) sev = 1;
+				else                            sev = 0;
+			}
+			else
+			{
+				// Near-coast never reaches Catastrophic.
+				int majThresh = 80 - warming * 5;   // 80 → 60
+				sev = sevRoll >= majThresh ? 1 : 0;
+			}
+			if (seaPlatform && sev == 2) sev = 1;  // Sea Platform demotes Catastrophic to Major.
+
+			// 5. Apply damage.
+			string title;
+			int sizeLoss = 0;
+			int buildingsToDestroy = 0;
+			if (coastal)
+			{
+				if (sev == 0)      { title = "Tropical storm strikes";      sizeLoss = 1; }
+				else if (sev == 1) { title = "Hurricane strikes";           sizeLoss = Math.Max(1, Size / 3); buildingsToDestroy = seaPlatform ? 0 : 1; }
+				else               { title = "Super-typhoon devastates";    sizeLoss = Math.Max(1, Size / 2); buildingsToDestroy = 2; }
+			}
+			else
+			{
+				if (sev == 0) { title = "Tropical storm clips"; sizeLoss = Common.Random.Next(0, 2); }
+				else          { title = "Hurricane buffets";    sizeLoss = Math.Max(0, Size / 6); buildingsToDestroy = (!seaPlatform && Common.Random.Next(0, 2) == 0) ? 1 : 0; }
+			}
+
+			if (sizeLoss > 0) Size = (byte)Math.Max(1, Size - sizeLoss);
+
+			var demolished = new List<string>();
+			if (buildingsToDestroy > 0)
+			{
+				var destroyable = Buildings.Where(b => !(b is Palace)).ToList();
+				for (int i = 0; i < buildingsToDestroy && destroyable.Count > 0; i++)
+				{
+					int idx = Common.Random.Next(0, destroyable.Count);
+					var bldg = destroyable[idx];
+					destroyable.RemoveAt(idx);
+					RemoveBuilding(bldg);
+					demolished.Add(bldg.Name);
+				}
+			}
+
+			// 6. Notify the human player only.
+			if (Human != Owner) return;
+
+			GameTask.Enqueue(Show.EventArt("hurricane", $"{title} {Name}!"));
+
+			List<string> msg = new() { $"{title} {Name}!" };
+			if (sizeLoss > 0)
+				msg.Add(sizeLoss == 1 ? "1 citizen displaced." : $"{sizeLoss} citizens displaced.");
+			foreach (var name in demolished)
+				msg.Add($"{name} destroyed!");
+			if (!seaPlatform)
+				msg.Add("Citizens demand SEA PLATFORM.");
+			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
+		}
+
+		// Returns true if any tile in the 5×5 area around (X,Y), excluding the inner 3×3, is ocean.
+		// Used by HurricaneCheck to find "one tile removed from ocean" cities.
+		private bool AnyOceanInOuterRing()
+		{
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue;
+				var t = Map[X + dx, Y + dy];
+				if (t is not null && t.IsOcean) return true;
+			}
+			return false;
+		}
+
 		internal City(byte owner)
 		{
 			Owner = owner;
