@@ -75,7 +75,9 @@ namespace CivOne.Graphics
 			return bitmap;
 		}
 
-		// Map a Citizen enum value to a Cassette palette color.
+		// Map a Citizen enum value to its body color.
+		// Mood is the primary axis (glow/mid/alert); specialists keep a neutral body
+		// so their role badge carries the role information cleanly.
 		public static byte CitizenTokenColor(Citizen citizen)
 		{
 			switch (citizen)
@@ -86,57 +88,92 @@ namespace CivOne.Graphics
 				case Citizen.ContentFemale: return CassetteTheme.INK_MID;
 				case Citizen.UnhappyMale:
 				case Citizen.UnhappyFemale: return CassetteTheme.ALERT;
-				case Citizen.Entertainer:   return CassetteTheme.PHOS;
-				case Citizen.Taxman:        return CassetteTheme.PHOS_DIM;
-				case Citizen.Scientist:     return CassetteTheme.CYAN;
-				default:                    return CassetteTheme.INK_LOW;
+				default:                    return CassetteTheme.INK_MID;  // specialists: neutral
 			}
 		}
 
-		// Draw a person-silhouette citizen icon in a slotW×slotH slot (default 8×16).
-		// Head (INK_HIGH) + colored torso + split legs. Specialist types get a
-		// color-coded stripe on the top of the head.
+		// Draw a person-silhouette citizen icon. Anchors a fixed 8×16 figure inside
+		// any slot (centered). The figure encodes citizen type on two orthogonal axes:
+		//   • Mood (happy/content/unhappy): body color + posture
+		//       happy   = bright (PHOS_GLOW) with arms raised over head
+		//       content = neutral (INK_MID), standard upright posture
+		//       unhappy = red (ALERT), figure shifted down (slumped)
+		//   • Role (specialists): a 3-row glyph badge above the head, in a role color
+		//       taxman      = PHOS_DIM coin '$'
+		//       scientist   = CYAN atom '+'
+		//       entertainer = PHOS music note
 		public static IBitmap DrawCitizenToken(this IBitmap bitmap, Citizen citizen, int x, int y,
 			int slotW = 8, int slotH = 16)
 		{
-			byte body = CitizenTokenColor(citizen);
+			// Anchor a fixed 8×16 figure within the slot (centered).
+			int figX = x + Math.Max(0, (slotW - 8) / 2);
+			int figY = y + Math.Max(0, (slotH - 16) / 2);
+			int ox = figX + 1;  // inner left  (1px margin)
+			int oy = figY + 1;  // inner top
+			// inner area: 6 wide × 14 tall (cols ox..ox+5, rows oy..oy+13)
+
+			bool isHappy      = citizen == Citizen.HappyMale   || citizen == Citizen.HappyFemale;
+			bool isUnhappy    = citizen == Citizen.UnhappyMale || citizen == Citizen.UnhappyFemale;
+			bool isSpecialist = citizen == Citizen.Taxman || citizen == Citizen.Scientist || citizen == Citizen.Entertainer;
+
 			byte head = CassetteTheme.INK_HIGH;
+			byte body = CitizenTokenColor(citizen);
 
-			int iW  = slotW - 2;      // inner width  (1px margin each side)
-			int iH  = slotH - 2;      // inner height (1px margin top/bottom)
-			int ox  = x + 1;
-			int oy  = y + 1;
-
-			// ── head (top ≈25%, horizontally centered) ───────────────────────────
-			int headH = Math.Max(2, iH / 4);
-			int headW = Math.Max(2, iW - 2);
-			int headX = ox + (iW - headW) / 2;
-			bitmap.FillRectangle(headX, oy, headW, headH, head);
-
-			// Specialist hat stripe across top of head
-			bool isSpecialist = citizen == Citizen.Entertainer
-			                 || citizen == Citizen.Taxman
-			                 || citizen == Citizen.Scientist;
+			// ── specialist badge (rows 0..2 of inner area) ───────────────────────
 			if (isSpecialist)
 			{
-				byte stripe = citizen == Citizen.Scientist ? CassetteTheme.CYAN
-				            : citizen == Citizen.Taxman    ? CassetteTheme.PHOS_DIM
-				            :                               CassetteTheme.PHOS;
-				bitmap.FillRectangle(headX, oy, headW, 1, stripe);
+				byte badgeCol = citizen == Citizen.Taxman    ? CassetteTheme.PHOS_DIM
+				              : citizen == Citizen.Scientist ? CassetteTheme.CYAN
+				              :                                CassetteTheme.PHOS;
+				if (citizen == Citizen.Taxman)
+				{
+					// Coin / $ — hollow square
+					bitmap.FillRectangle(ox + 1, oy,     3, 1, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 1, 1, 1, badgeCol);
+					bitmap.FillRectangle(ox + 3, oy + 1, 1, 1, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 2, 3, 1, badgeCol);
+				}
+				else if (citizen == Citizen.Scientist)
+				{
+					// Atom — plus sign
+					bitmap.FillRectangle(ox + 2, oy,     1, 3, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 1, 3, 1, badgeCol);
+				}
+				else
+				{
+					// Entertainer — flagged note
+					bitmap.FillRectangle(ox + 2, oy,     2, 1, badgeCol);
+					bitmap.FillRectangle(ox + 2, oy + 1, 1, 1, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 2, 2, 1, badgeCol);
+				}
 			}
 
-			// ── torso (full width, below 1px neck gap) ───────────────────────────
-			int bodyY  = oy + headH + 1;
-			int bodyH  = iH - headH - 1;
-			int legH   = Math.Max(1, bodyH / 3);
-			int torsoH = bodyH - legH;
-			bitmap.FillRectangle(ox, bodyY, iW, torsoH, body);
+			// ── figure ───────────────────────────────────────────────────────────
+			// Unhappy citizens are drawn one row lower (slumped); everyone else is upright.
+			int headY  = oy + (isUnhappy ? 5 : 4);
+			int torsoY = oy + (isUnhappy ? 8 : 7);
+			int torsoH = isUnhappy ? 3 : 4;
+			int legsY  = oy + 11;
+			int legH   = isUnhappy ? 2 : 3;
 
-			// ── legs (two columns) ───────────────────────────────────────────────
-			int legY = bodyY + torsoH;
-			int legW = Math.Max(1, (iW - 1) / 2);
-			bitmap.FillRectangle(ox,             legY, legW, legH, body);
-			bitmap.FillRectangle(ox + iW - legW, legY, legW, legH, body);
+			// Head: 4 wide × 3 tall, horizontally centered (cols ox+1..ox+4)
+			bitmap.FillRectangle(ox + 1, headY, 4, 3, head);
+
+			// Arms raised (happy only) — sit at outer columns, flanking the head
+			if (isHappy)
+			{
+				bitmap.FillRectangle(ox,     oy + 3, 1, 1, body);  // left fingertip
+				bitmap.FillRectangle(ox + 5, oy + 3, 1, 1, body);  // right fingertip
+				bitmap.FillRectangle(ox,     headY,  1, 3, body);  // left arm beside head
+				bitmap.FillRectangle(ox + 5, headY,  1, 3, body);  // right arm beside head
+			}
+
+			// Torso (full 6-wide shoulders)
+			bitmap.FillRectangle(ox, torsoY, 6, torsoH, body);
+
+			// Legs: two 2-wide columns with a 2-col gap
+			bitmap.FillRectangle(ox,     legsY, 2, legH, body);
+			bitmap.FillRectangle(ox + 4, legsY, 2, legH, body);
 
 			return bitmap;
 		}
