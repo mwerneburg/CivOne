@@ -581,6 +581,11 @@ namespace CivOne.Screens
 
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
+			switch (args.Key)
+			{
+				case Key.Left:  return NavigateCity(-1);
+				case Key.Right: return NavigateCity(+1);
+			}
 			switch (args.KeyChar)
 			{
 				case 'B': if (!_viewCity) return OpenBuy();    break;
@@ -588,6 +593,20 @@ namespace CivOne.Screens
 				case 'R': if (!_viewCity) return OpenRename(); break;
 			}
 			CloseScreen();
+			return true;
+		}
+
+		private bool NavigateCity(int direction)
+		{
+			Player owner = _city.Player;
+			if (owner is null) return true;
+			City[] cities = owner.Cities;
+			if (cities.Length < 2) return true;
+			int idx = Array.IndexOf(cities, _city);
+			if (idx < 0) return true;
+			int next = (idx + direction + cities.Length) % cities.Length;
+			Destroy();
+			Common.AddScreen(new CityManager(cities[next], _viewCity));
 			return true;
 		}
 
