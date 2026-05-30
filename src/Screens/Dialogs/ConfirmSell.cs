@@ -32,7 +32,7 @@ namespace CivOne.Screens.Dialogs
 			{
 				X = 133,                       // dialog left (128) + text indent (5)
 				Y = 80 + 5 + TextHeight + 3,   // dialog top + top margin + text + gap
-				MenuWidth = TextWidth + 5,
+				MenuWidth = TextWidth - 4,     // narrower than text — leaves clearance from the dialog right border
 				ActiveColour = CassetteTheme.PHOS_FAINT,
 				TextColour = CassetteTheme.INK_HIGH,
 				FontId = 0
@@ -50,7 +50,7 @@ namespace CivOne.Screens.Dialogs
 			AddMenu(menu);
 		}
 
-		public ConfirmSell(IBuilding building) : base(128, 80, 9, 23, ["Do you want to sell", $"your {building.Name} for {building.SellPrice}$?"])
+		public ConfirmSell(IBuilding building) : base(128, 80, 18, 23, ["Do you want to sell", $"your {building.Name} for {building.SellPrice}$?"])
 		{
 			Building = building;
 			

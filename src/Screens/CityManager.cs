@@ -75,9 +75,15 @@ namespace CivOne.Screens
 		// How many buildings fit on one page
 		private int BuildingPageSize => Math.Max(1, (BuildingsH - 14) / BuildingRowH);
 
-		// All wonders + buildings in display order
+		// All wonders + buildings in display order. Infrastructure Bond floats to the top
+		// of the buildings list because it's the high-traffic "sell to fund X" lever.
 		private IProduction[] Improvements =>
-			_city.Wonders.Cast<IProduction>().Concat(_city.Buildings.Cast<IProduction>()).ToArray();
+			_city.Wonders.Cast<IProduction>()
+				.Concat(_city.Buildings
+					.OrderBy(b => b is Buildings.InfrastructureBond ? 0 : 1)
+					.ThenBy(b => b.Id)
+					.Cast<IProduction>())
+				.ToArray();
 
 		// ─── draw ────────────────────────────────────────────────────────────────
 
