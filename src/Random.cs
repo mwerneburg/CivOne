@@ -19,18 +19,13 @@ namespace CivOne
 	{
 		private short _initialSeed;
 		private long _counter;
-		
+
 		private short _ax, _bx, _cx, _dx;
-		
+
 		private bool _zf, _cf, _of;
-		
+
 		private Stack<short> _stack;
-		
-		private List<short> _seeds1 = new();
-		private List<short> _seeds2 = new();
-		private List<int> _inputs = new();
-		private List<int> _outputs = new();
-		
+
 		private short _ds5BDA, _ds5BDC;
 		
 		private void AssemblyMultiply(short value)
@@ -164,92 +159,45 @@ namespace CivOne
 		
 		private short DS5BDA
 		{
-			get
-			{
-				return _ds5BDA;
-			}
-			set
-			{
-				_ds5BDA = value;
-				_seeds1.Add(_ds5BDA);
-			}
+			get => _ds5BDA;
+			set => _ds5BDA = value;
 		}
-		
+
 		private short DS5BDC
 		{
-			get
-			{
-				return _ds5BDC;
-			}
-			set
-			{
-				_ds5BDC = value;
-				_seeds1.Add(_ds5BDC);
-			}
+			get => _ds5BDC;
+			set => _ds5BDC = value;
 		}
-		
+
 		public override bool Equals(object obj)
 		{
 			if (obj.GetType() != typeof(Random))
 				return false;
-				
+
 			Random tr2 = (Random)obj;
-			
-			bool equal = true;
-			
-			equal &= (_initialSeed == tr2._initialSeed);
-			equal &= (_counter == tr2._counter);
-			equal &= (_ds5BDA == tr2._ds5BDA);
-			equal &= (_ds5BDC == tr2._ds5BDC);
-			equal &= (_stack.Equals(tr2._stack));
-			
-			equal &= (_seeds1.Equals(tr2._seeds1));
-			equal &= (_seeds2.Equals(tr2._seeds2));
-			equal &= (_inputs.Equals(tr2._inputs));
-			equal &= (_outputs.Equals(tr2._outputs));
-			
-			return equal;
+			return _initialSeed == tr2._initialSeed
+			    && _counter == tr2._counter
+			    && _ds5BDA == tr2._ds5BDA
+			    && _ds5BDC == tr2._ds5BDC
+			    && _stack.Equals(tr2._stack);
 		}
 
 		public override int GetHashCode()
 		{
 			return _initialSeed;
 		}
-		
-		public int[] GetStatus(int i)
-		{
-			int[] status = new int[4];
-			if (i < 0 | i >= _inputs.Count)
-			{
-				i = _inputs.Count;
-			}
-			status[0] = _seeds1[i];
-			status[1] = _seeds2[i];
-			status[2] = _inputs[i];
-			status[3] = _outputs[i];
-			
-			return status;
-		}
-		public int[] GetStatus()
-		{
-			return GetStatus((int)_counter - 1);
-		}
-		
+
 		public int Next(int max)
 		{
-			_inputs.Add(max);
 			DoRandom((short)Math.Min(max, (int)short.MaxValue));
 			_counter++;
-			_outputs.Add((int)_ax);
 			return _ax;
 		}
 
 		public int Next(int min, int max)
 		{
-			_inputs.Add(max - min);
 			DoRandom((short)Math.Min(max - min, (int)short.MaxValue));
 			_counter++;
-			_outputs.Add((int)_ax);
 			return _ax + min;
 		}
 		

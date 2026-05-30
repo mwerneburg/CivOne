@@ -32,7 +32,9 @@ namespace CivOne.Tasks
 				return;
 			}
 
-			CityManager cityManager = new CityManager(_city);
+			// allowCycle=false: ← / → must not navigate away. Destroy() fires Closed → EndTask,
+			// which would advance the news queue past the city the player is supposed to decide on.
+			CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
 			cityManager.Closed += (s, a) => EndTask();
 			Common.AddScreen(cityManager);
 		}

@@ -27,6 +27,7 @@ namespace CivOne.Screens
 	{
 		private readonly City _city;
 		private readonly bool _viewCity;
+		private readonly bool _allowCycle;
 		private readonly CityMap _cityMap;
 
 		private bool _update = true;
@@ -587,10 +588,13 @@ namespace CivOne.Screens
 
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			switch (args.Key)
+			if (_allowCycle)
 			{
-				case Key.Left:  return NavigateCity(-1);
-				case Key.Right: return NavigateCity(+1);
+				switch (args.Key)
+				{
+					case Key.Left:  return NavigateCity(-1);
+					case Key.Right: return NavigateCity(+1);
+				}
 			}
 			switch (args.KeyChar)
 			{
@@ -612,7 +616,7 @@ namespace CivOne.Screens
 			if (idx < 0) return true;
 			int next = (idx + direction + cities.Length) % cities.Length;
 			Destroy();
-			Common.AddScreen(new CityManager(cities[next], _viewCity));
+			Common.AddScreen(new CityManager(cities[next], _viewCity, _allowCycle));
 			return true;
 		}
 
@@ -802,11 +806,12 @@ namespace CivOne.Screens
 
 		// ─── lifecycle ───────────────────────────────────────────────────────────
 
-		public CityManager(City city, bool viewCity = false) : base(MouseCursor.Pointer)
+		public CityManager(City city, bool viewCity = false, bool allowCycle = true) : base(MouseCursor.Pointer)
 		{
-			_viewCity = viewCity;
-			_city     = city;
-			_cityMap  = new CityMap(_city);
+			_viewCity   = viewCity;
+			_allowCycle = allowCycle;
+			_city       = city;
+			_cityMap    = new CityMap(_city);
 
 			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())

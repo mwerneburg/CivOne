@@ -58,7 +58,9 @@ namespace CivOne.Tasks
 		{
 			if (Common.HasScreenType<CityManager>()) return;
 
-			CityManager cityManager = new CityManager(_city);
+			// allowCycle=false: this screen represents a task waiting for a build decision; ← / →
+			// would Destroy() and EndTask(), dropping the founding before the player decides.
+			CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
 			cityManager.Closed += CityManagerClosed;
 			Common.AddScreen(cityManager);
 		}
@@ -92,7 +94,7 @@ namespace CivOne.Tasks
 			{
 				if (_player.IsHuman)
 				{
-					CityManager cityManager = new CityManager(_city);
+					CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
 					cityManager.Closed += CityManagerClosed;
 					Common.AddScreen(cityManager);
 					return;

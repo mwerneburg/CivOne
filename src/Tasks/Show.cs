@@ -125,9 +125,11 @@ namespace CivOne.Tasks
 
 		public static Show LuxuryRate => new Show(SetRate.Luxuries);
 
-		public static Show CityManager(City city) => new Show(new CityManager(city));
+		// allowCycle=false on the task-wrapped variants: ← / → calls Destroy(), which ends
+		// the Show task and advances the queue past the screen the player is being asked to act on.
+		public static Show CityManager(City city) => new Show(new CityManager(city, viewCity: false, allowCycle: false));
 
-		public static Show ViewCity(City city) => new Show(new CityManager(city, true));
+		public static Show ViewCity(City city) => new Show(new CityManager(city, viewCity: true, allowCycle: false));
 
 		public static Show UnitStack(int x, int y) => new Show(new UnitStack(x, y));
 
