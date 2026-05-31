@@ -1774,10 +1774,11 @@ namespace CivOne
 			bool inBand = d < 0.15 || (d > 0.20 && d < 0.40);
 			if (!inBand) return;
 
-			// 2. Coastal class: full damage when ocean is adjacent (or the city itself is ocean);
-			// half damage when ocean is one ring further out ("one tile removed").
-			bool coastal = Tile.IsOcean || Tile.GetBorderTiles().Any(t => t.IsOcean);
-			bool nearCoast = !coastal && AnyOceanInOuterRing();
+			// 2. Coastal class: full damage when sea is adjacent (or the city itself sits on sea);
+			// half damage when sea is one ring further out ("one tile removed"). Freshwater lakes
+			// don't generate hurricanes, so they're excluded from every check via IsRealSea.
+			bool coastal = IsRealSea(Tile) || Tile.GetBorderTiles().Any(IsRealSea);
+			bool nearCoast = !coastal && AnyRealSeaInOuterRing();
 			if (!coastal && !nearCoast) return;
 
 			// 3. Strike probability, intensified by warming.
@@ -1853,16 +1854,20 @@ namespace CivOne
 			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
 		}
 
-		// Returns true if any tile in the 5×5 area around (X,Y), excluding the inner 3×3, is ocean.
+		// Real sea: ocean tile that's NOT flagged as a freshwater lake. Lakes are stored as
+		// ocean terrain but don't generate hurricanes.
+		private static bool IsRealSea(ITile t)
+			=> t is not null && t.IsOcean && !Map.Instance.IsFreshwaterAt(t.X, t.Y);
+
+		// Returns true if any tile in the 5×5 area around (X,Y), excluding the inner 3×3, is open sea.
 		// Used by HurricaneCheck to find "one tile removed from ocean" cities.
-		private bool AnyOceanInOuterRing()
+		private bool AnyRealSeaInOuterRing()
 		{
 			for (int dy = -2; dy <= 2; dy++)
 			for (int dx = -2; dx <= 2; dx++)
 			{
 				if (Math.Abs(dx) <= 1 && Math.Abs(dy) <= 1) continue;
-				var t = Map[X + dx, Y + dy];
-				if (t is not null && t.IsOcean) return true;
+				if (IsRealSea(Map[X + dx, Y + dy])) return true;
 			}
 			return false;
 		}
