@@ -1382,7 +1382,7 @@ namespace CivOne
 				// No movable units left this turn (waited units don't count here)
 				if (!_units.Any(u => u.Owner == _currentPlayer && (u.MovesLeft > 0 || u.PartMoves > 0) && !u.Busy && !IsAboard(u)))
 				{
-					if (CurrentPlayer == HumanPlayer && !EndOfTurn && !GameTask.Any() && (Common.TopScreen is GamePlay))
+					if (CurrentPlayer == HumanPlayer && (!EndOfTurn || Settings.Instance.Autopilot) && !GameTask.Any() && (Common.TopScreen is GamePlay))
 						GameTask.Enqueue(Turn.End());
 					return null;
 				}

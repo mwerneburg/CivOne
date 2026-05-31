@@ -41,6 +41,7 @@ namespace CivOne
 		private bool _debugMenu = false;
 		private bool _cursorCoords = false;
 		private bool _powerSaving = false;
+		private bool _autopilot = false;
 		private bool _deityEnabled = false;
 		private bool _arrowHelper = false;
 		private bool _customMapSize = false;
@@ -195,6 +196,22 @@ namespace CivOne
 			{
 				_cursorCoords = value;
 				SetSetting("CursorCoords", _cursorCoords ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		// When true the entire game runs hands-off: the human player's units route through
+		// the AI, modal dialogs auto-dismiss after a beat, the End-of-Turn confirmation is
+		// bypassed, and the game self-progresses to victory or defeat. Used for unattended
+		// playtests / regression runs. Public so the SDL runtime can read it for any input
+		// auto-dispatch it does.
+		public bool Autopilot
+		{
+			get => _autopilot;
+			set
+			{
+				_autopilot = value;
+				SetSetting("Autopilot", _autopilot ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -460,6 +477,7 @@ namespace CivOne
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("CursorCoords", ref _cursorCoords);
 			GetSetting("PowerSaving", ref _powerSaving);
+			GetSetting("Autopilot", ref _autopilot);
 			GetSetting("DeityEnabled", ref _deityEnabled);
 			GetSetting("ArrowHelper", ref _arrowHelper);
 			GetSetting("CustomMapSize", ref _customMapSize);

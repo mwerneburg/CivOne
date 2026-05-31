@@ -86,11 +86,40 @@ namespace CivOne
 			GameTask.Enqueue(Show.Screens(StartupScreens));
 		}
 
+		// Autopilot: dwell briefly on each non-GamePlay screen so the player would have time
+		// to read it, then fire a synthetic Enter to dismiss / advance. GamePlay is excluded
+		// so we don't trigger End-of-Turn artificially (that's already handled in Game.cs).
+		private uint _autopilotDwell = 0;
+		private IScreen _autopilotLastTop = null;
+		private const uint AUTOPILOT_DWELL_TICKS = 30;  // ~0.5s at the 60-tick rate
+
+		private void AutopilotTick()
+		{
+			if (!Settings.Autopilot) return;
+			IScreen top = TopScreen;
+			if (top is null || top is GamePlay)
+			{
+				_autopilotDwell = 0;
+				_autopilotLastTop = top;
+				return;
+			}
+			if (top != _autopilotLastTop)
+			{
+				_autopilotLastTop = top;
+				_autopilotDwell = 0;
+			}
+			if (++_autopilotDwell < AUTOPILOT_DWELL_TICKS) return;
+			_autopilotDwell = 0;
+			try { top.KeyDown(new KeyboardEventArgs(Key.Enter)); }
+			catch (Exception ex) { Runtime?.Log($"[Autopilot] dismiss failed on {top.GetType().Name}: {ex.Message}"); }
+		}
+
 		private void OnUpdate(object sender, UpdateEventArgs args)
 		{
 			while (_gameTick < TickWatch)
 			{
 				_gameTick++;
+				AutopilotTick();
 				if (!Update()) continue;
 				args.HasUpdate = true;
 			}

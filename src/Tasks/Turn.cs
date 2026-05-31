@@ -29,7 +29,8 @@ namespace CivOne.Tasks
 		{
 			if (_unit is not null)
 			{
-				Game.CurrentPlayer.AI.Move(_unit);
+				// AI is null for the human player when Autopilot is off — no-op rather than NRE.
+				Game.CurrentPlayer.AI?.Move(_unit);
 				EndTask();
 			}
 			if (_endTurn && _step-- <= 0)

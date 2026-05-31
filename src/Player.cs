@@ -148,7 +148,9 @@ namespace CivOne
 
 		public readonly PalaceData Palace = new PalaceData();
 
-		internal AI AI => !IsHuman ? AI.Instance(this) : null;
+		// Normally AI is exposed only for non-human players. In Autopilot mode the human
+		// slot gets one too, so unit moves and other "AI-driven" decisions self-resolve.
+		internal AI AI => (!IsHuman || Settings.Instance.Autopilot) ? AI.Instance(this) : null;
 		
 		private IGovernment _government;
 		public IGovernment Government
