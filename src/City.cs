@@ -622,7 +622,7 @@ namespace CivOne
 			}
 		}
 
-		private void ResetResourceTiles()
+		internal void ResetResourceTiles()
 		{
 			_resourceTiles.Clear();
 			for (int i = 0; i < Size; i++)

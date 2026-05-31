@@ -597,6 +597,22 @@ namespace CivOne
 				}
 			}
 
+			// Post-load tile heal for AI cities. The historic encoder bug at City.cs:555
+			// collided the NE-inner (1,-1) tile with the ENE-outer (2,-1) tile, silently
+			// migrating cities' best tiles to inferior ones on every save/load cycle.
+			// The AI has no path that re-optimises tile assignments, so the damage stuck.
+			// Now that the encoder is fixed, re-pick AI city tiles greedily on load to undo
+			// the accumulated drift. Human cities are skipped — the player may have
+			// intentionally created Entertainers or chosen specific tiles, and we don't
+			// want to override those choices.
+			byte humanIdx = PlayerNumber(HumanPlayer);
+			foreach (City city in _cities)
+			{
+				if (city.Owner == humanIdx) continue;
+				if (city.Size == 0) continue;
+				city.ResetResourceTiles();
+			}
+
 			// Replay data
 			foreach (var re in g.ReplayData ?? Enumerable.Empty<CosReplayEntry>())
 			{
