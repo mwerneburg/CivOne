@@ -40,6 +40,7 @@ namespace CivOne
 		private bool _riverFastMovement = false;
 		private bool _debugMenu = false;
 		private bool _cursorCoords = false;
+		private bool _powerSaving = false;
 		private bool _deityEnabled = false;
 		private bool _arrowHelper = false;
 		private bool _customMapSize = false;
@@ -194,6 +195,21 @@ namespace CivOne
 			{
 				_cursorCoords = value;
 				SetSetting("CursorCoords", _cursorCoords ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		// When true the SDL main loop sleeps to cap both idle polling and active rendering at
+		// ~60 Hz, cutting CPU/battery on machines that would otherwise run the loop flat-out.
+		// Turn-based gameplay doesn't lose anything from the cap; animations stay smooth.
+		// Public because the SDL runtime assembly reads it from its main loop.
+		public bool PowerSaving
+		{
+			get => _powerSaving;
+			set
+			{
+				_powerSaving = value;
+				SetSetting("PowerSaving", _powerSaving ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -443,6 +459,7 @@ namespace CivOne
 			GetSetting("RiverFastMovement", ref _riverFastMovement);
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("CursorCoords", ref _cursorCoords);
+			GetSetting("PowerSaving", ref _powerSaving);
 			GetSetting("DeityEnabled", ref _deityEnabled);
 			GetSetting("ArrowHelper", ref _arrowHelper);
 			GetSetting("CustomMapSize", ref _customMapSize);

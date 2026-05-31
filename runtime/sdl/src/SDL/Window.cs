@@ -80,10 +80,16 @@ namespace CivOne
 				}
 			}
 
+			// Overridable by GameWindow so the cap reflects user settings (Power Saving on/off).
+			// IdleWaitMs throttles the polling loop when nothing changed; FrameCapMs throttles
+			// successful renders. Default values keep the original behaviour (no cap, 1ms idle).
+			protected virtual uint IdleWaitMs => 1;
+			protected virtual uint FrameCapMs => 0;
+
 			public void Run()
 			{
 				OnLoad?.Invoke(this, EventArgs.Empty);
-				
+
 				while (_running)
 				{
 					if (SDL_PollEvent(out SDL_Event sdlEvent) == 1)
@@ -99,12 +105,13 @@ namespace CivOne
 
 					if (!_redraw)
 					{
-						Wait(1);
+						Wait(IdleWaitMs);
 						continue;
 					}
 
 					SDL_RenderPresent(_renderer);
 					_redraw = false;
+					if (FrameCapMs > 0) Wait(FrameCapMs);
 				}
 			}
 

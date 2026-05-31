@@ -28,6 +28,12 @@ namespace CivOne
 		private bool _hasUpdate = true;
 		private bool _settingsFullscreen = Settings.FullScreen;
 
+		// Power Saving: cap both idle polling and frame presentation at ~60 Hz when the user
+		// has opted in. 16 ms is well under any human-perceptible input latency on a turn-based
+		// game and slashes CPU/battery usage on laptops. Off → original tight loop.
+		protected override uint IdleWaitMs  => Settings.PowerSaving ? 16u : 1u;
+		protected override uint FrameCapMs  => Settings.PowerSaving ? 16u : 0u;
+
 		private void Load(object sender, EventArgs args)
 		{
 			Runtime.CanvasSize = SetCanvasSize();
