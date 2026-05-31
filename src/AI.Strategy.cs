@@ -1095,6 +1095,18 @@ namespace CivOne
 
 			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
+
+			// Early City Walls when a foreign city is within striking distance and Masonry is
+			// researched. Walls triple defender strength — a cheaper insurance policy than
+			// constantly re-building Militia after every barbarian raid wipes the garrison.
+			{
+				byte threatOwnId = Game.PlayerNumber(Player);
+				bool threatenedByNeighbor = Game.GetCities().Any(c => c.Owner != threatOwnId
+					&& Common.DistanceToTile(c.X, c.Y, city.X, city.Y) <= 10);
+				if (threatenedByNeighbor && Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>())
+					Consider(new CityWalls());
+			}
+
 			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 
 			int ownCities = Player.Cities.Length;
@@ -1190,18 +1202,21 @@ namespace CivOne
 			{
 				Consider(BestAttacker());
 			}
-			else if (Player.HasAdvance<Writing>())
+
+			// Diplomats: useful under every stance (espionage, sabotage, incite revolt).
+			// Previously gated to non-Militarize, which is why no civ ever built one in heavy
+			// fighting eras. One per 3 cities, minimum 2 empire-wide.
+			if (Player.HasAdvance<Writing>())
 			{
-				// One Diplomat per 3 cities (same cadence as Explorers), minimum 2 empire-wide.
 				byte ownId2 = Game.PlayerNumber(Player);
 				int ownDiplomats = Game.GetUnits().Count(u => u.Owner == ownId2 && u is Diplomat);
 				int diplomatCap  = Math.Max(2, Player.Cities.Length / 3);
 				if (ownDiplomats < diplomatCap)
 					Consider(new Diplomat());
-				else if (Player.HasAdvance<Trade>())
-					Consider(new Caravan());
 			}
-			else if (Player.HasAdvance<Trade>())
+
+			// Caravans: trade-route gold once Trade is researched.
+			if (Player.HasAdvance<Trade>())
 				Consider(new Caravan());
 
 			// Fallback: first available production item

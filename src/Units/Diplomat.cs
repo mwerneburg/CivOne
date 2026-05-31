@@ -94,6 +94,31 @@ namespace CivOne.Units
 						return true;
 					}
 
+					// Incite revolt: when affordable and the target isn't a capital, flip the
+					// city. Cheaper than a military campaign and gives us the cake fully baked.
+					// Skips size-1 starter towns (the conversion isn't worth the diplomat).
+					if (CanIncite(target, Player.Gold) && target.Size >= 2)
+					{
+						int inciteCost = InciteCost(target);
+						byte oldOwner = target.Owner;
+						Player oldOwnerPlayer = Game.GetPlayer(oldOwner);
+
+						// Disband resident units and a random ~half of the buildings.
+						foreach (IUnit u in target.Units.Concat(target.Tile.Units.Where(u => u.Owner == oldOwner)).Distinct().ToArray())
+							Game.DisbandUnit(u);
+						foreach (IBuilding b in target.Buildings.Where(b => Common.Random.Next(0, 2) == 0).ToList())
+							target.RemoveBuilding(b);
+
+						target.Owner       = this.Owner;
+						target.TechStolen  = false;
+						Player.Gold       -= (short)inciteCost;
+						Game.DisbandUnit(this);
+						oldOwnerPlayer?.IsDestroyed();
+						if (target.Player == Human || Player == Human)
+							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} incite", $"revolt in {target.Name}!"));
+						return true;
+					}
+
 					IAdvance advance = !target.TechStolen ? GetAdvanceToSteal(target.Player) : null;
 
 					if (advance is not null)

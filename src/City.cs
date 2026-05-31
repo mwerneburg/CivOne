@@ -713,6 +713,9 @@ namespace CivOne
 			if (_productionQueue.Count == 0) return false;
 			CurrentProduction = _productionQueue[0];
 			_productionQueue.RemoveAt(0);
+			// Log queue-driven builds too — previously only re-plans (CityProduction calls)
+			// were recorded, which biased the histogram toward the head-of-queue items.
+			DecisionLogger.LogCityProduction(this, CurrentProduction, "queued", isHuman: (Player == Human));
 			return true;
 		}
 
