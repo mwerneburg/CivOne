@@ -134,22 +134,6 @@ namespace CivOne
 			if (++_autopilotDwell < AUTOPILOT_DWELL_TICKS) return;
 			_autopilotDwell = 0;
 
-			// On GamePlay: if there's an active human unit with moves, queue an AI.Move
-			// for it via Turn.New rather than firing Enter. This handles turn 1 (which
-			// doesn't go through Game.EndTurn's per-unit auto-queue) and any other edge
-			// case where the game is waiting on the player to commit a move.
-			if (top is GamePlay && !GameTask.Any())
-			{
-				Game game = Game.Instance;
-				IUnit active = game?.ActiveUnit;
-				if (game is not null && active is not null && game.HumanPlayer == active.Owner
-					&& (active.MovesLeft > 0 || active.PartMoves > 0))
-				{
-					GameTask.Enqueue(Turn.New(active));
-					return;
-				}
-			}
-
 			// Enter on GamePlay enqueues Turn.End when no unit is active (the path the
 			// player would normally hit at the "End of Turn / Press Enter" prompt). When a
 			// unit IS active, KeyDownActiveUnit ignores Enter, so this is a safe no-op.

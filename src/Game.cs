@@ -758,7 +758,10 @@ namespace CivOne
 		public void Update()
 		{
 			IUnit unit = ActiveUnit;
-			if (CurrentPlayer == HumanPlayer)
+			// In Autopilot we want the human's units handled by the AI just like a regular
+			// non-human player — fall through to the Turn.Move(unit) / Turn.End() branch
+			// below instead of the human-only GoTo path.
+			if (CurrentPlayer == HumanPlayer && !Settings.Instance.Autopilot)
 			{
 				if (unit is not null && !unit.Goto.IsEmpty)
 				{
