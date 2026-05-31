@@ -1520,7 +1520,7 @@ namespace CivOne
 			if (Size < 5)
 				return;
 
-			switch (Common.Random.Next(0, 9))
+			switch (Common.Random.Next(0, 10))
 			{
 				case 0: 
 				{
@@ -1640,6 +1640,24 @@ namespace CivOne
 						message.Add($"Pirates plunder {Name}!");
 						message.Add($"Production halted, Food Stolen.!");
 						message.Add($"Citizens demand BARRACKS.");
+					}
+
+					break;
+				}
+				case 10:
+				{
+					// Fever: tropical disease in cities with jungle in the worked tiles,
+					// before Medicine is researched. Same magnitude as Plague (¼ size loss).
+					bool jungleNearby = CityTiles.Any(t => t.Type == Terrain.Jungle);
+					bool hasMedicine  = Player.HasAdvance<Medicine>();
+
+					if (jungleNearby && !hasMedicine)
+					{
+						Size = (byte)(Size - Size / 4);
+
+						message.Add($"Fever sweeps {Name}!");
+						message.Add($"Citizens killed!");
+						message.Add($"Citizens demand MEDICINE.");
 					}
 
 					break;
