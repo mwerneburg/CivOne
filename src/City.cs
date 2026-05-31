@@ -1277,9 +1277,12 @@ namespace CivOne
 
 			if (CurrentProduction is not null && Shields >= (int)CurrentProduction.Price * 10)
 			{
-				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0)
+				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0 && !Settings.Instance.Autopilot)
 				{
 					// On Chieftain level, it's not possible to create a Settlers in a city of size 1
+					// (protects the player's only city from accidentally destroying itself). In
+					// Autopilot the AI is steering, so let the auto-grow trick on line 1293 fire
+					// — otherwise the city stalls forever with completed-but-uncreated Settlers.
 				}
 				else if (CurrentProduction is IUnit)
 				{
