@@ -86,18 +86,36 @@ namespace CivOne
 			GameTask.Enqueue(Show.Screens(StartupScreens));
 		}
 
-		// Autopilot: dwell briefly on each non-GamePlay screen so the player would have time
-		// to read it, then fire a synthetic Enter to dismiss / advance. GamePlay is excluded
-		// so we don't trigger End-of-Turn artificially (that's already handled in Game.cs).
+		// Autopilot: dwell briefly on each task-driven screen blocking gameplay, then fire a
+		// synthetic Enter to dismiss / advance. We restrict to task-driven screens (i.e. there
+		// is a GameTask waiting on the screen to close) so user-initiated UI like the in-game
+		// menu, Options, and the Civilopedia don't auto-dismiss themselves — toggling
+		// Autopilot inside Options would otherwise immediately untoggle it.
 		private uint _autopilotDwell = 0;
 		private IScreen _autopilotLastTop = null;
 		private const uint AUTOPILOT_DWELL_TICKS = 30;  // ~0.5s at the 60-tick rate
+
+		// Screens where pressing Enter would be a user-initiated action (toggling an option,
+		// confirming a save, picking a menu entry) — never auto-dismiss these. Identification
+		// is by type-name suffix so it covers the GameOptions screen, the Civilopedia, the
+		// Debug menus, and Save/Load without each one having to opt out.
+		private static bool IsUserInteractiveScreen(IScreen s)
+		{
+			string ns = s.GetType().Namespace ?? "";
+			if (ns.StartsWith("CivOne.Screens.Debug")) return true;
+			string n = s.GetType().Name;
+			return n == "GameOptions" || n == "Civilopedia" || n == "SaveGame" || n == "LoadGame"
+				|| n == "Setup" || n == "NewGame" || n == "CustomizeWorld"
+				|| n == "MainMenu" || n == "GameMenu" || n == "ChangeHumanPlayer";
+			// NB: ChooseGovernment, CityName, ChooseTech are intentionally NOT blacklisted —
+			// they need auto-Enter to pick the default and let the game advance.
+		}
 
 		private void AutopilotTick()
 		{
 			if (!Settings.Autopilot) return;
 			IScreen top = TopScreen;
-			if (top is null || top is GamePlay)
+			if (top is null || top is GamePlay || IsUserInteractiveScreen(top))
 			{
 				_autopilotDwell = 0;
 				_autopilotLastTop = top;
