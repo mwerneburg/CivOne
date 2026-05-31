@@ -1512,7 +1512,7 @@ namespace CivOne
 			BuildingSold = false;
 			GameTask.Enqueue(new ProcessScience(Player));
 
-			if (Shields == 0 && !DequeueProduction() && Player != Human)
+			if (Shields == 0 && !DequeueProduction() && (Player != Human || Settings.Instance.Autopilot))
 				Player.AI.CityProduction(this);
 		}
 

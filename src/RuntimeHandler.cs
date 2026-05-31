@@ -22,6 +22,7 @@ using CivOne.Screens;
 using CivOne.Graphics.Sprites;
 using CivOne.Tasks;
 using CivOne.Tiles;
+using CivOne.Units;
 
 namespace CivOne
 {
@@ -105,17 +106,21 @@ namespace CivOne
 			if (ns.StartsWith("CivOne.Screens.Debug")) return true;
 			string n = s.GetType().Name;
 			return n == "GameOptions" || n == "Civilopedia" || n == "SaveGame" || n == "LoadGame"
-				|| n == "Setup" || n == "NewGame" || n == "CustomizeWorld"
-				|| n == "MainMenu" || n == "GameMenu" || n == "ChangeHumanPlayer";
-			// NB: ChooseGovernment, CityName, ChooseTech are intentionally NOT blacklisted —
-			// they need auto-Enter to pick the default and let the game advance.
+				|| n == "ChangeHumanPlayer";
+			// NB: ChooseGovernment, CityName, ChooseTech, NewGame, Setup, Credits, Splash and
+			// CustomizeWorld are intentionally NOT blacklisted — they need auto-Enter to pick
+			// the highlighted default and let the start-up flow run through to GamePlay.
+			// In-game menu overlays are handled separately via GamePlay.HasOpenMenuOverlay.
 		}
 
 		private void AutopilotTick()
 		{
 			if (!Settings.Autopilot) return;
 			IScreen top = TopScreen;
-			if (top is null || IsUserInteractiveScreen(top))
+			// Also skip when GamePlay has a menu overlay open — the user is navigating and
+			// our Enter would just select whatever item is currently highlighted.
+			bool gamePlayMenuOpen = top is GamePlay gp && gp.HasOpenMenuOverlay;
+			if (top is null || IsUserInteractiveScreen(top) || gamePlayMenuOpen)
 			{
 				_autopilotDwell = 0;
 				_autopilotLastTop = top;
@@ -128,6 +133,23 @@ namespace CivOne
 			}
 			if (++_autopilotDwell < AUTOPILOT_DWELL_TICKS) return;
 			_autopilotDwell = 0;
+
+			// On GamePlay: if there's an active human unit with moves, queue an AI.Move
+			// for it via Turn.New rather than firing Enter. This handles turn 1 (which
+			// doesn't go through Game.EndTurn's per-unit auto-queue) and any other edge
+			// case where the game is waiting on the player to commit a move.
+			if (top is GamePlay && !GameTask.Any())
+			{
+				Game game = Game.Instance;
+				IUnit active = game?.ActiveUnit;
+				if (game is not null && active is not null && game.HumanPlayer == active.Owner
+					&& (active.MovesLeft > 0 || active.PartMoves > 0))
+				{
+					GameTask.Enqueue(Turn.New(active));
+					return;
+				}
+			}
+
 			// Enter on GamePlay enqueues Turn.End when no unit is active (the path the
 			// player would normally hit at the "End of Turn / Press Enter" prompt). When a
 			// unit IS active, KeyDownActiveUnit ignores Enter, so this is a safe no-op.

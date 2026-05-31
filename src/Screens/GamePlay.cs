@@ -47,6 +47,11 @@ namespace CivOne.Screens
 		internal int TilesX => _gameMap.TilesX;
 		internal int TilesY => _gameMap.TilesY;
 
+		// True when an in-game menu overlay (Game / Orders / Advisors / World) is open on top
+		// of the map. Used by Autopilot to skip its synthetic Enter so an open menu doesn't
+		// auto-select its highlighted item.
+		internal bool HasOpenMenuOverlay => _gameMenu is not null;
+
 		internal static (int X, int Y)? CursorTile { get; private set; }
 
 		internal void CenterOnPoint(int x, int y) => _gameMap.CenterOnPoint(x, y);
