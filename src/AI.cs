@@ -104,8 +104,13 @@ namespace CivOne
 				bool validIrrigation = (tile is Grassland || tile is River || tile is Plains || tile is Desert) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
 				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
+				// Mirror Settlers.BuildRoad's eligibility checks: a brand-new road on a River
+				// tile requires Bridge Building. Without this guard the AI loops indefinitely
+				// (validRoad → enqueue BuildRoad → silent fail → SkipTurn → repeat).
+				bool canNewRoadHere = (!tile.Road && !tile.RailRoad)
+					&& (!(tile is River) || Player.HasAdvance<BridgeBuilding>());
 				bool validRoad = (tile.City is null) && !tile.TransportTube && (
-					(!tile.Road && !tile.RailRoad) ||
+					canNewRoadHere ||
 					(tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) ||
 					(tile.RailRoad && Player.HasAdvance<TransitConduit>()));
 				bool validCanopy = Player.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));

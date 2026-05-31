@@ -653,6 +653,8 @@ namespace CivOne
 
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))
 			{
+				if (IsHuman)
+					DecisionLogger.EndGame(Score, "Destroyed", humanWon: false, turns: Game.Instance.GameTurn);
 				GameTask.Enqueue(Turn.GameOver(this));
 			}
 

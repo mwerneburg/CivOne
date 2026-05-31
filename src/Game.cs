@@ -655,6 +655,7 @@ namespace CivOne
 								GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
 								break;
 							}
+							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: false, turns: _gameTurn);
 							GameTask.Enqueue(Turn.GameOver(HumanPlayer));
 						}
 						return;
@@ -683,6 +684,7 @@ namespace CivOne
 					}
 					else
 					{
+						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: false, turns: _gameTurn);
 						GameTask.Enqueue(Turn.GameOver(HumanPlayer));
 					}
 					return;

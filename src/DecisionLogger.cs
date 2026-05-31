@@ -156,11 +156,17 @@ namespace CivOne
 				? ownCities.Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y))
 				: 255;
 
+			Player ownerPlayer = game?.GetPlayer(unit.Owner);
+			string civName    = ownerPlayer?.Civilization?.NamePlural ?? "?";
+			string leaderName = ownerPlayer?.LeaderName ?? "?";
+
 			Enqueue(Fmt(new[] {
 				KV("type",         "settler"),
 				KV("game_id",      _gameId),
 				KV("turn",         turn),
-				KV("is_human",     false),
+				KV("is_human",     ownerPlayer is not null && ownerPlayer == game.HumanPlayer),
+				KV("civ",          civName),
+				KV("leader",       leaderName),
 				KV("terrain",      tile.GetType().Name),
 				KV("food_r2",      foodR2),
 				KV("shield_r2",    shieldR2),
@@ -201,11 +207,17 @@ namespace CivOne
 
 			string productionName = (choice as ICivilopedia)?.Name ?? choice.GetType().Name;
 
+			string civName    = player?.Civilization?.NamePlural ?? "?";
+			string leaderName = player?.LeaderName ?? "?";
+
 			Enqueue(Fmt(new[] {
 				KV("type",          "city_prod"),
 				KV("game_id",       _gameId),
 				KV("turn",          game.GameTurn),
 				KV("is_human",      isHuman),
+				KV("civ",           civName),
+				KV("leader",        leaderName),
+				KV("city",          city.Name),
 				KV("city_size",     city.Size),
 				KV("food_surplus",  city.FoodIncome),
 				KV("shields",       city.ShieldIncome),
