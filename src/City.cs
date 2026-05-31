@@ -512,14 +512,21 @@ namespace CivOne
 			if (!Game.Started) return;
 			while (_resourceTiles.Count > Size)
 				_resourceTiles.RemoveAt(_resourceTiles.Count - 1);
-			if (_resourceTiles.Count == Size) return;
-			if (_resourceTiles.Count < Size)
+			// Fill the full deficit, not just one slot — a Size jump >1 (advanced tribe hut,
+			// settler joining a freshly-loaded city, etc.) would otherwise leave gaps that
+			// UpdateSpecialists rounds out into Entertainers.
+			while (_resourceTiles.Count < Size)
 			{
-				IEnumerable<ITile> tiles = CityTiles.Where(t => !OccupiedTile(t) && !ResourceTiles.Contains(t)).OrderByDescending(t => FoodValue(t)).ThenByDescending(t => ShieldValue(t)).ThenByDescending(t => TradeValue(t));
-				if (tiles.Count() > 0)
-					_resourceTiles.Add(tiles.First());
+				ITile pick = CityTiles
+					.Where(t => !OccupiedTile(t) && !ResourceTiles.Contains(t))
+					.OrderByDescending(t => FoodValue(t))
+					.ThenByDescending(t => ShieldValue(t))
+					.ThenByDescending(t => TradeValue(t))
+					.FirstOrDefault();
+				if (pick is null) break;  // no workable tiles left — let UpdateSpecialists fill the rest
+				_resourceTiles.Add(pick);
 			}
-			
+
 			UpdateSpecialists();
 		}
 
@@ -552,7 +559,7 @@ namespace CivOne
 						continue;
 					case 1:
 						if (y == -2) output[1] |= (byte)(0x01 << 5);
-						if (y == -1) output[1] |= (byte)(0x01 << 6);
+						if (y == -1) output[0] |= (byte)(0x01 << 4);  // (1,-1) NE-inner; matches decoder at byte 0 bit 4
 						if (y == 0) output[0] |= (byte)(0x01 << 1);
 						if (y == 1) output[0] |= (byte)(0x01 << 5);
 						if (y == 2) output[2] |= (byte)(0x01 << 0);
