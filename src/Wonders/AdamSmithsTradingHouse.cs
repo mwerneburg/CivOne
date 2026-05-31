@@ -18,10 +18,16 @@ namespace CivOne.Wonders
 		{
 			"ADAM SMITH'S TRADING HOUSE makes",
 			"your empire's commerce self-",
-			"sustaining. Trade revenues",
-			"automatically pay the maintenance",
-			"cost of every city improvement",
-			"that costs 1 gold per turn.",
+			"sustaining. Trade revenues pay",
+			"the maintenance of every city",
+			"improvement that costs 1 gold",
+			"per turn.",
+			"",
+			"It also reroutes INFRASTRUCTURE",
+			"BONDS: cities producing bonds",
+			"pool their shields each turn,",
+			"and the pool is split evenly",
+			"among all other cities.",
 		};
 
 		private static readonly string[] _page2 =

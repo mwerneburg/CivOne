@@ -22,6 +22,12 @@ namespace CivOne.Buildings
 			"the bond at a slight premium,",
 			"then redeems it for cash when the",
 			"project is complete.",
+			"",
+			"Once your empire owns ADAM SMITH'S",
+			"TRADING HOUSE, bond cities stop",
+			"completing and instead pool their",
+			"shields each turn for any other",
+			"city in the empire to draw on.",
 		};
 
 		private static readonly string[] _page2 =

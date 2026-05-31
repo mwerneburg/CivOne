@@ -19,6 +19,39 @@ namespace CivOne.Units
 {
 	internal class HydroEngineer : BaseUnitSea
 	{
+		private static readonly string[] _page1 =
+		{
+			"The HYDRO ENGINEER is the ocean's",
+			"answer to the Settler. Built only",
+			"in coastal cities, it operates on",
+			"open water and lays the foundation",
+			"for life beyond the shoreline.",
+			"",
+			"It can FOUND a floating city on",
+			"ocean, lay TRANSPORT TUBES across",
+			"the sea bed, build an AQUAFARM",
+			"on a worked ocean tile, and",
+			"RECLAIM a coastal tile, turning",
+			"it into PLAINS adjoining land.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Reclaiming ocean to land can",
+			"sever an inland bay from the open",
+			"sea — the enclosed water is then",
+			"reclassified as a freshwater lake,",
+			"enabling irrigation and rivers.",
+			"",
+			"Transport tubes function like rail",
+			"on the sea: connected tube tiles",
+			"and floating cities form a free-",
+			"movement corridor for both land",
+			"and sea units.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public int BuildingTube { get; internal set; }
 		public int BuildingAquafarm { get; internal set; }
 		public int BuildingReclaim { get; internal set; }

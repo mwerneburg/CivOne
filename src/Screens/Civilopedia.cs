@@ -89,7 +89,14 @@ namespace CivOne.Screens
 				return Resources.GetCivilopediaText("BLURB1/" + _singlePage.Name.ToUpper() + suffix);
 			}
 			if (_singlePage is IUnit)
+			{
+				if (_singlePage is Units.BaseUnit bu)
+				{
+					string[] custom = bu.GetPageText(pageNumber);
+					if (custom.Length > 0) return custom;
+				}
 				return Resources.GetCivilopediaText("BLURB2/" + _singlePage.Name.ToUpper() + suffix);
+			}
 			if (_singlePage is IAdvance)
 			{
 				if (_singlePage is BasePostContactAdvance bpca)
