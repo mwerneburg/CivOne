@@ -542,7 +542,6 @@ namespace CivOne
 
 		public void Explore(int x, int y, int range = 1, bool sea = false, bool noCorners = false)
 		{
-			_explored[x, y] = true;
 			for (int relX = -range; relX <= range; relX++)
 			for (int relY = -range; relY <= range; relY++)
 			{
@@ -561,6 +560,10 @@ namespace CivOne
 						ExplorationCredits++;
 				}
 				_visible[xx, yy] = true;
+				// Mark every tile in the seen radius as "explored", not just the unit's tile.
+				// Without this, MergeVisibility (used by map-trade diplomacy) only shares the
+				// path a unit walked rather than what it actually saw.
+				_explored[xx, yy] = true;
 			}
 		}
 

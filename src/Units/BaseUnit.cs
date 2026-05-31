@@ -250,9 +250,13 @@ namespace CivOne.Units
 
 		protected virtual bool Confront(int relX, int relY)
 		{
-			if (Class == UnitClass.Land && (this is Diplomat || this is Caravan))
+			// Non-combat land units refuse to walk into enemies. Diplomat and Caravan have
+			// their own Confront overrides for their special interactions with foreign cities;
+			// they end up here only if those overrides don't catch the case. Settlers and
+			// Hydro Engineer have Attack=0 — sending them into combat is suicide and the AI
+			// pathfinder doesn't avoid enemy-occupied tiles, so guard at the boundary.
+			if (Class == UnitClass.Land && (this is Diplomat || this is Caravan || this is Settlers || this is HydroEngineer))
 			{
-				// TODO: Perform other unit action (confront)
 				return false;
 			}
 
