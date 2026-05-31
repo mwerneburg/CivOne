@@ -186,6 +186,11 @@ namespace CivOne
 			{
 				_title = title;
 
+				// Allow the OS screensaver and display sleep while the game runs. SDL2 disables
+				// both by default, which keeps a laptop screen awake indefinitely — wrong for a
+				// turn-based game. The hint must be set before the video subsystem initialises.
+				SDL_SetHint("SDL_VIDEO_ALLOW_SCREENSAVER", "1");
+
 				SDL_Init(SDL_INIT.VIDEO | SDL_INIT.AUDIO);
 
 				SDL_WINDOW flags = SDL_WINDOW.RESIZABLE;
