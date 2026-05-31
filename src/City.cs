@@ -1648,8 +1648,15 @@ namespace CivOne
 				{
 					// Fever: tropical disease in cities with jungle in the worked tiles,
 					// before Medicine is researched. Same magnitude as Plague (¼ size loss).
-					bool jungleNearby = CityTiles.Any(t => t.Type == Terrain.Jungle);
-					bool hasMedicine  = Player.HasAdvance<Medicine>();
+					// Olvir civs are immune — their biology is adapted. Jungle tiles with
+					// a Canopy Array are managed ecology and don't count as fever vectors.
+					if (Player.Civilization is Civilizations.Olvir) break;
+
+					bool jungleNearby = CityTiles.Any(t =>
+						t.Type == Terrain.Jungle
+						&& !(Game.OlvirImprovements.TryGetValue((t.X, t.Y), out var imp)
+						     && imp == OlvirImprovementType.CanopyArray));
+					bool hasMedicine = Player.HasAdvance<Medicine>();
 
 					if (jungleNearby && !hasMedicine)
 					{
