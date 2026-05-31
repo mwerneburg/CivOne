@@ -38,7 +38,7 @@ namespace CivOne.Wonders
 		public override string[] GetPageText(byte pageNumber)
 			=> pageNumber == 1 ? _page1 : _page2;
 
-		public AdamSmithsTradingHouse() : base(40)
+		public AdamSmithsTradingHouse() : base(60)
 		{
 			Name = "Adam Smith's Trading House";
 			RequiredTech = new TheCorporation();

@@ -118,6 +118,12 @@ namespace CivOne
 		private IAdvance _currentResearch = null;
 		private int _futureTechs = 0;
 
+		// Transient: shields contributed this turn by Infrastructure-Bond donor cities under
+		// Adam Smith's Trading House. Collected during city NewTurn passes, distributed and
+		// zeroed in Player.NewTurn. Never persisted — only nonzero between the city loop and
+		// the player loop within a single turn.
+		internal int BondPool = 0;
+
 		public event EventHandler Destroyed;
 
 		internal int CityNamesSkipped = 0;
@@ -606,8 +612,43 @@ namespace CivOne
 			return false;
 		}
 
+		// Even-split distribution of the BondPool to non-donor cities, capped at each
+		// recipient's completion threshold. Excess and integer-division remainder are
+		// discarded. If no recipients qualify, the entire pool converts 1:1 to gold.
+		private void DistributeBondPool()
+		{
+			if (BondPool <= 0) return;
+
+			City[] recipients = Cities
+				.Where(c => c.CurrentProduction is not null && !(c.CurrentProduction is InfrastructureBond))
+				.ToArray();
+
+			if (recipients.Length == 0)
+			{
+				int newGold = Gold + BondPool;
+				Gold = (short)Math.Min(short.MaxValue, newGold);
+			}
+			else
+			{
+				int share = BondPool / recipients.Length;
+				if (share > 0)
+				{
+					foreach (City c in recipients)
+					{
+						int cap = (int)c.CurrentProduction.Price * 10;
+						int delta = Math.Min(share, Math.Max(0, cap - c.Shields));
+						c.Shields += delta;
+					}
+				}
+			}
+
+			BondPool = 0;
+		}
+
 		public void NewTurn()
 		{
+			DistributeBondPool();
+
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))
 			{
 				GameTask.Enqueue(Turn.GameOver(this));

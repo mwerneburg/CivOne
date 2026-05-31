@@ -1257,7 +1257,14 @@ namespace CivOne
 					// +25 % per difficulty step — double speed at Emperor.
 					if (Player != Human && Game.Difficulty > 0)
 						income += income * Game.Difficulty / 4;
-					Shields += income;
+
+					// Bond-donor diversion: cities producing Infrastructure Bond under Adam Smith's
+					// Trading House export this turn's shields to the player pool instead of
+					// accumulating them locally. Player.NewTurn distributes the pool.
+					if (CurrentProduction is InfrastructureBond && Player.HasWonder<AdamSmithsTradingHouse>())
+						Player.BondPool += income;
+					else
+						Shields += income;
 				}
 			}
 
