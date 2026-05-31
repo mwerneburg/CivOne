@@ -37,6 +37,11 @@ namespace CivOne.Screens
 		private readonly ICivilopedia _singlePage;
 		private readonly bool _discovered;
 
+		// True only when this Civilopedia was opened as a tech-discovery notification
+		// (ProcessScience does this). Autopilot uses this to distinguish auto-dismissable
+		// discovery popups from the player-initiated reference reader.
+		internal bool IsDiscoveryNotification => _discovered;
+
 		private bool _update = true;
 		private int _startIndex = 0;
 		private byte _pageNumber = 1;

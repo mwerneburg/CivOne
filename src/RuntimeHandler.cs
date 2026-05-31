@@ -104,8 +104,12 @@ namespace CivOne
 		{
 			string ns = s.GetType().Namespace ?? "";
 			if (ns.StartsWith("CivOne.Screens.Debug")) return true;
+			// Civilopedia is user-driven when the player opens it for reading, but
+			// ProcessScience also shows one as a tech-discovery notification — those need
+			// to auto-dismiss so research can continue.
+			if (s is Civilopedia c) return !c.IsDiscoveryNotification;
 			string n = s.GetType().Name;
-			return n == "GameOptions" || n == "Civilopedia" || n == "SaveGame" || n == "LoadGame"
+			return n == "GameOptions" || n == "SaveGame" || n == "LoadGame"
 				|| n == "ChangeHumanPlayer";
 			// NB: ChooseGovernment, CityName, ChooseTech, NewGame, Setup, Credits, Splash and
 			// CustomizeWorld are intentionally NOT blacklisted — they need auto-Enter to pick
