@@ -335,12 +335,21 @@ namespace CivOne
 						return;
 					}
 
-					// Don't let a GoTo move initiate war with a civilization at peace.
+					// Don't let a GoTo move initiate war with a civilization at peace. Barbarians
+					// (Owner 0) are always implicitly hostile — never in _warWith but always
+					// fair game. Without the explicit exemption a single Barbarian Settler can
+					// freeze an attack stack of dozens, since each unit treats the Settler as
+					// "peaceful blocked" and skips turn.
 					{
 						Player nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
 						bool peacefulBlock =
-							next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = Game.GetPlayer(u.Owner); return p is not null && !Player.IsAtWar(p); })
-							|| (nextCityOwner is not null && !Player.IsAtWar(nextCityOwner));
+							next.Units.Any(u => {
+								if (u.Owner == unit.Owner) return false;
+								if (u.Owner == 0) return false;            // Barbarian unit: always attackable
+								Player p = Game.GetPlayer(u.Owner);
+								return p is not null && !Player.IsAtWar(p);
+							})
+							|| (nextCityOwner is not null && nextCityOwner.Civilization is not Civilizations.Barbarian && !Player.IsAtWar(nextCityOwner));
 						if (peacefulBlock)
 						{
 							unit.Goto = Point.Empty;
