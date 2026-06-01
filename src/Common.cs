@@ -235,6 +235,22 @@ namespace CivOne
 			var map = Map.Instance;
 			int w = Map.WIDTH, h = Map.HEIGHT;
 
+			// Continent feasibility check for land units: if source and destination tiles
+			// belong to different named continents (ID 1–14), there's no land path between
+			// them and A* would just exhaust the open set. Short-circuit to avoid an
+			// expensive futile search. ContinentId 15 ("misc") is conservatively allowed —
+			// it covers tiny islands and polar bands where the check would be unreliable.
+			if (unit.Class == UnitClass.Land)
+			{
+				ITile src = map[sx, sy];
+				ITile dst = map[gx, gy];
+				if (src is not null && dst is not null
+				    && src.ContinentId >= 1 && src.ContinentId <= 14
+				    && dst.ContinentId >= 1 && dst.ContinentId <= 14
+				    && src.ContinentId != dst.ContinentId)
+					return null;
+			}
+
 			var gScore = new Dictionary<int, int>();
 			var cameFrom = new Dictionary<int, int>();
 			// open set: (f, euclidSq to goal, encoded position)

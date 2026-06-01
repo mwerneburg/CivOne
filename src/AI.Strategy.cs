@@ -810,36 +810,47 @@ namespace CivOne
 				return;
 			}
 
-			// Diplomats: prefer the human player's cities (steal tech / sabotage),
-			// fall back to the nearest other visible foreign city.
+			// Diplomats: prefer the human player's cities (steal tech / sabotage), then nearest
+			// other foreign city. Only consider cities reachable by land from the diplomat's
+			// current tile — same ContinentId means a 4-connected land path exists. Without
+			// this filter the diplomat ends up walking forever toward an unreachable target.
 			if (unit is Diplomat)
 			{
+				byte myContinent = unit.Tile.ContinentId;
+				bool sameContinent(City c) => myContinent != 15 && c.Tile.ContinentId == myContinent;
 				Player human = Human;
 				City target =
 					Game.GetCities()
-					    .Where(c => c.Player == human && Player.Visible(c.X, c.Y))
+					    .Where(c => c.Player == human && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 					    .FirstOrDefault()
 					??
 					Game.GetCities()
-					    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y))
+					    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 					    .FirstOrDefault();
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
+				else unit.SkipTurn();
 				return;
 			}
 
-			// Caravans: head for the most distant foreign city (trade route gold)
+			// Caravans: head for the most distant foreign city (trade route gold), but only
+			// among cities on the same continent so we don't dispatch the unit on an impossible
+			// walk across the ocean.
 			if (unit is Caravan)
 			{
+				byte myContinent = unit.Tile.ContinentId;
+				bool sameContinent(City c) => myContinent != 15 && c.Tile.ContinentId == myContinent;
 				City target = Game.GetCities()
-				    .Where(c => c.Player != Player)
+				    .Where(c => c.Player != Player && sameContinent(c))
 				    .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .FirstOrDefault()
 				    ?? Player.Cities
+				       .Where(sameContinent)
 				       .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				       .FirstOrDefault();
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
+				else unit.SkipTurn();
 				return;
 			}
 
