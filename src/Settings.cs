@@ -203,15 +203,17 @@ namespace CivOne
 		// When true the entire game runs hands-off: the human player's units route through
 		// the AI, modal dialogs auto-dismiss after a beat, the End-of-Turn confirmation is
 		// bypassed, and the game self-progresses to victory or defeat. Used for unattended
-		// playtests / regression runs. Public so the SDL runtime can read it for any input
-		// auto-dispatch it does.
+		// playtests / regression runs.
+		//
+		// Session-only: never persisted to the profile. Every launch starts with Autopilot
+		// off. A forgotten in-game toggle can no longer trap the next session into hands-off
+		// play — restart the game and you're back in normal interactive mode.
 		public bool Autopilot
 		{
 			get => _autopilot;
 			set
 			{
 				_autopilot = value;
-				SetSetting("Autopilot", _autopilot ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -477,7 +479,7 @@ namespace CivOne
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("CursorCoords", ref _cursorCoords);
 			GetSetting("PowerSaving", ref _powerSaving);
-			GetSetting("Autopilot", ref _autopilot);
+			// Autopilot intentionally NOT loaded from the profile — always starts off.
 			GetSetting("DeityEnabled", ref _deityEnabled);
 			GetSetting("ArrowHelper", ref _arrowHelper);
 			GetSetting("CustomMapSize", ref _customMapSize);
