@@ -800,6 +800,20 @@ namespace CivOne
 						string gotoStr = unit.Goto.IsEmpty ? "empty" : $"({unit.Goto.X},{unit.Goto.Y})";
 						Log($"[AI] {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) queued {_sameUnitMoveCount}x; MovesLeft={unit.MovesLeft} PartMoves={unit.PartMoves} Moving={unit.Moving} Goto={gotoStr}");
 					}
+
+					// Circuit breaker: same unit queued > 50 times without making any progress
+					// (position unchanged, moves not consumed) almost always means AI.Move is
+					// either throwing silently (caught by the GameTask handler) or pathfinding
+					// is looping. Force-skip the unit so the rest of the turn can advance.
+					if (_sameUnitMoveCount > 50)
+					{
+						Log($"[AI] CIRCUIT BREAKER: force-skipping {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) after {_sameUnitMoveCount} stuck queues");
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+						_sameUnitMoveCount = 0;
+						_lastMovedUnit = null;
+						return;
+					}
 				}
 				else
 				{
