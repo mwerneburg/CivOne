@@ -188,6 +188,11 @@ namespace CivOne
 			Game game = Game.Instance;
 			if (game is null) return;
 
+			// City may be in a transient sentinel state (X==255 / Y==255) when destroyed or
+			// in-flight; Tile is null there. Bail rather than NRE on city.Tile.Units.
+			ITile cityTile = city.Tile;
+			if (cityTile is null) return;
+
 			byte owner = city.Owner;
 			City[] allCities = game.GetCities();
 			City[] ownCities = allCities.Where(c => c.Owner == owner).ToArray();
@@ -199,7 +204,7 @@ namespace CivOne
 				.DefaultIfEmpty(255)
 				.Min();
 
-			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense && u.Owner == owner);
+			int defenders = cityTile.Units.Count(u => u.Role == UnitRole.Defense && u.Owner == owner);
 
 			bool atWar = game.Players
 				.Where(p => p != player)
