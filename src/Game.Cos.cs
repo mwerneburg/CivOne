@@ -237,7 +237,6 @@ namespace CivOne
 						Sound          = Sound,
 						EnemyMoves     = EnemyMoves,
 						CivilopediaText = CivilopediaText,
-						Palace         = Palace,
 						Circuses       = Circuses,
 					Barricades     = Barricades
 					},
@@ -666,7 +665,6 @@ namespace CivOne
 			Sound          = (Settings.Sound          != GameOption.Off) && (Settings.Sound          != GameOption.Default || opt.Sound);
 			EnemyMoves     = (Settings.EnemyMoves     != GameOption.Off) && (Settings.EnemyMoves     != GameOption.Default || opt.EnemyMoves);
 			CivilopediaText= (Settings.CivilopediaText!= GameOption.Off) && (Settings.CivilopediaText!= GameOption.Default || opt.CivilopediaText);
-			Palace         = (Settings.Palace         != GameOption.Off) && (Settings.Palace         != GameOption.Default || opt.Palace);
 			Circuses       = opt.Circuses   ?? true;
 			Barricades     = opt.Barricades ?? true;
 

@@ -26,82 +26,6 @@ namespace CivOne
 {
 	public class Player : BaseInstance, ITurn
 	{
-		public class PalaceData
-		{
-			private byte[] PalaceStyle = new byte[7];
-			private byte[] PalaceLevel = new byte[7];
-			private byte[] GardenLevel = new byte[3];
-
-			public int PalaceLeft
-			{
-				get
-				{
-					for (int i = 0; i < 3; i++)
-					{
-						if (PalaceLevel[i] > 0) return i;
-					}
-					return 2;
-				}
-			}
-
-			public int PalaceRight
-			{
-				get
-				{
-					for (int i = 6; i > 3; i--)
-					{
-						if (PalaceLevel[i] > 0) return i;
-					}
-					return 4;
-				}
-			}
-
-			public PalaceStyle GetPalaceStyle(int index)
-			{
-				if (index < 0 || index > 6) throw new Exception("Invalid palace index");
-				return (PalaceStyle)PalaceStyle[index];
-			}
-
-			public byte GetPalaceLevel(int index)
-			{
-				if (index < 0 || index > 6) throw new Exception("Invalid palace index");
-				return PalaceLevel[index];
-			}
-
-			public byte GetGardenLevel(int index)
-			{
-				if (index < 0 || index > 2) throw new Exception("Invalid garden index");
-				return GardenLevel[index];
-			}
-
-			public void SetPalace(int index, byte style, byte level)
-			{
-				if (index < 0 || index > 6)
-					throw new Exception("Invalid palace index");
-				if (style < 0 || style > 3)
-					throw new Exception("Invalid palace style");
-				if (level < 0 || level > 4)
-					throw new Exception("Invalid palace level");
-				
-				if (level == 0 || style == 0)
-				{
-					PalaceStyle[index] = 0;
-					PalaceLevel[index] = 0;
-					return;
-				}
-				PalaceStyle[index] = style;
-				PalaceLevel[index] = level;
-			}
-
-			public void SetGarden(int index, byte level)
-			{
-				if (index < 0 || index > 2) throw new Exception("Invalid garden index");
-				if (level < 0 || level > 3) throw new Exception("Invalid garden level");
-				
-				GardenLevel[index] = level;
-			}
-		}
-
 		private readonly ICivilization _civilization;
 		private readonly string _tribeName, _tribeNamePlural;
 
@@ -145,8 +69,6 @@ namespace CivOne
 		public string Capital => Game.GetCities().FirstOrDefault(x => this == x.Owner && x.HasBuilding<Palace>())?.Name ?? "NONE";
 
 		public byte Handicap { get; internal set; }
-
-		public readonly PalaceData Palace = new PalaceData();
 
 		// Normally AI is exposed only for non-human players. In Autopilot mode the human
 		// slot gets one too, so unit moves and other "AI-driven" decisions self-resolve.

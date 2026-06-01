@@ -193,7 +193,6 @@ namespace CivOne
 			Sound = (Settings.Sound != GameOption.Off);
 			EnemyMoves = (Settings.EnemyMoves != GameOption.Off);
 			CivilopediaText = (Settings.CivilopediaText != GameOption.Off);
-			Palace = (Settings.Palace != GameOption.Off);
 
 			_cities = new List<City>();
 			_units = new List<IUnit>();

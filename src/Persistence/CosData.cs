@@ -83,7 +83,6 @@ namespace CivOne.Persistence
 		public bool Sound { get; set; }
 		public bool EnemyMoves { get; set; }
 		public bool CivilopediaText { get; set; }
-		public bool Palace { get; set; }
 		public bool? Circuses { get; set; }
 		public bool? Barricades { get; set; }
 	}

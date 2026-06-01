@@ -184,7 +184,6 @@ namespace CivOne
 		public bool InstantAdvice { get; set; }
 
 		public bool EnemyMoves { get; set; }
-		public bool Palace { get; set; }
 		public bool Circuses { get; set; } = true;
 		public bool Barricades { get; set; } = true;
 

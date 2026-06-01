@@ -47,7 +47,7 @@ namespace CivOne
 		private bool _customMapSize = false;
 		private CursorType _cursorType = CursorType.Default;
 		private DestroyAnimation _destroyAnimation = DestroyAnimation.Sprites;
-		private GameOption _instantAdvice, _autoSave, _endOfTurn, _animations, _sound, _enemyMoves, _civilopediaText, _palace;
+		private GameOption _instantAdvice, _autoSave, _endOfTurn, _animations, _sound, _enemyMoves, _civilopediaText;
 		
 		internal string StorageDirectory => Runtime.StorageDirectory;
 		internal string CaptureDirectory => Path.Combine(StorageDirectory, "capture");
@@ -381,18 +381,6 @@ namespace CivOne
 			}
 		}
 
-		public GameOption Palace
-		{
-			get => _palace;
-			set
-			{
-				_palace = value;
-				string saveValue = ((int)_palace).ToString();
-				SetSetting("GamePalace", saveValue);
-				Common.ReloadSettings = true;
-			}
-		}
-
 		public string[] DisabledPlugins
 		{
 			get => GetSetting("DisabledPlugins")?.Split(';') ?? new string[0];
@@ -492,7 +480,6 @@ namespace CivOne
 			GetSetting<GameOption>("GameSound", ref _sound);
 			GetSetting<GameOption>("GameEnemyMoves", ref _enemyMoves);
 			GetSetting<GameOption>("GameCivilopediaText", ref _civilopediaText);
-			GetSetting<GameOption>("GamePalace", ref _palace);
 		}
 	}
 }
