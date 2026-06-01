@@ -670,10 +670,22 @@ namespace CivOne
 		{
 			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire.
 			// Barbarians (P0) are treated as always hostile even without a formal war state.
+			// Same-continent filter: we have to walk attackers to the target, and the engine
+			// has no naval transport AI yet — picking an off-continent target wedges every
+			// attacker on the staging tile (GotoStep returns null for cross-continent paths).
+			// "Same continent" = at least one of our cities shares a ContinentId with the target.
+			var ownContinents = new HashSet<byte>(Player.Cities
+			    .Select(oc => oc.Tile.ContinentId)
+			    .Where(id => id >= 1 && id <= 14));
+			bool reachable(City c) => ownContinents.Count == 0
+			    || (c.Tile.ContinentId >= 1 && c.Tile.ContinentId <= 14
+			        && ownContinents.Contains(c.Tile.ContinentId));
+
 			var candidates = Game.GetCities()
 			    .Where(c => c.Player != Player
 			             && (Player.IsAtWar(c.Player) || c.Owner == 0)
-			             && Player.Visible(c.X, c.Y));
+			             && Player.Visible(c.X, c.Y)
+			             && reachable(c));
 
 			// When the human is dominant and we're at war with them, hit their cities first.
 			Player human = Human;
@@ -862,11 +874,20 @@ namespace CivOne
 					// Validate or refresh the civ-wide attack target.
 					// Barbarian cities stay valid until captured; non-barbarian targets
 					// are dropped when the war ends.
+					// Same-continent staleness check: an attacker whose target is on a different
+					// continent can't path there. Cached _attackTarget held over from before the
+					// fix (or picked when our continents shifted) needs invalidating so the
+					// strategy code re-picks a reachable target.
+					byte ownPN = Game.PlayerNumber(Player);
+					bool targetOffContinent = _attackTarget is not null
+					    && !Player.Cities.Any(oc => oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
+					                              && oc.Tile.ContinentId >= 1 && oc.Tile.ContinentId <= 14);
 					bool targetStale = _attackTarget is null
 					    || _attackTarget.Size <= 0
 					    || !Game.GetCities().Contains(_attackTarget)
 					    || _attackTarget.Player == Player
-					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player));
+					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player))
+					    || targetOffContinent;
 					if (targetStale)
 						_attackTarget = PickAttackTarget();
 
@@ -891,13 +912,24 @@ namespace CivOne
 					}
 				}
 
-				// Default: reinforce the most under-defended own city
+				// Default: reinforce the most under-defended own city. If every own city is
+				// already garrisoned (>= 2 defenders) and the attacker still has nothing to do,
+				// fall back to the nearest own city anyway — better to pile up there and fortify
+				// than to sit in open terrain getting nothing done turn after turn.
 				City needsHelp = Player.Cities
 				    .Where(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense) < 2)
 				    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 				    .ThenBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				    .FirstOrDefault();
-				if (needsHelp is not null) unit.Goto = new Point(needsHelp.X, needsHelp.Y);
+				    .FirstOrDefault()
+				    ?? Player.Cities
+				       .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+				       .FirstOrDefault();
+				if (needsHelp is not null && (needsHelp.X != unit.X || needsHelp.Y != unit.Y))
+					unit.Goto = new Point(needsHelp.X, needsHelp.Y);
+				else if (needsHelp is null)
+					unit.Fortify = true;
+				// (already at the only fallback city — leave Goto empty, let next turn pick again
+				// without thrashing; the unit just sits but won't waste enqueue cycles)
 			}
 		}
 
