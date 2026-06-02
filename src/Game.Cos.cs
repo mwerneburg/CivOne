@@ -596,17 +596,20 @@ namespace CivOne
 				}
 			}
 
-			// Wake the human player's units when loading interactively. Saves made during
-			// an Autopilot run have most human units fortified or sentry'd (the AI defaults
-			// to garrison them between actions). Loaded fresh with Autopilot off, the user
-			// would otherwise find ActiveUnit returning null every turn and the auto-end-turn
-			// firing immediately — symptom is the game appearing to "auto-play itself".
-			// Only fire when Autopilot is off; an Autopilot-resume load shouldn't disturb state.
+			// Recovery for Autopilot saves where the AI has garrisoned every human unit.
+			// Loaded fresh with Autopilot off, ActiveUnit returns null, the auto-end-turn
+			// fires immediately, and the game appears to play itself. Only intervene when
+			// no active human unit exists — otherwise we'd wipe the user's deliberate
+			// Fortify state on garrison defenders.
 			if (!Settings.Instance.Autopilot && HumanPlayer is not null)
 			{
 				byte humanIdxWake = PlayerNumber(HumanPlayer);
-				foreach (IUnit u in _units.Where(u => u.Owner == humanIdxWake))
-					u.Busy = false;  // setter clears Sentry, Fortify, and FortifyActive
+				bool anyActive = _units.Any(u => u.Owner == humanIdxWake && !u.Busy);
+				if (!anyActive)
+				{
+					foreach (IUnit u in _units.Where(u => u.Owner == humanIdxWake))
+						u.Busy = false;  // setter clears Sentry, Fortify, and FortifyActive
+				}
 			}
 
 			// Post-load tile heal for AI cities. The historic encoder bug at City.cs:555
