@@ -24,6 +24,12 @@ namespace CivOne.Concepts
 			"When unhappy citizens outnumber",
 			"happy ones, the city falls into",
 			"civil disorder and stops working.",
+			"",
+			"Under REPUBLIC or DEMOCRACY, every",
+			"military unit AWAY from its home",
+			"city causes one unhappy citizen",
+			"(two under Democracy). Press H to",
+			"set a unit's home city.",
 		};
 
 		private static readonly string[] _page2 =
