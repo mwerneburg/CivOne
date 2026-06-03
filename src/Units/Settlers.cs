@@ -46,6 +46,7 @@ namespace CivOne.Units
 				BuildingThawTundra = 0;
 				BuildingAddRiver = 0;
 				AutoClean = false;
+				AutoImprove = false;
 				RoadTo = Point.Empty;
 			}
 		}
@@ -65,12 +66,174 @@ namespace CivOne.Units
 		public int BuildingThawTundra { get; internal set; }
 		public int BuildingAddRiver { get; internal set; }
 		public bool AutoClean { get; private set; }
+		public bool AutoImprove { get; private set; }
 
 		internal bool IsTileClaimed(int tx, int ty) =>
 			Game.GetUnits().OfType<Settlers>().Any(s =>
 				s != this && s.Owner == Owner &&
 				((!s.Goto.IsEmpty && s.Goto.X == tx && s.Goto.Y == ty) ||
 				 (s.X == tx && s.Y == ty && s.Busy)));
+
+		// ── Auto-Improve ────────────────────────────────────────────────────────
+		// Session-only flag (not persisted). Drains in NewTurn/MovementDone like
+		// AutoClean. Policy:
+		//   Despotism/Anarchy: roads (and rail/tube upgrades) only.
+		//   Monarchy or better: full improvement set.
+		//   Budget: Size+1 tiles per owned city, ordered by distance from city centre.
+		//   Hills    → road, rail, mine
+		//   Forest+deer / Jungle → road, rail, canopy (never converted)
+		//   Forest-no-deer → road, rail, then converted to plains
+		//   Swamp/Mountain/Tundra/Arctic/Ocean → skipped entirely
+		//   Grassland/Plains/Desert/River → road, rail, irrigation
+
+		private bool IsBuildIdle() =>
+			BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 &&
+			BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 &&
+			BuildingAquafarm == 0 && BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 &&
+			BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 &&
+			BuildingAddRiver == 0;
+
+		private bool AutoImproveSkipTerrain(ITile t) =>
+			t is null || t.IsOcean || t is Mountains || t is Arctic || t is Tundra ||
+			t is Swamp || t.City is not null;
+
+		private bool IsTileWorkedByEnemy(int tx, int ty) =>
+			Game.GetCities().Any(c => c.Owner != Owner &&
+				c.ResourceTiles.Any(rt => rt.X == tx && rt.Y == ty));
+
+		private bool AutoImproveCanIrrigate(ITile tile)
+		{
+			if (tile.Irrigation) return false;
+			if (tile is River) return true;
+			if (!(tile is Desert || tile is Grassland || tile is Plains || tile is Hills)) return false;
+			return tile.GetBorderTiles().Any(t =>
+				(t.X == tile.X || t.Y == tile.Y) && t.City is null &&
+				(t.Irrigation || t is River || t is Swamp ||
+					(t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))));
+		}
+
+		private bool HasCanopyHere(ITile tile) =>
+			Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
+
+		private bool AutoImproveTileNeedsWork(ITile tile)
+		{
+			if (AutoImproveSkipTerrain(tile)) return false;
+
+			// Road / rail / tube tier
+			bool isRiver = tile is River;
+			bool roadOk = !tile.IsOcean && tile.City is null && (!isRiver || Player.HasAdvance<BridgeBuilding>());
+			if (roadOk)
+			{
+				if (!tile.Road) return true;
+				if (tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) return true;
+				if (tile.RailRoad && !tile.TransportTube && Player.HasAdvance<TransitConduit>()) return true;
+			}
+
+			if (Player.AnarchyDespotism) return false;
+
+			if (tile is Forest)
+			{
+				if (tile.Special)
+					return Player.HasAdvance<CanopyCultivation>() && !HasCanopyHere(tile);
+				return true; // convert non-deer forest
+			}
+			if (tile is Jungle)
+				return Player.HasAdvance<CanopyCultivation>() && !HasCanopyHere(tile);
+			if (tile is Hills && !tile.Mine) return true;
+			if ((tile is Grassland || tile is Plains || tile is Desert || tile is River) &&
+				!tile.Irrigation && AutoImproveCanIrrigate(tile))
+				return true;
+			return false;
+		}
+
+		private bool ExecuteAutoImproveAt(ITile tile)
+		{
+			// Road / rail / tube — BuildRoad walks the chain itself based on state and tech
+			if (!tile.TransportTube && !tile.IsOcean && tile.City is null)
+			{
+				if (BuildRoad()) return true;
+			}
+
+			if (Player.AnarchyDespotism) return false;
+
+			if ((tile is Forest && tile.Special) || tile is Jungle)
+			{
+				if (Player.HasAdvance<CanopyCultivation>() && !HasCanopyHere(tile))
+					if (BuildCanopyArray()) return true;
+				return false;
+			}
+
+			if (tile is Hills && !tile.Mine)
+				if (BuildMines()) return true;
+
+			if (tile is Forest && !tile.Special)
+			{
+				// BuildIrrigation on Forest converts to Plains (City.cs:386-392 / NewTurn loop)
+				if (BuildIrrigation()) return true;
+			}
+
+			if ((tile is Grassland || tile is Plains || tile is Desert || tile is River) &&
+				!tile.Irrigation && AutoImproveCanIrrigate(tile))
+			{
+				if (BuildIrrigation()) return true;
+			}
+			return false;
+		}
+
+		private ITile FindNextImprovementTile()
+		{
+			var ownCities = Game.GetCities()
+				.Where(c => c.Owner == Owner)
+				.OrderBy(c => Common.DistanceToTile(X, Y, c.X, c.Y))
+				.ToList();
+
+			foreach (City city in ownCities)
+			{
+				int budget = city.Size + 1;
+				int processed = 0;
+
+				ITile[,] grid = city.CityRadius;
+				var radius = new List<ITile>();
+				for (int xx = 0; xx < 5; xx++)
+				for (int yy = 0; yy < 5; yy++)
+				{
+					ITile t = grid[xx, yy];
+					if (t is null) continue;
+					if (t.X == city.X && t.Y == city.Y) continue;
+					radius.Add(t);
+				}
+				var ordered = radius
+					.OrderBy(t => Common.DistanceToTile(city.X, city.Y, t.X, t.Y))
+					.ToList();
+
+				foreach (ITile t in ordered)
+				{
+					if (processed >= budget) break;
+					if (AutoImproveSkipTerrain(t)) continue;
+					if (IsTileWorkedByEnemy(t.X, t.Y)) continue;
+					if ((t.X != X || t.Y != Y) && IsTileClaimed(t.X, t.Y)) continue;
+
+					processed++;
+					if (AutoImproveTileNeedsWork(t)) return t;
+				}
+			}
+			return null;
+		}
+
+		private void StartAutoImproveStep()
+		{
+			if (!AutoImprove) return;
+			ITile next = FindNextImprovementTile();
+			if (next is null) { AutoImprove = false; return; }
+			if (next.X == X && next.Y == Y)
+			{
+				if (!ExecuteAutoImproveAt(next)) AutoImprove = false;
+			}
+			else
+			{
+				Goto = new Point(next.X, next.Y);
+			}
+		}
 
 		private ITile FindNearestCityPollution()
 		{
@@ -93,6 +256,8 @@ namespace CivOne.Units
 			base.MovementDone(previousTile);
 			if (AutoClean && Map[X, Y].Pollution)
 				CleanPollution();
+			if (AutoImprove && IsBuildIdle() && AutoImproveTileNeedsWork(Map[X, Y]) && !IsTileWorkedByEnemy(X, Y))
+				ExecuteAutoImproveAt(Map[X, Y]);
 			if (!RoadTo.IsEmpty)
 			{
 				Log($"[Settlers.MovementDone] RoadTo=({RoadTo.X},{RoadTo.Y}) now at ({X},{Y}) ML={MovesLeft}");
@@ -511,6 +676,9 @@ namespace CivOne.Units
 				}
 			}
 
+			if (AutoImprove && IsBuildIdle())
+				StartAutoImproveStep();
+
 			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0
 				&& BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 && BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 && BuildingAddRiver == 0)
 			{
@@ -614,6 +782,16 @@ namespace CivOne.Units
 			.SetShortcut("p")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.CleanPollution(this)));
 
+		private MenuItem<int> MenuAutoImprove() => MenuItem<int>
+			.Create("Auto-Improve")
+			.SetShortcut("e")
+			.OnSelect((s, a) =>
+			{
+				AutoImprove = true;
+				Goto = Point.Empty;
+				StartAutoImproveStep();
+			});
+
 		private MenuItem<int> MenuAutoCleanPollution() => MenuItem<int>
 			.Create("Auto-Clean Pollution")
 			.SetShortcut("c")
@@ -682,6 +860,10 @@ namespace CivOne.Units
 				if (!AutoClean && FindNearestCityPollution() is not null)
 				{
 					yield return MenuAutoCleanPollution();
+				}
+				if (!AutoImprove)
+				{
+					yield return MenuAutoImprove();
 				}
 				//
 				yield return MenuWait();
