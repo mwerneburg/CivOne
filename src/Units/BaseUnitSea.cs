@@ -61,7 +61,12 @@ namespace CivOne.Units
 				if (tile.GetBorderTiles().Any(t => !t.IsOcean))
 				{
 					foreach (IUnit unit in tile.Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable).Cargo))
+					{
+						// Restore moves: Sentry-setter zeroed them at MovementStart when the
+						// passenger boarded; clearing Sentry doesn't undo the side effect.
 						unit.Sentry = false;
+						unit.MovesLeft = unit.Move;
+					}
 				}
 			}
 
@@ -84,6 +89,7 @@ namespace CivOne.Units
 			foreach (IUnit unit in units)
 			{
 				unit.Sentry = false;
+				unit.MovesLeft = unit.Move;
 			}
 			MovesLeft = 0;
 			PartMoves = 0;

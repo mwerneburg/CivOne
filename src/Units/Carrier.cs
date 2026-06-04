@@ -27,6 +27,7 @@ namespace CivOne.Units
 					unit.X = X;
 					unit.Y = Y;
 					unit.Sentry = false;
+					unit.MovesLeft = unit.Move;
 				}
 			}
 

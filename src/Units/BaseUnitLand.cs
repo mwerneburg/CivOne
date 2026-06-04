@@ -81,6 +81,7 @@ namespace CivOne.Units
 				foreach (IUnit unit in Tile.Units.Where(u => u is IBoardable))
 				{
 					unit.Sentry = false;
+					unit.MovesLeft = unit.Move;
 				}
 			}
 			else

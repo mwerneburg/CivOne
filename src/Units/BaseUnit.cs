@@ -589,7 +589,10 @@ namespace CivOne.Units
 			{
 				foreach (ITile adjacent in Tile.GetBorderTiles())
 					foreach (IUnit sleeping in adjacent.Units.Where(u => u.Sentry && Human == u.Owner).ToList())
+					{
 						sleeping.Sentry = false;
+						sleeping.MovesLeft = sleeping.Move;
+					}
 			}
 		}
 
