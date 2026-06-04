@@ -318,6 +318,17 @@ namespace CivOne.Units
 						capturedCity.Shields = 0;
 						while (capturedCity.Units.Length > 0)
 							Game.DisbandUnit(capturedCity.Units[0]);
+						// Ghost-garrison sweep: pre-capture check at line 298 fires synchronously
+						// at move-initiation, but ownership flips async via Movement.Done. Any
+						// non-capturer unit still standing on the captured tile when changeOwner
+						// runs is invariant-violating — combat zombie, async-window arrival, or a
+						// mid-capture reload survivor. Disband to keep tile occupancy clean.
+						// (Filter by Owner; the capturing unit itself has Owner == Owner.)
+						foreach (IUnit ghost in moveTarget.Units.Where(u => u.Owner != Owner).ToArray())
+						{
+							Log($"[changeOwner] sweep ghost {ghost.GetType().Name} P{ghost.Owner} from captured tile ({moveTarget.X},{moveTarget.Y})");
+							Game.DisbandUnit(ghost);
+						}
 						capturedCity.Owner = Owner;
 						capturedCity.TechStolen = false;
 						previousOwner.InvalidateCityCaches();
