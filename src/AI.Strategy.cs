@@ -853,16 +853,19 @@ namespace CivOne
 			// walk across the ocean.
 			if (unit is Caravan)
 			{
+				// Caravans deliver trade-route gold by entering a foreign city
+				// (Caravan.cs:127, EstablishTradeRoute). Target the most-distant foreign
+				// city on the same continent — distance scales the gold bonus.
+				// No own-city fallback: walking an AI Caravan into its own city does
+				// nothing (the CaravanChoice dialog is human-only at Caravan.cs:100-103),
+				// so the unit would idle on arrival and block its build slot for nothing.
+				// Better to SkipTurn at home and wait for a foreign target to appear.
 				byte myContinent = unit.Tile?.ContinentId ?? 15;
 				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
 				City target = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
 				    .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				    .FirstOrDefault()
-				    ?? Player.Cities
-				       .Where(sameContinent)
-				       .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				       .FirstOrDefault();
+				    .FirstOrDefault();
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				else unit.SkipTurn();
 				return;
@@ -1266,9 +1269,20 @@ namespace CivOne
 					Consider(new Diplomat());
 			}
 
-			// Caravans: trade-route gold once Trade is researched.
+			// Caravans: trade-route gold once Trade is researched. Capped empire-wide so
+			// the planner doesn't queue Caravan after Caravan once Trade lands. Caravans are
+			// one-shot (consumed on delivery at Caravan.cs:77), so the cap counts in-flight
+			// units, not lifetime production. /6 keeps the queue flowing for a typical empire
+			// without crowding out science/military builds — see the Diplomat cap above for
+			// the same shape applied to a persistent unit.
 			if (Player.HasAdvance<Trade>())
-				Consider(new Caravan());
+			{
+				byte ownId3 = Game.PlayerNumber(Player);
+				int ownCaravans = Game.GetUnits().Count(u => u.Owner == ownId3 && u is Caravan);
+				int caravanCap  = Math.Max(2, Player.Cities.Length / 6);
+				if (ownCaravans < caravanCap)
+					Consider(new Caravan());
+			}
 
 			// Fallback: first available production item
 			if (plan.Count == 0)
