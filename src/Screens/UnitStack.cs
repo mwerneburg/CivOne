@@ -84,7 +84,9 @@ namespace CivOne.Screens
 						return true;
 					
 					IUnit waking = _units[uid];
+					bool wasAsleep = waking.Busy;
 					waking.Busy = false;
+					if (wasAsleep) waking.MovesLeft = waking.Move;
 					waking.Goto = Point.Empty;
 					Game.ActiveUnit = waking;
 					return true;
