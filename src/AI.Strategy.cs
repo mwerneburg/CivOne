@@ -675,10 +675,12 @@ namespace CivOne
 			// attacker on the staging tile (GotoStep returns null for cross-continent paths).
 			// "Same continent" = at least one of our cities shares a ContinentId with the target.
 			var ownContinents = new HashSet<byte>(Player.Cities
+			    .Where(oc => oc.Tile is not null)
 			    .Select(oc => oc.Tile.ContinentId)
 			    .Where(id => id >= 1 && id <= 14));
 			bool reachable(City c) => ownContinents.Count == 0
-			    || (c.Tile.ContinentId >= 1 && c.Tile.ContinentId <= 14
+			    || (c.Tile is not null
+			        && c.Tile.ContinentId >= 1 && c.Tile.ContinentId <= 14
 			        && ownContinents.Contains(c.Tile.ContinentId));
 
 			var candidates = Game.GetCities()
@@ -828,8 +830,8 @@ namespace CivOne
 			// this filter the diplomat ends up walking forever toward an unreachable target.
 			if (unit is Diplomat)
 			{
-				byte myContinent = unit.Tile.ContinentId;
-				bool sameContinent(City c) => myContinent != 15 && c.Tile.ContinentId == myContinent;
+				byte myContinent = unit.Tile?.ContinentId ?? 15;
+				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
 				Player human = Human;
 				City target =
 					Game.GetCities()
@@ -851,8 +853,8 @@ namespace CivOne
 			// walk across the ocean.
 			if (unit is Caravan)
 			{
-				byte myContinent = unit.Tile.ContinentId;
-				bool sameContinent(City c) => myContinent != 15 && c.Tile.ContinentId == myContinent;
+				byte myContinent = unit.Tile?.ContinentId ?? 15;
+				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
 				City target = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
 				    .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
@@ -879,10 +881,16 @@ namespace CivOne
 					// fix (or picked when our continents shifted) needs invalidating so the
 					// strategy code re-picks a reachable target.
 					byte ownPN = Game.PlayerNumber(Player);
+					// Tile can be null when a city is mid-capture / in transient sentinel state
+					// (X==Y==255). Guard both the cached target and each iterated own-city so a
+					// ghost reference doesn't NRE the strategy and stall the turn.
 					bool targetOffContinent = _attackTarget is not null
-					    && !Player.Cities.Any(oc => oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
+					    && _attackTarget.Tile is not null
+					    && !Player.Cities.Any(oc => oc.Tile is not null
+					                              && oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
 					                              && oc.Tile.ContinentId >= 1 && oc.Tile.ContinentId <= 14);
 					bool targetStale = _attackTarget is null
+					    || _attackTarget.Tile is null
 					    || _attackTarget.Size <= 0
 					    || !Game.GetCities().Contains(_attackTarget)
 					    || _attackTarget.Player == Player
