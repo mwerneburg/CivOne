@@ -238,7 +238,7 @@ namespace CivOne.Screens
 			IndentTitle = 8;
 			Indent = 8;
 			
-			Palette = palette.Copy();
+			Palette = palette;
 		}
 
 		public override void Dispose()

@@ -105,7 +105,7 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		public MenuBar(Palette palette) : base(320, 8)
 		{
-			Palette = palette.Copy();
+			Palette = palette;
 			this.Clear(5);
 			_update = true;
 

@@ -323,7 +323,7 @@ namespace CivOne.Screens.GamePlayPanels
 			DrawDemographics();
 			DrawGameInfo();
 			
-			Palette = palette.Copy();
+			Palette = palette;
 			this.AddLayer(_miniMap, 0, 0)
 				.AddLayer(_demographics, 0, 50)
 				.AddLayer(_gameInfo, 0, 89);

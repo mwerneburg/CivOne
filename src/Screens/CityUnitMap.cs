@@ -84,7 +84,7 @@ namespace CivOne.Screens
 		public CityUnitMap(City city) : base(MouseCursor.Pointer)
 		{
 			_city = city;
-			Palette = Resources.WorldMapTiles.Palette.Copy();
+			Palette = Resources.WorldMapTiles.Palette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				Palette.MergePalette(cassette, 1, 17);
 			_terrain = new Picture(Width, Height, Palette);

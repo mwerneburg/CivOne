@@ -183,7 +183,7 @@ namespace CivOne.Screens
 		{
 			Items = new MenuItemCollection<int>(menuId);
 			
-			Palette = palette.Copy();
+			Palette = palette;
 		}
 	}
 }

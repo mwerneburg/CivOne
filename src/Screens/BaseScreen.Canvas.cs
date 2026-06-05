@@ -45,6 +45,12 @@ namespace CivOne.Screens
 			}
 			set
 			{
+				// Dispose the previous palette before overwriting. Palette wraps an
+				// unmanaged SDL handle; without this, every screen leaks one Palette per
+				// assignment (the InitDefaultPalette copy → subclass's first assignment,
+				// plus any later mutations). ReferenceEquals guards the no-op self-assign
+				// case so we don't dispose our own backing field mid-setter.
+				if (!ReferenceEquals(_palette, value)) _palette?.Dispose();
 				_palette = value.Copy();
 				if (_originalColours is null)
 					_originalColours = value.Copy();

@@ -197,7 +197,7 @@ namespace CivOne.Screens
 
 		private Overlay() : base(MouseCursor.Pointer)
 		{	
-			Palette = Common.TopScreen.Palette.Copy();
+			Palette = Common.TopScreen.Palette;
 		}
 	}
 }

@@ -359,7 +359,7 @@ namespace CivOne.Screens
 				_background = Resources["DIFFS"];
 			}
 			
-			Palette = _background.Palette.Copy();
+			Palette = _background.Palette;
 			this.AddLayer(_background);
 			
 			if (Settings.Instance.DeityEnabled)

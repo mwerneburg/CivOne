@@ -44,7 +44,7 @@ namespace CivOne.Screens
 
 		public PowerGraph() : base(MouseCursor.None)
 		{
-			Palette = Common.TopScreen.Palette.Copy();
+			Palette = Common.TopScreen.Palette;
 
 			this.Clear(8)
 				.DrawText("CIVILIZATION POWERGraph", 0, 5, OX + 100, OY + 3)

@@ -364,7 +364,7 @@ namespace CivOne.Screens
 
 		public GameReplay()
 		{
-			Palette = Resources.WorldMapTiles.Palette.Copy();
+			Palette = Resources.WorldMapTiles.Palette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 				Palette.MergePalette(cassette, 1, 17);
 
