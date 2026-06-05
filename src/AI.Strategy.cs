@@ -1164,8 +1164,15 @@ namespace CivOne
 			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 
 			int ownCities = Player.Cities.Length;
-			int maxCities = Leader.Development == Expansionistic ? 13
-			              : Leader.Development == Normal          ? 10 : 7;
+			// Match the city target used by GetStance (line 70-73) so that the Settler-cap and
+			// the Expand→Develop transition agree. Previous hard caps of 13/10/7 caused Epic-map
+			// civs to stop founding cities long before hitting the stance target, leaving them
+			// stuck in Expand stance forever (no research weight shift to Trade/Currency/Banking
+			// → never reaches Republic → permanent Despotism tile penalty → cities stay tiny).
+			int mapScale = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			int maxCities = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
+			              : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
+			              :                                         (4 * mapScale) + Game.Difficulty;
 
 			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers immediately
 			// after first defender so the civ doesn't stagnate.
