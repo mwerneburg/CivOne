@@ -291,6 +291,26 @@ namespace CivOne
 			}
 			else
 			{
+				// Stale-Goto guard for Caravans and Diplomats. If the unit was saved with
+				// a target that is now unreachable (peaceful neighbour moved in, war state
+				// changed, etc.), AssignMission's FirstStepReachable check wouldn't re-fire
+				// because Goto is non-empty — the unit would loop in MoveTo failures until
+				// the circuit breaker. Clear the cached target here so AssignMission below
+				// re-picks via FirstStepReachable on this very tick.
+				if ((unit is Caravan || unit is Diplomat) && !unit.Goto.IsEmpty)
+				{
+					ITile step = Common.GotoStep(unit, unit.Goto.X, unit.Goto.Y);
+					bool reachable = step is not null;
+					if (reachable && step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					                                  && Game.GetPlayer(u.Owner) is Player puStale
+					                                  && !Player.IsAtWar(puStale))) reachable = false;
+					if (reachable && step.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0
+					    && Game.GetPlayer(step.City.Owner) is Player pcStale
+					    && pcStale.Civilization is not Civilizations.Barbarian
+					    && !Player.IsAtWar(pcStale)) reachable = false;
+					if (!reachable) unit.Goto = Point.Empty;
+				}
+
 				// Land unit just disembarked — still on an ocean tile. Step straight to land.
 				if (unit.Class == UnitClass.Land && unit.Tile.IsOcean)
 				{
