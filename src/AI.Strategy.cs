@@ -1347,6 +1347,7 @@ namespace CivOne
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile best = null;
 			int bestScore = 0; // only move if it adds value
+			var ownCities = Player.Cities;
 
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
@@ -1358,7 +1359,22 @@ namespace CivOne
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
-				int score = CountUnseenTiles(tx, ty) - dist;
+
+				// Hut bias: BaseUnitLand.TribalHut (case 0/3) rolls Barbarians when
+				// NearestCity >= 4 AND the player has cities — ~25% of outcomes there
+				// spawn hostile units, which is a real risk to a lone Explorer. So
+				// weight close-to-home huts highly and decay the bonus past distance 3.
+				// Direct-hit (tile.Hut) > adjacent (will step onto it next turn).
+				int hutBonus = tile.Hut ? 12
+				             : tile.GetBorderTiles().Any(bt => bt is not null && bt.Hut) ? 8
+				             : 0;
+				if (hutBonus > 0 && ownCities.Length > 0)
+				{
+					int homeDist = ownCities.Min(c => Common.DistanceToTile(c.X, c.Y, tx, ty));
+					hutBonus = Math.Max(0, hutBonus - Math.Max(0, homeDist - 3));
+				}
+
+				int score = CountUnseenTiles(tx, ty) - dist + hutBonus;
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
 			return best;
