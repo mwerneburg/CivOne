@@ -97,9 +97,20 @@ namespace CivOne.Units
 					bool buildingWonder = city.CurrentProduction is IWonder;
 					if (!tooClose || buildingWonder)
 					{
+						// Human player: pause and let the user pick deliver/help-wonder/move-on
+						// via the CaravanChoice dialog. The dialog handles the move itself, so
+						// returning true here without invoking base.MoveTo is correct for humans.
 						if (Game.Human == Owner)
+						{
 							GameTask.Enqueue(Show.CaravanChoice(this, city));
-						return true;
+							return true;
+						}
+						// AI player: no dialog exists. Previously this also returned true,
+						// which the AI loop interpreted as "move succeeded" — but the unit
+						// hadn't actually moved, so it stuck on the same tile turn after turn
+						// until the circuit breaker fired. Fall through to base.MoveTo so the
+						// AI Caravan treats its own city as a normal waypoint en route to a
+						// foreign trade target.
 					}
 				}
 				else if (Game.Human == Owner && HasUnbuiltDomeAssignment(city.Owner))

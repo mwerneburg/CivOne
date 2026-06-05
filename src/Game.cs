@@ -165,6 +165,77 @@ namespace CivOne
 		private IUnit _lastMovedUnit = null;
 		private int _sameUnitMoveCount = 0;
 
+		// One-shot diagnostic dump invoked from the circuit breaker. The goal is to capture
+		// enough state to diagnose why AI.Move can't make progress on this unit — pathfinding
+		// result, peaceful-block reason, continent mismatch, target city ownership — without
+		// requiring a debugger attach. Everything goes through Log() so it lands in both the
+		// debug console and the persisted game log.
+		private void LogCircuitBreakerDiagnostics(IUnit unit)
+		{
+			try
+			{
+				ITile tile = unit.Tile;
+				if (tile is null) { Log("[AI]   diag: unit.Tile is null (X={0}, Y={1})", unit.X, unit.Y); return; }
+				byte myContinent = tile.ContinentId;
+				Player owner = GetPlayer(unit.Owner);
+				string ownerName = owner?.LeaderName ?? "<null>";
+
+				if (unit.Goto.IsEmpty)
+				{
+					Log("[AI]   diag: Goto is empty; unit on Tile=({0},{1}) ContId={2} owner={3}", tile.X, tile.Y, myContinent, ownerName);
+					return;
+				}
+
+				int gx = unit.Goto.X, gy = unit.Goto.Y;
+				ITile targetTile = Map.Instance[gx, gy];
+				byte targetContinent = targetTile?.ContinentId ?? 255;
+				int distance = Common.DistanceToTile(unit.X, unit.Y, gx, gy);
+				string targetCity = targetTile?.City is not null
+					? $"{targetTile.City.Name}(P{targetTile.City.Owner}={GetPlayer(targetTile.City.Owner)?.LeaderName ?? "?"})"
+					: "<none>";
+				Log("[AI]   diag: Goto=({0},{1}) dist={2} unit.ContId={3} target.ContId={4} target.city={5}",
+					gx, gy, distance, myContinent, targetContinent, targetCity);
+
+				if (targetContinent != myContinent)
+				{
+					Log("[AI]   diag: continent mismatch — pathfinder will return null. Likely a stale Goto from a previous turn that AssignMission picked before reachability was checked.");
+				}
+
+				ITile step = Common.GotoStep(unit, gx, gy);
+				if (step is null)
+				{
+					Log("[AI]   diag: GotoStep returned null — no land path. Goto should be cleared but isn't.");
+					return;
+				}
+
+				string stepUnits = step.Units.Length > 0
+					? string.Join(", ", step.Units.Select(u => $"{u.GetType().Name}(P{u.Owner}={GetPlayer(u.Owner)?.LeaderName ?? "?"}={(u.Owner == 0 ? "barb" : owner is not null && owner.IsAtWar(GetPlayer(u.Owner)) ? "war" : "peace")})"))
+					: "<empty>";
+				string stepCity = step.City is not null
+					? $"{step.City.Name}(P{step.City.Owner}={GetPlayer(step.City.Owner)?.LeaderName ?? "?"}={(step.City.Owner == 0 ? "barb" : owner is not null && owner.IsAtWar(GetPlayer(step.City.Owner)) ? "war" : "peace")})"
+					: "<none>";
+				Log("[AI]   diag: GotoStep=({0},{1}) terrain={2} step.units=[{3}] step.city={4}",
+					step.X, step.Y, step.GetType().Name, stepUnits, stepCity);
+
+				// Peaceful-block re-analysis using exactly the conditions AI.Move:343-358 checks.
+				bool unitsBlock = step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					&& GetPlayer(u.Owner) is Player pu && owner is not null && !owner.IsAtWar(pu));
+				bool cityBlocks = step.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0
+					&& GetPlayer(step.City.Owner) is Player pc
+					&& pc.Civilization is not Civilizations.Barbarian
+					&& owner is not null && !owner.IsAtWar(pc);
+				Log("[AI]   diag: peaceful-block analysis: by-unit={0} by-city={1}", unitsBlock, cityBlocks);
+				if (unitsBlock || cityBlocks)
+				{
+					Log("[AI]   diag: this step would trigger peaceful-block in AI.Move; expected behaviour is to clear Goto + SkipTurn. The fact that the unit is here means AI.Move never reached that branch.");
+				}
+			}
+			catch (System.Exception ex)
+			{
+				Log("[AI]   diag: diagnostic dump itself threw {0}: {1}", ex.GetType().Name, ex.Message);
+			}
+		}
+
 		// True for a land unit sitting on a non-city tile with a boardable ship —
 		// it is effectively cargo and should not be prompted for orders.
 		private static bool IsAboard(IUnit unit)
@@ -807,6 +878,7 @@ namespace CivOne
 					if (_sameUnitMoveCount > 50)
 					{
 						Log($"[AI] CIRCUIT BREAKER: force-skipping {unit.GetType().Name} P{unit.Owner} ({unit.X},{unit.Y}) after {_sameUnitMoveCount} stuck queues");
+						LogCircuitBreakerDiagnostics(unit);
 						unit.Goto = Point.Empty;
 						unit.SkipTurn();
 						_sameUnitMoveCount = 0;
