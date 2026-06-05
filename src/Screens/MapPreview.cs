@@ -64,6 +64,15 @@ namespace CivOne.Screens
 
 		public MapPreview()
 		{
+			// Same palette setup as CustomizeWorld (line 198-204): default palette with
+			// the Cassette theme merged into indices 1-17 so DrawText / FillRectangle
+			// references resolve. Without this, RuntimeHandler.OnDraw NREs on
+			// TopScreen.Palette.Copy().
+			using Palette p = Common.DefaultPalette;
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				p.MergePalette(cassette, 1, 17);
+			Palette = p;
+
 			LoadConfig();
 			StartGenerate();
 		}
