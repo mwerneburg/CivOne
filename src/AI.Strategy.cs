@@ -828,21 +828,41 @@ namespace CivOne
 			// other foreign city. Only consider cities reachable by land from the diplomat's
 			// current tile — same ContinentId means a 4-connected land path exists. Without
 			// this filter the diplomat ends up walking forever toward an unreachable target.
+			//
+			// First-step reachability mirrors the Caravan fix immediately below: skip any
+			// candidate whose first step is peaceful-blocked or wedged by pathfinding, so
+			// multiple diplomats don't all queue the same unreachable target and burn the
+			// AI loop's same-unit circuit breaker turn after turn.
 			if (unit is Diplomat)
 			{
 				byte myContinent = unit.Tile?.ContinentId ?? 15;
 				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
+
+				bool FirstStepReachable(City c)
+				{
+					ITile step = Common.GotoStep(unit, c.X, c.Y);
+					if (step is null) return false;
+					if (step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					                     && Game.GetPlayer(u.Owner) is Player pu
+					                     && !Player.IsAtWar(pu))) return false;
+					if (step.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0
+					    && Game.GetPlayer(step.City.Owner) is Player pc
+					    && pc.Civilization is not CivOne.Civilizations.Barbarian
+					    && !Player.IsAtWar(pc)) return false;
+					return true;
+				}
+
 				Player human = Human;
 				City target =
 					Game.GetCities()
 					    .Where(c => c.Player == human && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-					    .FirstOrDefault()
+					    .FirstOrDefault(FirstStepReachable)
 					??
 					Game.GetCities()
 					    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-					    .FirstOrDefault();
+					    .FirstOrDefault(FirstStepReachable);
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				else unit.SkipTurn();
 				return;
@@ -854,18 +874,43 @@ namespace CivOne
 			if (unit is Caravan)
 			{
 				// Caravans deliver trade-route gold by entering a foreign city
-				// (Caravan.cs:127, EstablishTradeRoute). Target the most-distant foreign
-				// city on the same continent — distance scales the gold bonus.
-				// No own-city fallback: walking an AI Caravan into its own city does
-				// nothing (the CaravanChoice dialog is human-only at Caravan.cs:100-103),
-				// so the unit would idle on arrival and block its build slot for nothing.
-				// Better to SkipTurn at home and wait for a foreign target to appear.
+				// (Caravan.cs:127, EstablishTradeRoute). Prefer the most-distant foreign
+				// city on the same continent (distance scales the gold bonus), but verify
+				// the first step is actually reachable — otherwise multiple Caravans all
+				// pick the same far-off target whose path is wedged by a peaceful neighbour,
+				// loop in AI.Move until the circuit breaker fires, and waste turn budget.
+				//
+				// No own-city fallback: walking an AI Caravan into its own city does nothing
+				// (CaravanChoice is human-only at Caravan.cs:100-103); the unit would idle
+				// on arrival and block its build slot. SkipTurn at home is better.
 				byte myContinent = unit.Tile?.ContinentId ?? 15;
 				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
+
+				bool FirstStepReachable(City c)
+				{
+					ITile step = Common.GotoStep(unit, c.X, c.Y);
+					if (step is null) return false;
+					// Peaceful-block: AI.Move at line ~343 refuses the step if the next tile
+					// holds a non-warring player's unit, or is a non-Barbarian city at peace
+					// with us. Mirror that here so we don't commit to a target we'd refuse
+					// to step toward.
+					if (step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					                     && Game.GetPlayer(u.Owner) is Player pu
+					                     && !Player.IsAtWar(pu))) return false;
+					if (step.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0
+					    && Game.GetPlayer(step.City.Owner) is Player pc
+					    && pc.Civilization is not CivOne.Civilizations.Barbarian
+					    && !Player.IsAtWar(pc)) return false;
+					return true;
+				}
+
+				// Distance-ranked candidates. Iterate descending (max gold), skipping any
+				// whose first step we can't take. The first reachable candidate wins.
 				City target = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
 				    .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				    .FirstOrDefault();
+				    .FirstOrDefault(FirstStepReachable);
+
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				else unit.SkipTurn();
 				return;
