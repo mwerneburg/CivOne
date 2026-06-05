@@ -88,12 +88,25 @@ namespace CivOne.Screens
 			{
 				Bitmap = new Bytemap(320, 200);
 			}
+			InitDefaultPalette();
 		}
 
 		protected BaseScreen(int width, int height, MouseCursor cursor = MouseCursor.None)
 		{
 			_cursor = cursor;
 			Bitmap = new Bytemap(width, height);
+			InitDefaultPalette();
+		}
+
+		// Ensure Palette is never null at draw time so RuntimeHandler.OnDraw doesn't NRE
+		// on Palette.Copy() when a subclass forgets to assign one. Sets the backing field
+		// directly so OriginalColours stays null — that lets subclasses' explicit
+		// `Palette = ...` assignment still capture their intended palette via the setter's
+		// null-gated branch (BaseScreen.Canvas.cs:49-50). Subclasses that never assign
+		// a palette fall back to Common.DefaultPalette and draw the SP257 colours.
+		private void InitDefaultPalette()
+		{
+			_palette = Common.DefaultPalette;
 		}
 	}
 }
