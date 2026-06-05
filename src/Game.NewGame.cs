@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CivOne.Advances;
@@ -23,6 +24,15 @@ namespace CivOne
 		{
 			// Translated from this post by darkpanda, might contain errors:
 			// http://forums.civfanatics.com/showthread.php?p=12895306&highlight=starting+position#post12895306
+			//
+			// Map-scale knobs: the original separation/continent thresholds were tuned
+			// for an 80-wide map. On Epic-size Earth (320×200) a 10-tile minimum
+			// distance puts every civ on the same continent. Scale by Map.WIDTH/80 so
+			// the same proportional separation applies at any size; clamp to >=1 so
+			// 40-wide Tiny maps don't degenerate to zero.
+			int mapScale = Math.Max(1, Map.WIDTH / 80);
+			int baseSeparation = 10 * mapScale;
+			int baseContinentFloor = 32 * mapScale * mapScale;  // area-proportional
 			int loopCounter = 0;
 			while (loopCounter++ < 2000)
 			{
@@ -45,9 +55,9 @@ namespace CivOne
 					if (tile.Hut) continue; // Is there a hut on this tile?
 					if (_units.Any(u => u.X == x || u.Y == y)) continue; // Is there already a unit on this tile?
 					if (tile.LandValue < (12 - (loopCounter / 32))) continue; // Is the land value high enough?
-					if (_cities.Any(c => Common.DistanceToTile(x, y, c.X, c.Y) < (10 - (loopCounter / 64)))) continue; // Distance to other cities
-					if (_units.Any(u => (u is Settlers) && Common.DistanceToTile(x, y, u.X, u.Y) < (10 - (loopCounter / 64)))) continue; // Distance to other settlers
-					if (Map.ContinentTiles(tile.ContinentId).Count(t => Map.TileIsType(t, Terrain.Plains, Terrain.Grassland1, Terrain.Grassland2, Terrain.River)) < (32 - (GameTurn / 16))) continue; // Check buildable tiles on continent
+					if (_cities.Any(c => Common.DistanceToTile(x, y, c.X, c.Y) < (baseSeparation - (loopCounter / 64)))) continue; // Distance to other cities
+					if (_units.Any(u => (u is Settlers) && Common.DistanceToTile(x, y, u.X, u.Y) < (baseSeparation - (loopCounter / 64)))) continue; // Distance to other settlers
+					if (Map.ContinentTiles(tile.ContinentId).Count(t => Map.TileIsType(t, Terrain.Plains, Terrain.Grassland1, Terrain.Grassland2, Terrain.River)) < (baseContinentFloor - (GameTurn / 16))) continue; // Check buildable tiles on continent
 					
 					// After 0 AD, don't spawn a Civilization on a continent that already contains cities.
 					if (Common.TurnToYear(GameTurn) >= 0 && Map.ContinentTiles(tile.ContinentId).Any(t => t.City is not null)) continue;

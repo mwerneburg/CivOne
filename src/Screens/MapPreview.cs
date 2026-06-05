@@ -198,8 +198,30 @@ river_min_length=0      # 0 = engine default (3)
 					LoadConfig();
 					StartGenerate();
 					return true;
+				case 'E':
+					LoadEarth();
+					return true;
 			}
 			return false;
+		}
+
+		private void LoadEarth()
+		{
+			Map.ResetForPreview();
+			string path = Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+			if (Map.Instance.LoadEarthBin(path))
+			{
+				_configStatus = $"Loaded {Path.GetFileName(path)}";
+			}
+			else
+			{
+				_configStatus = $"Earth file missing: {path}";
+				// Re-roll generator so the screen still has something to draw.
+				StartGenerate();
+				return;
+			}
+			_everRendered = false;
+			_hasUpdate = true;
 		}
 
 		protected override bool HasUpdate(uint gameTick)
@@ -358,6 +380,7 @@ river_min_length=0      # 0 = engine default (3)
 			y0 += 4;
 			Line("R re-roll", CassetteTheme.INK_MID);
 			Line("C reload+roll", CassetteTheme.INK_MID);
+			Line("E load Earth", CassetteTheme.INK_MID);
 			Line("Esc/Q quit", CassetteTheme.INK_MID);
 			if (_configStatus.Length > 0)
 			{

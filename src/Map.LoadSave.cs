@@ -192,6 +192,117 @@ namespace CivOne
 			Log("Map: Ready");
 		}
 		
+		// Load a procedurally-built Earth from a simple binary file. Format:
+		//   bytes  0..3   ASCII magic "CIVE"
+		//   byte   4      version (currently 1)
+		//   bytes  5..7   reserved (zero)
+		//   bytes  8..11  width  (uint32 little-endian)
+		//   bytes 12..15  height (uint32 little-endian)
+		//   bytes 16..    width*height terrain codes (0=Ocean, 2=Forest, 3=Swamp,
+		//                 6=Plains, 7=Tundra, 9=River, 10=Grassland, 11=Jungle,
+		//                 12=Hills, 13=Mountains, 14=Desert, 15=Arctic — same
+		//                 byte values as MAP.PIC for consistency with LoadMap).
+		// Path defaults to ~/Library/Application Support/CivOne/earth_epic.bin so
+		// the offline build_earth_map.py script can land its output where the
+		// MapPreview screen looks for it. Sets _width/_height *before* tile
+		// construction so the static dimensions match the loaded grid.
+		internal bool LoadEarthBin(string path)
+		{
+			if (!File.Exists(path))
+			{
+				Log("LoadEarthBin: file not found {0}", path);
+				return false;
+			}
+			byte[] data;
+			try { data = File.ReadAllBytes(path); }
+			catch (System.Exception e) { Log("LoadEarthBin: read failed {0}", e.Message); return false; }
+
+			if (data.Length < 16 || data[0] != (byte)'C' || data[1] != (byte)'I' || data[2] != (byte)'V' || data[3] != (byte)'E')
+			{
+				Log("LoadEarthBin: bad magic header");
+				return false;
+			}
+			int w = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+			int h = data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24);
+			if (w <= 0 || h <= 0 || data.Length < 16 + w * h)
+			{
+				Log("LoadEarthBin: dimensions ({0}x{1}) inconsistent with payload {2}", w, h, data.Length);
+				return false;
+			}
+
+			_width = w;
+			_height = h;
+			_tiles = new ITile[w, h];
+
+			for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+			{
+				bool special = TileIsSpecial(x, y);
+				ITile tile;
+				switch (data[16 + y * w + x])
+				{
+					case 2:  tile = new Forest(x, y, special); break;
+					case 3:  tile = new Swamp(x, y, special); break;
+					case 6:  tile = new Plains(x, y, special); break;
+					case 7:  tile = new Tundra(x, y, special); break;
+					case 9:  tile = new River(x, y); break;
+					case 10: tile = new Grassland(x, y); break;
+					case 11: tile = new Jungle(x, y, special); break;
+					case 12: tile = new Hills(x, y, special); break;
+					case 13: tile = new Mountains(x, y, special); break;
+					case 14: tile = new Desert(x, y, special); break;
+					case 15: tile = new Arctic(x, y, special); break;
+					default: tile = new Ocean(x, y, special); break;
+				}
+				_tiles[x, y] = tile;
+			}
+
+			// Mirror LoadMapThread's post-pass so a loaded Earth behaves like an
+			// engine-generated one: poles enforced, freshwater lakes detected,
+			// continent labels computed (used by AI strategy), huts placed.
+			CreatePoles();
+			ComputeFreshwaterLakes();
+			CalculateContinentSize();
+			PlaceHuts();
+			CalculateLandValue();
+
+			Ready = true;
+			Log("LoadEarthBin: ready ({0}x{1})", w, h);
+			return true;
+		}
+
+		// Default path for the procedural-Earth binary. The design/build_earth_map.py
+		// script writes here; the EARTH (EPIC) main-menu item and the MapPreview 'E'
+		// hotkey both read from here. Public so callers can check existence before
+		// committing to LoadEarthEpic().
+		public static string EarthEpicPath =>
+			Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+
+		// EARTH (EPIC) load path used by the new-game menu. Unlike LoadMap (which loads
+		// the original 80×50 MAP.PIC with fixed civ starting coordinates), this loads
+		// a 320×200 procedural Earth and lets the engine's normal new-game placement
+		// pick start positions — the civilization records don't have Epic-scale start
+		// coordinates anyway. Synchronous; the file is tiny (~64KB) and the load
+		// finishes well within a frame.
+		public bool LoadEarthEpic()
+		{
+			if (Ready || _tiles is not null)
+			{
+				Log("ERROR: Map is already load{0}/generat{0}", (Ready ? "ed" : "ing"));
+				return false;
+			}
+
+			_landMass = -1;
+			_temperature = -1;
+			_climate = -1;
+			_age = -1;
+			// FixedStartPositions stays false: the procedural Earth has no per-civ
+			// (StartX, StartY) records, so the engine should fall back to the
+			// random-placement scoring (LandValue, distance, terrain) in Game.NewGame.cs.
+
+			return LoadEarthBin(EarthEpicPath);
+		}
+
 		public void LoadMap()
 		{
 			if (Ready || _tiles is not null)
@@ -199,13 +310,13 @@ namespace CivOne
 				Log("ERROR: Map is already load{0}/generat{0}", (Ready ? "ed" : "ing"));
 				return;
 			}
-			
+
 			_landMass = -1;
 			_temperature = -1;
 			_climate = -1;
 			_age = -1;
 			FixedStartPositions = true;
-			
+
 			Task.Run(() => LoadMapThread());
 		}
 	}

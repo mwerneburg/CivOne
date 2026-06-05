@@ -251,7 +251,12 @@ namespace CivOne
 
 		private Map()
 		{
-			_terrainMasterWord = Common.Random.Next(16);
+			// Hut placement (TileHasHut at Map.Generate.cs:140) takes _terrainMasterWord
+			// modulo 50 — so historically only 16 of the 50 possible hut patterns ever
+			// surfaced because Next(16) caps the input range. Widen so every game gets
+			// independent hut layouts. Earth (Classic) still overrides via LoadMap's
+			// randomSeed parameter for save/replay determinism.
+			_terrainMasterWord = Common.Random.Next(int.MaxValue);
 			Ready = false;
 
 			Log("Map instance created");

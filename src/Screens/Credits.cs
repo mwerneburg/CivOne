@@ -198,6 +198,7 @@ namespace CivOne.Screens
 			menu.Items.Add("Start a New Game").OnSelect(StartNewGame);
 			menu.Items.Add("Load a Saved Game").OnSelect(LoadSavedGame);
 			menu.Items.Add("EARTH").OnSelect(Earth);
+			menu.Items.Add("EARTH (EPIC)").OnSelect(EarthEpic);
 			menu.Items.Add("Customize World").OnSelect(CustomizeWorld);
 			menu.Items.Add("View Hall of Fame").OnSelect(ViewHallOfFame);
 			
@@ -253,6 +254,34 @@ namespace CivOne.Screens
 		{
 			Log("Main Menu: EARTH");
 			Map.LoadMap();
+			StartIntro();
+		}
+
+		private void EarthEpic(object sender, EventArgs args)
+		{
+			Log("Main Menu: EARTH (EPIC)");
+			if (!System.IO.File.Exists(Map.EarthEpicPath))
+			{
+				GameTask.Enqueue(Message.General(
+					"EARTH (EPIC) DATA MISSING",
+					"",
+					"Run design/build_earth_map.py",
+					"with an equirectangular elevation",
+					"image to create earth_epic.bin",
+					"in the CivOne data directory."));
+				return;
+			}
+			if (!Map.Instance.LoadEarthEpic())
+			{
+				GameTask.Enqueue(Message.General(
+					"EARTH (EPIC) LOAD FAILED",
+					"",
+					"earth_epic.bin appears to be",
+					"corrupted or in an unknown",
+					"format. Rebuild it with the",
+					"design/build_earth_map.py script."));
+				return;
+			}
 			StartIntro();
 		}
 		
