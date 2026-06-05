@@ -75,6 +75,7 @@ Try 'civone-sdl --help' for more information.
 				{
 					case "demo": settings.Demo = true; continue;
 					case "setup": settings.Setup = true; continue;
+					case "mapgen-preview": settings["mapgen-preview"] = true; continue;
 					case "free": settings.Free = true; continue;
 					case "no-sound": settings["no-sound"] = true; continue;
 					case "no-data-check": settings.DataCheck = false; continue;

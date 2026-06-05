@@ -73,6 +73,15 @@ namespace CivOne
 		{
 			get
 			{
+				// --mapgen-preview short-circuits the whole startup pipeline: skip data
+				// check / demo / setup / splash / credits / main menu and go straight to
+				// the world-generation preview screen. Used to iterate on Map.Generate
+				// knobs without clicking through the game shell each time.
+				if (Runtime.Settings.Get<bool>("mapgen-preview"))
+				{
+					yield return typeof(MapPreview);
+					yield break;
+				}
 				if (Runtime.Settings.DataCheck && !FileSystem.DataFilesExist()) yield return typeof(MissingFiles);
 				if (Runtime.Settings.Demo) yield return typeof(Demo);
 				if (Runtime.Settings.Setup) yield return typeof(Setup);

@@ -78,6 +78,62 @@ namespace CivOne
 			return stencil;
 		}
 
+		// Seed-aware variant of GenerateLandChunk: walks from a random tile in seedId==label
+		// and refuses to paint any tile within `separation` of a DIFFERENT seed's land. Used
+		// by the Pangaea fix in GenerateLandMass to keep continents distinct during growth.
+		private bool[,] GenerateLandChunkForSeed(int[,] seedId, int label, int separation)
+		{
+			bool[,] stencil = new bool[WIDTH, HEIGHT];
+
+			int x = 0, y = 0;
+			int attempts = 0;
+			bool found = false;
+			while (attempts++ < 512 && !found)
+			{
+				x = Common.Random.Next(2, WIDTH - 2);
+				y = Common.Random.Next(4, HEIGHT - 4);
+				if (seedId[x, y] == label) found = true;
+			}
+			if (!found) return stencil;
+
+			bool TooCloseToOther(int cx, int cy)
+			{
+				if (separation <= 0) return false;
+				for (int dy = -separation; dy <= separation; dy++)
+				for (int dx = -separation; dx <= separation; dx++)
+				{
+					int nx = (cx + dx + WIDTH) % WIDTH;
+					int ny = cy + dy;
+					if (ny < 0 || ny >= HEIGHT) continue;
+					int s = seedId[nx, ny];
+					if (s != 0 && s != label) return true;
+				}
+				return false;
+			}
+
+			int baseLen = (int)Math.Sqrt(WIDTH * HEIGHT) / 2;
+			int pathLength = baseLen + Common.Random.Next(baseLen);
+			for (int i = 0; i < pathLength; i++)
+			{
+				if (x >= 0 && x < WIDTH - 1 && y >= 0 && y < HEIGHT - 1)
+				{
+					if (!TooCloseToOther(x, y))     stencil[x, y] = true;
+					if (!TooCloseToOther(x + 1, y)) stencil[x + 1, y] = true;
+					if (!TooCloseToOther(x, y + 1)) stencil[x, y + 1] = true;
+				}
+				switch (Common.Random.Next(4))
+				{
+					case 0: y--; break;
+					case 1: x++; break;
+					case 2: y++; break;
+					default: x--; break;
+				}
+				if (x < 2 || y < 2 || x > (WIDTH - 3) || y > (HEIGHT - 4)) break;
+			}
+
+			return stencil;
+		}
+
 		private bool TileHasHut(int x, int y)
 		{
 			if (y < 2 || y > (HEIGHT - 3)) return false;
@@ -90,32 +146,64 @@ namespace CivOne
 			Log("Map: Stage 1 - Generate land mass");
 
 			int[,] elevation = new int[WIDTH, HEIGHT];
+			// seedId tracks which continent seed each land tile belongs to (0 = ocean).
+			// Used by the growth phase to keep continents separate — previously every
+			// growth step picked "any existing land tile" as its start, which let walks
+			// from different seeds collide and merge into one Pangaea over enough
+			// iterations.
+			int[,] seedId = new int[WIDTH, HEIGHT];
 			int landMassSize = (int)((WIDTH * HEIGHT) / 12.5) * (_landMass + 2);
 
 			// Seed count is inversely tied to land mass: less land spreads across more
 			// pieces; more land consolidates into fewer, larger continents.
 			// Small=0 → 4-6 seeds, Normal=1 → 3-5, Large=2 → 2-4.
-			int numSeeds = (4 - _landMass) + Common.Random.Next(3);
+			int numSeeds = Instance.PreviewNumSeeds > 0
+				? Instance.PreviewNumSeeds
+				: (4 - _landMass) + Common.Random.Next(3);
+			// Default seed-to-seed separation: 2 tiles. The preview tool can dial this up
+			// to fragment maps further, or to 0 to reproduce the historical Pangaea bug.
+			int seedSeparation = Instance.PreviewSeedSeparation > 0
+				? Instance.PreviewSeedSeparation
+				: 2;
+
 			for (int i = 0; i < numSeeds; i++)
 			{
 				bool[,] seed = GenerateLandChunk(elevation, growFromExisting: false);
+				int label = i + 1;
 				for (int y = 0; y < HEIGHT; y++)
 				for (int x = 0; x < WIDTH; x++)
-					if (seed[x, y]) elevation[x, y] = 1;
-					//if (seed[x, y]) elevation[x, y]++;
+					if (seed[x, y])
+					{
+						elevation[x, y] = 1;
+						if (seedId[x, y] == 0) seedId[x, y] = label;
+					}
 			}
 
-			// Grow from existing land until target coverage is reached.
-			// Starting each walk from an existing land tile causes new land to
-			// accrete onto existing masses rather than spawning isolated islands.
-			while ((from int tile in elevation where tile > 0 select 1).Sum() < landMassSize)
+			// Round-robin growth: each iteration picks one seed, finds a random tile in
+			// that seed's accumulated land, and walks from there. New tiles are rejected
+			// if they would land within seedSeparation of a DIFFERENT seed's land — that
+			// keeps the continents geographically distinct rather than merging at first
+			// contact. Safety cap prevents runaway loops if every growth attempt collides.
+			int landCount = 0;
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+				if (elevation[x, y] > 0) landCount++;
+
+			int safety = 0;
+			int round = 0;
+			while (landCount < landMassSize && safety++ < landMassSize * 8)
 			{
-				bool[,] chunk = GenerateLandChunk(elevation, growFromExisting: true);
+				int targetLabel = (round++ % numSeeds) + 1;
+				bool[,] chunk = GenerateLandChunkForSeed(seedId, targetLabel, seedSeparation);
 				for (int y = 0; y < HEIGHT; y++)
 				for (int x = 0; x < WIDTH; x++)
 				{
-					if (chunk[x, y]) elevation[x, y] = 1;
-					//if (chunk[x, y]) elevation[x, y]++;
+					if (chunk[x, y] && elevation[x, y] == 0)
+					{
+						elevation[x, y] = 1;
+						seedId[x, y] = targetLabel;
+						landCount++;
+					}
 				}
 			}
 			
@@ -536,10 +624,24 @@ namespace CivOne
 				(coastal[i], coastal[j]) = (coastal[j], coastal[i]);
 			}
 
-			// Target: enough rivers to give each large continent 1–2 water corridors.
-			// Floor scales with map width so large continents always get a few rivers
-			// even on the driest setting.
-			int targetRivers = Math.Max(WIDTH / 8, 5 + _climate + _landMass);
+			// Target: enough rivers to give each continent 2–3 water corridors. Climate has
+			// a stronger effect (×2 multiplier) so the Arid/Wet axis is visible; landMass
+			// adds a small extra count so larger continents get more interior water.
+			// Floor scales with map width so wide maps always pack in a baseline.
+			int targetRivers = Instance.PreviewRiverTarget > 0
+				? Instance.PreviewRiverTarget
+				: Math.Max(WIDTH / 6, 8 + (_climate * 2) + _landMass);
+			// River-mouth separation: previously 8 (a 17×17 exclusion zone, which on an
+			// 80-wide map covered a fifth of the width per river and starved the coast of
+			// candidates). Default 4 keeps mouths visually distinct without crowding them.
+			int riverSeparation = Instance.PreviewRiverSeparation > 0
+				? Instance.PreviewRiverSeparation
+				: 4;
+			// Minimum length to accept a river. Previously 4 (rejected short streams on
+			// jagged coasts). 3 keeps the worthwhile ones without flooding the map with stubs.
+			int riverMinLength = Instance.PreviewRiverMinLength > 0
+				? Instance.PreviewRiverMinLength
+				: 3;
 			int rivers = 0;
 			var allRiverTiles = new HashSet<(int, int)>();
 
@@ -550,10 +652,11 @@ namespace CivOne
 			{
 				if (rivers >= targetRivers) break;
 
-				// Keep river mouths well separated so rivers don't grow parallel.
+				// Keep river mouths separated so rivers don't grow parallel. Radius is
+				// `riverSeparation` (see top-of-method for the source of that value).
 				bool tooClose = false;
-				for (int dy = -8; dy <= 8 && !tooClose; dy++)
-				for (int dx = -8; dx <= 8 && !tooClose; dx++)
+				for (int dy = -riverSeparation; dy <= riverSeparation && !tooClose; dy++)
+				for (int dx = -riverSeparation; dx <= riverSeparation && !tooClose; dx++)
 				{
 					int nx = (sx + dx + WIDTH) % WIDTH;
 					int ny = sy + dy;
@@ -623,7 +726,7 @@ namespace CivOne
 					(cx, cy) = (candidates[pick].nx, candidates[pick].ny);
 				}
 
-				if (path.Count >= 4)
+				if (path.Count >= riverMinLength)
 				{
 					rivers++;
 					foreach (var (px, py) in path)

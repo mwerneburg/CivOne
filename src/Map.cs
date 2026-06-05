@@ -232,12 +232,28 @@ namespace CivOne
 				return _instance;
 			}
 		}
-		
+
+		// Preview-tool overrides for world-generation knobs. Each <=0 means "use the
+		// existing formula"; the MapPreview screen reads its config and sets these before
+		// calling Generate(). Never set during normal gameplay.
+		internal int PreviewNumSeeds         = 0;
+		internal int PreviewSeedSeparation   = 0;  // min tiles between distinct continent labels during growth
+		internal int PreviewRiverTarget      = 0;
+		internal int PreviewRiverSeparation  = 0;  // exclusion radius between river mouths
+		internal int PreviewRiverMinLength   = 0;  // accept rivers at least this long
+
+		// Tear down the singleton so MapPreview can re-roll. Map.Generate refuses to run
+		// twice on the same instance (see Map.Generate.cs:989); resetting forces a fresh one.
+		internal static void ResetForPreview()
+		{
+			_instance = null;
+		}
+
 		private Map()
 		{
 			_terrainMasterWord = Common.Random.Next(16);
 			Ready = false;
-			
+
 			Log("Map instance created");
 		}
 	}
