@@ -271,12 +271,33 @@ namespace CivOne
 			return true;
 		}
 
-		// Default path for the procedural-Earth binary. The design/build_earth_map.py
-		// script writes here; the EARTH (EPIC) main-menu item and the MapPreview 'E'
-		// hotkey both read from here. Public so callers can check existence before
-		// committing to LoadEarthEpic().
-		public static string EarthEpicPath =>
-			Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+		// Resolved path for the procedural-Earth binary. Search order:
+		//   1. User data directory (~/Library/Application Support/CivOne/data/ on macOS)
+		//      — where design/build_earth_map.py writes by default, so users tinkering
+		//      with sea level / rivers automatically override the bundled copy.
+		//   2. <executable_dir>/resources/earth_epic.bin — for installed builds that
+		//      ship the resource alongside the binary.
+		//   3. <executable_dir>/../../../../../resources/earth_epic.bin — for source
+		//      builds running from runtime/sdl/bin/{Debug,Release}/net10.0/ (5 levels
+		//      up to the repo root, then into resources/).
+		// If nothing exists, returns the user-dir path so the missing-file error message
+		// points the user at the location they can write to.
+		public static string EarthEpicPath
+		{
+			get
+			{
+				string userPath = Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+				if (File.Exists(userPath)) return userPath;
+				string execDir = System.AppContext.BaseDirectory;
+				string[] candidates = {
+					Path.Combine(execDir, "resources", "earth_epic.bin"),
+					Path.GetFullPath(Path.Combine(execDir, "..", "..", "..", "..", "..", "resources", "earth_epic.bin")),
+				};
+				foreach (string c in candidates)
+					if (File.Exists(c)) return c;
+				return userPath;
+			}
+		}
 
 		// EARTH (EPIC) load path used by the new-game menu. Unlike LoadMap (which loads
 		// the original 80×50 MAP.PIC with fixed civ starting coordinates), this loads
