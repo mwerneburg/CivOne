@@ -43,7 +43,12 @@ namespace CivOne.Screens
 					3 => _items.Where(x => x is IWonder),
 					_ => _items
 				};
-				return src.Where(x => !queued.Contains(x.GetType())).ToArray();
+				// Buildings and wonders are one-per-city — once queued, hide them from
+				// the picker so the player can't queue Barracks twice. Units can be
+				// queued any number of times (Militia → Barracks → Phalanx → Temple →
+				// Settler → MarketPlace → Aqueduct → Settler is a valid backlog), so
+				// they stay visible after being queued.
+				return src.Where(x => x is IUnit || !queued.Contains(x.GetType())).ToArray();
 			}
 		}
 
