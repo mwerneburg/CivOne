@@ -36,6 +36,13 @@ namespace CivOne
 		private readonly HashSet<byte> _warWith = new();
 		private readonly Dictionary<byte, int> _peaceTreaty  = new(); // AI won't declare war for N turns
 		private readonly Dictionary<byte, int> _attitudeBonus = new(); // AI acceptance boosted for N turns
+		// Tribute relationships. _tributeTo: I pay N gold/turn to this player (my protector).
+		// _tributeFrom: this player pays me N gold/turn (I'm their protector). The two maps
+		// are always kept in sync between the paired players via EstablishTribute and
+		// DissolveTribute. Tribute pays a self-renewing peace and is documented further
+		// near those methods below.
+		private readonly Dictionary<byte, int> _tributeTo   = new();
+		private readonly Dictionary<byte, int> _tributeFrom = new();
 
 		private short _anarchy = 0;
 		private short _gold;
@@ -241,6 +248,51 @@ namespace CivOne
 		internal bool HasPeaceTreaty(Player other)             => _peaceTreaty.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
+
+		// ── tribute ─────────────────────────────────────────────────────────────────
+		// A tribute pact is established when a militarily outclassed civ sues for survival
+		// from a stronger neighbour with whom it has an embassy. The weaker civ pays a
+		// fixed annual sum in gold; in exchange the protector accepts peace and refuses
+		// to declare war for as long as the tribute is paid. The pact dissolves if the
+		// payer can't afford the gold (gold falls below the annual due) or if either side
+		// is destroyed.
+		//
+		// Internal accessor maps are kept paired between the two players: EstablishTribute
+		// writes both _tributeTo on the payer and _tributeFrom on the protector; the same
+		// for DissolveTribute. Saving persists only _tributeTo per player; the inverse map
+		// is reconstructed on load.
+
+		internal bool PaysTributeTo(Player protector) => _tributeTo.ContainsKey((byte)Game.PlayerNumber(protector));
+		internal int  TributeAmountTo(Player protector) => _tributeTo.TryGetValue((byte)Game.PlayerNumber(protector), out int g) ? g : 0;
+		internal IEnumerable<Player> TributeProtectors => _tributeTo.Keys.Select(k => Game.Instance.GetPlayer(k)).Where(p => p is not null);
+		internal IEnumerable<Player> TributePayers     => _tributeFrom.Keys.Select(k => Game.Instance.GetPlayer(k)).Where(p => p is not null);
+
+		// Establish a tribute relationship. Caller is the *payer*; `protector` is the
+		// stronger civ. annualGold is locked in for the duration of the pact. The pact
+		// also installs a 100-turn renewable peace treaty in both directions; we re-up
+		// it each turn the tribute flows so the protector is permanently barred from
+		// declaring war as long as payment continues.
+		internal void EstablishTribute(Player protector, int annualGold)
+		{
+			byte myIdx = (byte)Game.PlayerNumber(this);
+			byte prIdx = (byte)Game.PlayerNumber(protector);
+			if (myIdx == 0 || prIdx == 0 || myIdx == prIdx) return;  // no barbarian tribute, no self
+			_tributeTo[prIdx]            = annualGold;
+			protector._tributeFrom[myIdx] = annualGold;
+			MakePeace(protector);
+			SetPeaceTreaty(protector, 100);
+			protector.SetPeaceTreaty(this, 100);
+			SetAttitudeBonus(protector, 100);
+			protector.SetAttitudeBonus(this, 100);
+		}
+
+		// End tribute, e.g. payer ran out of gold or one side destroyed. Doesn't re-declare
+		// war by itself; the protector is just no longer barred from doing so by this map.
+		internal void DissolveTribute(Player protector)
+		{
+			_tributeTo.Remove((byte)Game.PlayerNumber(protector));
+			protector._tributeFrom.Remove((byte)Game.PlayerNumber(this));
+		}
 
 		internal void SetAtWar(byte playerNumber, bool atWar)
 		{
@@ -619,6 +671,32 @@ namespace CivOne
 				if (--_peaceTreaty[k] <= 0) _peaceTreaty.Remove(k);
 			foreach (byte k in _attitudeBonus.Keys.ToArray())
 				if (--_attitudeBonus[k] <= 0) _attitudeBonus.Remove(k);
+
+			// Tribute settlement. For each protector this player owes, transfer gold (if
+			// solvent) and re-up the peace-treaty + attitude-bonus timers so the pact stays
+			// active as long as payment continues. If the payer can't cover the full annual
+			// gold, the pact dissolves — but war is not auto-declared; the protector simply
+			// loses the diplomatic lock and may declare on their next strategy tick.
+			foreach (byte k in _tributeTo.Keys.ToArray())
+			{
+				int annualGold = _tributeTo[k];
+				Player protector = Game.Instance.GetPlayer(k);
+				if (protector is null || protector.IsDestroyed())
+				{
+					_tributeTo.Remove(k);
+					continue;
+				}
+				if (_gold < annualGold)
+				{
+					DissolveTribute(protector);
+					continue;
+				}
+				_gold     -= (short)annualGold;
+				protector._gold = (short)Math.Min(short.MaxValue, protector._gold + annualGold);
+				// Renew the peace lock so the protector stays barred from declaring war.
+				SetPeaceTreaty(protector, 100);
+				protector.SetPeaceTreaty(this, 100);
+			}
 
 			// Great Library: auto-acquire any advance that 2+ other civs already possess
 			if (HasWonder<Wonders.GreatLibrary>() && !Game.WonderObsolete<Wonders.GreatLibrary>())

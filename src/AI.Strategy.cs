@@ -440,6 +440,38 @@ namespace CivOne
 				_peacetimeCities = Player.Cities.Length;
 			}
 
+			// ── Tribute pact (Layer 1) ───────────────────────────────────────────
+			// A militarily outclassed AI civ at war with an AI neighbour it has an embassy
+			// with offers tribute in exchange for peace. The protector accepts (no AI
+			// refusal logic in Layer 1; the gold is free protection for them, costless to
+			// agree). Tribute is the *better* outcome than the existing make-peace random
+			// roll below for clearly losing civs — peace decays but tribute self-renews
+			// each turn the gold flows, so the small civ stops bleeding shields on
+			// futile attackers.
+			if (atWar)
+			{
+				int ownPower = MilitaryScore(Player);
+				Player[] tributeCandidates = Game.Players
+				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
+				             && Game.PlayerNumber(p) != 0
+				             && Player.IsAtWar(p)
+				             && Player.HasEmbassy(p)
+				             && ownPower * 2 < MilitaryScore(p))
+				    .ToArray();
+				if (tributeCandidates.Length > 0 && !Player.PaysTributeTo(tributeCandidates[0]))
+				{
+					Player protector = tributeCandidates.OrderByDescending(MilitaryScore).First();
+					// Annual tribute scales with player gold income, clamped: 5 gold floor,
+					// 25 gold ceiling. The cap matters because a tiny civ shouldn't price
+					// itself out of survival, and a runaway civ shouldn't extract everything.
+					int annual = Math.Max(5, Math.Min(25, Player.Gold / 20 + 5));
+					if (Player.Gold >= annual)
+					{
+						Player.EstablishTribute(protector, annual);
+					}
+				}
+			}
+
 			// ── AI-vs-AI peace initiatives ───────────────────────────────────────
 			if (atWar)
 			{

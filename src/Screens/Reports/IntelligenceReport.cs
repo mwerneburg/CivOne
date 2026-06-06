@@ -49,8 +49,24 @@ namespace CivOne.Screens.Reports
 					.DrawText($"{player.Gold}$", 0, CassetteTheme.OK, OX + 73, y)
 					.DrawText("Military:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
 					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, CassetteTheme.INK_HIGH, OX + 67, y)
-					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4))
-					.DrawText("Technologies:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4));
+					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4));
+
+				// Tribute relationships, visible if the *human* has an embassy with the
+				// subject — knowledge flows through our own diplomatic channels, not by
+				// omniscience. Both directions are shown: who pays this civ and who they
+				// pay. Layer 2 will let the human participate; for now this is read-only intel.
+				bool humanCanSee = Game.Human is not null && Game.Human.HasEmbassy(player);
+				if (humanCanSee)
+				{
+					foreach (Player protector in player.TributeProtectors)
+						this.DrawText($"  Pays tribute to {protector.TribeName} ({player.TributeAmountTo(protector)}$/turn)",
+							0, CassetteTheme.PHOS, OX + 24, (y += fontHeight));
+					foreach (Player payer in player.TributePayers)
+						this.DrawText($"  Receives tribute from {payer.TribeName} ({payer.TributeAmountTo(player)}$/turn)",
+							0, CassetteTheme.OK, OX + 24, (y += fontHeight));
+				}
+
+				this.DrawText("Technologies:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4));
 
 				args.Handled = true;
 				SetUpdate();
