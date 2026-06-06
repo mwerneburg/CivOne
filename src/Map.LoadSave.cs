@@ -317,9 +317,13 @@ namespace CivOne
 			_temperature = -1;
 			_climate = -1;
 			_age = -1;
-			// FixedStartPositions stays false: the procedural Earth has no per-civ
-			// (StartX, StartY) records, so the engine should fall back to the
-			// random-placement scoring (LandValue, distance, terrain) in Game.NewGame.cs.
+			// Honour the per-civ StartX/StartY records. They're calibrated for the
+			// 80×50 MAP.PIC classic Earth, but Game.NewGame.cs:AddStartingUnits scales
+			// them by Map.WIDTH/80 (so 4× on Epic) and falls back to a spiral search
+			// for habitable land when the scaled tile lands in ocean or mountain. Net
+			// effect on Epic Earth: civs spawn approximately where the historical 80×50
+			// map placed them — Russia in Russia, Mali in West Africa, etc.
+			FixedStartPositions = true;
 
 			return LoadEarthBin(EarthEpicPath);
 		}

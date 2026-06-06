@@ -39,11 +39,46 @@ namespace CivOne
 				// Choose a map square randomly
 				int x = Common.Random.Next(0, Map.WIDTH);
 				int y = Common.Random.Next(2, Map.HEIGHT - 2);
-				if (Map.FixedStartPositions && GameTurn == 0)
+				// Use the per-civ StartX/StartY when it's available and meaningful.
+				// 255 is the sentinel for "no fixed position" — fall through to random.
+				int civStartX = _players[player].Civilization.StartX;
+				int civStartY = _players[player].Civilization.StartY;
+				bool useFixed = Map.FixedStartPositions && GameTurn == 0
+				             && civStartX != 255 && civStartY != 255;
+				if (useFixed)
 				{
-					// Map position is fixed, don't check anything
-					x = _players[player].Civilization.StartX;
-					y = _players[player].Civilization.StartY;
+					// Per-civ StartX/StartY are calibrated for the 80×50 classic Earth.
+					// Scale to the actual map width so Epic (320×200) at 4× lands roughly
+					// where the historical map placed each civ — Russia in Russia, Mali in
+					// West Africa, etc. — instead of multiplying the random-placement
+					// scorer's odds of dropping the Russians next door to Timbuktu.
+					x = (civStartX * Map.WIDTH)  / 80;
+					y = (civStartY * Map.HEIGHT) / 50;
+					if (x < 0) x = 0; if (x >= Map.WIDTH)  x = Map.WIDTH  - 1;
+					if (y < 2) y = 2; if (y >= Map.HEIGHT - 2) y = Map.HEIGHT - 3;
+
+					// Spiral outward from the scaled point looking for a habitable tile.
+					// Some coastal civs at 80×50 scale into ocean on the procedural Epic
+					// (sea-level threshold differences), and the original placement might
+					// also be impassable Mountain/Arctic. Search up to a 20-tile radius.
+					bool Habitable(ITile t) => t is not null && !t.IsOcean
+					                        && !(t is Mountains) && !(t is Arctic);
+					if (!Habitable(Map[x, y]))
+					{
+						bool found = false;
+						for (int r = 1; r <= 20 && !found; r++)
+						for (int dy = -r; dy <= r && !found; dy++)
+						for (int dx = -r; dx <= r && !found; dx++)
+						{
+							if (Math.Abs(dx) != r && Math.Abs(dy) != r) continue; // ring only
+							int nx = (x + dx + Map.WIDTH) % Map.WIDTH;
+							int ny = y + dy;
+							if (ny < 2 || ny >= Map.HEIGHT - 2) continue;
+							if (!Habitable(Map[nx, ny])) continue;
+							x = nx; y = ny;
+							found = true;
+						}
+					}
 					if (Map[x, y].Hut) Map[x, y].Hut = false;
 				}
 				else
