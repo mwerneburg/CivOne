@@ -67,7 +67,13 @@ namespace CivOne
 			}
 
 			// Expand: below the leader's preferred city count (scales with difficulty and map size).
-			int mapScale = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			// mapScale uses WIDTH/80 (linear) rather than (W×H)/4000 (area) so Epic 320×200
+			// produces scale=4, not 16. The area formula gave Normal-development leaders a
+			// 99-city target on Epic — unreachable in practice — so every civ stayed in
+			// Expand forever, never flipped research priorities to Trade/Currency/Banking,
+			// never reached Republic, never escaped the Despotism tile penalty. The linear
+			// scale matches the civ-separation knob in Game.NewGame.cs:32 (same source).
+			int mapScale = Math.Max(1, Map.WIDTH / 80);
 			int target = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
 			           : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
 			           :                                         (4 * mapScale) + Game.Difficulty;
@@ -523,7 +529,8 @@ namespace CivOne
 			// Civs that still have room to grow prefer settlers to swords.
 			// Militaristic/aggressive leaders can still fight but take a penalty;
 			// everyone else waits until their empire is built out.
-			int mapScale  = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			// Linear map scale — see GetStance (line 71) for the rationale.
+			int mapScale  = Math.Max(1, Map.WIDTH / 80);
 			int cityTarget = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
 			               : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
 			               :                                         (4 * mapScale) + Game.Difficulty;
@@ -1214,7 +1221,8 @@ namespace CivOne
 			// civs to stop founding cities long before hitting the stance target, leaving them
 			// stuck in Expand stance forever (no research weight shift to Trade/Currency/Banking
 			// → never reaches Republic → permanent Despotism tile penalty → cities stay tiny).
-			int mapScale = Math.Max(1, (Map.WIDTH * Map.HEIGHT + 2000) / 4000);
+			// Linear map scale — see GetStance (line 71) for why area-based was wrong.
+			int mapScale = Math.Max(1, Map.WIDTH / 80);
 			int maxCities = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
 			              : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
 			              :                                         (4 * mapScale) + Game.Difficulty;
@@ -1230,7 +1238,12 @@ namespace CivOne
 					Consider(new Settlers());
 			}
 
-			// Explorer: one per 3 cities while the map still has fog-of-war to reveal
+			// Explorer: one per 3 cities while the map still has meaningful fog. Stop
+			// queueing once the player has revealed > 70% of the world's land — late-game
+			// Explorer builds just churn shields with nothing useful to scout. Analytics
+			// (2026-06-06) showed 8.8% of late-game builds were Explorers, with civs of
+			// 30+ cities still pumping them out.
+			if (Player.ExploredLandFraction < 0.70)
 			{
 				byte ownId = Game.PlayerNumber(Player);
 				int ownExplorers = Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer);

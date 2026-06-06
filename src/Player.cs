@@ -498,6 +498,29 @@ namespace CivOne
 			return _visible[x, y];
 		}
 
+		// Fraction of land tiles this player has explored, 0.0 to 1.0. Used by the AI
+		// production planner to stop queueing Explorers once the map is mostly known —
+		// otherwise large empires keep building scouts deep into the late game (8.8% of
+		// late-game builds in the analytics we did 2026-06-06). Iterates the whole
+		// _visible array but it's a 64000-bool sweep at Epic size — cheap relative to
+		// the rest of one PlanProduction pass.
+		internal double ExploredLandFraction
+		{
+			get
+			{
+				int land = 0, seen = 0;
+				for (int y = 0; y < Map.HEIGHT; y++)
+				for (int x = 0; x < Map.WIDTH; x++)
+				{
+					ITile t = Map.Instance[x, y];
+					if (t is null || t.IsOcean) continue;
+					land++;
+					if (_visible[x, y]) seen++;
+				}
+				return land == 0 ? 1.0 : (double)seen / land;
+			}
+		}
+
 		public bool Visible(ITile tile)
 		{
 			if (tile is null) return false;
