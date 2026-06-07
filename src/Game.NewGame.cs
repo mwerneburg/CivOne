@@ -235,7 +235,6 @@ namespace CivOne
 			InstantAdvice = (Settings.InstantAdvice == GameOption.On || (Settings.InstantAdvice == GameOption.Default && difficulty == 0));
 			EndOfTurn = (Settings.EndOfTurn == GameOption.On);
 			Animations = (Settings.Animations != GameOption.Off);
-			Sound = (Settings.Sound != GameOption.Off);
 			EnemyMoves = (Settings.EnemyMoves != GameOption.Off);
 			CivilopediaText = (Settings.CivilopediaText != GameOption.Off);
 

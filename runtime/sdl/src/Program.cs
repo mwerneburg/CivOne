@@ -77,7 +77,6 @@ Try 'civone-sdl --help' for more information.
 					case "setup": settings.Setup = true; continue;
 					case "mapgen-preview": settings["mapgen-preview"] = true; continue;
 					case "free": settings.Free = true; continue;
-					case "no-sound": settings["no-sound"] = true; continue;
 					case "no-data-check": settings.DataCheck = false; continue;
 					case "profile":
 						if (args.GetUpperBound(0) == i)
@@ -94,11 +93,6 @@ Try 'civone-sdl --help' for more information.
 					case "software-render": settings["software-render"] = true; continue;
 					default: Console.WriteLine(ErrorText); return;
 				}
-			}
-
-			if (settings.Free)
-			{
-				settings["no-sound"] = true;
 			}
 
 			using (Runtime runtime = new Runtime(settings))

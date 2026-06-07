@@ -185,12 +185,6 @@ namespace CivOne
 			OnMouseMove += MouseMove;
 			OnMouseDown += MouseDown;
 			OnMouseUp += MouseUp;
-
-			if (!_runtime.Settings.Get<bool>("no-sound"))
-			{
-				runtime.PlaySound += (string filename) => PlaySound(filename);
-				runtime.StopSound += () => StopSound();
-			}
 		}
 	}
 }

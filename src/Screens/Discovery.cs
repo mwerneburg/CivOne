@@ -106,8 +106,6 @@ namespace CivOne.Screens
 			}
 
 			this.AddLayer(advance.Icon, OX + 119, OY + (_modern ? 53 : 61));
-
-			PlaySound(Human.Civilization.Tune);
 		}
 	}
 }

@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class German : BaseCivilization<Frederick>
 	{
-		public German() : base(Civilization.Germans, "German", "Germans", "fred")
+		public German() : base(Civilization.Germans, "German", "Germans")
 		{
 			StartX = 38;
 			StartY = 15;

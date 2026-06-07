@@ -43,8 +43,6 @@ namespace CivOne
 		public event KeyboardEventHandler KeyboardUp, KeyboardDown;
 		public event ScreenEventHandler MouseUp, MouseDown, MouseMove;
 		internal event EventHandler CursorChanged;
-		internal event Action<string> PlaySound;
-		internal event Action StopSound;
 		internal event Action<string> SetWindowTitle;
 		
 		public RuntimeSettings Settings { get; private set; }
@@ -80,8 +78,6 @@ namespace CivOne
 		{
 			set => SetWindowTitle?.Invoke(value);
 		}
-		void IRuntime.PlaySound(string filename) => PlaySound?.Invoke(filename);
-		void IRuntime.StopSound() => StopSound?.Invoke();
 		void IRuntime.Quit() => SignalQuit = true;
 
 		private static readonly Dictionary<string, string[]> _defaultAssets = new Dictionary<string, string[]>

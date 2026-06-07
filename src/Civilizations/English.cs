@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class English : BaseCivilization<Elizabeth>
 	{
-		public English() : base(Civilization.English, "English", "English", "eliz")
+		public English() : base(Civilization.English, "English", "English")
 		{
 			StartX = 31;
 			StartY = 14;

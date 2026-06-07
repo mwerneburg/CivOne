@@ -25,11 +25,6 @@ namespace CivOne
 		protected static MenuCollection Menus => MenuCollection.Instance;
 
 		protected static void Log(string text, params object[] parameters) => Runtime.Log(text, parameters);
-		protected static void PlaySound(string filename)
-		{
-			if (!(Game.Started && Game.Sound) || Settings.Sound == GameOption.Off || !File.Exists(filename = filename.GetSoundFile())) return;
-			Runtime.PlaySound(filename);
-		}
 
 		protected bool GFX256 => (Settings.GraphicsMode == GraphicsMode.Graphics256);
 	}

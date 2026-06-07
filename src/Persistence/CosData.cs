@@ -80,7 +80,6 @@ namespace CivOne.Persistence
 		public bool AutoSave { get; set; }
 		public bool EndOfTurn { get; set; }
 		public bool Animations { get; set; }
-		public bool Sound { get; set; }
 		public bool EnemyMoves { get; set; }
 		public bool CivilopediaText { get; set; }
 		public bool? Circuses { get; set; }

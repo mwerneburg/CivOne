@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class Zulu : BaseCivilization<Shaka>
 	{
-		public Zulu() : base(Civilization.Zulus, "Zulu", "Zulus", "shak")
+		public Zulu() : base(Civilization.Zulus, "Zulu", "Zulus")
 		{
 			StartX = 42;
 			StartY = 42;

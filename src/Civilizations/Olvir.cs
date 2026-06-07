@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class Olvir : BaseCivilization<OlvirCouncil>
 	{
-		public Olvir() : base(Civilization.Olvir, "Olvir", "Olvir", null)
+		public Olvir() : base(Civilization.Olvir, "Olvir", "Olvir")
 		{
 			CityNames = new string[]
 			{

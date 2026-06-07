@@ -41,18 +41,6 @@ namespace CivOne.Screens
 			return false;
 		}
 
-		private void BrowseForSoundFiles(object sender, MenuItemEventArgs<int> args)
-		{
-			string path = Runtime.BrowseFolder("Location of Civilization for Windows sound files");
-			if (path is null)
-			{
-				// User pressed cancel
-				return;
-			}
-
-			FileSystem.CopySoundFiles(path);
-		}
-
 		private void BrowseForPlugins(object sender, MenuItemEventArgs<int> args)
 		{
 			string path = Runtime.BrowseFolder("Location of CivOne plugin(s)");
@@ -133,7 +121,6 @@ namespace CivOne.Screens
 			MenuItem.Create($"Graphics Mode: {Settings.GraphicsMode.ToText()}").OnSelect(GotoMenu(GraphicsModeMenu)),
 			MenuItem.Create($"Full Screen: {Settings.FullScreen.YesNo()}").OnSelect(GotoMenu(FullScreenMenu)),
 			MenuItem.Create($"Window Scale: {Settings.Scale}x").OnSelect(GotoMenu(WindowScaleMenu)),
-			MenuItem.Create("In-game sound").OnSelect(GotoMenu(SoundMenu)),
 			MenuItem.Create($"Back").OnSelect(GotoMenu(MainMenu, 0))
 		);
 
@@ -157,10 +144,6 @@ namespace CivOne.Screens
 			MenuItem.Create("Back")
 		);
 
-		private void SoundMenu() => CreateMenu("In-game sound", GotoMenu(SettingsMenu, 5),
-			MenuItem.Create("Browse for files...").OnSelect(BrowseForSoundFiles).SetEnabled(!FileSystem.SoundFilesExist()),
-			MenuItem.Create("Back")
-		);
 
 		private void PatchesMenu(int activeItem = 0) => CreateMenu("Patches", activeItem,
 			MenuItem.Create($"Reveal world: {Settings.RevealWorld.YesNo()}").OnSelect(GotoMenu(RevealWorldMenu)),
@@ -262,7 +245,6 @@ namespace CivOne.Screens
 			MenuItem.Create($"AutoSave: {Settings.AutoSave.ToText()}").OnSelect(GotoMenu(GameOptionMenu(1, "AutoSave", () => Settings.AutoSave, (GameOption option) => Settings.AutoSave = option))),
 			MenuItem.Create($"End of Turn: {Settings.EndOfTurn.ToText()}").OnSelect(GotoMenu(GameOptionMenu(2, "End of Turn", () => Settings.EndOfTurn, (GameOption option) => Settings.EndOfTurn = option))),
 			MenuItem.Create($"Animations: {Settings.Animations.ToText()}").OnSelect(GotoMenu(GameOptionMenu(3, "Animations", () => Settings.Animations, (GameOption option) => Settings.Animations = option))),
-			MenuItem.Create($"Sound: {Settings.Sound.ToText()}").OnSelect(GotoMenu(GameOptionMenu(4, "Sound", () => Settings.Sound, (GameOption option) => Settings.Sound = option))),
 			MenuItem.Create($"Enemy Moves: {Settings.EnemyMoves.ToText()}").OnSelect(GotoMenu(GameOptionMenu(5, "Enemy Moves", () => Settings.EnemyMoves, (GameOption option) => Settings.EnemyMoves = option))),
 			MenuItem.Create($"Civilopedia Text: {Settings.CivilopediaText.ToText()}").OnSelect(GotoMenu(GameOptionMenu(6, "Civilopedia Text", () => Settings.CivilopediaText, (GameOption option) => Settings.CivilopediaText = option))),
 			 MenuItem.Create("Back").OnSelect(GotoMenu(MainMenu, 3))

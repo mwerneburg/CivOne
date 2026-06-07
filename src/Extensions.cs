@@ -27,11 +27,6 @@ namespace CivOne
 	{
 		private static Settings Settings => Settings.Instance;
 
-		public static string GetSoundFile(this string input)
-		{
-			return Directory.GetFiles(Settings.SoundsDirectory).Where(x => Path.GetFileName(x).ToLower() == $"{input.ToLower()}.wav").FirstOrDefault();
-		}
-
 		public static byte[] Clear(this byte[] byteArray, byte value = 0)
 		{
 			for (int i = byteArray.GetUpperBound(0); i >= 0; i--)

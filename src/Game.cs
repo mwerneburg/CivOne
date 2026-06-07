@@ -249,7 +249,6 @@ namespace CivOne
 		private ushort _anthologyTurn = 0;
 
 		public bool Animations { get; set; }
-		public bool Sound { get; set; }
 		public bool CivilopediaText { get; set; }
 		public bool EndOfTurn { get; set; }
 		public bool InstantAdvice { get; set; }
@@ -660,7 +659,6 @@ namespace CivOne
 					string eta = Common.YearString((ushort)SpaceshipArrivalTurn[p]);
 					if (_players[p] == HumanPlayer)
 					{
-						PlaySound("wintune");
 						GameTask.Enqueue(Message.Newspaper(null, "Our spaceship has", "launched!", $"Arrival: {eta}"));
 					}
 					else
@@ -709,7 +707,6 @@ namespace CivOne
 					{
 						if (humanWins)
 						{
-							PlaySound("wintune");
 							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: true, turns: _gameTurn);
 							int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
@@ -744,7 +741,6 @@ namespace CivOne
 
 					if (winner == HumanPlayer)
 					{
-						PlaySound("wintune");
 						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: true, turns: _gameTurn);
 						int scoreFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Score Victory");
 						GameTask.Enqueue(Message.Newspaper(null, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
@@ -795,7 +791,6 @@ namespace CivOne
 
 			if (!_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
 			{
-				PlaySound("wintune");
 				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn);
 				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;

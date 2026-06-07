@@ -234,7 +234,6 @@ namespace CivOne
 						InstantAdvice  = InstantAdvice,
 						EndOfTurn      = EndOfTurn,
 						Animations     = Animations,
-						Sound          = Sound,
 						EnemyMoves     = EnemyMoves,
 						CivilopediaText = CivilopediaText,
 						Circuses       = Circuses,
@@ -665,7 +664,6 @@ namespace CivOne
 			InstantAdvice  = (Settings.InstantAdvice  == GameOption.On)  || (Settings.InstantAdvice  == GameOption.Default && opt.InstantAdvice);
 			EndOfTurn      = (Settings.EndOfTurn      == GameOption.On)  || (Settings.EndOfTurn      == GameOption.Default && opt.EndOfTurn);
 			Animations     = (Settings.Animations     != GameOption.Off) && (Settings.Animations     != GameOption.Default || opt.Animations);
-			Sound          = (Settings.Sound          != GameOption.Off) && (Settings.Sound          != GameOption.Default || opt.Sound);
 			EnemyMoves     = (Settings.EnemyMoves     != GameOption.Off) && (Settings.EnemyMoves     != GameOption.Default || opt.EnemyMoves);
 			CivilopediaText= (Settings.CivilopediaText!= GameOption.Off) && (Settings.CivilopediaText!= GameOption.Default || opt.CivilopediaText);
 			Circuses       = opt.Circuses   ?? true;

@@ -388,11 +388,6 @@ namespace CivOne.Units
 			}
 			else if (this is Nuclear)
 			{
-				if (Map[X, Y][relX, relY].City is not null)
-					PlaySound("airnuke");
-				else
-					PlaySound("s_nuke");
-
 				Show nukeShow = Show.EventArt("nuclearbombdetonation", "Nuclear bomb detonated!");
 				nukeShow.Done += (s, a) =>
 				{
@@ -410,19 +405,6 @@ namespace CivOne.Units
 			{
 				Movement.Done += (s, a) =>
 				{
-					if (this is Cannon)
-					{
-						PlaySound("cannon");
-					}
-					else if (this is Musketeers || this is Riflemen || this is Armor || this is Artillery || this is MechInf)
-					{
-						PlaySound("s_land");
-					}
-					else
-					{
-						PlaySound("they_die");
-					}
-
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
 					if (unit is not null)
 					{
@@ -460,18 +442,6 @@ namespace CivOne.Units
 			{
 				Movement.Done += (s, a) =>
 				{
-					if (this is Cannon)
-					{
-						PlaySound("cannon");
-					}
-					else if (this is Musketeers || this is Riflemen || this is Armor || this is Artillery || this is MechInf)
-					{
-						PlaySound("s_land");
-					}
-					else
-					{
-						PlaySound("we_die");
-					}
 					GameTask.Insert(Show.DestroyUnit(this, false));
 					Movement = null;
 				};

@@ -50,7 +50,6 @@ namespace CivOne.Tasks
 
 		public static Message Error(string title, params string[] message)
 		{
-			PlaySound("s_beep");
 			return new Message(new PopupMessage(4, title, message));
 		}
 

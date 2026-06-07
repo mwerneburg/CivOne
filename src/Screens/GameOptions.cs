@@ -136,7 +136,6 @@ namespace CivOne.Screens
 				("Instant Advice",    () => Game.InstantAdvice,   () => { Game.InstantAdvice   = !Game.InstantAdvice;   }),
 				("End of Turn",       () => Game.EndOfTurn,       () => { Game.EndOfTurn       = !Game.EndOfTurn;       }),
 				("Animations",        () => Game.Animations,      () => { Game.Animations      = !Game.Animations;      }),
-				("Sound",             () => Game.Sound,           () => { Game.Sound           = !Game.Sound;           }),
 				("Enemy Moves",       () => Game.EnemyMoves,      () => { Game.EnemyMoves      = !Game.EnemyMoves;      }),
 				("Civilopedia Text",  () => Game.CivilopediaText, () => { Game.CivilopediaText = !Game.CivilopediaText; }),
 				("Circuses",          () => Game.Circuses,        () => { Game.Circuses        = !Game.Circuses;        }),

@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class Babylonian : BaseCivilization<Hammurabi>
 	{
-		public Babylonian() : base(Civilization.Babylonians, "Babylonian", "Babylonians", "hama")
+		public Babylonian() : base(Civilization.Babylonians, "Babylonian", "Babylonians")
 		{
 			StartX = 45;
 			StartY = 22;

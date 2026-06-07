@@ -101,7 +101,6 @@ namespace CivOne
 					OnDraw?.Invoke(this, EventArgs.Empty);
 
 					HandleMouse();
-					HandleSound();
 
 					if (!_redraw)
 					{

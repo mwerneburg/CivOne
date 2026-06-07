@@ -215,7 +215,6 @@ namespace CivOne.Screens
 					_gameCreated = true;
 					ICivilization civ = _tribesAvailable[_tribe];
 					Game.CreateGame(_difficulty, _competition, civ, _leaderName, _tribeName, _tribeNamePlural);
-					PlaySound(Human.Civilization.Tune);
 				}
 
 				if (_borderStyle < 0) _borderStyle = Common.Random.Next(2);

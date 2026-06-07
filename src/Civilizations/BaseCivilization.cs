@@ -62,9 +62,7 @@ namespace CivOne.Civilizations
 			protected set => _cityNames = value;
 		}
 
-		public string Tune { get; private set; }
-
-		public BaseCivilization(Civilization civilization, string name, string namePlural, string tune = null) : base(civilization)
+		public BaseCivilization(Civilization civilization, string name, string namePlural) : base(civilization)
 		{
 			Id = (Civilization == Civilization.Barbarians ? 15 : (int)Civilization);
 			// Barbarians and Olvir share slot 0; original civs (1–14) cycle slots 1–7 twice,
@@ -77,7 +75,6 @@ namespace CivOne.Civilizations
 			Name = name;
 			NamePlural = namePlural;
 			Leader = new T();
-			Tune = tune;
 		}
 	}
 

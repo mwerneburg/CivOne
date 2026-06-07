@@ -14,7 +14,7 @@ namespace CivOne.Civilizations
 {
 	internal class Russian : BaseCivilization<Peter>
 	{
-		public Russian() : base(Civilization.Russians, "Russian", "Russians", "stal")
+		public Russian() : base(Civilization.Russians, "Russian", "Russians")
 		{
 			StartX = 44;
 			StartY = 12;

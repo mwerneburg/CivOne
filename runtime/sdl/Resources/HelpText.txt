@@ -9,9 +9,8 @@ runtime-options:
   --demo                Show the Demo screen before launching the game
   --setup               Show the Setup screen before launching the game
   --free                Launch the game with free assets. Does not load assets,
-                        disables sound, skips data check, intro and credits
+                        skips data check, intro and credits
   --no-data-check       Disables checking for game data files
-  --no-sound            Disable ingame sounds
   --profile <name>      Start CivOne using the profile specified
   --skip-credits        Skips the game credits sequence
   --skip-intro          Skips the game intro sequence

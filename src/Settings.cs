@@ -47,14 +47,13 @@ namespace CivOne
 		private bool _customMapSize = false;
 		private CursorType _cursorType = CursorType.Default;
 		private DestroyAnimation _destroyAnimation = DestroyAnimation.Sprites;
-		private GameOption _instantAdvice, _autoSave, _endOfTurn, _animations, _sound, _enemyMoves, _civilopediaText;
+		private GameOption _instantAdvice, _autoSave, _endOfTurn, _animations, _enemyMoves, _civilopediaText;
 		
 		internal string StorageDirectory => Runtime.StorageDirectory;
 		internal string CaptureDirectory => Path.Combine(StorageDirectory, "capture");
 		internal string DataDirectory => Path.Combine(StorageDirectory, "data");
 		internal string PluginsDirectory => Path.Combine(StorageDirectory, "plugins");
 		internal string SavesDirectory => Path.Combine(StorageDirectory, "saves");
-		internal string SoundsDirectory => Path.Combine(StorageDirectory, "sounds");
 		internal string AutoSavePath => Path.Combine(SavesDirectory, "autosave.cos");
 
 		// Settings
@@ -345,18 +344,6 @@ namespace CivOne
 			}
 		}
 
-		public GameOption Sound
-		{
-			get => _sound;
-			set
-			{
-				_sound = value;
-				string saveValue = ((int)_sound).ToString();
-				SetSetting("GameSound", saveValue);
-				Common.ReloadSettings = true;
-			}
-		}
-
 		public GameOption EnemyMoves
 		{
 			get => _enemyMoves;
@@ -418,7 +405,7 @@ namespace CivOne
 		
 		private void CreateDirectories()
 		{
-			foreach (string dir in (string[])[StorageDirectory, CaptureDirectory, DataDirectory, PluginsDirectory, SavesDirectory, SoundsDirectory])
+			foreach (string dir in (string[])[StorageDirectory, CaptureDirectory, DataDirectory, PluginsDirectory, SavesDirectory])
 			if (!Directory.Exists(dir))
 			{
 				Directory.CreateDirectory(dir);
@@ -456,7 +443,6 @@ namespace CivOne
 			GetSetting("SideBar", ref _rightSideBar);
 			GetSetting("Scale", ref _scale, 1, 8);
 			// AspectRatio is always Expand; ignore any stored value.
-			GetSetting("Sound", ref _sound);
 			if (!GetSetting("ExpandWidth", ref _expandWidth, 320, MaxExpandWidth) || !GetSetting("ExpandHeight", ref _expandHeight, 200, MaxExpandHeight))
 			{
 				_expandWidth = -1;
@@ -477,7 +463,6 @@ namespace CivOne
 			GetSetting<GameOption>("GameAutoSave", ref _autoSave);
 			GetSetting<GameOption>("GameEndOfTurn", ref _endOfTurn);
 			GetSetting<GameOption>("GameAnimations", ref _animations);
-			GetSetting<GameOption>("GameSound", ref _sound);
 			GetSetting<GameOption>("GameEnemyMoves", ref _enemyMoves);
 			GetSetting<GameOption>("GameCivilopediaText", ref _civilopediaText);
 		}
