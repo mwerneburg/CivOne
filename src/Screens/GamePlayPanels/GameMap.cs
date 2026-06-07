@@ -101,6 +101,16 @@ namespace CivOne.Screens.GamePlayPanels
 			this.AddLayer(scaled, left, top);
 		}
 
+		// Bytemap overload — unit sprites are returned as raw Bytemaps (no palette
+		// owner), so wrapping them in `new Picture(bytemap, null)` to fit the IBitmap
+		// signature crashes Picture's constructor at Picture.cs:83 on palette.Copy().
+		// Call this overload directly with the Bytemap.
+		private void DrawScaledBitmap(Bytemap source, int left, int top, int width, int height)
+		{
+			using Bytemap scaled = ScaleBitmap(source, width, height);
+			this.AddLayer(scaled, left, top);
+		}
+
 		private ITile[,] Tiles => Map[_x, _y, _tilesX, _tilesY];
 
 		private int GetX(ITile tile)
@@ -260,10 +270,10 @@ namespace CivOne.Screens.GamePlayPanels
 					// animated unit slides at the same fractional rate at any zoom level.
 					int mvx = movement.X * px / BaseTilePixelSize;
 					int mvy = movement.Y * px / BaseTilePixelSize;
-					DrawScaledBitmap(new Picture(unitPicture, null), dx + mvx, dy + mvy, px, px);
+					DrawScaledBitmap(unitPicture, dx + mvx, dy + mvy, px, px);
 					if (movingUnit is IBoardable && tile.Units.Any(u => u.Class == UnitClass.Land && (tile.City is null || (tile.City is not null && u.Sentry))))
 					{
-						DrawScaledBitmap(new Picture(unitPicture, null), dx + mvx - 1, dy + mvy - 1, px, px);
+						DrawScaledBitmap(unitPicture, dx + mvx - 1, dy + mvy - 1, px, px);
 					}
 					return true;
 				}
