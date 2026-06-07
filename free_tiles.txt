@@ -7,6 +7,8 @@
 #  0 = transparent   1 = BG0 (near-black)   5 = BORDER (dark brown)
 #  6 = INK_LOW       7 = INK_MID            8 = INK_HIGH (near-white)
 # 14 = OK (green)   17 = CYAN
+#  5 (BORDER dark brown) outlines the shield
+# 11 (PHOS_DIM dim amber) highlights the top edges
 
 # ─── Standalone hill (no adjacent hill neighbours) ────────────────────────────
 # Single SW-NE ridge: 2px lit (14) + 3px transparent hilltop + 2px shadow (6)
@@ -249,8 +251,34 @@
 41 41  6 41 41  6 41  6 41  0  0  6  5  0  0  0
 41 41  6 41 41  6 41  6 41  0  0  6  5  0  0  0
 
+# ─── Special: Grassland shield ────────────────────────────────────────────────
+# Small heraldic shield silhouette replacing the SP257 bright-yellow "hay bale"
+# overlay that read as too prominent against the cassette palette. Body=7
+# (INK_MID tan), highlight=11 (PHOS_DIM dim amber), shadow=6 (INK_LOW),
+# outline=5 (BORDER dark brown). Sits in the lower-centre so it doesn't
+# obscure unit blits.
+[special_grassland]
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+ 0  0  0  0  0  0  5  5  5  5  5  5  0  0  0  0
+ 0  0  0  0  0  5 11  7  7  7  7 11  5  0  0  0
+ 0  0  0  0  0  5  7  7  7  7  7  7  5  0  0  0
+ 0  0  0  0  0  5  6  7  7  7  7  7  5  0  0  0
+ 0  0  0  0  0  0  5  6  7  7  7  5  0  0  0  0
+ 0  0  0  0  0  0  0  5  6  7  5  0  0  0  0  0
+ 0  0  0  0  0  0  0  0  5  5  0  0  0  0  0  0
+
 # ─── Special: Plains horses ───────────────────────────────────────────────────
-# Horse body=7(INK_MID)/6(INK_LOW), mane=6, outline=5(BORDER); four legs
+# Toned-down hay-bale silhouette: outline = 11 (PHOS_DIM, dim amber #c07818)
+# instead of 41 (SP257 bright yellow which reads as too-bold gold). Body
+# shading stays at 5 (BORDER) / 6 (INK_LOW) / 1 (BG0 highlight).
 [special_plains]
  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
@@ -266,8 +294,8 @@
  0  0  0  0  0  0 41  5  5  5  5  6  6  5 41  0
  0  0  0  0  0  0 41 41 41 41  6  6  6  5 41  0
  0  0  0  0  0  0  0  0  0 41  6  6  6  5 41  0
- 0  0  0  0  0  0  0  0 41  6  6  6  5 41  0  0
- 0  0  0  0  0  0  0  0 41 41 41 41 41 41  0  0
+ 0  0  0  0  0  0  0  0  0 41  6  6  6  5 41  0 
+ 0  0  0  0  0  0  0  0  0 41 41 41 41 41 41  0
 
 # ─── Special: Hills coal ──────────────────────────────────────────────────────
 # coal lump: body=1(near-black), sheen=6(INK_LOW), outline=5(BORDER)

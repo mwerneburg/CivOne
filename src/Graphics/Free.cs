@@ -736,6 +736,15 @@ namespace CivOne.Graphics
 		// Hay bale: golden cylinder, PHOS_GLOW top / PHOS body / PHOS_DIM sides / INK_LOW shadow
 		public Bytemap HayBale()
 		{
+			// Honour [special_grassland] in free_tiles.txt as the override, matching
+			// the pattern used by Irrigation/Desert/Forest/etc. Without this check,
+			// the user's hand-edited cassette-palette shield silhouette would never
+			// be read and the hardcoded SP257-style bright amber blob below would
+			// always win.
+			byte[] loaded = TryLoadTile("special_grassland");
+			if (loaded is not null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
 			return new Bytemap(16, 16).FromByteArray(
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
