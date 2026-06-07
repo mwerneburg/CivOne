@@ -279,6 +279,8 @@ namespace CivOne
 			TopScreen?.MouseMove(args);
 		}
 
+		private void OnMouseWheel(object sender, ScreenEventArgs args) => TopScreen?.MouseWheel(args);
+
 		public static void Register(IRuntime runtime)
 		{
 			if (_instance is not null)
@@ -301,6 +303,7 @@ namespace CivOne
 			runtime.MouseUp += OnMouseUp;
 			runtime.MouseDown += OnMouseDown;
 			runtime.MouseMove += OnMouseMove;
+			runtime.MouseWheel += OnMouseWheel;
 
 			foreach (Plugin plugin in Reflect.Plugins())
 			{

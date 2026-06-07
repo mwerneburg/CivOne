@@ -21,27 +21,39 @@ namespace CivOne.Events
 		public int X { get; private set; }
 		public int Y { get; private set; }
 		public MouseButton Buttons { get; private set; }
-		
-		public Point Location
-		{
-			get
-			{
-				return new Point(X, Y);
-			}
-		}
-		
+		// Modifier and WheelDelta are populated by the SDL mouse-wheel path
+		// (Window.MouseEvent.cs:HandleMouseWheel). Other constructors leave them
+		// at zero / None, so non-wheel mouse events behave exactly as before.
+		public KeyModifier Modifier { get; private set; }
+		public int WheelDelta { get; private set; }
+
+		public Point Location => new Point(X, Y);
+
 		public ScreenEventArgs(int x, int y)
 		{
 			X = x;
 			Y = y;
 			Buttons = MouseButton.None;
+			Modifier = KeyModifier.None;
+			WheelDelta = 0;
 		}
-		
+
 		public ScreenEventArgs(int x, int y, MouseButton buttons)
 		{
 			X = x;
 			Y = y;
 			Buttons = buttons;
+			Modifier = KeyModifier.None;
+			WheelDelta = 0;
+		}
+
+		public ScreenEventArgs(int x, int y, MouseButton buttons, KeyModifier modifier, int wheelDelta)
+		{
+			X = x;
+			Y = y;
+			Buttons = buttons;
+			Modifier = modifier;
+			WheelDelta = wheelDelta;
 		}
 	}
 }

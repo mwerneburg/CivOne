@@ -21,10 +21,34 @@ using CivOne.Units;
 
 namespace CivOne.Screens.GamePlayPanels
 {
+	// Ten preset zoom levels expressed in basis points. 1000 = 100% (the default,
+	// 16 pixels per tile). Stops descend by 100 down to 200, then 125 — chosen by
+	// testing in ChrisWi's fork; preserving the same scale keeps muscle memory
+	// portable for anyone who plays both forks. NormalizeBasisPoints clamps
+	// values loaded from save files into the allowed range.
+	public static class MapZoomSettings
+	{
+		public const int DefaultBasisPoints = 1000;
+		public const int MinBasisPoints     = 125;
+		public const int MaxBasisPoints     = 1000;
+		public static readonly int[] Presets = [DefaultBasisPoints, 900, 800, 700, 600, 500, 400, 300, 200, MinBasisPoints];
+
+		public static int NormalizeBasisPoints(int basisPoints)
+		{
+			if (basisPoints <= 0) return DefaultBasisPoints;
+			return Math.Max(MinBasisPoints, Math.Min(MaxBasisPoints, basisPoints));
+		}
+	}
+
 	internal class GameMap : BaseScreen
 	{
 		private IUnit ActiveUnit => Game.ActiveUnit;
-		
+
+		// Tile pixel size at 100% zoom. All hardcoded "16" multipliers in the
+		// rendering path were replaced with _tilePixelSize to support Ctrl+wheel
+		// cursor-focused zoom; this constant is the upper bound (100%).
+		private const int BaseTilePixelSize = 16;
+
 		private Point _helperDirection = new Point(0, 0);
 		private bool _update = true;
 		private bool _fullRedraw = false;
@@ -34,11 +58,48 @@ namespace CivOne.Screens.GamePlayPanels
 		private ushort _lastTurn;
 
 		private int _tilesX = 15, _tilesY = 12;
+		private int _zoomBasisPoints = MapZoomSettings.DefaultBasisPoints;
+		private int _tilePixelSize   = BaseTilePixelSize;
 
 		internal int X => _x;
 		internal int Y => _y;
 		internal int TilesX => _tilesX;
 		internal int TilesY => _tilesY;
+		internal int TilePixelSize => _tilePixelSize;
+		internal int ZoomBasisPoints => _zoomBasisPoints;
+
+		// Live zoom level for the player whose turn it is. CurrentPlayer may be null
+		// briefly during load; fall back to default during that window.
+		private int CurrentZoomBasisPoints => Game.Started && Game.CurrentPlayer is not null
+			? MapZoomSettings.NormalizeBasisPoints(Game.CurrentPlayer.MapZoomBasisPoints)
+			: MapZoomSettings.DefaultBasisPoints;
+
+		private static int TilePixelSizeFromBasisPoints(int basisPoints)
+			=> Math.Max(1, (BaseTilePixelSize * basisPoints + 500) / 1000);
+
+		// Nearest-neighbour downscale into a destination Bytemap. Used to render the
+		// 16-pixel-per-tile bitmap returned by Tiles.ToBitmap() at the active zoom.
+		private static Bytemap ScaleBitmap(Bytemap source, int targetWidth, int targetHeight)
+		{
+			Bytemap output = new Bytemap(Math.Max(1, targetWidth), Math.Max(1, targetHeight));
+			if (source is null) return output;
+			for (int y = 0; y < targetHeight; y++)
+			{
+				int sy = (y * source.Height) / targetHeight;
+				for (int x = 0; x < targetWidth; x++)
+				{
+					int sx = (x * source.Width) / targetWidth;
+					output[x, y] = source[sx, sy];
+				}
+			}
+			return output;
+		}
+
+		private void DrawScaledBitmap(IBitmap source, int left, int top, int width, int height)
+		{
+			using Bytemap scaled = ScaleBitmap(source.Bitmap, width, height);
+			this.AddLayer(scaled, left, top);
+		}
 
 		private ITile[,] Tiles => Map[_x, _y, _tilesX, _tilesY];
 
@@ -156,10 +217,16 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
+			// Sync the player's saved zoom into the rendering fields. No-op when the
+			// zoom hasn't changed; otherwise sets _fullRedraw so the next compose
+			// repaints the entire viewport at the new tile size.
+			SyncZoomState();
+
 			if (!(_update || _fullRedraw)) return false;
 			if (Game.MovingUnit is null && (gameTick % 2 == 1)) return false;
 
 			Player renderPlayer = Settings.RevealWorld ? null : Human;
+			int px = _tilePixelSize;
 
 			IUnit activeUnit = ActiveUnit;
 			if (Game.MovingUnit is not null)
@@ -170,24 +237,33 @@ namespace CivOne.Screens.GamePlayPanels
 				int dy = GetY(tile);
 				if (dx >= 0 && dy >= 0 && dx < _tilesX && dy < _tilesY)
 				{
-					dx *= 16; dy *= 16;
+					dx *= px; dy *= px;
 
 					if (_reframeRequired)
 					{
 						_reframeRequired = false;
 						_fullRedraw = false;
-						this.Clear(5)
-							.AddLayer(Tiles.ToBitmap(player: renderPlayer), dispose: true);
+						using IBitmap framePic = Tiles.ToBitmap(player: renderPlayer);
+						using Bytemap scaledFrame = ScaleBitmap(framePic.Bitmap, _tilesX * px, _tilesY * px);
+						this.Clear(5).AddLayer(scaledFrame, 0, 0);
 					}
 
 					MoveUnit movement = movingUnit.Movement;
-					this.FillRectangle(dx - 16, dy - 16, 48, 48, 5)
-						.AddLayer(Map[movingUnit.X - 1, movingUnit.Y - 1, 3, 3].ToBitmap(player: renderPlayer), dx - 16, dy - 16, dispose: true);
+					using (IBitmap movingArea = Map[movingUnit.X - 1, movingUnit.Y - 1, 3, 3].ToBitmap(player: renderPlayer))
+					using (Bytemap scaledMoving = ScaleBitmap(movingArea.Bitmap, 3 * px, 3 * px))
+					{
+						this.FillRectangle(dx - px, dy - px, 3 * px, 3 * px, 5)
+							.AddLayer(scaledMoving, dx - px, dy - px);
+					}
 					Bytemap unitPicture = movingUnit.ToBitmap();
-					this.AddLayer(unitPicture, dx + movement.X, dy + movement.Y);
+					// Movement.X / Y are pixel deltas at full tile size; scale them so the
+					// animated unit slides at the same fractional rate at any zoom level.
+					int mvx = movement.X * px / BaseTilePixelSize;
+					int mvy = movement.Y * px / BaseTilePixelSize;
+					DrawScaledBitmap(new Picture(unitPicture, null), dx + mvx, dy + mvy, px, px);
 					if (movingUnit is IBoardable && tile.Units.Any(u => u.Class == UnitClass.Land && (tile.City is null || (tile.City is not null && u.Sentry))))
 					{
-						this.AddLayer(unitPicture, dx + movement.X - 1, dy + movement.Y - 1);
+						DrawScaledBitmap(new Picture(unitPicture, null), dx + mvx - 1, dy + mvy - 1, px, px);
 					}
 					return true;
 				}
@@ -196,8 +272,9 @@ namespace CivOne.Screens.GamePlayPanels
 			if (_fullRedraw)
 			{
 				_fullRedraw = false;
-				this.Clear(5)
-					.AddLayer(Tiles.ToBitmap(player: renderPlayer), dispose: true);
+				using IBitmap fullPic = Tiles.ToBitmap(player: renderPlayer);
+				using Bytemap scaledFull = ScaleBitmap(fullPic.Bitmap, _tilesX * px, _tilesY * px);
+				this.Clear(5).AddLayer(scaledFull, 0, 0);
 			}
 
 			if (activeUnit is not null && Game.CurrentPlayer == Human && !GameTask.Any())
@@ -207,17 +284,17 @@ namespace CivOne.Screens.GamePlayPanels
 				int dy = GetY(tile);
 				if (dx < _tilesX && dy < _tilesY)
 				{
-					dx *= 16; dy *= 16;
-					
+					dx *= px; dy *= px;
+
 					// blink status
 					TileSettings setting = ((gameTick / 2) % 3 < 2) ? TileSettings.BlinkOn : TileSettings.BlinkOff;
-					this.AddLayer(tile.ToBitmap(setting), dx, dy, dispose: true);
+					DrawScaledBitmap(tile.ToBitmap(setting), dx, dy, px, px);
 
 					DrawHelperArrows(dx, dy);
 				}
 				return true;
 			}
-			
+
 			_update = false;
 			return true;
 		}
@@ -508,8 +585,9 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
-			int x = (int)Math.Floor((float)args.X / 16);
-			int y = (int)Math.Floor((float)args.Y / 16);
+			int tilePx = Math.Max(1, _tilePixelSize);
+			int x = (int)Math.Floor((float)args.X / tilePx);
+			int y = (int)Math.Floor((float)args.Y / tilePx);
 			
 			int xx = _x + x;
 			int yy = _y + y;
@@ -562,14 +640,96 @@ namespace CivOne.Screens.GamePlayPanels
 
 		public void Resize(int width, int height)
 		{
-			_tilesX = (int)Math.Ceiling((double)width / 16);
-			_tilesY = (int)Math.Ceiling((double)height / 16);
+			_tilePixelSize = TilePixelSizeFromBasisPoints(CurrentZoomBasisPoints);
+			_zoomBasisPoints = CurrentZoomBasisPoints;
+			_tilesX = Math.Min((int)Math.Ceiling((double)width / _tilePixelSize), Map.WIDTH);
+			_tilesY = Math.Min((int)Math.Ceiling((double)height / _tilePixelSize), Map.HEIGHT);
+			if (_tilesX < 1) _tilesX = 1;
+			if (_tilesY < 1) _tilesY = 1;
 
 			Bitmap = new Bytemap(width, height);
-			
+
+			if (_y < 0) _y = 0;
 			while (_y + _tilesY > Map.HEIGHT) _y--;
 			_update = true;
 			_fullRedraw = true;
+		}
+
+		// Sync the active zoom from the player's persisted MapZoomBasisPoints into the
+		// rendering fields. Called every HasUpdate so a zoom change picks up on the
+		// next frame without needing a Resize. Returns true if the zoom level changed,
+		// which triggers a full redraw. keepFocus + focusPixel preserve the world tile
+		// under the cursor across the zoom step (cursor-focused zoom).
+		private bool SyncZoomState(bool keepFocus = false, Point? focusPixel = null)
+		{
+			int basisPoints = CurrentZoomBasisPoints;
+			int tilePx = TilePixelSizeFromBasisPoints(basisPoints);
+			if (_zoomBasisPoints == basisPoints && _tilePixelSize == tilePx) return false;
+
+			Point? focusTile = null;
+			if (keepFocus && focusPixel.HasValue)
+			{
+				int safeTilesX = Math.Max(1, _tilesX);
+				int safeTilesY = Math.Max(1, _tilesY);
+				int safePx     = Math.Max(1, _tilePixelSize);
+				int localTileX = Math.Min(safeTilesX - 1, Math.Max(0, focusPixel.Value.X) / safePx);
+				int localTileY = Math.Min(safeTilesY - 1, Math.Max(0, focusPixel.Value.Y) / safePx);
+				int worldX = _x + localTileX;
+				while (worldX < 0) worldX += Map.WIDTH;
+				while (worldX >= Map.WIDTH) worldX -= Map.WIDTH;
+				int worldY = Math.Max(0, Math.Min(Map.HEIGHT - 1, _y + localTileY));
+				focusTile = new Point(worldX, worldY);
+			}
+
+			_zoomBasisPoints = basisPoints;
+			_tilePixelSize   = tilePx;
+			int width  = Bitmap.Width;
+			int height = Bitmap.Height;
+			_tilesX = Math.Min((int)Math.Ceiling((double)width  / _tilePixelSize), Map.WIDTH);
+			_tilesY = Math.Min((int)Math.Ceiling((double)height / _tilePixelSize), Map.HEIGHT);
+			if (_tilesX < 1) _tilesX = 1;
+			if (_tilesY < 1) _tilesY = 1;
+			if (_y < 0) _y = 0;
+			while (_y + _tilesY > Map.HEIGHT) _y--;
+
+			if (keepFocus && focusPixel.HasValue && focusTile.HasValue)
+			{
+				_x = focusTile.Value.X - (focusPixel.Value.X / _tilePixelSize);
+				_y = focusTile.Value.Y - (focusPixel.Value.Y / _tilePixelSize);
+				while (_x < 0) _x += Map.WIDTH;
+				while (_x >= Map.WIDTH) _x -= Map.WIDTH;
+				if (_y < 0) _y = 0;
+				while (_y + _tilesY > Map.HEIGHT) _y--;
+			}
+
+			_fullRedraw = true;
+			_update = true;
+			return true;
+		}
+
+		// Ctrl+wheel up = zoom in (smaller index → larger basis points), wheel down
+		// = zoom out. The cursor position is captured so SyncZoomState can keep the
+		// world tile under the cursor anchored across the zoom step.
+		public override bool MouseWheel(ScreenEventArgs args)
+		{
+			if ((args.Modifier & KeyModifier.Control) == 0) return false;
+
+			int currentIdx = 0;
+			int closestDist = int.MaxValue;
+			for (int i = 0; i < MapZoomSettings.Presets.Length; i++)
+			{
+				int dist = Math.Abs(MapZoomSettings.Presets[i] - CurrentZoomBasisPoints);
+				if (dist < closestDist) { closestDist = dist; currentIdx = i; }
+			}
+			int nextIdx = currentIdx;
+			if (args.WheelDelta < 0)      nextIdx = Math.Min(currentIdx + 1, MapZoomSettings.Presets.Length - 1);
+			else if (args.WheelDelta > 0) nextIdx = Math.Max(currentIdx - 1, 0);
+			int nextBp = MapZoomSettings.Presets[nextIdx];
+			if (nextBp == CurrentZoomBasisPoints) return true;
+
+			if (Game.CurrentPlayer is not null) Game.CurrentPlayer.MapZoomBasisPoints = nextBp;
+			SyncZoomState(keepFocus: true, focusPixel: args.Location);
+			return true;
 		}
 		
 		public GameMap()

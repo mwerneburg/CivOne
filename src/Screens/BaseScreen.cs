@@ -69,6 +69,7 @@ namespace CivOne.Screens
 		public virtual bool MouseUp(ScreenEventArgs args) => false;
 		public virtual bool MouseDrag(ScreenEventArgs args) => false;
 		public virtual bool MouseMove(ScreenEventArgs args) => false;
+		public virtual bool MouseWheel(ScreenEventArgs args) => false;
 
 		protected void Destroy()
 		{

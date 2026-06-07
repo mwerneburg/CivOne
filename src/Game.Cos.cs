@@ -185,7 +185,8 @@ namespace CivOne
 				                   .ToArray(),
 					CityNamesSkipped = player.CityNamesSkipped,
 					Anarchy          = player.AnarchyTurnsLeft != 0 ? (int?)player.AnarchyTurnsLeft : null,
-					Visibility       = PackVisibility(vis)
+					Visibility       = PackVisibility(vis),
+					MapZoomBasisPoints = player.MapZoomBasisPoints
 				});
 			}
 
@@ -340,6 +341,7 @@ namespace CivOne
 				player.Government        = Reflect.GetGovernments().FirstOrDefault(gov => gov.Id == pd.GovernmentId);
 				player.CityNamesSkipped  = pd.CityNamesSkipped;
 				player.AnarchyTurnsLeft  = (short)(pd.Anarchy ?? 0);
+				player.MapZoomBasisPoints = pd.MapZoomBasisPoints ?? 1000;
 
 				// Visibility
 				if (!string.IsNullOrEmpty(pd.Visibility))

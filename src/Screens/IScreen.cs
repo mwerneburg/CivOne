@@ -24,6 +24,7 @@ namespace CivOne.Screens
 		bool MouseUp(ScreenEventArgs args);
 		bool MouseDrag(ScreenEventArgs args);
 		bool MouseMove(ScreenEventArgs args);
+		bool MouseWheel(ScreenEventArgs args);
 		Palette OriginalColours { get; }
 	}
 }

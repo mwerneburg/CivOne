@@ -168,6 +168,25 @@ namespace CivOne
 			_runtime.InvokeMouseUp(args);
 		}
 
+		// Wheel events carry both the mouse position (for cursor-focused zoom) and the
+		// Ctrl/Alt/Shift modifier state (so the receiving screen can demand a modifier
+		// before reacting). The position is transformed the same way as MouseDown/Up;
+		// the modifier and wheel delta are preserved through the rebuild.
+		private void MouseWheel(object sender, ScreenEventArgs args)
+		{
+			args = Transform(args);
+			if (Settings.AspectRatio == AspectRatio.ScaledFixed)
+			{
+				PointF scaleF = GetScaleF();
+				GetBorders(out int offsetX, out int offsetY, out _, out _);
+				args = new ScreenEventArgs(
+					args.X - (int)((float)offsetX / scaleF.X),
+					args.Y - (int)((float)offsetY / scaleF.Y),
+					args.Buttons, args.Modifier, args.WheelDelta);
+			}
+			_runtime.InvokeMouseWheel(args);
+		}
+
 		public GameWindow(Runtime runtime, bool softwareRender) : base("CivOne", InitialWidth, InitialHeight, Settings.FullScreen, softwareRender)
 		{
 			Icon = Resources.GetWindowIcon();
@@ -185,6 +204,7 @@ namespace CivOne
 			OnMouseMove += MouseMove;
 			OnMouseDown += MouseDown;
 			OnMouseUp += MouseUp;
+			OnMouseWheel += MouseWheel;
 		}
 	}
 }

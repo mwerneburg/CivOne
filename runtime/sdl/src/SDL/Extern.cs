@@ -61,6 +61,9 @@ namespace CivOne
 		private static extern uint SDL_GetMouseState(out int x, out int y);
 
 		[DllImportAttribute(DLL_SDL, CallingConvention = CallingConvention.Cdecl)]
+		private static extern SDL_KMOD SDL_GetModState();
+
+		[DllImportAttribute(DLL_SDL, CallingConvention = CallingConvention.Cdecl)]
 		private static extern IntPtr SDL_Init(SDL_INIT flags);
 
 		[DllImportAttribute(DLL_SDL, CallingConvention = CallingConvention.Cdecl)]

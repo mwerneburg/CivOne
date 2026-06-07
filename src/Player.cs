@@ -46,6 +46,11 @@ namespace CivOne
 
 		private short _anarchy = 0;
 		private short _gold;
+		// Map zoom level, basis points (1000 = 100%, default). Persisted in COS save
+		// so reloading a save returns the player to their chosen zoom. Clamping to the
+		// preset range happens in MapZoomSettings.NormalizeBasisPoints — read it
+		// through that helper rather than via this field directly.
+		public int MapZoomBasisPoints { get; set; } = 1000;
 		private IAdvance _currentResearch = null;
 		private int _futureTechs = 0;
 

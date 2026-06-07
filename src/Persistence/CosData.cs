@@ -130,6 +130,10 @@ namespace CivOne.Persistence
 		public int? Anarchy { get; set; }
 		// base64-encoded bitset: bit (y*80+x) set if player has explored that tile
 		public string Visibility { get; set; }
+		// Map zoom level in basis points (1000 = 100%). Default 1000 when the
+		// key is absent; clamped to MapZoomSettings.Min/Max on read. Persisted so
+		// reloading a save keeps the player's chosen zoom.
+		public int? MapZoomBasisPoints { get; set; }
 	}
 
 	public class CosCity
