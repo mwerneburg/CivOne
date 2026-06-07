@@ -828,6 +828,14 @@ namespace CivOne
 				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
 				unhappyCount += militaryAway * penalty;
 			}
+			// Pollution unhappiness: each city pays for its own smog. SmokeStacks is
+			// already post-tolerance (City.cs:1009 subtracts 20 free units), so a city
+			// only feels social cost after it's industrialized past the absorbable level.
+			// Mitigation is the existing chain — Recycling Center (industrial /3),
+			// Hydro/Nuclear/Hoover (industrial /2), Mass Transit (pop pollution = 0).
+			// Shakespeare's Theatre below still zeroes everything, so a single global
+			// "happiness wonder" remains the full counter for an industrial powerhouse.
+			unhappyCount += SmokeStacks / 10;
 			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
 			{
 				unhappyCount = 0;
