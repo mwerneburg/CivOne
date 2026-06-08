@@ -1826,6 +1826,7 @@ namespace CivOne
 				int majThresh = 80 - warming * 5;   // 80 → 60
 				sev = sevRoll >= majThresh ? 1 : 0;
 			}
+			bool wasCatastrophic = sev == 2;
 			if (seaPlatform && sev == 2) sev = 1;  // Sea Platform demotes Catastrophic to Major.
 
 			// 5. Apply damage.
@@ -1870,8 +1871,12 @@ namespace CivOne
 				msg.Add(sizeLoss == 1 ? "1 citizen displaced." : $"{sizeLoss} citizens displaced.");
 			foreach (var name in demolished)
 				msg.Add($"{name} destroyed!");
-			if (!seaPlatform)
+			if (seaPlatform && (wasCatastrophic || sev == 1))
+				msg.Add("SEA PLATFORM held — losses limited.");
+			else if (!seaPlatform && Player.HasAdvance<Advances.AquaticColonization>())
 				msg.Add("Citizens demand SEA PLATFORM.");
+			else if (!seaPlatform)
+				msg.Add("Coastal defences inadequate — research continues.");
 			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
 		}
 
