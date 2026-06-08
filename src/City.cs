@@ -1861,6 +1861,38 @@ namespace CivOne
 				}
 			}
 
+			// 5b. Coastline erosion: Major+ hurricanes convert one ocean-adjacent
+			// worked tile to Swamp. Sea Platform suppresses (same coastal-engineering
+			// rationale that saves buildings in Major). Eligible source terrain:
+			// Forest, Plains, Grassland, Desert.
+			ITile eroded = null;
+			if (sev >= 1 && !seaPlatform)
+			{
+				var candidates = new List<ITile>();
+				for (int dy = -2; dy <= 2; dy++)
+				for (int dx = -2; dx <= 2; dx++)
+				{
+					if (dx == 0 && dy == 0) continue;
+					ITile t = Map[X + dx, Y + dy];
+					if (t is null || t.City is not null || t.IsOcean) continue;
+					if (!t.GetBorderTiles().Any(IsRealSea)) continue;
+					if (t.Type != Terrain.Forest && t.Type != Terrain.Plains
+						&& t.Type != Terrain.Grassland1 && t.Type != Terrain.Grassland2
+						&& t.Type != Terrain.Desert) continue;
+					candidates.Add(t);
+				}
+				if (candidates.Count > 0)
+				{
+					eroded = candidates[Common.Random.Next(0, candidates.Count)];
+					eroded.Road = false;
+					eroded.RailRoad = false;
+					eroded.Irrigation = false;
+					eroded.Mine = false;
+					eroded.Fortress = false;
+					Map.ChangeTileType(eroded.X, eroded.Y, Terrain.Swamp);
+				}
+			}
+
 			// 6. Notify the human player only.
 			if (Human != Owner) return;
 
@@ -1871,6 +1903,8 @@ namespace CivOne
 				msg.Add(sizeLoss == 1 ? "1 citizen displaced." : $"{sizeLoss} citizens displaced.");
 			foreach (var name in demolished)
 				msg.Add($"{name} destroyed!");
+			if (eroded is not null)
+				msg.Add("Coastline eroded into wetland.");
 			if (seaPlatform && (wasCatastrophic || sev == 1))
 				msg.Add("SEA PLATFORM held — losses limited.");
 			else if (!seaPlatform && Player.HasAdvance<Advances.AquaticColonization>())
