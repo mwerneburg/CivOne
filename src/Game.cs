@@ -501,6 +501,14 @@ namespace CivOne
 					// Dry out: deterministic mesh check (matches original algorithm)
 					int mesh = (11 * tile.X + 13 * tile.Y) & 7;
 					if (mesh != (GlobalWarmingCount & 7)) continue;
+					// Skip Mountains — temperate/tropical peaks aren't levelled by warming.
+					// Polar mountain submersion is handled by the sea-level-rise pass.
+					if (tile.Type == Terrain.Mountains) continue;
+					// Rivers re-form unless the area is completely desertified: skip
+					// river dry-out unless every neighbour is already Desert.
+					if (tile.Type == Terrain.River
+						&& !tile.GetBorderTiles().All(n => n is not null && n.Type == Terrain.Desert))
+						continue;
 					bool isDesertOrPlains = tile.Type == Terrain.Desert || tile.Type == Terrain.Plains;
 					Map.ChangeTileType(tile.X, tile.Y, isDesertOrPlains ? Terrain.Desert : Terrain.Plains);
 					tile.Irrigation = false;
@@ -508,6 +516,12 @@ namespace CivOne
 			}
 
 			GameTask.Enqueue(Show.EventArt("globalwarming", "Global warming! Icecaps melt."));
+			// Advisor message belts-and-braces the art screen: if Autopilot dwell or a fast
+			// dismiss skips the art, the advisor box stays until acknowledged.
+			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+				"Global warming!",
+				"Icecaps melt, coastlines retreat,",
+				"and deserts spread across the land."));
 		}
 
 		public void EndTurn()
