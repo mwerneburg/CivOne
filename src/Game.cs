@@ -449,6 +449,37 @@ namespace CivOne
 
 			GlobalWarmingCount++;
 
+			// Sea-level-rise pass (ported from ChrisWi/CivOne
+			// GlobalWarmingScourgeWithFloodService): low-lying / polar / wet tiles
+			// roll for permanent submersion. Polar (top/bottom 3 rows or
+			// Arctic/Tundra terrain) hit at GlobalWarmingCount * 20 % (cap 100);
+			// River/Jungle/Swamp hit at GlobalWarmingCount * 10 %. On hit, land
+			// units are disbanded, improvements clear, terrain becomes Ocean.
+			// Cities immune. Irreversible — no engineer can reclaim ocean.
+			int polarChance = Math.Min(GlobalWarmingCount * 20, 100);
+			int otherChance = Math.Min(GlobalWarmingCount * 10, 100);
+			foreach (ITile tile in Map.AllTiles().ToArray())
+			{
+				if (tile.City is not null || tile.IsOcean) continue;
+				bool isPolar = tile.Y < 3 || tile.Y >= Map.HEIGHT - 3
+					|| tile.Type == Terrain.Arctic || tile.Type == Terrain.Tundra;
+				bool isAffected = isPolar
+					|| tile.Type == Terrain.River
+					|| tile.Type == Terrain.Jungle
+					|| tile.Type == Terrain.Swamp;
+				if (!isAffected) continue;
+				int chance = isPolar ? polarChance : otherChance;
+				if (Common.Random.Next(100) >= chance) continue;
+				foreach (IUnit u in GetUnits(tile.X, tile.Y).Where(u => u.Class == UnitClass.Land).ToArray())
+					DisbandUnit(u);
+				tile.Road = false;
+				tile.RailRoad = false;
+				tile.Mine = false;
+				tile.Fortress = false;
+				tile.Irrigation = false;
+				Map.ChangeTileType(tile.X, tile.Y, Terrain.Ocean);
+			}
+
 			// Remove all pollution, then transform affected tiles
 			foreach (ITile tile in Map.AllTiles())
 			{
