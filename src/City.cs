@@ -397,6 +397,7 @@ namespace CivOne
 				{
 					if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
 					if (HasWonder<Wonders.AuditAuthority>()) return (_cachedCorruption = 0).Value;
+					if (HasBuilding<PoliceStation>()) return (_cachedCorruption = 0).Value;
 					int leakPct = Math.Max(0, Size - 4);
 					int leak = RawTrade * leakPct / 100;
 					if (HasBuilding<Courthouse>()) leak /= 2;

@@ -46,5 +46,6 @@ namespace CivOne.Enums
 		InfrastructureBond = 32,
 		SurplusDepot = 33,
 		CivicMonument = 34,
+		PoliceStation = 35,
 	}
 }
