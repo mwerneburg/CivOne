@@ -1245,6 +1245,13 @@ namespace CivOne
 					Consider(new CityWalls());
 			}
 
+			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
+			// Without this, tiny AI civs build Militia → Barracks → Settlers → ship
+			// settler → city drops to size 1 → cycle repeats, and the city never
+			// accumulates food past size 2 because Granary stays buried at the bottom
+			// of the standard infrastructure chain.
+			if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) Consider(new Granary());
+
 			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 
 			int ownCities = Player.Cities.Length;
@@ -1259,14 +1266,15 @@ namespace CivOne
 			              : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
 			              :                                         (4 * mapScale) + Game.Difficulty;
 
-			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers immediately
-			// after first defender so the civ doesn't stagnate.
-			// Safe minSize: solo city can be size 1 (game protects it), otherwise 2.
+			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers
+			// once the city has actual mass to spend. Requiring size >= 3 (and Granary
+			// where Pottery is researched) breaks the "size-1 cycle" where AI civs
+			// repeatedly ship a settler and revert to size 1, never accumulating food.
 			// Never build settlers from a starving city — that accelerates population loss.
 			if (ownCities < 3 && stance != StrategyStance.Consolidate)
 			{
-				int minSize = ownCities == 1 ? 1 : 2;
-				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				bool granaryReady = !Player.HasAdvance<Pottery>() || city.HasBuilding<Granary>();
+				if (city.Size >= 3 && granaryReady && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
