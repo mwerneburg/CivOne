@@ -46,5 +46,6 @@ namespace CivOne.Enums
 		AdamSmithsTradingHouse   = 33,
 		TajMahal                 = 34,
 		HagiaSofia               = 35,
+		AuditAuthority           = 36,
 	}
 }

@@ -398,15 +398,14 @@ namespace CivOne
 						break;
 					default:
 						if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
-						if (Game.GetPlayer(Owner).Cities.Any(x => x.HasBuilding<Palace>()))
-						{
-							City capital = Game.GetPlayer(Owner).Cities.First(x => x.HasBuilding<Palace>());
-							distance = Common.DistanceToTile(X, Y, capital.X, capital.Y);
-						}
-						else
-						{
-							distance = 32;
-						}
+						// Audit Authority host city is a second capital: corruption-free.
+						if (HasWonder<Wonders.AuditAuthority>()) return (_cachedCorruption = 0).Value;
+						var owner = Game.GetPlayer(Owner);
+						City capital2 = owner.Cities.FirstOrDefault(x => x.HasBuilding<Palace>());
+						City audit = owner.Cities.FirstOrDefault(x => x.HasWonder<Wonders.AuditAuthority>());
+						int dCapital = capital2 is not null ? Common.DistanceToTile(X, Y, capital2.X, capital2.Y) : 32;
+						int dAudit   = audit   is not null ? Common.DistanceToTile(X, Y, audit.X,   audit.Y)   : int.MaxValue;
+						distance = System.Math.Min(dCapital, dAudit);
 						break;
 				}
 
