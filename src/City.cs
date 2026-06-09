@@ -388,7 +388,20 @@ namespace CivOne
 				if (_cachedCorruption.HasValue) return _cachedCorruption.Value;
 
 				IGovernment government = Game.GetPlayer(_owner).Government;
-				if (government.CorruptionMultiplier == 0) return (_cachedCorruption = 0).Value;
+				// "Democracy still leaks": utopian governments (CorruptionMultiplier == 0,
+				// i.e. Democracy) used to be perfectly clean. Now graft creeps in as a
+				// metropolis outgrows its oversight — leak rises with city size. Palace
+				// and Audit Authority hosts stay clean; Courthouse halves the leak.
+				// Future hook: a Police Station building should zero the leak entirely.
+				if (government.CorruptionMultiplier == 0)
+				{
+					if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
+					if (HasWonder<Wonders.AuditAuthority>()) return (_cachedCorruption = 0).Value;
+					int leakPct = Math.Max(0, Size - 4);
+					int leak = RawTrade * leakPct / 100;
+					if (HasBuilding<Courthouse>()) leak /= 2;
+					return (_cachedCorruption = leak).Value;
+				}
 
 				int distance;
 				switch (government)

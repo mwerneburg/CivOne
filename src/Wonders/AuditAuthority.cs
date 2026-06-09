@@ -18,6 +18,31 @@ namespace CivOne.Wonders
 	// distance term. See City.Corruption.
 	internal class AuditAuthority : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The AUDIT AUTHORITY anchors a second",
+			"seat of oversight far from the",
+			"capital. Treat its host city as if",
+			"the Palace stood there: corruption",
+			"in surrounding cities is calculated",
+			"from whichever centre is closer.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Distance breeds graft. Where the",
+			"capital's auditors cannot reach,",
+			"ledgers thin and clerks grow rich.",
+			"The Authority cures this by simply",
+			"being elsewhere — a parallel",
+			"institution with the same teeth,",
+			"stationed where the empire most",
+			"needs an honest accountant.",
+		};
+
+		public override string[] GetPageText(byte pageNumber)
+			=> pageNumber == 1 ? _page1 : _page2;
+
 		public AuditAuthority() : base(30)
 		{
 			Name = "Audit Authority";
