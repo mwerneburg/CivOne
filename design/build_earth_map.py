@@ -168,6 +168,27 @@ MAJOR_RIVERS = [
     ("Mackenzie",    [( 61.0,-117.0), ( 65.0,-125.0), ( 68.0,-130.0), ( 69.5,-134.0)]),
 ]
 
+# ── Land-force polygons ──────────────────────────────────────────────────────
+# Regions whose real-world elevation is so close to sea level that the
+# elevation pass writes them as Ocean. Each entry is
+# (name, biome_code, [(lat, lon), ...]). The carver only converts tiles that
+# are currently Ocean — it never overwrites Hills/Mountains/biome that the
+# elevation pass classified correctly. Applied BEFORE lakes/rivers so those
+# passes can still cut through the forced land normally.
+LAND_FORCES = [
+    # Florida: pancake-flat peninsula, real elevation mostly < 30 m. Use SWAMP
+    # because the southern half is the Everglades and the engine treats Swamp
+    # as a freshwater source (settler-friendly). North Florida is technically
+    # higher and drier (pine woods) — refine into two polygons if you want
+    # northern Plains + southern Swamp.
+    ("Florida", SWAMP, [
+        ( 30.5, -87.5), ( 31.0, -85.0), ( 31.0, -82.0),
+        ( 27.5, -80.0), ( 25.0, -80.4), ( 24.6, -81.5),
+        ( 26.0, -81.8), ( 28.0, -82.7), ( 29.5, -83.4),
+        ( 30.2, -86.0),
+    ]),
+]
+
 # ── Strait overrides ──────────────────────────────────────────────────────────
 # Real-world straits (Gibraltar, Bosporus, Dardanelles, etc.) are narrower than
 # our 1.125°/pixel longitude resolution, so the procedural elevation pipeline
@@ -339,6 +360,27 @@ def carve_lake_box(grid: np.ndarray, lat_min: float, lat_max: float, lon_min: fl
     return n_change
 
 
+def force_land_polygon(grid: np.ndarray, polygon, biome: int) -> int:
+    """Force every Ocean tile inside the lat/lon polygon to the given biome.
+    Non-Ocean tiles (Hills/Mountains/biome) are left as the elevation pass set
+    them, so a polygon spanning a coastal range only converts the truly-flooded
+    cells. Returns count converted."""
+    from PIL import Image, ImageDraw
+    h, w = grid.shape
+    pixels = []
+    for lat, lon in polygon:
+        x = ((lon + 180.0) / 360.0) * w
+        y = ((90.0 - lat) / 180.0) * h
+        pixels.append((x, y))
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).polygon(pixels, fill=1)
+    mask_arr = np.array(mask, dtype=bool)
+    target = mask_arr & (grid == OCEAN)
+    n = int(np.sum(target))
+    grid[target] = biome
+    return n
+
+
 def carve_lake_polygon(grid: np.ndarray, polygon) -> int:
     """Force all tiles inside the lat/lon polygon to Ocean. Returns count carved.
     Polygon is a list of (lat, lon) vertices, automatically closed. Uses PIL's
@@ -460,6 +502,14 @@ def main() -> int:
             grid[y, x] = code
             counts[code] = counts.get(code, 0) + 1
 
+    # Land-force overrides run BEFORE lakes/straits so subsequent water passes
+    # can still carve through (e.g. Mississippi delta river crossing forced FL
+    # land would still draw the river segment). Only converts existing Ocean
+    # tiles — never overwrites a Hill/Mountain/biome the elevation pass set.
+    land_force_tiles = 0
+    for name, biome, polygon in LAND_FORCES:
+        land_force_tiles += force_land_polygon(grid, polygon, biome)
+
     # Apply lakes BEFORE rivers: lakes overwrite land with ocean, then river
     # polylines that happen to cross a lake's bounding box terminate naturally
     # because draw_river_polyline skips ocean tiles.
@@ -501,6 +551,7 @@ def main() -> int:
     print(f"  ocean:  {counts.get(OCEAN, 0)} ({100*counts.get(OCEAN, 0)/total:.1f}%)")
     print(f"  rivers:  {river_tiles} tiles drawn across {len(MAJOR_RIVERS)} polylines (4-connected)")
     print(f"  lakes:   {lake_tiles} land tiles carved across {len(MAJOR_LAKES)} boxes + {len(MAJOR_LAKE_POLYGONS)} polygons (engine flags as freshwater)")
+    print(f"  land-force: {land_force_tiles} ocean tiles reclaimed across {len(LAND_FORCES)} polygons")
     print(f"  straits: {strait_tiles} tiles opened of {len(STRAITS)} configured")
     for code, count in sorted(counts.items(), key=lambda kv: -kv[1]):
         print(f"  {name.get(code, '?'):8s} {count:6d} ({100*count/total:5.1f}%)")
