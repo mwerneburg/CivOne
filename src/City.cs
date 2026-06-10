@@ -1281,7 +1281,12 @@ namespace CivOne
 			}
 			else if (shieldIncome > 0)
 			{
-				if (!inDisorder)
+				// AI cities ignore the disorder-blocks-production rule (asymmetric cheat:
+				// the AI lacks the rate-sliders and Entertainer-specialist tools a human
+				// uses to escape disorder, so without this relaxation a single unhappy
+				// citizen freezes its production indefinitely). Food is still blocked by
+				// disorder above — the city stops growing, it just doesn't stop building.
+				if (!inDisorder || Player != Human)
 				{
 					int income = shieldIncome;
 					// Higher difficulties give AI cities a production bonus (classic Civ 1 "cheat").
