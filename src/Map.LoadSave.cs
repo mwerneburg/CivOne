@@ -262,6 +262,7 @@ namespace CivOne
 			// continent labels computed (used by AI strategy), huts placed.
 			CreatePoles();
 			ComputeFreshwaterLakes();
+			EnsureFreshwaterReachability();
 			CalculateContinentSize();
 			PlaceHuts();
 			CalculateLandValue();

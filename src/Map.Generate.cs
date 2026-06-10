@@ -1080,6 +1080,7 @@ namespace CivOne
 			CreateMountainRanges();
 			CreatePoles();
 			ComputeFreshwaterLakes();
+			EnsureFreshwaterReachability();
 			PlaceHuts();
 			CalculateLandValue();
 			

@@ -97,6 +97,120 @@ namespace CivOne
 
 		// Returns true if (x,y) is a freshwater source: enclosed lake or swamp.
 		internal bool IsFreshwaterAt(int x, int y) => _freshwater is not null && _freshwater[x, y];
+
+		// Freshwater reachability pass: ensures no settleable land tile is more than
+		// `maxDryDistance` tiles (4-connected) from a water source. Sources: Ocean,
+		// River, lakes/swamps (via _freshwater). For each cluster of land too far
+		// from water, plant a single River tile at the worst-affected location and
+		// re-update local distances. Repeats until every land tile is in range.
+		//
+		// Targets the playtest failure mode where large interior regions (e.g.
+		// Patagonia, central Australia on Epic Earth) have no water source and a
+		// Settler must walk dozens of turns to find a foundable site.
+		//
+		// Mountains and Arctic are excluded — those tiles aren't candidates for
+		// settlement anyway, so leaving them dry doesn't hurt playability.
+		internal void EnsureFreshwaterReachability(int maxDryDistance = 6)
+		{
+			int[,] dist = new int[WIDTH, HEIGHT];
+			var queue = new Queue<(int x, int y)>();
+			int[] ddx = { 0, 0, -1, 1 };
+			int[] ddy = { -1, 1, 0, 0 };
+
+			bool IsWater(int x, int y)
+				=> _tiles[x, y].IsOcean || _tiles[x, y].Type == Terrain.River || _freshwater[x, y];
+
+			bool IsSettleableLand(int x, int y)
+			{
+				Terrain t = _tiles[x, y].Type;
+				return !_tiles[x, y].IsOcean
+					&& t != Terrain.River && !_freshwater[x, y]
+					&& t != Terrain.Mountains && t != Terrain.Arctic;
+			}
+
+			// Seed multi-source BFS from every water tile.
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (IsWater(x, y)) { dist[x, y] = 0; queue.Enqueue((x, y)); }
+				else dist[x, y] = int.MaxValue;
+			}
+			while (queue.Count > 0)
+			{
+				var (cx, cy) = queue.Dequeue();
+				for (int d = 0; d < 4; d++)
+				{
+					int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+					int ny = cy + ddy[d];
+					if (ny < 0 || ny >= HEIGHT) continue;
+					if (dist[nx, ny] <= dist[cx, cy] + 1) continue;
+					dist[nx, ny] = dist[cx, cy] + 1;
+					queue.Enqueue((nx, ny));
+				}
+			}
+
+			// Greedy: plant a river at the worst dry tile and carve a short stub
+			// trending toward water, until no dry tile remains out of range.
+			// Stub length is capped (maxStubLength) so a single oasis doesn't carve
+			// half a continent into river; the stub stops early if it reaches any
+			// existing water tile (joining a real river/coast looks natural).
+			const int maxStubLength = 3;
+			int planted = 0, oasisCount = 0, safetyCap = 500;
+			while (oasisCount < safetyCap)
+			{
+				int wx = -1, wy = -1, wd = maxDryDistance;
+				for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+				{
+					if (!IsSettleableLand(x, y)) continue;
+					if (dist[x, y] > wd) { wd = dist[x, y]; wx = x; wy = y; }
+				}
+				if (wx < 0) break;
+
+				var chain = new List<(int x, int y)> { (wx, wy) };
+				_tiles[wx, wy] = new River(wx, wy);
+				int curX = wx, curY = wy;
+				for (int step = 0; step < maxStubLength; step++)
+				{
+					int bestNx = -1, bestNy = -1, bestDist = int.MaxValue;
+					bool reachedWater = false;
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (curX + ddx[d] + WIDTH) % WIDTH;
+						int ny = curY + ddy[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (IsWater(nx, ny)) { reachedWater = true; break; }
+						Terrain nt = _tiles[nx, ny].Type;
+						if (nt == Terrain.Mountains || nt == Terrain.Arctic) continue;
+						if (dist[nx, ny] < bestDist) { bestDist = dist[nx, ny]; bestNx = nx; bestNy = ny; }
+					}
+					if (reachedWater || bestNx < 0) break;
+					_tiles[bestNx, bestNy] = new River(bestNx, bestNy);
+					chain.Add((bestNx, bestNy));
+					curX = bestNx; curY = bestNy;
+				}
+				planted += chain.Count;
+				oasisCount++;
+
+				// Local BFS from every planted tile to refresh neighbour distances.
+				var local = new Queue<(int, int)>();
+				foreach (var (cx, cy) in chain) { dist[cx, cy] = 0; local.Enqueue((cx, cy)); }
+				while (local.Count > 0)
+				{
+					var (cx, cy) = local.Dequeue();
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+						int ny = cy + ddy[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (dist[nx, ny] <= dist[cx, cy] + 1) continue;
+						dist[nx, ny] = dist[cx, cy] + 1;
+						local.Enqueue((nx, ny));
+					}
+				}
+			}
+			Log("EnsureFreshwaterReachability: {0} oases ({1} river tiles total)", oasisCount, planted);
+		}
 		
 		public bool Ready { get; private set; }
 		public bool FixedStartPositions { get; private set; }
