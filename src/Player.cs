@@ -254,6 +254,12 @@ namespace CivOne
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
 
+		// Enumeration accessors for the COS save layer. The dictionaries are private
+		// state; the save loop in Game.Cos.cs uses these to write a snapshot, and
+		// reloads them by replaying SetPeaceTreaty/SetAttitudeBonus per entry.
+		internal IEnumerable<KeyValuePair<byte, int>> PeaceTreatyEntries  => _peaceTreaty;
+		internal IEnumerable<KeyValuePair<byte, int>> AttitudeBonusEntries => _attitudeBonus;
+
 		// ── tribute ─────────────────────────────────────────────────────────────────
 		// A tribute pact is established when a militarily outclassed civ sues for survival
 		// from a stronger neighbour with whom it has an embassy. The weaker civ pays a

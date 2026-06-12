@@ -139,12 +139,27 @@ namespace CivOne.Persistence
 		// (this player's _tributeFrom) is reconstructed on load. Absent or empty
 		// on saves predating the tribute system.
 		public List<CosTribute> TributeTo { get; set; }
+		// Peace-treaty countdowns: { otherPlayerIdx, turnsRemaining } pairs.
+		// "I will not declare war on otherPlayerIdx for turnsRemaining turns."
+		// Decremented at end of each turn; entries reaching 0 are dropped.
+		// Absent or empty on saves predating peace persistence.
+		public List<CosCountdown> PeaceTreaty { get; set; }
+		// Attitude-bonus countdowns: same shape as PeaceTreaty. Boosts AI
+		// acceptance for diplomacy with the named player for turnsRemaining
+		// turns. Decremented per turn.
+		public List<CosCountdown> AttitudeBonus { get; set; }
 	}
 
 	public class CosTribute
 	{
 		public int Protector { get; set; }
 		public int Annual    { get; set; }
+	}
+
+	public class CosCountdown
+	{
+		public int Player { get; set; }
+		public int Turns  { get; set; }
 	}
 
 	public class CosCity

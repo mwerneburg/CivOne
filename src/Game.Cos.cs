@@ -187,6 +187,14 @@ namespace CivOne
 				                   .Where(j => j != p && _players[p].PaysTributeTo(_players[j]))
 				                   .Select(j => new CosTribute { Protector = j, Annual = _players[p].TributeAmountTo(_players[j]) })
 				                   .ToList(),
+					PeaceTreaty      = _players[p].PeaceTreatyEntries
+				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
+				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
+				                   .ToList(),
+					AttitudeBonus    = _players[p].AttitudeBonusEntries
+				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
+				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
+				                   .ToList(),
 					CityNamesSkipped = player.CityNamesSkipped,
 					Anarchy          = player.AnarchyTurnsLeft != 0 ? (int?)player.AnarchyTurnsLeft : null,
 					Visibility       = PackVisibility(vis),
@@ -392,10 +400,9 @@ namespace CivOne
 
 			// Tribute pacts. Re-running EstablishTribute restores both _tributeTo
 			// on the payer and _tributeFrom on the protector, plus the peace-treaty
-			// and attitude-bonus side effects that the pact normally creates. The
-			// peace-treaty timer and attitude bonus aren't independently persisted
-			// today, so the reset to 100 turns on load is acceptable behaviour —
-			// it keeps tribute self-sustaining until the gold stops flowing.
+			// and attitude-bonus side effects that the pact normally creates. We
+			// then overwrite those countdowns from disk below, so the actual point-
+			// in-time timers persist correctly across save/reload.
 			for (int i = 0; i < _players.Count; i++)
 			{
 				var tributeList = cos.Players[i].TributeTo;
@@ -405,6 +412,34 @@ namespace CivOne
 					int j = entry.Protector;
 					if (j < 0 || j >= _players.Count || _players[j] is null) continue;
 					_players[i].EstablishTribute(_players[j], entry.Annual);
+				}
+			}
+
+			// Peace-treaty and attitude-bonus countdowns. Loaded AFTER tribute so
+			// the persisted timer values override the 100-turn defaults that
+			// EstablishTribute writes. Non-tribute peace treaties (human-AI peace
+			// deals, AI-vs-AI peace declarations) also survive here.
+			for (int i = 0; i < _players.Count; i++)
+			{
+				var peaceList = cos.Players[i].PeaceTreaty;
+				if (peaceList is not null)
+				{
+					foreach (var entry in peaceList)
+					{
+						int j = entry.Player;
+						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
+						_players[i].SetPeaceTreaty(_players[j], entry.Turns);
+					}
+				}
+				var attitudeList = cos.Players[i].AttitudeBonus;
+				if (attitudeList is not null)
+				{
+					foreach (var entry in attitudeList)
+					{
+						int j = entry.Player;
+						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
+						_players[i].SetAttitudeBonus(_players[j], entry.Turns);
+					}
 				}
 			}
 
