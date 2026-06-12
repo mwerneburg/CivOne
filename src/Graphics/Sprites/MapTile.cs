@@ -35,16 +35,9 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[0, 64, 16, 16];
 		}
 
-		private static Bytemap GetOceanBase()
-		{
-			return Free.OceanBase;
-			string picFile = (GFX256 ? "TER257" : "SPRITES");  // unreachable, kept for reference
-			if (!Resources.Exists(picFile))
-				return Free.OceanBase;
-			if (!GFX256)
-				return null;
-			return Resources[picFile].Bitmap[0, 160, 16, 16];
-		}
+		// Always uses the free ocean tile. The original resource lookup was
+		// Resources["TER257"/"SPRITES"].Bitmap[0, 160, 16, 16].
+		private static Bytemap GetOceanBase() => Free.OceanBase;
 
 		private static Bytemap GetLakeBase() => Free.LakeTile();
 

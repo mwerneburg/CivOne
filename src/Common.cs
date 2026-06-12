@@ -45,7 +45,11 @@ namespace CivOne
 		public static IAdvance[] Advances = Reflect.GetAdvances().ToArray();
 		public static IBuilding[] Buildings = Reflect.GetBuildings().ToArray();
 		public static IWonder[] Wonders = Reflect.GetWonders().ToArray();
-		public static ICivilization[] Civilizations => Reflect.GetCivilizations().ToArray();
+		// Lazily cached like Advances/Buildings/Wonders above; the old per-access
+		// Reflect.GetCivilizations() re-instantiated every civilization each call.
+		// Safe to share now that Player no longer mutates Leader.Name on its instance.
+		private static ICivilization[] _civilizations;
+		public static ICivilization[] Civilizations => _civilizations ??= Reflect.GetCivilizations().ToArray();
 		// Slots 0–7: original civs (0=Barbarians). Slots 8–15: reserved for narrative factions (Olvir=8, Others=9).
 		// Slots 16–19: extra capacity for max-competition games (NewGame caps at 17 civs; with barbarians + Olvir that's 19 slots).
 		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7,  17, 16, 14, 13, 12, 11, 15,  7,  9, 14, 11, 13];

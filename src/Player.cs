@@ -27,6 +27,7 @@ namespace CivOne
 	public class Player : BaseInstance, ITurn
 	{
 		private readonly ICivilization _civilization;
+		private readonly string _customLeaderName;
 		private readonly string _tribeName, _tribeNamePlural;
 
 		private readonly bool[,] _explored = new bool[Map.WIDTH, Map.HEIGHT];
@@ -75,7 +76,7 @@ namespace CivOne
 
 		public ICivilization Civilization => _civilization;
 		
-		public string LeaderName => _civilization.Leader.Name;
+		public string LeaderName => _customLeaderName ?? _civilization.Leader.Name;
 		public string TribeName => _tribeName;
 		public string TribeNamePlural => _tribeNamePlural;
 		public string Capital => Game.GetCities().FirstOrDefault(x => this == x.Owner && x.HasBuilding<Palace>())?.Name ?? "NONE";
@@ -230,10 +231,18 @@ namespace CivOne
 		}
 
 		public IAdvance[] Advances => _advances.Select(a => Common.Advances.First(x => x.Id == a)).ToArray();
-		
-		public bool HasAdvance<T>() where T : IAdvance => Advances.Any(a => a is T);
 
-		public bool HasAdvance(IAdvance advance) => (advance is null || Advances.Any(a => a.Id == advance.Id));
+		// Per-type id cache so HasAdvance<T>() is a plain id lookup. The old form
+		// materialized the full Advances array on every call, and the tile-yield
+		// methods (City.FoodValue/TradeValue) call this per worked tile.
+		private static class AdvanceId<T> where T : IAdvance
+		{
+			public static readonly byte Id = Common.Advances.FirstOrDefault(a => a is T)?.Id ?? byte.MaxValue;
+		}
+
+		public bool HasAdvance<T>() where T : IAdvance => _advances.Contains(AdvanceId<T>.Id);
+
+		public bool HasAdvance(IAdvance advance) => (advance is null || _advances.Contains(advance.Id));
 
 		public Player[] Embassies => _embassies.Select(e => Game.Players.FirstOrDefault(p => e == Game.PlayerNumber(p))).Where(p => p is not null).ToArray();
 
@@ -552,6 +561,10 @@ namespace CivOne
 			}
 		}
 
+		// Raw visibility, without the Apollo-Program full-map override that Visible()
+		// applies. Used by the COS save layer so the override isn't baked into saves.
+		internal bool RawVisible(int x, int y) => _visible[x, y];
+
 		public bool Visible(int x, int y)
 		{
 			if (y < 0 || y >= Map.HEIGHT) return false;
@@ -748,7 +761,10 @@ namespace CivOne
 		public Player(ICivilization civilization, string customLeaderName = null, string customTribeName = null, string customTribeNamePlural = null)
 		{
 			_civilization = civilization;
-			if (customLeaderName is not null) _civilization.Leader.Name = customLeaderName;
+			// Kept on the Player rather than written into the (shared) civilization
+			// instance — Common.Civilizations is cached, so mutating Leader.Name here
+			// would leak a custom name into menus and later games.
+			_customLeaderName = customLeaderName;
 			_tribeName = customTribeName ?? _civilization.Name;
 			_tribeNamePlural = customTribeNamePlural ?? _civilization.NamePlural;
 			Government = new Despotism();

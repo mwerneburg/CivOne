@@ -55,7 +55,7 @@ namespace CivOne.Screens
 			    .FillRectangle(0, HEADER_H, Width, 1, CassetteTheme.BORDER);
 			this.DrawText("DIPLOMATIC CONSOLE · " + _enemy.TribeNamePlural.ToUpper(),
 			              FONT_ID, CassetteTheme.INK_MID, 10, 4);
-			this.DrawText(_enemy.Civilization.Leader.Name.ToUpper(),
+			this.DrawText(_enemy.LeaderName.ToUpper(),
 			              FONT_ID, CassetteTheme.PHOS, 10, 4 + fh + 2);
 
 			bool atWar = Human.IsAtWar(_enemy);
@@ -74,7 +74,7 @@ namespace CivOne.Screens
 			this.AddLayer(portrait, porX, porY);
 			this.DrawRectangle(porX - 2, porY - 2, porW + 4, porH + 4, CassetteTheme.BORDER);
 
-			string caption = "▤ " + _enemy.Civilization.Leader.Name.ToUpper() + " ▤";
+			string caption = "▤ " + _enemy.LeaderName.ToUpper() + " ▤";
 			int capY = porY + porH + PAD;
 			this.DrawText(caption, FONT_ID, CassetteTheme.PHOS, PAD + LEFT_W / 2, capY, TextAlign.Center);
 

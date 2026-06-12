@@ -515,8 +515,11 @@ namespace CivOne
 
 		private void UpdateSpecialists()
 		{
-			while (_specialists.Count < (_size - ResourceTiles.Count())) _specialists.Add(Citizen.Entertainer);
-			while (_specialists.Count > 0 && _specialists.Count > (_size - ResourceTiles.Count() - 1)) _specialists.RemoveAt(_specialists.Count - 1);
+			// Specialists fill the citizen slots not working a tile. ResourceTiles includes
+			// the city center, which doesn't consume a citizen — same formula as ComputeCitizens.
+			int specialists = Math.Max(0, _size - (ResourceTiles.Count() - 1));
+			while (_specialists.Count < specialists) _specialists.Add(Citizen.Entertainer);
+			while (_specialists.Count > specialists) _specialists.RemoveAt(_specialists.Count - 1);
 			InvalidateCache();
 		}
 
@@ -624,6 +627,10 @@ namespace CivOne
 			if (((gameData[2] >> 1) & 1) > 0) _resourceTiles.Add(Tile[-1, 2]);
 			if (((gameData[2] >> 2) & 1) > 0) _resourceTiles.Add(Tile[-2, 1]);
 			if (((gameData[2] >> 3) & 1) > 0) _resourceTiles.Add(Tile[-2, -1]);
+
+			// Tiles past the top/bottom map edge resolve to null for cities within
+			// two rows of a pole; drop them so the yield sums don't dereference null.
+			_resourceTiles.RemoveAll(t => t is null);
 
 			// Decode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist (2 bits each, up to 12)
 			_specialists.Clear();
@@ -1066,6 +1073,7 @@ namespace CivOne
 			// Disband all units in the 3×3 blast zone
 			foreach (ITile tile in Map.QueryMapPart(X - 1, Y - 1, 3, 3))
 			{
+				if (tile is null) continue; // map-edge cities get null tiles past the pole
 				IUnit[] victims = tile.Units.ToArray();
 				foreach (IUnit u in victims)
 					Game.DisbandUnit(u);
@@ -1559,7 +1567,7 @@ namespace CivOne
 			if (Size < 5)
 				return;
 
-			switch (Common.Random.Next(0, 10))
+			switch (Common.Random.Next(0, 11))
 			{
 				case 0: 
 				{
@@ -1569,7 +1577,7 @@ namespace CivOne
 					if (!hillsNearby || !buildingsOtherThanPalace.Any())
 						return;
 					
-					IBuilding buildingToDestroy = buildingsOtherThanPalace[Common.Random.Next(0, buildingsOtherThanPalace.Count - 1)];
+					IBuilding buildingToDestroy = buildingsOtherThanPalace[Common.Random.Next(0, buildingsOtherThanPalace.Count)];
 					RemoveBuilding(buildingToDestroy);
 
 					message.Add($"Earthquake in {Name}!");
@@ -1656,7 +1664,7 @@ namespace CivOne
 
 					if (buildingsOtherThanPalace.Any() && !hasAqueduct && hasConstruction)
 					{
-						IBuilding buildingToDestroy = buildingsOtherThanPalace[Common.Random.Next(0, buildingsOtherThanPalace.Count - 1)];
+						IBuilding buildingToDestroy = buildingsOtherThanPalace[Common.Random.Next(0, buildingsOtherThanPalace.Count)];
 						RemoveBuilding(buildingToDestroy);
 
 						message.Add($"Fire in {Name}!");
@@ -1714,7 +1722,7 @@ namespace CivOne
 					// Riot, scandal, corruption
 
 					string[] disasterTypes = { "Scandal", "Riot", "Corruption" };
-					string disasterType = disasterTypes[Common.Random.Next(0, disasterTypes.Length - 1)];
+					string disasterType = disasterTypes[Common.Random.Next(0, disasterTypes.Length)];
 					string buildingDemanded = "";
 
 					if (HappyCitizens >= UnhappyCitizens)
@@ -1749,7 +1757,7 @@ namespace CivOne
 					foreach (City city in Game.GetCities())
 					{
 						if (city == this)
-							break;
+							continue;
 
 						int appeal = ((city.HappyCitizens - city.UnhappyCitizens) * 32) / city.Tile.DistanceTo(this);
 						if (appeal > 4 && appeal > mostAppeal)
@@ -1794,7 +1802,7 @@ namespace CivOne
 					break;				
 			}
 
-			if (message.Count > 0 && (Player == Owner || humanGetsCity))
+			if (message.Count > 0 && (Human == Owner || humanGetsCity))
 			{
 				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, message.ToArray()));
 			}
@@ -1805,7 +1813,7 @@ namespace CivOne
 		// damage. Global warming both increases strike frequency and shifts severity toward
 		// catastrophic. Sea Platform blunts the worst: it eliminates Catastrophic strikes and
 		// prevents building damage in Major ones.
-		public void HurricaneCheck()
+		public void HurricaneCheck(int warming)
 		{
 			// 1. Latitude band: tropical (~equator) or one of the two arid bands.
 			double half = (Map.HEIGHT - 1) / 2.0;
@@ -1820,8 +1828,8 @@ namespace CivOne
 			bool nearCoast = !coastal && AnyRealSeaInOuterRing();
 			if (!coastal && !nearCoast) return;
 
-			// 3. Strike probability, intensified by warming.
-			int warming = Game.WarmingIndicator;
+			// 3. Strike probability, intensified by warming (Game.WarmingIndicator,
+			// computed once per global tick by the caller — it scans the whole map).
 			int strikePct = coastal ? (2 + warming) : (1 + warming / 2);
 			if (Common.Random.Next(0, 100) >= strikePct) return;
 

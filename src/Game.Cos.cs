@@ -29,10 +29,16 @@ namespace CivOne
 		{
 			var playerCount = _players.Count;
 
-			// Advance origin: advance-id → civilization-id (not player-index)
+			// Advance origin: advance-id → civilization-id (not player-index).
+			// _advanceOrigin stores player indices; convert here because the loader
+			// matches these values against Civilization.Id, and civ ids stay stable
+			// across saves while player slots can be reshuffled (buddy respawn).
 			var advanceOrigin = new Dictionary<int, int>();
 			foreach (var kv in _advanceOrigin)
-				advanceOrigin[kv.Key] = kv.Value;
+			{
+				if (kv.Value >= _players.Count) continue;
+				advanceOrigin[kv.Key] = _players[kv.Value].Civilization.Id;
+			}
 
 			// Wonders per city: build a lookup of wonder.Id → city index
 			var wonderCityIndex = new int[Common.Wonders.Length > 0 ? Common.Wonders.Max(w => w.Id) + 1 : 1];
@@ -156,10 +162,14 @@ namespace CivOne
 			for (int p = 0; p < playerCount; p++)
 			{
 				var player = _players[p];
+				// Snapshot the raw visibility array, not Visible(): once any player has
+				// built the Apollo Program, Visible() reports the whole map for everyone,
+				// which would bake permanent full-map exploration into the save (and strip
+				// every hut on reload via the barbarian-visibility pass).
 				var vis = new bool[Map.WIDTH, Map.HEIGHT];
 				for (int x = 0; x < Map.WIDTH; x++)
 				for (int y = 0; y < Map.HEIGHT; y++)
-					vis[x, y] = player.Visible(x, y);
+					vis[x, y] = player.RawVisible(x, y);
 
 				players.Add(new CosPlayer
 				{
@@ -286,7 +296,11 @@ namespace CivOne
 				Units   = units
 			};
 
-			File.WriteAllText(cosFile, CosSerializer.Serialize(cos));
+			// Write-then-rename so a crash mid-write can't corrupt an existing save.
+			string tmpFile = cosFile + ".tmp";
+			File.WriteAllText(tmpFile, CosSerializer.Serialize(cos));
+			if (File.Exists(cosFile)) File.Delete(cosFile);
+			File.Move(tmpFile, cosFile);
 		}
 
 		// ── Load ────────────────────────────────────────────────────────────────
@@ -544,7 +558,10 @@ namespace CivOne
 				city.SetResourceTiles(cd.ResourceTiles?.Select(b => (byte)b).ToArray() ?? Array.Empty<byte>());
 
 				foreach (int bId in cd.Buildings ?? Array.Empty<int>())
-					city.AddBuilding(Common.Buildings.FirstOrDefault(b => b.Id == bId));
+				{
+					var building = Common.Buildings.FirstOrDefault(b => b.Id == bId);
+					if (building is not null) city.AddBuilding(building);
+				}
 
 				foreach (int wId in cd.Wonders ?? Array.Empty<int>())
 				{

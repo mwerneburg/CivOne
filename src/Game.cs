@@ -106,6 +106,10 @@ namespace CivOne
 
 		private bool _domeVictoryFired = false;
 
+		// Guards the conquest-victory sequence in EndTurn so it can't re-enqueue
+		// the victory screens on every subsequent call before the game quits.
+		private bool _conquestVictoryFired = false;
+
 		internal static readonly Wonders.IWonder[] DomeFiveComponents =
 		{
 			new Wonders.DomeEmitterArray(),
@@ -359,7 +363,7 @@ namespace CivOne
 
 		internal Player GetPlayer(byte number)
 		{
-			if (_players.Count < number)
+			if (number >= _players.Count)
 				return null;
 			return _players[number];
 		}
@@ -702,17 +706,10 @@ namespace CivOne
 					SpaceshipArrivalTurn[p] = _gameTurn + SpaceshipTravelTurns(structural, component, module);
 					ClearSpaceShipProduction(p);
 					string eta = Common.YearString((ushort)SpaceshipArrivalTurn[p]);
-					if (_players[p] == HumanPlayer)
-					{
-						GameTask.Enqueue(Message.Newspaper(null, "Our spaceship has", "launched!", $"Arrival: {eta}"));
-					}
-					else
-					{
-						GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,
-							$"The {_players[p].TribeNamePlural}",
-							"have launched a spaceship!",
-							$"Arrival: {eta}"));
-					}
+					GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,
+						$"The {_players[p].TribeNamePlural}",
+						"have launched a spaceship!",
+						$"Arrival: {eta}"));
 				}
 
 				// Check for spaceship arrivals.
@@ -810,8 +807,10 @@ namespace CivOne
 				// Hurricanes/typhoons: every coastal-or-floating city in the tropical or arid
 				// bands rolls independently each turn, plus inland cities one tile from the ocean.
 				// The Hurricane check self-gates by latitude/coast/probability; cheap to call on all.
+				// WarmingIndicator scans the whole map, so compute it once for all cities.
+				int hurricaneWarming = WarmingIndicator;
 				foreach (City city in _cities)
-					city.HurricaneCheck();
+					city.HurricaneCheck(hurricaneWarming);
 
 				if (Barbarian.IsSeaSpawnTurn)
 				{
@@ -834,8 +833,9 @@ namespace CivOne
 				}
 			}
 
-			if (!_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
+			if (!_conquestVictoryFired && !_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
 			{
+				_conquestVictoryFired = true;
 				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn);
 				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;
@@ -1399,7 +1399,7 @@ namespace CivOne
 		internal void PerformAutoSave()
 		{
 			try { SaveCos(Settings.Instance.AutoSavePath); }
-			catch { }
+			catch (Exception ex) { Log($"Autosave failed: {ex.GetType().Name}: {ex.Message}"); }
 		}
 
 		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
@@ -1408,10 +1408,10 @@ namespace CivOne
 			Player player = GetPlayer(unit.Owner);
 			if (player.Gold < cost) return;
 
-			player.Gold -= (short)cost;
-
 			IUnit upgraded = CreateUnit(targetType, unit.X, unit.Y);
 			if (upgraded is null) return;
+
+			player.Gold -= (short)cost;
 			upgraded.Owner   = unit.Owner;
 			upgraded.Veteran = unit.Veteran;
 			upgraded.SetHome(unit.Home);
