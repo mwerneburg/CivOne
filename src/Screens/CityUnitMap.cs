@@ -49,6 +49,11 @@ namespace CivOne.Screens
 			if (!_dirty) return false;
 			_dirty = false;
 
+			// Solid background BEFORE the terrain layer: palette index 0 is
+			// treated as transparent in SDL, so ocean tiles and unrevealed
+			// regions in _terrain would otherwise show the CityManager behind
+			// us through to the player (see CityMap.cs:93 for the same gotcha).
+			this.FillRectangle(0, 0, Width, Height, CassetteTheme.BG0);
 			this.AddLayer(_terrain, 0, 0);
 
 			int tw = TileW, th = TileH, ox = OX, oy = OY;
