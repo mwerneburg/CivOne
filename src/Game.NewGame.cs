@@ -20,6 +20,46 @@ namespace CivOne
 {
 	public partial class Game : BaseInstance
 	{
+		// Real-world centroids for each civ's historical heartland. Used on Earth
+		// maps (FixedStartPositions == true) to anchor each civ near its home —
+		// Malians in West Africa, Mongols on the steppe, Iroquois on the Great
+		// Lakes — instead of scaling the legacy 80×50 StartX/StartY (which were
+		// calibrated for a custom Civ I projection and land in random spots on
+		// our equirectangular Epic Earth: Mali at 36/30 lands in the South
+		// Atlantic and spirals into Brazil before finding habitable land).
+		//
+		// Coordinates are (latitude, longitude) in degrees; converted to tile
+		// coords via equirectangular projection. Civs not in the table fall
+		// through to the StartX/StartY path, then random placement. Olvir is
+		// deliberately omitted — it's a story-arc civ placed by other logic.
+		private static readonly System.Collections.Generic.Dictionary<Civilization, (double lat, double lon)> EarthCentroids = new()
+		{
+			{ Civilization.Romans,      ( 42.0,   12.0) },
+			{ Civilization.Babylonians, ( 33.0,   44.0) },
+			{ Civilization.Germans,     ( 51.0,   10.0) },
+			{ Civilization.Egyptians,   ( 26.0,   31.0) },
+			{ Civilization.Americans,   ( 39.0,  -98.0) },
+			{ Civilization.Greeks,      ( 38.0,   23.0) },
+			{ Civilization.Indians,     ( 22.0,   78.0) },
+			{ Civilization.Russians,    ( 55.0,   38.0) },
+			{ Civilization.Zulus,       (-29.0,   31.0) },
+			{ Civilization.French,      ( 47.0,    2.0) },
+			{ Civilization.Aztecs,      ( 19.0,  -99.0) },
+			{ Civilization.Chinese,     ( 35.0,  113.0) },
+			{ Civilization.English,     ( 52.0,   -1.0) },
+			{ Civilization.Mongols,     ( 47.0,  105.0) },
+			{ Civilization.Japanese,    ( 36.0,  138.0) },
+			{ Civilization.Persians,    ( 32.0,   53.0) },
+			{ Civilization.Lakota,      ( 44.0, -100.0) },
+			{ Civilization.Arabs,       ( 24.0,   45.0) },
+			{ Civilization.Khmer,       ( 12.0,  105.0) },
+			{ Civilization.Malians,     ( 17.0,   -4.0) },
+			{ Civilization.Inca,        (-13.0,  -72.0) },
+			{ Civilization.Ottomans,    ( 39.0,   35.0) },
+			{ Civilization.Ethiopians,  (  9.0,   39.0) },
+			{ Civilization.Iroquois,    ( 43.0,  -76.0) },
+		};
+
 		private void AddStartingUnits(byte player)
 		{
 			// Translated from this post by darkpanda, might contain errors:
@@ -39,13 +79,47 @@ namespace CivOne
 				// Choose a map square randomly
 				int x = Common.Random.Next(0, Map.WIDTH);
 				int y = Common.Random.Next(2, Map.HEIGHT - 2);
-				// Use the per-civ StartX/StartY when it's available and meaningful.
+				// Prefer the real-world centroid when we have one and the map is
+				// Earth-shaped; otherwise fall back to the legacy 80×50 StartX/StartY.
 				// 255 is the sentinel for "no fixed position" — fall through to random.
 				int civStartX = _players[player].Civilization.StartX;
 				int civStartY = _players[player].Civilization.StartY;
+				Civilization civKey = (Civilization)_players[player].Civilization.Id;
+				bool useCentroid = Map.FixedStartPositions && GameTurn == 0
+				                && EarthCentroids.ContainsKey(civKey);
 				bool useFixed = Map.FixedStartPositions && GameTurn == 0
 				             && civStartX != 255 && civStartY != 255;
-				if (useFixed)
+				if (useCentroid)
+				{
+					// Equirectangular projection — same one used by build_earth_map.py
+					// and EnsureFreshwaterReachability, so coordinates match the map.
+					var (lat, lon) = EarthCentroids[civKey];
+					x = (int)(((lon + 180.0) / 360.0) * Map.WIDTH);
+					y = (int)(((90.0 - lat)  / 180.0) * Map.HEIGHT);
+					if (x < 0) x = 0; if (x >= Map.WIDTH)  x = Map.WIDTH  - 1;
+					if (y < 2) y = 2; if (y >= Map.HEIGHT - 2) y = Map.HEIGHT - 3;
+
+					bool Habitable(ITile t) => t is not null && !t.IsOcean
+					                        && !(t is Mountains) && !(t is Arctic);
+					if (!Habitable(Map[x, y]))
+					{
+						bool found = false;
+						for (int r = 1; r <= 20 && !found; r++)
+						for (int dy = -r; dy <= r && !found; dy++)
+						for (int dx = -r; dx <= r && !found; dx++)
+						{
+							if (Math.Abs(dx) != r && Math.Abs(dy) != r) continue;
+							int nx = (x + dx + Map.WIDTH) % Map.WIDTH;
+							int ny = y + dy;
+							if (ny < 2 || ny >= Map.HEIGHT - 2) continue;
+							if (!Habitable(Map[nx, ny])) continue;
+							x = nx; y = ny;
+							found = true;
+						}
+					}
+					if (Map[x, y].Hut) Map[x, y].Hut = false;
+				}
+				else if (useFixed)
 				{
 					// Per-civ StartX/StartY are calibrated for the 80×50 classic Earth.
 					// Scale to the actual map width so Epic (320×200) at 4× lands roughly
