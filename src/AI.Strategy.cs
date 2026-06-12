@@ -1322,6 +1322,10 @@ namespace CivOne
 
 			// Standard infrastructure chain (all stances)
 			if (Player.HasAdvance<Pottery>()           && !city.HasBuilding<Granary>())      Consider(new Granary());
+			// Aqueduct: unlocks growth past size 6 (City.cs:1187). Build when the
+			// city is approaching the cap (size 5+) so shields aren't wasted in
+			// tiny cities; without this the AI's entire empire stalls at size 6.
+			if (Player.HasAdvance<Construction>()      && city.Size >= 5  && !city.HasBuilding<Aqueduct>())   Consider(new Aqueduct());
 			if (Player.HasAdvance<CeremonialBurial>()  && !city.HasBuilding<Temple>())        Consider(new Temple());
 			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
 			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
@@ -1330,6 +1334,9 @@ namespace CivOne
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
 			if (Player.HasAdvance<Computers>()         && !city.HasBuilding<Observatory>())   Consider(new Observatory());
+			// Sewer System: unlocks growth past size 12 (City.cs:1188). Same
+			// pattern — only consider once the city is closing on the cap.
+			if (Player.HasAdvance<Engineering>()       && city.Size >= 10 && !city.HasBuilding<SewerSystem>()) Consider(new SewerSystem());
 
 			// Post-contact buildings
 			if (Player.HasAdvance<Xenobiology>()        && !city.HasBuilding<Xenolab>())        Consider(new Xenolab());
