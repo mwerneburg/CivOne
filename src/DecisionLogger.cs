@@ -87,8 +87,9 @@ namespace CivOne
 				_active = true;
 				_writerTask = Task.Run((Action)WriteLoop);
 			}
-			catch
+			catch (Exception ex)
 			{
+				RuntimeHandler.Runtime.Log($"DecisionLogger disabled, could not open decisions.jsonl: {ex.GetType().Name}: {ex.Message}");
 				_active = false;
 			}
 		}

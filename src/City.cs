@@ -790,9 +790,11 @@ namespace CivOne
 			int buyPrice = BuyPrice;
 			if (buyPrice <= 0) return false;
 			if (IsInDisorder && CurrentProduction is IBuilding) return false;
-			if (Game.CurrentPlayer.Gold < buyPrice) return false;
+			// Charge the city's owner, not Game.CurrentPlayer — the city manager can be
+			// opened by tasks inserted during another player's turn processing.
+			if (Player.Gold < buyPrice) return false;
 
-			Game.CurrentPlayer.Gold -= (short)buyPrice;
+			Player.Gold -= (short)buyPrice;
 			Shields = (int)CurrentProduction.Price * 10;
 			return true;
 		}
@@ -970,7 +972,8 @@ namespace CivOne
 		public void SellBuilding(IBuilding building)
 		{
 			RemoveBuilding(building);
-			Game.CurrentPlayer.Gold += building.SellPrice;
+			// Credit the city's owner, not Game.CurrentPlayer (see Buy).
+			Player.Gold += building.SellPrice;
 			BuildingSold = true;
 		}
 

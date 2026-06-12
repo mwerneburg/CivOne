@@ -65,7 +65,10 @@ namespace CivOne.Persistence
 				File.WriteAllLines(FilePath, list.ConvertAll(
 					e => $"{e.LeaderName}|{e.TribeName}|{e.Score}|{e.Victory}|{e.Year}"));
 			}
-			catch { }
+			catch (System.Exception ex)
+			{
+				RuntimeHandler.Runtime.Log($"Hall of Fame save failed: {ex.GetType().Name}: {ex.Message}");
+			}
 			return entry;
 		}
 	}
