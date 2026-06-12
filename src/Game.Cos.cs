@@ -183,6 +183,10 @@ namespace CivOne
 					Embassies        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].HasEmbassy(_players[j]))
 				                   .ToArray(),
+					TributeTo        = Enumerable.Range(0, playerCount)
+				                   .Where(j => j != p && _players[p].PaysTributeTo(_players[j]))
+				                   .Select(j => new CosTribute { Protector = j, Annual = _players[p].TributeAmountTo(_players[j]) })
+				                   .ToList(),
 					CityNamesSkipped = player.CityNamesSkipped,
 					Anarchy          = player.AnarchyTurnsLeft != 0 ? (int?)player.AnarchyTurnsLeft : null,
 					Visibility       = PackVisibility(vis),
@@ -384,6 +388,24 @@ namespace CivOne
 				if (embassyList is null) continue;
 				foreach (int j in embassyList.Where(j => j >= 0 && j < _players.Count && _players[j] is not null))
 					_players[i].EstablishEmbassy((byte)j);
+			}
+
+			// Tribute pacts. Re-running EstablishTribute restores both _tributeTo
+			// on the payer and _tributeFrom on the protector, plus the peace-treaty
+			// and attitude-bonus side effects that the pact normally creates. The
+			// peace-treaty timer and attitude bonus aren't independently persisted
+			// today, so the reset to 100 turns on load is acceptable behaviour —
+			// it keeps tribute self-sustaining until the gold stops flowing.
+			for (int i = 0; i < _players.Count; i++)
+			{
+				var tributeList = cos.Players[i].TributeTo;
+				if (tributeList is null) continue;
+				foreach (var entry in tributeList)
+				{
+					int j = entry.Protector;
+					if (j < 0 || j >= _players.Count || _players[j] is null) continue;
+					_players[i].EstablishTribute(_players[j], entry.Annual);
+				}
 			}
 
 			// Future techs, milestone scores, and human player

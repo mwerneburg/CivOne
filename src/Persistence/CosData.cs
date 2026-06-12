@@ -134,6 +134,17 @@ namespace CivOne.Persistence
 		// key is absent; clamped to MapZoomSettings.Min/Max on read. Persisted so
 		// reloading a save keeps the player's chosen zoom.
 		public int? MapZoomBasisPoints { get; set; }
+		// Tribute pacts where this player is the *payer*. Each entry records the
+		// protector's player index and the annual gold amount. The inverse map
+		// (this player's _tributeFrom) is reconstructed on load. Absent or empty
+		// on saves predating the tribute system.
+		public List<CosTribute> TributeTo { get; set; }
+	}
+
+	public class CosTribute
+	{
+		public int Protector { get; set; }
+		public int Annual    { get; set; }
 	}
 
 	public class CosCity
