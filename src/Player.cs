@@ -263,6 +263,12 @@ namespace CivOne
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
 
+		// Byte-keyed overloads for the COS load path, which runs inside the Game
+		// constructor — Game.Instance does not exist yet there, so the Player-typed
+		// setters above (which resolve numbers via Game.PlayerNumber) would NRE.
+		internal void SetPeaceTreaty(byte playerNumber, int turns)   => _peaceTreaty[playerNumber]   = turns;
+		internal void SetAttitudeBonus(byte playerNumber, int turns) => _attitudeBonus[playerNumber] = turns;
+
 		// Enumeration accessors for the COS save layer. The dictionaries are private
 		// state; the save loop in Game.Cos.cs uses these to write a snapshot, and
 		// reloads them by replaying SetPeaceTreaty/SetAttitudeBonus per entry.
@@ -304,6 +310,17 @@ namespace CivOne
 			protector.SetPeaceTreaty(this, 100);
 			SetAttitudeBonus(protector, 100);
 			protector.SetAttitudeBonus(this, 100);
+		}
+
+		// COS load-path restore: writes the paired tribute maps directly by player
+		// number. Runs inside the Game constructor, where Game.Instance is not yet
+		// set, so EstablishTribute (which resolves numbers via Game.PlayerNumber)
+		// cannot be used. Its peace-treaty/attitude side effects are not replayed
+		// here either — those countdowns are persisted and restored separately.
+		internal void RestoreTribute(byte payerNumber, Player protector, byte protectorNumber, int annualGold)
+		{
+			_tributeTo[protectorNumber]         = annualGold;
+			protector._tributeFrom[payerNumber] = annualGold;
 		}
 
 		// End tribute, e.g. payer ran out of gold or one side destroyed. Doesn't re-declare

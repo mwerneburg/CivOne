@@ -412,11 +412,11 @@ namespace CivOne
 					_players[i].EstablishEmbassy((byte)j);
 			}
 
-			// Tribute pacts. Re-running EstablishTribute restores both _tributeTo
-			// on the payer and _tributeFrom on the protector, plus the peace-treaty
-			// and attitude-bonus side effects that the pact normally creates. We
-			// then overwrite those countdowns from disk below, so the actual point-
-			// in-time timers persist correctly across save/reload.
+			// Tribute pacts. RestoreTribute writes both _tributeTo on the payer and
+			// _tributeFrom on the protector directly by player number — Game.Instance
+			// does not exist yet inside this constructor, so EstablishTribute (which
+			// resolves numbers through it) would NRE. The peace-treaty and attitude-
+			// bonus countdowns the pact normally creates are restored from disk below.
 			for (int i = 0; i < _players.Count; i++)
 			{
 				var tributeList = cos.Players[i].TributeTo;
@@ -425,14 +425,13 @@ namespace CivOne
 				{
 					int j = entry.Protector;
 					if (j < 0 || j >= _players.Count || _players[j] is null) continue;
-					_players[i].EstablishTribute(_players[j], entry.Annual);
+					_players[i].RestoreTribute((byte)i, _players[j], (byte)j, entry.Annual);
 				}
 			}
 
-			// Peace-treaty and attitude-bonus countdowns. Loaded AFTER tribute so
-			// the persisted timer values override the 100-turn defaults that
-			// EstablishTribute writes. Non-tribute peace treaties (human-AI peace
-			// deals, AI-vs-AI peace declarations) also survive here.
+			// Peace-treaty and attitude-bonus countdowns, restored from the persisted
+			// timer values. Covers both tribute-pact countdowns and non-tribute peace
+			// treaties (human-AI peace deals, AI-vs-AI peace declarations).
 			for (int i = 0; i < _players.Count; i++)
 			{
 				var peaceList = cos.Players[i].PeaceTreaty;
@@ -442,7 +441,7 @@ namespace CivOne
 					{
 						int j = entry.Player;
 						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
-						_players[i].SetPeaceTreaty(_players[j], entry.Turns);
+						_players[i].SetPeaceTreaty((byte)j, entry.Turns);
 					}
 				}
 				var attitudeList = cos.Players[i].AttitudeBonus;
@@ -452,7 +451,7 @@ namespace CivOne
 					{
 						int j = entry.Player;
 						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
-						_players[i].SetAttitudeBonus(_players[j], entry.Turns);
+						_players[i].SetAttitudeBonus((byte)j, entry.Turns);
 					}
 				}
 			}
