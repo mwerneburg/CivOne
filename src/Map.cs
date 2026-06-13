@@ -211,7 +211,131 @@ namespace CivOne
 			}
 			Log("EnsureFreshwaterReachability: {0} oases ({1} river tiles total)", oasisCount, planted);
 		}
-		
+
+		// Maritime fresh water: narrow, ocean-girt land — islands like New Zealand,
+		// Madagascar, and Japan, the Indonesian/Philippine archipelagos, and thin
+		// peninsulas like Kamchatka — is always within a few tiles of the coast, so
+		// EnsureFreshwaterReachability (which counts salt ocean as "water") never
+		// plants on it. But irrigation needs FRESH water — river, lake, or swamp,
+		// not sea (see Settlers.BuildIrrigation) — so those landmasses end up
+		// unfarmable. This pass guarantees that settleable land within coastDistance
+		// of the ocean is also within maxDryDistance of fresh water, planting small
+		// river oases where it isn't. Deep continental interiors, far from any coast,
+		// keep their natural aridity. Idempotent: a map already in range gets none.
+		internal void EnsureMaritimeFreshwater(int maxDryDistance = 6, int coastDistance = 6)
+		{
+			int[] ddx = { 0, 0, -1, 1 };
+			int[] ddy = { -1, 1, 0, 0 };
+
+			bool IsFresh(int x, int y)
+				=> _tiles[x, y].Type == Terrain.River || _freshwater[x, y];
+
+			bool IsSettleableLand(int x, int y)
+			{
+				Terrain t = _tiles[x, y].Type;
+				return !_tiles[x, y].IsOcean
+					&& t != Terrain.River && !_freshwater[x, y]
+					&& t != Terrain.Mountains && t != Terrain.Arctic;
+			}
+
+			// Multi-source BFS distance fields. Both seed only their source tiles, so
+			// only finite-distance tiles are ever dequeued — no MaxValue arithmetic.
+			int[,] BfsDistance(System.Func<int, int, bool> isSource)
+			{
+				int[,] dist = new int[WIDTH, HEIGHT];
+				var q = new Queue<(int x, int y)>();
+				for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+				{
+					if (isSource(x, y)) { dist[x, y] = 0; q.Enqueue((x, y)); }
+					else dist[x, y] = int.MaxValue;
+				}
+				while (q.Count > 0)
+				{
+					var (cx, cy) = q.Dequeue();
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+						int ny = cy + ddy[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (dist[nx, ny] <= dist[cx, cy] + 1) continue;
+						dist[nx, ny] = dist[cx, cy] + 1;
+						q.Enqueue((nx, ny));
+					}
+				}
+				return dist;
+			}
+
+			int[,] coast = BfsDistance((x, y) => _tiles[x, y].IsOcean);
+			int[,] fresh = BfsDistance(IsFresh);
+
+			// Greedy: plant at the maritime land tile farthest from fresh water,
+			// biased toward the landmass interior (highest coast distance) so the
+			// water lands inland rather than on the shoreline. A short stub trends
+			// toward existing fresh water if any is in reach (joins a real river);
+			// on a fresh-less island it is a lone source. Refresh distances, repeat.
+			const int maxStubLength = 3;
+			int planted = 0, oasisCount = 0, safetyCap = 500;
+			while (oasisCount < safetyCap)
+			{
+				int wx = -1, wy = -1, wFresh = maxDryDistance, wCoast = -1;
+				for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+				{
+					if (!IsSettleableLand(x, y) || coast[x, y] > coastDistance) continue;
+					int f = fresh[x, y];
+					if (f <= maxDryDistance) continue; // already in range of fresh water
+					if (f > wFresh || (f == wFresh && coast[x, y] > wCoast))
+					{
+						wFresh = f; wCoast = coast[x, y]; wx = x; wy = y;
+					}
+				}
+				if (wx < 0) break;
+
+				var chain = new List<(int x, int y)> { (wx, wy) };
+				_tiles[wx, wy] = new River(wx, wy);
+				int curX = wx, curY = wy;
+				for (int step = 0; step < maxStubLength; step++)
+				{
+					int bestNx = -1, bestNy = -1, bestFresh = int.MaxValue;
+					bool reachedFresh = false;
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (curX + ddx[d] + WIDTH) % WIDTH;
+						int ny = curY + ddy[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (IsFresh(nx, ny)) { reachedFresh = true; break; }
+						Terrain nt = _tiles[nx, ny].Type;
+						if (_tiles[nx, ny].IsOcean || nt == Terrain.Mountains || nt == Terrain.Arctic) continue;
+						if (fresh[nx, ny] < bestFresh) { bestFresh = fresh[nx, ny]; bestNx = nx; bestNy = ny; }
+					}
+					if (reachedFresh || bestNx < 0) break;
+					_tiles[bestNx, bestNy] = new River(bestNx, bestNy);
+					chain.Add((bestNx, bestNy));
+					curX = bestNx; curY = bestNy;
+				}
+				planted += chain.Count;
+				oasisCount++;
+
+				var local = new Queue<(int, int)>();
+				foreach (var (cx, cy) in chain) { fresh[cx, cy] = 0; local.Enqueue((cx, cy)); }
+				while (local.Count > 0)
+				{
+					var (cx, cy) = local.Dequeue();
+					for (int d = 0; d < 4; d++)
+					{
+						int nx = (cx + ddx[d] + WIDTH) % WIDTH;
+						int ny = cy + ddy[d];
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (fresh[nx, ny] <= fresh[cx, cy] + 1) continue;
+						fresh[nx, ny] = fresh[cx, cy] + 1;
+						local.Enqueue((nx, ny));
+					}
+				}
+			}
+			Log("EnsureMaritimeFreshwater: {0} oases ({1} river tiles total)", oasisCount, planted);
+		}
+
 		public bool Ready { get; private set; }
 		public bool FixedStartPositions { get; private set; }
 

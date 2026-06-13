@@ -32,6 +32,9 @@ namespace CivOne
 			// so this is a no-op for healthy saves and only rescues maps created before
 			// the reachability pass existed.
 			EnsureFreshwaterReachability();
+			// Same retrofit for ocean-girt islands and peninsulas, which the salt-water-
+			// aware reachability pass above always considers "watered" and so skips.
+			EnsureMaritimeFreshwater();
 			Ready = true;
 			Log("Map: Ready (loaded from COS)");
 		}

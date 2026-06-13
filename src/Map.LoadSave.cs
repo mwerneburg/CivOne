@@ -263,6 +263,7 @@ namespace CivOne
 			CreatePoles();
 			ComputeFreshwaterLakes();
 			EnsureFreshwaterReachability();
+			EnsureMaritimeFreshwater();
 			CalculateContinentSize();
 			PlaceHuts();
 			CalculateLandValue();
