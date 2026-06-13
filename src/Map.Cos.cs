@@ -27,6 +27,11 @@ namespace CivOne
 		{
 			CalculateLandValue();
 			ComputeFreshwaterLakes();
+			// Retrofit fresh water on load, matching the generate and Earth-load paths.
+			// Idempotent: a save whose map already has water in range gets no new oases,
+			// so this is a no-op for healthy saves and only rescues maps created before
+			// the reachability pass existed.
+			EnsureFreshwaterReachability();
 			Ready = true;
 			Log("Map: Ready (loaded from COS)");
 		}

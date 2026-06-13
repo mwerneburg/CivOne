@@ -227,7 +227,74 @@ namespace CivOne
 			
 			return elevation;
 		}
-		
+
+		// Far-flung island: on Epic-size random maps, tuck a small isolated landmass
+		// into the most remote stretch of open ocean — an Aotearoa/New Zealand analog
+		// to reward the player who sails all the way out there. Injected into the
+		// elevation grid after the latitude bands are known but before terrain is
+		// painted, so it picks up natural temperate terrain, rivers, and huts like
+		// any other land. Land-heavy maps with no genuinely remote ocean get nothing.
+		private void PlaceRemoteIsland(int[,] elevation, int[,] latitude)
+		{
+			if (WIDTH != 320 || HEIGHT != 200) return; // Epic preset only
+
+			int polarBand = Math.Max(1, HEIGHT / (8 + _temperature * 2));
+
+			// Multi-source BFS: distance from every ocean tile to the nearest land.
+			// Wraps horizontally (the map is a cylinder) but not across the poles.
+			int[,] dist = new int[WIDTH, HEIGHT];
+			var queue = new Queue<(int x, int y)>();
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (elevation[x, y] > 0) { dist[x, y] = 0; queue.Enqueue((x, y)); }
+				else dist[x, y] = -1;
+			}
+			int[] dxs = { 1, -1, 0, 0 };
+			int[] dys = { 0, 0, 1, -1 };
+			while (queue.Count > 0)
+			{
+				var (cx, cy) = queue.Dequeue();
+				for (int k = 0; k < 4; k++)
+				{
+					int nx = (cx + dxs[k] + WIDTH) % WIDTH;
+					int ny = cy + dys[k];
+					if (ny < 0 || ny >= HEIGHT || dist[nx, ny] != -1) continue;
+					dist[nx, ny] = dist[cx, cy] + 1;
+					queue.Enqueue((nx, ny));
+				}
+			}
+
+			// Loneliest temperate-forest ocean tile: farthest from any land, in the
+			// Forest latitude band (2), clear of the polar ice.
+			int bestX = -1, bestY = -1, bestDist = 0;
+			for (int y = polarBand; y < HEIGHT - polarBand; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (elevation[x, y] > 0 || latitude[x, y] != 2) continue;
+				if (dist[x, y] > bestDist) { bestDist = dist[x, y]; bestX = x; bestY = y; }
+			}
+
+			// Only if the spot is genuinely far-flung.
+			if (bestX < 0 || bestDist < 8) return;
+
+			// Stamp a short, mostly-vertical island a couple of tiles wide — the
+			// elongated North/South-island silhouette — kept clear of the poles.
+			int cxp = bestX, cyp = bestY;
+			int steps = 8 + Common.Random.Next(5); // ~8-12 land tiles
+			for (int i = 0; i < steps; i++)
+			{
+				if (cyp <= polarBand || cyp >= HEIGHT - polarBand - 1) break;
+				int wide = Common.Random.Next(2); // 1-2 tiles wide
+				for (int w = 0; w <= wide; w++)
+					elevation[(cxp + w) % WIDTH, cyp] = 1;
+				cyp += 1;                                           // elongate southward
+				cxp = (cxp + Common.Random.Next(3) - 1 + WIDTH) % WIDTH; // gentle x jitter
+			}
+
+			Log("Map: Placed far-flung island at {0},{1} (distance to mainland {2})", bestX, bestY, bestDist);
+		}
+
 		private int[,] TemperatureAdjustments()
 		{
 			Log("Map: Stage 2 - Temperature adjustments");
@@ -1064,6 +1131,7 @@ namespace CivOne
 
 			int[,] elevation = GenerateLandMass();
 			int[,] latitude = TemperatureAdjustments();
+			PlaceRemoteIsland(elevation, latitude);
 			MergeElevationAndLatitude(elevation, latitude);
 			ClimateAdjustments();
 			// Compute ocean distances once here; passed to interior-desert and river passes.
