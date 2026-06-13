@@ -1,4 +1,6 @@
-# A sci-fi port of CivOne
+# Civ91 : A sci-fi port of CivOne
+
+by michael werneburg, 2026
 
 ## Note:
 
@@ -23,10 +25,10 @@ Rule changes:
  + Cities have roads (and rail) by default; no more losing 1/3 move when you steam out of town.
  + Other civilizations can start diplomatic discussions.
  + Autosave always on. I think the crash scenarios are fixed, but let's be reasonable.
- + AI with real strategy. Yes, that includes stacking units. Watch out!
+ + AI with real, deterministic strategy. 
  + A city's mass transit system now costs 50% more but gives 20% bonuses to food and shields produced (as a cornerstone of a modern city).
  + The South Pole Expedition wonder becomes possible after the creation of the Apollo mission. It has unexpected benefits and implications.
- + Five years after the creation of the SETI wonder, a signal is detected with a warning.
+ + Five years after the creation of five Observatory city improvements, a signal is detected with a warning.
  + The Civilization Score chart does not cap annoyingly like the original.
  + I added the instant replay, but it came out a bit differently.
  + Roads and railways are much quicker to build.
@@ -37,6 +39,8 @@ Rule changes:
  + Some wonders that historically happened on or near the sea can now only happen in a sea town (Colossus, Lighthouse, Magellan's Voyage, Darwin's Voyage)
  + Has a production queue, like other 4x games
  + Irrigation requires a freshwater source (rivers, lakes, wetlands)
+ + Palace mini-game is gone
+ + This repo never had sound files, so all that is gone (along with 900 lines of code)
 
 We Love The King Day:
  + It only triggers only when the conditions are first met and not with each successive turn. (Though city scren shows a status of WLTK)
@@ -63,6 +67,15 @@ Civ II stuff
  + Settlers may auto-clean of pollution for all friendly cities.
  + Spy-vs-spy; a defending spy defeats the theft of technology.
  + (The code for Civ II "Freight" units was present in the <2017 repo but remains inactive.)
+
+SMAC-like stuff
+ + I have retro-fit some sci-fi stuff into the game
+  - the Alpha Centauri mission has to be unlocked
+  - several new civilization advances
+  - several new city improvements
+  - a special mission to the south pole
+  - a special interstellar probe mission
+ + Aliens are real (the clue is to build Observatory city improvements)
 
 Platforms
  + Tested on Arm Macbook Air and Linux Mint on Intel
@@ -128,22 +141,3 @@ On a 2560×1600 display this gives a 640×400 canvas rendered at 4× — chunky 
 
 The Scale setting (integer, 1–8) controls the initial window size hint. Set <Scale>4</Scale> if you want the window to open large before you resize it, but the canvas and pixel zoom are otherwise determined by the window size and any explicit ExpandWidth/ExpandHeight you provide.
 
-## Debug menu
-
-There is an in-game debug menu, disabled by default. To enable it: start a game, open Game → Options from the menu bar, and toggle "Debug Menu" to on. The setting persists across sessions (stored as `<DebugMenu>1</DebugMenu>` in `default.profile`, so you can also pre-set it there).
-
-Once enabled, a "Debug Options" entry appears in the in-game menu, with:
-
- + Set Game Year — jump the calendar to any year
- + Set Player Gold — set the human player's treasury
- + Set Player Science — set accumulated science toward the current research
- + Set Player Advances — grant or revoke individual advances
- + Set City Size — resize any of your cities
- + Cause City Disaster — trigger a famine, fire, riot, etc. on a chosen city
- + Change Human Player — hand control to a different civilization
- + Spawn Unit — place any unit type on the map
- + Meet With King — open the diplomacy screen with any AI leader
- + Toggle Reveal World — flip the fog-of-war off and on
- + Show PowerGraph — show the score/power graph at any time
-
-These are testing/debugging aids — they're cheats and are not balanced for play.
