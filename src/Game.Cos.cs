@@ -406,10 +406,14 @@ namespace CivOne
 					}
 				}
 
-				// Advances
+				// Advances. Iterate the saved id list in order (not Common.Advances
+				// order) so the player's advance list is rebuilt exactly as saved and a
+				// save -> load -> save cycle is stable.
 				var advanceIds = pd.Advances ?? Array.Empty<int>();
-				foreach (var adv in Common.Advances.Where(a => advanceIds.Contains(a.Id)))
+				foreach (int advId in advanceIds)
 				{
+					var adv = Common.Advances.FirstOrDefault(a => a.Id == advId);
+					if (adv is null) continue;
 					player.AddAdvance(adv, false);
 					if (advanceFirst.TryGetValue(adv.Id, out int civId) && civId == civ.Id)
 						SetAdvanceOrigin(adv, player);

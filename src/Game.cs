@@ -265,10 +265,14 @@ namespace CivOne
 		{
 			if (_advanceOrigin.ContainsKey(advance.Id))
 				return;
-			byte playerNumber = 0;
-			if (player is not null)
-				playerNumber = PlayerNumber(player);
-			_advanceOrigin.Add(advance.Id, playerNumber);
+			// A null player means a free/granted advance (e.g. handicap bonus techs)
+			// with no genuine first-discoverer — record no origin. The old code stored
+			// player 0 (the Barbarians, civ id 15), which the save layer couldn't round-
+			// trip: the loader only re-attributes an origin to a civ that actually holds
+			// the advance, and the Barbarians hold none, so it silently vanished on load.
+			if (player is null)
+				return;
+			_advanceOrigin.Add(advance.Id, PlayerNumber(player));
 		}
 		public bool GetAdvanceOrigin(IAdvance advance, Player player)
 		{
