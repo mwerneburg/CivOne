@@ -15,8 +15,8 @@ namespace CivOne.Advances
 	{
 		private static readonly string[] _page1 =
 		{
-			"GEOPLASTICITY uses gravitic",
-			"shaping fields to reshape solid",
+			"GEOPLASTICITY applies industrial",
+			"earthmoving to reshape solid",
 			"terrain at scale. Engineers can",
 			"raise plains into hills or grind",
 			"hills back down to level ground,",

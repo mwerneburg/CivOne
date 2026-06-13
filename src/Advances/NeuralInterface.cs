@@ -18,8 +18,8 @@ namespace CivOne.Advances
 			"NEURAL INTERFACE technology allows",
 			"direct communication between",
 			"biological minds and digital",
-			"systems. Pioneered through the",
-			"study of alien cognition, it",
+			"systems. Built on advances in",
+			"neuroscience and computing, it",
 			"enables the Neural Lab and",
 			"advances toward Collective Memory.",
 		};

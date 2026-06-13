@@ -15,9 +15,9 @@ namespace CivOne.Advances
 	{
 		private static readonly string[] _page1 =
 		{
-			"MEMETIC PROTOCOLS decode the",
-			"information patterns used by",
-			"alien intelligences. Where",
+			"MEMETIC PROTOCOLS formalize how",
+			"ideas replicate and spread",
+			"through a population. Where",
 			"computers give the capacity and",
 			"philosophy the framework, Memetic",
 			"Protocols yield understanding.",

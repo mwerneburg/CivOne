@@ -19,8 +19,8 @@ namespace CivOne.Advances
 			"multiple biological systems",
 			"across species lines. Drawing on",
 			"synthetic ecology, it creates",
-			"living architectures that serve",
-			"both human and alien inhabitants,",
+			"living architectures that house",
+			"and sustain whole communities,",
 			"advancing Planetary Stewardship.",
 		};
 

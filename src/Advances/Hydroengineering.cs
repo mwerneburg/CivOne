@@ -16,7 +16,7 @@ namespace CivOne.Advances
 		private static readonly string[] _page1 =
 		{
 			"HYDROENGINEERING combines",
-			"gravitic terraforming with",
+			"large-scale earthworks with",
 			"directed hydrology. Engineers",
 			"can route new rivers across",
 			"existing land, and Hydro",
