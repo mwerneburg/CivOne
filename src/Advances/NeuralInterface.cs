@@ -28,6 +28,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.NeuralInterface;
 		public override string Name => "Neural Interface";
+		public override bool AvailablePreContact => true;
 		public NeuralInterface() : base(Advance.MemeticProtocols) { }
 	}
 }

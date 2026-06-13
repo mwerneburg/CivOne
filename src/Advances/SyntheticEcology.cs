@@ -29,6 +29,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.SyntheticEcology;
 		public override string Name => "Synthetic Ecology";
+		public override bool AvailablePreContact => true;
 		public SyntheticEcology() : base(Advance.GeneticEngineering, Advance.Recycling) { }
 	}
 }

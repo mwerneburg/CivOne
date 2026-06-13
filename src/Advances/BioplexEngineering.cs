@@ -28,6 +28,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.BioplexEngineering;
 		public override string Name => "Bioplex Engineering";
+		public override bool AvailablePreContact => true;
 		public BioplexEngineering() : base(Advance.SyntheticEcology) { }
 	}
 }

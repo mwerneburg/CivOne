@@ -29,6 +29,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.PlanetaryStewardship;
 		public override string Name => "Planetary Stewardship";
+		public override bool AvailablePreContact => true;
 		public PlanetaryStewardship() : base(Advance.BioplexEngineering, Advance.CanopyCultivation) { }
 	}
 }

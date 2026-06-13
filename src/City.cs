@@ -464,14 +464,14 @@ namespace CivOne
 			{
 				if (_cachedScience.HasValue) return _cachedScience.Value;
 				short science = TradeScience;
-				bool newtonActive = !Game.WonderObsolete<IsaacNewtonsCollege>() && Player.HasWonder<IsaacNewtonsCollege>() && !Player.HasWonder<SETIProgram>();
+				bool newtonActive = !Game.WonderObsolete<IsaacNewtonsCollege>() && Player.HasWonder<IsaacNewtonsCollege>() && !Player.HasWonder<HumanGenomeProject>();
 				double libUniBonus = newtonActive ? (2.0 / 3.0) : 0.5;
 				if (HasBuilding<Library>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<UniversityBuilding>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<ObservatoryBuilding>()) science += (short)Math.Floor(science * libUniBonus);
 				if (HasBuilding<Xenolab>()) science += (short)Math.Floor(science * 0.5);
 				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
-				if (Player.HasWonder<SETIProgram>()) science += (short)Math.Floor((double)science * 0.5);
+				if (Player.HasWonder<HumanGenomeProject>()) science += (short)Math.Floor((double)science * 0.5);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
 				return (_cachedScience = science).Value;
 			}
@@ -701,8 +701,6 @@ namespace CivOne
 				{
 					if (!coastal && (wonder is Lighthouse || wonder is MagellansExpedition || wonder is DarwinsVoyage || wonder is Colossus || wonder is ZhengHeVoyage)) continue;
 					if (wonder is ZhengHeVoyage && !Map.AllTiles().Any(t => t.ContinentId != Tile.ContinentId && t.ContinentId > 0 && t.City is not null && t.City.Owner != 0)) continue;
-					if (wonder is Wonders.SETIProgram && !HasBuilding<UniversityBuilding>()) continue;
-					if (wonder is Wonders.SETIProgram && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<ObservatoryBuilding>()) < 5) continue;
 					if (wonder is Wonders.GreatLibrary && !HasBuilding<LibraryBuilding>()) continue;
 					if (wonder is Wonders.GreatLibrary && Game.GetPlayer(Owner).Cities.Count(c => c.HasBuilding<LibraryBuilding>()) < 5) continue;
 					yield return wonder;
@@ -1414,8 +1412,6 @@ namespace CivOne
 							Game.Instance.RecordTransmission("SouthPoleExpedition", gameYear);
 							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
 						}
-						if (wonder is Wonders.SETIProgram)
-							Game.SETISignalTurn = (uint)(Game.GameTurn + 5);
 						if (wonder is Wonders.DarwinsVoyage)
 						{
 							if (Player == Human)

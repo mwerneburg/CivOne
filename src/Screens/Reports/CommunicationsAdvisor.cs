@@ -84,9 +84,9 @@ namespace CivOne.Screens.Reports
 			{
 				this.DrawText("No transmissions received.", 0, CassetteTheme.INK_MID,
 				              Width / 2, top + 12, TextAlign.Center);
-				this.DrawText("Transmissions appear here when the SETI Program or",
+				this.DrawText("Transmissions appear here once five Observatories exist",
 				              0, CassetteTheme.INK_LOW, Width / 2, top + 12 + fh + 4, TextAlign.Center);
-				this.DrawText("South Pole Expedition wonders have been built.",
+				this.DrawText("world-wide, or the South Pole Expedition is built.",
 				              0, CassetteTheme.INK_LOW, Width / 2, top + 12 + (fh + 4) * 2, TextAlign.Center);
 				return true;
 			}

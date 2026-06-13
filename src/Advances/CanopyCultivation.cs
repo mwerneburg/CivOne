@@ -29,6 +29,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.CanopyCultivation;
 		public override string Name => "Canopy Cultivation";
+		public override bool AvailablePreContact => true;
 		public CanopyCultivation() : base(Advance.SyntheticEcology) { }
 	}
 }

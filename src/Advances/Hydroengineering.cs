@@ -28,6 +28,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.Hydroengineering;
 		public override string Name => "Hydroengineering";
+		public override bool AvailablePreContact => true;
 		public Hydroengineering() : base(Advance.PlanetaryStewardship) { }
 	}
 }

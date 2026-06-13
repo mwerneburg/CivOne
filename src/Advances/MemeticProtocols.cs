@@ -28,6 +28,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.MemeticProtocols;
 		public override string Name => "Memetic Protocols";
+		public override bool AvailablePreContact => true;
 		public MemeticProtocols() : base(Advance.Computers, Advance.Philosophy) { }
 	}
 }

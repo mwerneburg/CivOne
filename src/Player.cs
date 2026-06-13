@@ -389,7 +389,7 @@ namespace CivOne
 				bool any = false;
 				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id) && !(a is FutureTech)))
 				{
-					if (advance is Advances.BasePostContactAdvance && !setiActive) continue;
+					if (advance is Advances.BasePostContactAdvance pc && !pc.AvailablePreContact && !setiActive) continue;
 					if (advance.RequiredTechs.Length > 0 && !advance.RequiredTechs.All(a => _advances.Contains(a.Id))) continue;
 					any = true;
 					yield return advance;

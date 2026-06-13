@@ -1,0 +1,30 @@
+// CivOne
+//
+// To the extent possible under law, the person who associated CC0 with
+// CivOne has waived all copyright and related or neighboring rights
+// to CivOne.
+//
+// You should have received a copy of the CC0 legalcode along with this
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+using CivOne.Advances;
+using CivOne.Enums;
+
+namespace CivOne.Wonders
+{
+	// Re-flavored from the original SETI Program wonder; keeps wonder id 20 so
+	// existing saves load it transparently. The SETI signal storyline no longer
+	// hangs off this wonder — it triggers from the world-wide Observatory count
+	// (see Game.EndTurn). This is now a pure science wonder.
+	internal class HumanGenomeProject : BaseWonder
+	{
+		public HumanGenomeProject() : base(60)
+		{
+			Name = "Human Genome Project";
+			RequiredTech = new GeneticEngineering();
+			ObsoleteTech = null;
+			SetSmallIcon(0, 5);
+			Type = Wonder.HumanGenomeProject;
+		}
+	}
+}

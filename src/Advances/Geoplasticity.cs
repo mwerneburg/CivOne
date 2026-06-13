@@ -28,6 +28,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.Geoplasticity;
 		public override string Name => "Geoplasticity";
+		public override bool AvailablePreContact => true;
 		public Geoplasticity() : base(Advance.PlanetaryStewardship) { }
 	}
 }

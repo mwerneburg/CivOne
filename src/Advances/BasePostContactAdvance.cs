@@ -17,12 +17,19 @@ namespace CivOne.Advances
 	// is true. The gate is enforced in Player.AvailableResearch — all prereqs may be met,
 	// but the advance still won't appear until first contact. Subclasses must implement
 	// GetPageText() for Civilopedia display; icons and page art are stubbed (no legacy assets).
+	//
+	// Exception: subclasses that override AvailablePreContact to true represent Earth-bound
+	// science humanity can develop without the Olvir kick-start; they appear as normal
+	// research once their prereqs are met, signal or not.
 	internal abstract class BasePostContactAdvance : IAdvance
 	{
 		private readonly Advance[] _prereqs;
 
 		public abstract byte Id { get; }
 		public abstract string Name { get; }
+
+		// True for advances reachable by ordinary human research before first contact.
+		public virtual bool AvailablePreContact => false;
 
 		public IAdvance[] RequiredTechs => _prereqs
 			.Select(a => Common.Advances.FirstOrDefault(x => x.Id == (byte)a))

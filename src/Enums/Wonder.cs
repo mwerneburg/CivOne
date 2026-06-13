@@ -30,7 +30,7 @@ namespace CivOne.Enums
 		ManhattanProject = 17,
 		UnitedNations = 18,
 		ApolloProgram = 19,
-		SETIProgram = 20,
+		HumanGenomeProject = 20, // was SETIProgram; re-flavored, same id for save compat
 		CureForCancer = 21,
 		SouthPoleExpedition = 22,
 		InterstellarProbe   = 23,

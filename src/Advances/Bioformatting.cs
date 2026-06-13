@@ -29,6 +29,7 @@ namespace CivOne.Advances
 
 		public override byte Id => (byte)Advance.Bioformatting;
 		public override string Name => "Bioformatting";
+		public override bool AvailablePreContact => true;
 		public Bioformatting() : base(Advance.PlanetaryStewardship) { }
 	}
 }

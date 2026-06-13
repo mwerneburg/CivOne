@@ -573,7 +573,18 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new SouthPoleIntelReport(gameYear)));
 				}
 
-				// Fire the SETI signal transmission 5 turns after SETI Program is built
+				// SETI is a world-wide program, not a wonder: once five Observatories
+				// exist anywhere on Earth, the Tau Ceti signal is detected five turns
+				// later. Once scheduled it stays scheduled, even if observatories are
+				// later lost — the transmission is already en route.
+				if (!SETISignalReceived && SETISignalTurn == 0 &&
+					_cities.Count(c => c.HasBuilding<Observatory>()) >= 5)
+				{
+					SETISignalTurn = (uint)(_gameTurn + 5);
+				}
+
+				// Fire the SETI signal transmission five turns after the fifth
+				// Observatory was completed world-wide
 				if (SETISignalTurn > 0 && _gameTurn >= SETISignalTurn)
 				{
 					SETISignalTurn = 0;
