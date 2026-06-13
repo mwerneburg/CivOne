@@ -977,8 +977,8 @@ namespace CivOne
 			byte ownerNum = PlayerNumber(player);
 			City city = new City(ownerNum)
 			{
-				X = (byte)x,
-				Y = (byte)y,
+				X = x,
+				Y = y,
 				NameId = nameId,
 				OriginalOwner = ownerNum,
 				Size = 1

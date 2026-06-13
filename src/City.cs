@@ -29,8 +29,12 @@ namespace CivOne
 	public class City : BaseInstance, ITurn
 	{
 		internal int NameId { get; set; }
-		internal byte X;
-		internal byte Y;
+		// int, not byte: the Epic map is 320 wide, so X exceeds a byte's 0-255 range
+		// in its eastern third. A byte here wrapped far-east cities ~256 tiles west,
+		// usually into the ocean. Destroyed-city sentinel is still (255,255) — valid
+		// only because Y=255 is outside the 0-199 row range, so Tile resolves to null.
+		internal int X;
+		internal int Y;
 		internal byte OriginalOwner { get; set; }
 		private byte _owner;
 		internal byte Owner
