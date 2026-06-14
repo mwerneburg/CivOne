@@ -16,8 +16,8 @@ namespace CivOne.Wonders
 	public interface IWonder : ICivilopedia, IProduction
 	{
 		byte Id { get; }
-		IAdvance RequiredTech { get; }
-		IAdvance ObsoleteTech { get; }
+		IAdvance? RequiredTech { get; }
+		IAdvance? ObsoleteTech { get; }
 		IBitmap SmallIcon { get; }
 		string FormatWorldWonder(City city);
 	}

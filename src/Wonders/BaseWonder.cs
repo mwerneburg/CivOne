@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -16,9 +17,9 @@ namespace CivOne.Wonders
 {
 	internal abstract class BaseWonder : BaseInstance, IWonder
 	{
-		public string Name { get; protected set; }
-		public virtual IBitmap Icon => null;
-		public virtual IBitmap SmallIcon { get; protected set; }
+		public string Name { get; protected set; } = null!;
+		public virtual IBitmap Icon => null!;
+		public virtual IBitmap SmallIcon { get; protected set; } = null!;
 		public byte PageCount => 2;
 
 		public virtual string[] GetPageText(byte pageNumber) => System.Array.Empty<string>();
@@ -63,8 +64,8 @@ namespace CivOne.Wonders
 		
 		protected Wonder Type { get; set; }
 		
-		public IAdvance RequiredTech { get; protected set; }
-		public IAdvance ObsoleteTech { get; protected set; }
+		public IAdvance? RequiredTech { get; protected set; }
+		public IAdvance? ObsoleteTech { get; protected set; }
 		public short BuyPrice { get; private set; }
 		public byte ProductionId => (byte)(Math.Abs((int)Type - 232));
 		public byte Price { get; protected set; }
