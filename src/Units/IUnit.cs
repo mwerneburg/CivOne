@@ -23,12 +23,12 @@ namespace CivOne.Units
 {
 	public interface IUnit : ICivilopedia, IProduction, ITurn
 	{
-		IAdvance RequiredTech { get; }
-		IWonder RequiredWonder { get; }
-		IAdvance ObsoleteTech { get; }
+		IAdvance? RequiredTech { get; }
+		IWonder? RequiredWonder { get; }
+		IAdvance? ObsoleteTech { get; }
 		UnitClass Class { get; }
 		UnitType Type { get; }
-		City Home { get; }
+		City? Home { get; }
 		UnitRole Role { get; }
 		byte Attack { get; }
 		byte Defense { get; }
@@ -43,7 +43,7 @@ namespace CivOne.Units
 		bool FortifyActive { get; }
 		bool Fortify { get; set; }
 		bool Moving { get; }
-		MoveUnit Movement { get; }
+		MoveUnit? Movement { get; }
 		bool MoveTo(int relX, int relY);
 		byte Owner { get; set; }
 		byte Status { get; set; }

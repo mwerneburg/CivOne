@@ -41,7 +41,7 @@ namespace CivOne.Screens.CityManagerPanels
 					string homeCity = "NON.";
 					if (_units[i].Home is not null)
 					{
-						homeCity = _units[i].Home.Name;
+						homeCity = _units[i].Home!.Name;
 						if (homeCity.Length >= 3)
 							homeCity = $"{homeCity.Substring(0, 3)}.";
 					}

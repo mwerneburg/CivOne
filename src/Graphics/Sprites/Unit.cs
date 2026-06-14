@@ -16,7 +16,7 @@ namespace CivOne.Graphics.Sprites
 {
 	public static class Unit
 	{
-		private static IBitmap BaseSprite(UnitType type) => CivOne.Units.BaseUnit.GetBaseSprite(type);
+		private static IBitmap? BaseSprite(UnitType type) => CivOne.Units.BaseUnit.GetBaseSprite(type);
 		private static Free Free => Free.Instance;
 		private static Resources Resources => Resources.Instance;
 		private static Settings Settings => Settings.Instance;
@@ -31,13 +31,13 @@ namespace CivOne.Graphics.Sprites
 
 			// Collect art as a transparent-background bytemap (index 0 = transparent)
 			Bytemap art;
-			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap pngArt))
+			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap? pngArt))
 			{
-				art = pngArt;
+				art = pngArt!;
 			}
 			else
 			{
-				IBitmap baseSprite = BaseSprite(unit.Type);
+				IBitmap? baseSprite = BaseSprite(unit.Type);
 				if (baseSprite is not null)
 				{
 					art = baseSprite.MatchColours(Common.DefaultPalette, 1, 15);

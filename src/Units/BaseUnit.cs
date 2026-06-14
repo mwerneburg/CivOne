@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -84,7 +85,7 @@ namespace CivOne.Units
 		}
 
 		public bool Moving => (Movement is not null);
-		public MoveUnit Movement { get; protected set; }
+		public MoveUnit? Movement { get; protected set; }
 
 		private int AttackStrength(IUnit defendUnit)
 		{
@@ -277,7 +278,7 @@ namespace CivOne.Units
 			// a new war, so only proceed if already at war with the target.
 			if (Human == Owner && Player.Government is Governments.Democracy)
 			{
-				Player targetOwner = moveTarget.City is not null
+				Player? targetOwner = moveTarget.City is not null
 				    ? Game.GetPlayer(moveTarget.City.Owner)
 				    : moveTarget.Units.Any(u => u.Owner != Owner)
 				        ? Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner)
@@ -305,7 +306,7 @@ namespace CivOne.Units
 				}
 
 				City capturedCity = moveTarget.City;
-				Movement.Done += (s, a) =>
+				Movement!.Done += (s, a) =>
 				{
 					Action changeOwner = delegate()
 					{
@@ -403,7 +404,7 @@ namespace CivOne.Units
 			}
 			else if (AttackOutcome(this, Map[X, Y][relX, relY]))
 			{
-				Movement.Done += (s, a) =>
+				Movement!.Done += (s, a) =>
 				{
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
 					if (unit is not null)
@@ -440,13 +441,13 @@ namespace CivOne.Units
 			}
 			else
 			{
-				Movement.Done += (s, a) =>
+				Movement!.Done += (s, a) =>
 				{
 					GameTask.Insert(Show.DestroyUnit(this, false));
 					Movement = null;
 				};
 			}
-			GameTask.Insert(Movement);
+			GameTask.Insert(Movement!);
 			return false;
 		}
 		
@@ -542,8 +543,8 @@ namespace CivOne.Units
 		private void MoveEnd(object sender, EventArgs args)
 		{
 			ITile previousTile = Map[_x, _y];
-			X += Movement.RelX;
-			Y += Movement.RelY;
+			X += Movement!.RelX;
+			Y += Movement!.RelY;
 			if (X == Goto.X && Y == Goto.Y)
 			{
 				Goto = Point.Empty;
@@ -570,8 +571,8 @@ namespace CivOne.Units
 		{
 			MovementStart(Tile);
 			Movement = new MoveUnit(relX, relY);
-			Movement.Done += MoveEnd;
-			GameTask.Insert(Movement);
+			Movement!.Done += MoveEnd;
+			GameTask.Insert(Movement!);
 		}
 
 		protected virtual void MovementStart(ITile previousTile)
@@ -595,8 +596,8 @@ namespace CivOne.Units
 		}
 		
 		private static IBitmap[] _iconCache = new IBitmap[Enum.GetValues(typeof(UnitType)).Length];
-		public virtual IBitmap Icon { get; private set; }
-		private string _name;
+		public virtual IBitmap Icon { get; private set; } = null!;
+		private string _name = null!;
 		public string Name
 		{
 			get => Modifications.LastOrDefault(x => x.Name.HasValue)?.Name.Value ?? _name;
@@ -655,17 +656,17 @@ namespace CivOne.Units
 			return output;
 		}
 		
-		private IAdvance _requiredTech;
-		public IAdvance RequiredTech
+		private IAdvance? _requiredTech;
+		public IAdvance? RequiredTech
 		{
 			get => Modifications.LastOrDefault(x => x.Requires.HasValue)?.Requires.Value.ToInstance() ?? _requiredTech;
 			protected set => _requiredTech = value;
 		}
 
-		public IWonder RequiredWonder { get; protected set; }
+		public IWonder? RequiredWonder { get; protected set; }
 
-		private IAdvance _obsoleteTech;
-		public IAdvance ObsoleteTech
+		private IAdvance? _obsoleteTech;
+		public IAdvance? ObsoleteTech
 		{
 			get => Modifications.LastOrDefault(x => x.Obsolete.HasValue)?.Obsolete.Value.ToInstance() ?? _obsoleteTech;
 			protected set => _obsoleteTech = value;
@@ -673,7 +674,7 @@ namespace CivOne.Units
 
 		public UnitClass Class { get; protected set; }
 		public UnitType Type { get; protected set; }
-		public City Home { get; protected set; }
+		public City? Home { get; protected set; }
 		public short _buyPrice;
 		public short BuyPrice
 		{
@@ -792,9 +793,9 @@ namespace CivOne.Units
 				else if (bits[2]) FortifyActive = true;
 				else if (bits[3]) _fortify = true;
 				
-				if (this is Settlers)
+				if (this is Settlers settlers)
 				{
-					(this as Settlers).SetStatus(bits);
+					settlers.SetStatus(bits);
 				}
 
 				Veteran = bits[5];
@@ -904,11 +905,12 @@ namespace CivOne.Units
 			return Player.Gold >= cost;
 		}
 
-		protected MenuItem<int> MenuUpgrade()
+		protected MenuItem<int>? MenuUpgrade()
 		{
 			if (!CanUpgrade(out string targetName, out int cost)) return null;
+			UnitType upgrade = UpgradesTo!.Value;
 			return MenuItem<int>.Create($"Upgrade to {targetName} ({cost}g)")
-				.OnSelect((s, a) => Game.UpgradeUnit(this, UpgradesTo.Value, cost));
+				.OnSelect((s, a) => Game.UpgradeUnit(this, upgrade, cost));
 		}
 
 		public abstract IEnumerable<MenuItem<int>> MenuItems { get; }
@@ -932,7 +934,7 @@ namespace CivOne.Units
 			Explore(onMountain ? 2 : 1, noCorners: onMountain);
 		}
 
-		internal static IBitmap GetBaseSprite(UnitType type)
+		internal static IBitmap? GetBaseSprite(UnitType type)
 		{
 			if (!_modifications.ContainsKey(type)) return null;
 			return _modifications[type].LastOrDefault(x => x.Sprite is not null && x.Sprite.GifToBitmap() is not null)?.Sprite.GifToBitmap();
@@ -940,7 +942,7 @@ namespace CivOne.Units
 
 		private static Dictionary<UnitType, Bytemap> _pngOverrides = new Dictionary<UnitType, Bytemap>();
 
-		internal static bool GetPngOverride(UnitType type, out Bytemap copy)
+		internal static bool GetPngOverride(UnitType type, out Bytemap? copy)
 		{
 			if (_pngOverrides.TryGetValue(type, out Bytemap bmap))
 			{
@@ -961,7 +963,7 @@ namespace CivOne.Units
 			{
 				string name = Path.GetFileNameWithoutExtension(file);
 				if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) continue;
-				Bytemap bmap = LoadPngTile(file);
+				Bytemap? bmap = LoadPngTile(file);
 				if (bmap is not null)
 				{
 					_pngOverrides[unitType] = bmap;
@@ -976,7 +978,7 @@ namespace CivOne.Units
 			string txtPath = Path.Combine(tilesDir, "unit_tiles.txt");
 			if (!File.Exists(txtPath)) return;
 
-			string currentSection = null;
+			string? currentSection = null;
 			var pixels = new List<byte>();
 			foreach (string raw in File.ReadAllLines(txtPath))
 			{
@@ -997,7 +999,7 @@ namespace CivOne.Units
 			FlushTxtSection(currentSection, pixels);
 		}
 
-		private static void FlushTxtSection(string name, List<byte> pixels)
+		private static void FlushTxtSection(string? name, List<byte> pixels)
 		{
 			if (name is null) return;
 			if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) return;
@@ -1021,7 +1023,7 @@ namespace CivOne.Units
 			}
 		}
 
-		private static Bytemap LoadPngTile(string path)
+		private static Bytemap? LoadPngTile(string path)
 		{
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
 			if (rgba is null || w != 16 || h != 16) return null;
@@ -1053,7 +1055,7 @@ namespace CivOne.Units
 			{
 				string name = Path.GetFileNameWithoutExtension(file);
 				if (!Enum.TryParse(name, ignoreCase: true, out UnitType unitType)) continue;
-				Bytemap bmap = LoadGarrisonTile(file);
+				Bytemap? bmap = LoadGarrisonTile(file);
 				if (bmap is not null)
 				{
 					_garrisonIcons[unitType] = bmap;
@@ -1062,7 +1064,7 @@ namespace CivOne.Units
 			}
 		}
 
-		private static Bytemap LoadGarrisonTile(string path)
+		private static Bytemap? LoadGarrisonTile(string path)
 		{
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
 			if (rgba is null || w != 32 || h != 32) return null;
