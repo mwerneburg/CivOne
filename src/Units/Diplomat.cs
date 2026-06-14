@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -37,7 +38,7 @@ namespace CivOne.Units
 			return Math.Max(1, cost);
 		}
 
-		public IAdvance GetAdvanceToSteal(Player victim)
+		public IAdvance? GetAdvanceToSteal(Player victim)
 		{
 			IList<IAdvance> possible = victim.Advances.Where(p => !Player.Advances.Any(p2 => p2.Id == p.Id)).ToList();
 
@@ -58,7 +59,7 @@ namespace CivOne.Units
 			if (random == buildings.Count)
 			{
 				city.Shields = (ushort)0;
-				string production = (city.CurrentProduction as ICivilopedia).Name;
+				string? production = (city.CurrentProduction as ICivilopedia)?.Name;
 				return $"{production} production sabotaged";
 			}
 			else
@@ -119,7 +120,7 @@ namespace CivOne.Units
 						return true;
 					}
 
-					IAdvance advance = !target.TechStolen ? GetAdvanceToSteal(target.Player) : null;
+					IAdvance? advance = !target.TechStolen ? GetAdvanceToSteal(target.Player) : null;
 
 					if (advance is not null)
 					{

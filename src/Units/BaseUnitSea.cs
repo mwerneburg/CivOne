@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -30,7 +31,7 @@ namespace CivOne.Units
 			IUnit[] moveUnits = previousTile.Units.Where(u => u.Class == UnitClass.Land).ToArray();
 			if (previousTile.City is not null)
 				moveUnits = moveUnits.Where(u => u.Sentry).ToArray();
-			moveUnits = moveUnits.Take((this as IBoardable).Cargo).ToArray();
+			moveUnits = moveUnits.Take((this as IBoardable)!.Cargo).ToArray();
 			foreach (IUnit unit in moveUnits)
 			{
 				yield return unit;
@@ -60,7 +61,7 @@ namespace CivOne.Units
 				ITile tile = Map[X, Y];
 				if (tile.GetBorderTiles().Any(t => !t.IsOcean))
 				{
-					foreach (IUnit unit in tile.Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable).Cargo))
+					foreach (IUnit unit in tile.Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable)!.Cargo))
 					{
 						// Restore moves: Sentry-setter zeroed them at MovementStart when the
 						// passenger boarded; clearing Sentry doesn't undo the side effect.
@@ -82,7 +83,7 @@ namespace CivOne.Units
 		{
 			if (!(this is IBoardable))
 				return false;
-			IUnit[] units = Map[X, Y].Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable).Cargo).ToArray();
+			IUnit[] units = Map[X, Y].Units.Where(u => u.Class == UnitClass.Land).Take((this as IBoardable)!.Cargo).ToArray();
 			if (units.Length == 0)
 				return false;
 
@@ -121,7 +122,7 @@ namespace CivOne.Units
 				{
 					yield return MenuUnload();
 				}
-				yield return null;
+				yield return null!; // separator
 				yield return MenuDisbandUnit();
 			}
 		}

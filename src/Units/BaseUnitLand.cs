@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -239,10 +240,10 @@ namespace CivOne.Units
 				var upgrade = MenuUpgrade();
 				if (upgrade is not null)
 				{
-					yield return null;
+					yield return null!; // separator
 					yield return upgrade;
 				}
-				yield return null;
+				yield return null!; // separator
 				yield return MenuDisbandUnit();
 			}
 		}
@@ -273,7 +274,7 @@ namespace CivOne.Units
 				return true;
 
 			// This query checks if there's a boardable cargo vessel with free slots on the tile.
-			return (tile.Units.Any(x => x.Owner == Owner) && tile.Units.Any(u => (u is IBoardable)) && tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo) > tile.Units.Count(u => u.Class == UnitClass.Land));
+			return (tile.Units.Any(x => x.Owner == Owner) && tile.Units.Any(u => (u is IBoardable)) && tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable)!.Cargo) > tile.Units.Count(u => u.Class == UnitClass.Land));
 		}
 
 		protected BaseUnitLand(byte price = 1, byte attack = 1, byte defense = 1, byte move = 1) : base(price, attack, defense, move)

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -46,10 +47,10 @@ namespace CivOne.Units
 			return count;
 		}
 
-		private ITile BestExploreTile()
+		private ITile? BestExploreTile()
 		{
 			int w = Map.WIDTH, h = Map.HEIGHT;
-			ITile best = null;
+			ITile? best = null;
 			int bestScore = 0;
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
@@ -72,7 +73,7 @@ namespace CivOne.Units
 			base.NewTurn();
 			if (AutoExplore && Goto.IsEmpty)
 			{
-				ITile dest = BestExploreTile();
+				ITile? dest = BestExploreTile();
 				if (dest is not null)
 					Goto = new Point(dest.X, dest.Y);
 				else
@@ -85,7 +86,7 @@ namespace CivOne.Units
 			base.MovementDone(previousTile);
 			if (AutoExplore && Goto.IsEmpty && (MovesLeft > 0 || PartMoves > 0))
 			{
-				ITile dest = BestExploreTile();
+				ITile? dest = BestExploreTile();
 				if (dest is not null)
 					Goto = new Point(dest.X, dest.Y);
 				else
@@ -99,7 +100,7 @@ namespace CivOne.Units
 			.OnSelect((s, a) =>
 			{
 				AutoExplore = true;
-				ITile dest = BestExploreTile();
+				ITile? dest = BestExploreTile();
 				if (dest is not null)
 					Goto = new Point(dest.X, dest.Y);
 				else
@@ -123,10 +124,10 @@ namespace CivOne.Units
 				var upgrade = MenuUpgrade();
 				if (upgrade is not null)
 				{
-					yield return null;
+					yield return null!; // separator
 					yield return upgrade;
 				}
-				yield return null;
+				yield return null!; // separator
 				yield return MenuDisbandUnit();
 			}
 		}

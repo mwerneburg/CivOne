@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -180,7 +181,7 @@ namespace CivOne.Units
 			return false;
 		}
 
-		private ITile FindNextImprovementTile()
+		private ITile? FindNextImprovementTile()
 		{
 			var ownCities = Game.GetCities()
 				.Where(c => c.Owner == Owner)
@@ -223,7 +224,7 @@ namespace CivOne.Units
 		private void StartAutoImproveStep()
 		{
 			if (!AutoImprove) return;
-			ITile next = FindNextImprovementTile();
+			ITile? next = FindNextImprovementTile();
 			if (next is null) { AutoImprove = false; return; }
 			if (next.X == X && next.Y == Y)
 			{
@@ -235,9 +236,9 @@ namespace CivOne.Units
 			}
 		}
 
-		private ITile FindNearestCityPollution()
+		private ITile? FindNearestCityPollution()
 		{
-			ITile best = null;
+			ITile? best = null;
 			int bestDist = int.MaxValue;
 			foreach (ITile t in Map.AllTiles())
 			{
@@ -532,7 +533,7 @@ namespace CivOne.Units
 						if (Human.HasAdvance<RailRoad>())
 							Map[X, Y].RailRoad = true;
 						else if (BuildingRoad > 0)
-							foreach (Settlers settlers in Map[X, Y].Units.Where(u => (u is Settlers) && (u as Settlers).BuildingRoad > 0).Select(u => (u as Settlers)))
+							foreach (Settlers settlers in Map[X, Y].Units.OfType<Settlers>().Where(s => s.BuildingRoad > 0))
 								settlers.BuildingRoad = 0;
 					}
 					Map[X, Y].Road = true;
@@ -668,7 +669,7 @@ namespace CivOne.Units
 				}
 				else
 				{
-					ITile target = FindNearestCityPollution();
+					ITile? target = FindNearestCityPollution();
 					if (target is not null)
 						Goto = new Point(target.X, target.Y);
 					else
@@ -799,7 +800,7 @@ namespace CivOne.Units
 			{
 				AutoClean = true;
 				Goto = Point.Empty;
-				ITile target = FindNearestCityPollution();
+				ITile? target = FindNearestCityPollution();
 				if (target is not null)
 				{
 					if (target.X == X && target.Y == Y)
@@ -877,7 +878,7 @@ namespace CivOne.Units
 				{
 					yield return MenuHomeCity();
 				}
-				yield return null;
+				yield return null!; // separator
 				yield return MenuDisbandUnit();
 			}
 		}

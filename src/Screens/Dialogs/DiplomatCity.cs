@@ -69,7 +69,7 @@ namespace CivOne.Screens.Dialogs
 				return;
 			}
 
-			IAdvance advance = _diplomat.GetAdvanceToSteal(_enemyCity.Player);
+			IAdvance? advance = _diplomat.GetAdvanceToSteal(_enemyCity.Player);
 
 			if (advance is null)
 			{
