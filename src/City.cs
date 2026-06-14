@@ -1338,10 +1338,10 @@ namespace CivOne
 					// Autopilot the AI is steering, so let the auto-grow trick on line 1293 fire
 					// — otherwise the city stalls forever with completed-but-uncreated Settlers.
 				}
-				else if (CurrentProduction is IUnit)
+				else if (CurrentProduction is IUnit currentUnit)
 				{
 					Shields = 0;
-					IUnit unit = Game.Instance.CreateUnit((CurrentProduction as IUnit).Type, X, Y, Owner);
+					IUnit unit = Game.Instance.CreateUnit(currentUnit.Type, X, Y, Owner);
 					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
 						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);
@@ -1375,11 +1375,11 @@ namespace CivOne
 					if (CurrentProduction is Buildings.SSStructural)      Game.SpaceshipStructural[playerIndex]++;
 					else if (CurrentProduction is Buildings.SSComponent)  Game.SpaceshipComponent[playerIndex]++;
 					else if (CurrentProduction is Buildings.SSModule)     Game.SpaceshipModule[playerIndex]++;
-					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
+					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
 					message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
 					GameTask.Enqueue(message);
 				}
-				else if (CurrentProduction is IBuilding && !_buildings.Any(b => b.Id == (CurrentProduction as IBuilding).Id))
+				else if (CurrentProduction is IBuilding currentBuilding && !_buildings.Any(b => b.Id == currentBuilding.Id))
 				{
 					Shields = 0;
 					if (CurrentProduction is Palace)
@@ -1395,7 +1395,7 @@ namespace CivOne
 						}
 						_buildings.Add(CurrentProduction as IBuilding);
 
-						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia).Name}.");
+						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
 						message.Done += (s, a) => {
 							GameTask advisorMessage = Message.Advisor(Advisor.Foreign, true, $"{Player.TribeName} capital", $"moved to {Name}.");
 							advisorMessage.Done += (s1, a1) => GameTask.Insert(Show.CityManager(this));

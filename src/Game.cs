@@ -319,6 +319,7 @@ namespace CivOne
 		private void PlayerDestroyed(object sender, EventArgs args)
 		{
 			Player player = (sender as Player);
+			if (player is null) return;
 
 			ICivilization destroyed = player.Civilization;
 			ICivilization destroyedBy = Game.CurrentPlayer.Civilization;
