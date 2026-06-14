@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -166,7 +167,7 @@ namespace CivOne
 		private bool _activeUnitExplicit = false;
 		private readonly HashSet<IUnit> _waitingUnits = new();
 
-		private IUnit _lastMovedUnit = null;
+		private IUnit? _lastMovedUnit = null;
 		private int _sameUnitMoveCount = 0;
 
 		// One-shot diagnostic dump invoked from the circuit breaker. The goal is to capture
@@ -313,12 +314,12 @@ namespace CivOne
 		internal Player CurrentPlayer => _players[_currentPlayer];
 
 		internal ReplayData[] GetReplayData() => _replayData.ToArray();
-		internal T[] GetReplayData<T>() where T : ReplayData => _replayData.Where(x => x is T).Select(x => (x as T)).ToArray();
+		internal T[] GetReplayData<T>() where T : ReplayData => _replayData.Where(x => x is T).Cast<T>().ToArray();
 		internal void AddReplayEvent(ReplayData entry) => _replayData.Add(entry);
 
 		private void PlayerDestroyed(object sender, EventArgs args)
 		{
-			Player player = (sender as Player);
+			Player? player = (sender as Player);
 			if (player is null) return;
 
 			ICivilization destroyed = player.Civilization;
@@ -366,10 +367,13 @@ namespace CivOne
 			return 0;
 		}
 
+		// Contract: callers pass a valid player number, so this is treated as non-null.
+		// The bounds check is defensive against programming errors; it returns null in
+		// that case only (hence null!), rather than forcing a null-check on every caller.
 		internal Player GetPlayer(byte number)
 		{
 			if (number >= _players.Count)
-				return null;
+				return null!;
 			return _players[number];
 		}
 
@@ -646,7 +650,7 @@ namespace CivOne
 						ProbeInterimPhase = 4;
 						string gameDate = GameYear;
 						int tier = ProbeOutcomeTier;
-						string[] techNames = null;
+						string[] techNames = System.Array.Empty<string>();
 						if (ProbeGrantedAdvanceIds.Length > 0)
 						{
 							var grants = ProbeGrantedAdvanceIds
@@ -654,7 +658,7 @@ namespace CivOne
 									.FirstOrDefault(a => a.Id == id))
 								.Where(a => a is not null)
 								.ToArray();
-							techNames = grants.Select(a => (a as ICivilopedia)?.Name).ToArray();
+							techNames = grants.Select(a => (a as ICivilopedia)?.Name ?? "").ToArray();
 							foreach (var adv in grants)
 								if (!HumanPlayer.HasAdvance(adv))
 									HumanPlayer.AddAdvance(adv);
@@ -755,7 +759,7 @@ namespace CivOne
 							for (int p = 1; p < _players.Count; p++)
 							{
 								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-								GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
+								GameTask.Enqueue(Message.Newspaper(null!, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
 								SpaceshipArrivalTurn[p] = 0;
 								break;
 							}
@@ -777,7 +781,7 @@ namespace CivOne
 							for (int p = 1; p < _players.Count; p++)
 							{
 								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-								GameTask.Enqueue(Message.Newspaper(null, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
+								GameTask.Enqueue(Message.Newspaper(null!, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
 								break;
 							}
 							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: false, turns: _gameTurn);
@@ -801,7 +805,7 @@ namespace CivOne
 					{
 						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: true, turns: _gameTurn);
 						int scoreFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Score Victory");
-						GameTask.Enqueue(Message.Newspaper(null, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
+						GameTask.Enqueue(Message.Newspaper(null!, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
 						GameTask scoreFt;
 						GameTask.Enqueue(scoreFt = Show.Screen(new FinalScore("Score Victory")));
 						scoreFt.Done += (s, a) => EndSequence.ChainAfterFinal(scoreFame, () => Runtime.Quit());
@@ -855,7 +859,7 @@ namespace CivOne
 				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn);
 				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;
-				GameTask.Enqueue(Message.Newspaper(null, "Your civilization", "has conquered", "the entire planet!"));
+				GameTask.Enqueue(Message.Newspaper(null!, "Your civilization", "has conquered", "the entire planet!"));
 				GameTask.Enqueue(conquest = Show.Screen<Conquest>());
 				conquest.Done += (s, a) =>
 				{
@@ -885,7 +889,7 @@ namespace CivOne
 		
 		public void Update()
 		{
-			IUnit unit = ActiveUnit;
+			IUnit? unit = ActiveUnit;
 			// In Autopilot we want the human's units handled by the AI just like a regular
 			// non-human player — fall through to the Turn.Move(unit) / Turn.End() branch
 			// below instead of the human-only GoTo path.
@@ -901,7 +905,7 @@ namespace CivOne
 					}
 					// Don't let a GoTo move initiate war — stop peacefully at the border.
 					Player owner = HumanPlayer;
-					Player nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
+					Player? nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? GetPlayer(next.City.Owner) : null;
 					bool peacefulBlock =
 						next.Units.Any(u => { if (u.Owner == unit.Owner) return false; Player p = GetPlayer(u.Owner); return p is not null && u.Owner != 0 && !owner.IsAtWar(p); })
 						|| (nextCityOwner is not null && nextCityOwner != GetPlayer(0) && !owner.IsAtWar(nextCityOwner));
@@ -974,7 +978,7 @@ namespace CivOne
 			return available[player.CityNamesSkipped];
 		}
 
-		internal City AddCity(Player player, int nameId, int x, int y)
+		internal City? AddCity(Player player, int nameId, int x, int y)
 		{
 			if (_cities.Any(c => c.X == x && c.Y == y))
 				return null;
@@ -1036,7 +1040,7 @@ namespace CivOne
 			city.Owner = 0;
 		}
 		
-		internal City GetCity(int x, int y)
+		internal City? GetCity(int x, int y)
 		{
 			while (x < 0) x += Map.WIDTH;
 			while (x >= Map.WIDTH) x-= Map.WIDTH;
@@ -1045,9 +1049,9 @@ namespace CivOne
 			return _cities.Where(c => c.X == x && c.Y == y && c.Size > 0).FirstOrDefault();
 		}
 		
-		internal static IUnit PeekUnit(UnitType type) => CreateUnit(type, 0, 0);
+		internal static IUnit? PeekUnit(UnitType type) => CreateUnit(type, 0, 0);
 
-		private static IUnit CreateUnit(UnitType type, int x, int y)
+		private static IUnit? CreateUnit(UnitType type, int x, int y)
 		{
 			IUnit unit;
 			switch (type)
@@ -1090,9 +1094,9 @@ namespace CivOne
 			return unit;
 		}
 
-		public IUnit CreateUnit(UnitType type, int x, int y, byte owner, bool endTurn = false)
+		public IUnit? CreateUnit(UnitType type, int x, int y, byte owner, bool endTurn = false)
 		{
-			IUnit unit = CreateUnit((UnitType)type, x, y);
+			IUnit? unit = CreateUnit((UnitType)type, x, y);
 			if (unit is null) return null;
 
 			unit.Owner = owner;
@@ -1107,11 +1111,11 @@ namespace CivOne
 			}
 			if (endTurn)
 				unit.SkipTurn();
-			_instance._units.Add(unit);
+			_instance!._units.Add(unit);
 			return unit;
 		}
 		
-		internal IUnit[] GetUnits(int x, int y)
+		internal IUnit[]? GetUnits(int x, int y)
 		{
 			while (x < 0) x += Map.WIDTH;
 			while (x >= Map.WIDTH) x-= Map.WIDTH;
@@ -1119,7 +1123,7 @@ namespace CivOne
 			if (y >= Map.HEIGHT) return null;
 			// Use the raw index field, not the ActiveUnit property, to avoid the
 			// circular: ActiveUnit → IsAboard → tile.Units → GetUnits → ActiveUnit
-			IUnit cur = (_activeUnit >= 0 && _activeUnit < _units.Count) ? _units[_activeUnit] : null;
+			IUnit? cur = (_activeUnit >= 0 && _activeUnit < _units.Count) ? _units[_activeUnit] : null;
 			return _units.Where(u => u.X == x && u.Y == y).OrderBy(u => (u == cur) ? 0 : (u.Fortify || u.FortifyActive ? 1 : 2)).ToArray();
 		}
 
@@ -1387,7 +1391,7 @@ namespace CivOne
 			for (int i = 0; i < chosen.Count; i++)
 			{
 				int nameId = nameStart + (i % olvirCiv.CityNames.Length);
-				City city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
+				City? city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
 				if (city is null) continue;
 
 				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
@@ -1395,7 +1399,7 @@ namespace CivOne
 				// Ocean cities don't get a settler — land settlers can't work ocean tiles.
 				if (!Map[chosen[i].x, chosen[i].y].IsOcean)
 				{
-					IUnit settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
+					IUnit? settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
 					if (settler is not null)
 						settler.SkipTurn();
 				}
@@ -1424,7 +1428,7 @@ namespace CivOne
 			Player player = GetPlayer(unit.Owner);
 			if (player.Gold < cost) return;
 
-			IUnit upgraded = CreateUnit(targetType, unit.X, unit.Y);
+			IUnit? upgraded = CreateUnit(targetType, unit.X, unit.Y);
 			if (upgraded is null) return;
 
 			player.Gold -= (short)cost;
@@ -1465,13 +1469,13 @@ namespace CivOne
 
 		public void DisbandUnit(IUnit unit)
 		{
-			IUnit activeUnit = ActiveUnit;
+			IUnit? activeUnit = ActiveUnit;
 
 			if (unit is null) return;
 			if (!_units.Contains(unit)) return;
 			if (unit.Tile is Ocean && unit is IBoardable)
 			{
-				int totalCargo = unit.Tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo) - (unit as IBoardable).Cargo;
+				int totalCargo = unit.Tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable)!.Cargo) - (unit as IBoardable)!.Cargo;
 				while (unit.Tile.Units.Count(u => u.Class != UnitClass.Water) > totalCargo)
 				{
 					IUnit subUnit = unit.Tile.Units.First(u => u.Class != UnitClass.Water);
@@ -1488,7 +1492,7 @@ namespace CivOne
 
 			GetPlayer(unit.Owner).IsDestroyed();
 
-			if (_units.Contains(activeUnit))
+			if (activeUnit is not null && _units.Contains(activeUnit))
 			{
 				_activeUnit = _units.IndexOf(activeUnit);
 			}
@@ -1501,7 +1505,7 @@ namespace CivOne
 			_activeUnit++;
 		}
 		
-		public IUnit ActiveUnit
+		public IUnit? ActiveUnit
 		{
 			get
 			{
@@ -1577,7 +1581,7 @@ namespace CivOne
 		// replay log) must test this flag to avoid running against a partially-initialised world.
 		public static bool Started => (_instance is not null);
 		
-		private static Game _instance;
+		private static Game? _instance;
 		public static Game Instance
 		{
 			get
@@ -1586,7 +1590,7 @@ namespace CivOne
 				{
 					Log("ERROR: Game instance does not exist");
 				}
-				return _instance;
+				return _instance!;
 			}
 		}
 	}

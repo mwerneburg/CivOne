@@ -48,7 +48,7 @@ namespace CivOne.Tasks
 		{
 			RelX = relX;
 			RelY = relY;
-			ActiveUnit = Game.ActiveUnit;
+			ActiveUnit = Game.ActiveUnit!;
 		}
 	}
 }

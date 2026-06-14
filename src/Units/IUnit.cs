@@ -53,7 +53,7 @@ namespace CivOne.Units
 		IEnumerable<ITile> MoveTargets { get; }
 		void Explore();
 		void SetHome();
-		void SetHome(City city);
+		void SetHome(City? city);
 		IEnumerable<MenuItem<int>> MenuItems { get; }
 		IEnumerable<UnitModification> Modifications { get; }
 		void Pillage();

@@ -36,9 +36,10 @@ namespace CivOne.Screens.Dialogs
 
 		private void Bribe(object sender, EventArgs args)
 		{
-			IUnit newUnit = Game.CreateUnit(_unitToBribe.Type, _unitToBribe.X, _unitToBribe.Y, _diplomat.Owner);
+			IUnit? newUnit = Game.CreateUnit(_unitToBribe.Type, _unitToBribe.X, _unitToBribe.Y, _diplomat.Owner);
 			Game.DisbandUnit(_unitToBribe);
-			_diplomat.KeepMoving(newUnit);
+			if (newUnit is not null)
+				_diplomat.KeepMoving(newUnit);
 
 			_diplomat.Player.Gold -= (short)_bribeCost;
 

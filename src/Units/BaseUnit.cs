@@ -821,7 +821,7 @@ namespace CivOne.Units
 			SetHome(Map[X, Y].City);
 		}
 
-		public void SetHome(City city)
+		public void SetHome(City? city)
 		{
 			if (Home == city) return;
 			Home?.RemoveHomeUnit(this);
@@ -897,7 +897,7 @@ namespace CivOne.Units
 			City city = Map[X, Y].City;
 			if (city is null || city.Owner != Owner) return false;
 			if (!city.HasBuilding<Barracks>()) return false;
-			IUnit target = Game.PeekUnit(UpgradesTo.Value);
+			IUnit? target = Game.PeekUnit(UpgradesTo.Value);
 			if (target is null) return false;
 			if (target.RequiredTech is not null && !Player.HasAdvance(target.RequiredTech)) return false;
 			targetName = target.Name;
