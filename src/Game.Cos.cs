@@ -330,30 +330,6 @@ namespace CivOne
 			}
 		}
 
-		// One-time migration for saves created while City.X/Y were bytes: a city
-		// founded in the eastern third of an Epic map had its X wrapped 256 tiles
-		// west (e.g. 309 -> 53), usually stranding it on an ocean tile. A city now
-		// sitting on ocean whose position +256 is valid land was unambiguously
-		// wrapped there, so shift it back. Legitimate cities always sit on land and
-		// are skipped; idempotent once a city is on its true (land) tile.
-		private void RepairWrappedCities()
-		{
-			Map map = Map.Instance;
-			if (map is null) return;
-			foreach (City city in _cities)
-			{
-				if (city.Size <= 0 || city.X >= 256) continue;
-				var here = map[city.X, city.Y];
-				if (here is null || !here.IsOcean) continue;
-				int trueX = city.X + 256;
-				if (trueX >= Map.WIDTH) continue;
-				var there = map[trueX, city.Y];
-				if (there is null || there.IsOcean) continue;
-				Log("Repairing wrapped city {0}: ({1},{2}) -> ({3},{2})", city.Name, city.X, city.Y, trueX);
-				city.X = trueX;
-			}
-		}
-
 		private Game(CosFile cos)
 		{
 			var g = cos.Game;
@@ -629,12 +605,6 @@ namespace CivOne
 					if (partner is not null) city.AddTradeRoute(partner, tr.Commodity);
 				}
 			}
-
-			// Repair cities corrupted by the old byte X/Y fields. Runs after trade
-			// routes so partner matching (which uses the still-truncated saved coords)
-			// resolves first; the routes hold object references, so the shift below
-			// doesn't disturb them.
-			RepairWrappedCities();
 
 			// Units
 			foreach (var ud in cos.Units ?? Enumerable.Empty<CosUnit>())
