@@ -772,16 +772,28 @@ namespace CivOne
 		{
 			get
 			{
-				if (Shields > 0)
+				// A rush-bought item isn't delivered until next turn's NewTurn, by which
+				// point the city banks one more turn of production. Credit that forthcoming
+				// output toward the price so the player only pays for what the city can't
+				// finish on its own by delivery. ShieldIncome can be negative (units being
+				// disbanded for upkeep), so floor the credit at zero.
+				int target    = (int)CurrentProduction.Price * 10;
+				int effective  = (Shields > 0)
+					? Math.Min(target, Shields + Math.Max(0, ShieldIncome))
+					: 0;
+
+				if (effective > 0)
 				{
+					if (effective >= target) return 0; // finishes next turn unaided — nothing to buy
+					int remaining = target - effective;
 					// Thanks to Tristan_C (http://forums.civfanatics.com/threads/buy-unit-building-wonder-price.576026/#post-14490920)
 					if (CurrentProduction is IUnit)
 					{
-						double x = (double)((CurrentProduction.Price * 10) - Shields) / 10;
+						double x = (double)remaining / 10;
 						double price = 5 * (x * x) + (20 * x);
 						return (short)(Math.Floor(price));
 					}
-					return (short)(((CurrentProduction.Price * 10) - Shields) * (CurrentProduction is IWonder ? 4 : 2));
+					return (short)(remaining * (CurrentProduction is IWonder ? 4 : 2));
 				}
 				return CurrentProduction.BuyPrice;
 			}

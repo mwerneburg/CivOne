@@ -527,6 +527,8 @@ namespace CivOne.Screens
 			string name   = (_city.CurrentProduction as ICivilopedia)?.Name ?? "???";
 			short gold    = Game.CurrentPlayer.Gold;
 			short price   = _city.BuyPrice;
+			if (price <= 0)
+				return true; // already complete, or will finish next turn unaided — nothing to buy
 			if (gold < price)
 			{
 				Common.AddScreen(new MessageBox("Cost to complete", $"{name}: ${price}", $"Treasury: ${gold}"));
