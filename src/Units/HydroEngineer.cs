@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -194,7 +195,7 @@ namespace CivOne.Units
 					yield return MenuHomeCity();
 				}
 
-				yield return null;
+				yield return null!; // menu separator
 				yield return MenuDisbandUnit();
 			}
 		}
