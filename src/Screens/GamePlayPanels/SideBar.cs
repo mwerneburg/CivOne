@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -34,8 +35,8 @@ namespace CivOne.Screens.GamePlayPanels
 
 			if (GamePlay is not null)
 			{
-				IUnit activeUnit = Game.ActiveUnit;
-				ITile[,] tiles = Map[GamePlay.X - 30, GamePlay.Y - 18, 78, 48];
+				IUnit? activeUnit = Game.ActiveUnit;
+				ITile[,] tiles = Map[GamePlay!.X - 30, GamePlay!.Y - 18, 78, 48];
 				for (int yy = 0; yy < 48; yy++)
 				for (int xx = 0; xx < 78; xx++)
 				{
@@ -134,7 +135,7 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		private void DrawGameInfo(uint gameTick = 0)
 		{
-			IUnit unit = Game.ActiveUnit;
+			IUnit? unit = Game.ActiveUnit;
 
 			_gameInfo
 				.FillRectangle(0, 0, _gameInfo.Width, _gameInfo.Height, CassetteTheme.BG1)
@@ -164,7 +165,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 				if (unit is BaseUnitAir)
 				{
-					_gameInfo.DrawText($"Moves: {unit.MovesLeft}({(unit as BaseUnitAir).FuelLeft})", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
+					_gameInfo.DrawText($"Moves: {unit.MovesLeft}({(unit as BaseUnitAir)!.FuelLeft})", 0, CassetteTheme.INK_MID, 4, (yy += 8), TextAlign.Left);
 				}
 				else if (unit.PartMoves > 0)
 				{
@@ -279,10 +280,10 @@ namespace CivOne.Screens.GamePlayPanels
 			{
 				if (args.X < 1 || args.Y < 1 || args.X > 79 || args.Y > 49) return true;
 				
-				int xx = (args.X - 1) + GamePlay.X - 30;
-				int yy = (args.Y - 1) + GamePlay.Y - 18;
+				int xx = (args.X - 1) + GamePlay!.X - 30;
+				int yy = (args.Y - 1) + GamePlay!.Y - 18;
 
-				GamePlay.CenterOnPoint(xx, yy);
+				GamePlay!.CenterOnPoint(xx, yy);
 			}
 			if (args.Y >= 62)
 			{
@@ -294,7 +295,7 @@ namespace CivOne.Screens.GamePlayPanels
 			return true;
 		}
 
-		private GamePlay GamePlay
+		private GamePlay? GamePlay
 		{
 			get
 			{

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -19,11 +20,11 @@ namespace CivOne.Screens.GamePlayPanels
 	{
 		private const int FONT_ID = 0;
 		
-		public event EventHandler GameSelected;
-		public event EventHandler OrdersSelected;
-		public event EventHandler AdvisorsSelected;
-		public event EventHandler WorldSelected;
-		public event EventHandler CivilopediaSelected;
+		public event EventHandler? GameSelected;
+		public event EventHandler? OrdersSelected;
+		public event EventHandler? AdvisorsSelected;
+		public event EventHandler? WorldSelected;
+		public event EventHandler? CivilopediaSelected;
 
 		public bool MenuDrag { get; private set; }
 		

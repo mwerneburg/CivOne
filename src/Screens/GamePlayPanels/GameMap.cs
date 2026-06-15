@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -42,7 +43,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 	internal class GameMap : BaseScreen
 	{
-		private IUnit ActiveUnit => Game.ActiveUnit;
+		private IUnit? ActiveUnit => Game.ActiveUnit;
 
 		// Tile pixel size at 100% zoom. All hardcoded "16" multipliers in the
 		// rendering path were replaced with _tilePixelSize to support Ctrl+wheel
@@ -54,7 +55,7 @@ namespace CivOne.Screens.GamePlayPanels
 		private bool _fullRedraw = false;
 		private bool _reframeRequired = false;
 		private int _x, _y;
-		private IUnit _lastUnit;
+		private IUnit? _lastUnit;
 		private ushort _lastTurn;
 
 		private int _tilesX = 15, _tilesY = 12;
@@ -180,7 +181,7 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		public bool MustUpdate(uint gameTick)
 		{
-			IUnit unit = ActiveUnit;
+			IUnit? unit = ActiveUnit;
 
 			if ((gameTick % 2) == 0 && (_lastTurn != Game.GameTurn || _lastUnit != unit))
 			{
@@ -235,10 +236,10 @@ namespace CivOne.Screens.GamePlayPanels
 			if (!(_update || _fullRedraw)) return false;
 			if (Game.MovingUnit is null && (gameTick % 2 == 1)) return false;
 
-			Player renderPlayer = Settings.RevealWorld ? null : Human;
+			Player? renderPlayer = Settings.RevealWorld ? null : Human;
 			int px = _tilePixelSize;
 
-			IUnit activeUnit = ActiveUnit;
+			IUnit? activeUnit = ActiveUnit;
 			if (Game.MovingUnit is not null)
 			{
 				IUnit movingUnit = Game.MovingUnit;
@@ -258,7 +259,7 @@ namespace CivOne.Screens.GamePlayPanels
 						this.Clear(5).AddLayer(scaledFrame, 0, 0);
 					}
 
-					MoveUnit movement = movingUnit.Movement;
+					MoveUnit movement = movingUnit.Movement!;
 					using (IBitmap movingArea = Map[movingUnit.X - 1, movingUnit.Y - 1, 3, 3].ToBitmap(player: renderPlayer))
 					using (Bytemap scaledMoving = ScaleBitmap(movingArea.Bitmap, 3 * px, 3 * px))
 					{
@@ -335,12 +336,12 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private bool ShouldCenter(int relX = 0, int relY = 0)
 		{
-			IUnit unit = Game.ActiveUnit;
+			IUnit? unit = Game.ActiveUnit;
 			if (unit is null) return false;
 			int viewRange = 1;
 			if (unit.Class == UnitClass.Water)
 			{
-				viewRange = (unit as BaseUnitSea).Range;
+				viewRange = (unit as BaseUnitSea)!.Range;
 			}
 			if (unit.Class == UnitClass.Air)
 			{
@@ -534,7 +535,7 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'U':
 					if (Game.ActiveUnit is IBoardable)
 					{
-						return (Game.ActiveUnit as BaseUnitSea).Unload();;
+						return (Game.ActiveUnit as BaseUnitSea)!.Unload();;
 					}
 					break;
 				case 'W':
@@ -608,7 +609,7 @@ namespace CivOne.Screens.GamePlayPanels
 			
 			if ((args.Buttons & MouseButton.Right) > 0)
 			{
-				if (Game.ActiveUnit is not null && (Game.ActiveUnit as BaseUnit).MoveTargets.Any(t => t.X == xx && t.Y == yy))
+				if (Game.ActiveUnit is not null && (Game.ActiveUnit as BaseUnit)!.MoveTargets.Any(t => t.X == xx && t.Y == yy))
 				{
 					int relX = xx - Game.ActiveUnit.X;
 					int relY = yy - Game.ActiveUnit.Y;
