@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -17,7 +18,7 @@ namespace CivOne.Screens.Dialogs
 	{
 		public IBuilding Building { get; private set; }
 
-		public event EventHandler Sell;
+		public event EventHandler? Sell;
 
 		private void MenuYes(object sender, EventArgs args)
 		{

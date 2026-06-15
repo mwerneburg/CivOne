@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,9 +22,9 @@ namespace CivOne.Screens.Dialogs
 
 		private bool _update = true;
 		
-		protected Picture DialogBox { get; private set; }
+		protected Picture DialogBox { get; private set; } = null!;
 		
-		protected Picture[] TextLines { get; private set; }
+		protected Picture[] TextLines { get; private set; } = null!;
 
 		protected int TextWidth
 		{
@@ -46,7 +47,7 @@ namespace CivOne.Screens.Dialogs
 			return DialogBox[left, top, width, height];
 		}
 
-		protected virtual void Cancel(object sender = null, EventArgs args = null)
+		protected virtual void Cancel(object? sender = null, EventArgs? args = null)
 		{
 			Destroy();
 		}

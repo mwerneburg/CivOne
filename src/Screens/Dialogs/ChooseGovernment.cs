@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,7 +21,7 @@ namespace CivOne.Screens.Dialogs
 	{
 		private readonly IGovernment[] _availableGovernments;
 
-		public IGovernment Result { get; private set; }
+		public IGovernment Result { get; private set; } = null!;
 
 		private void GovernmentChoice(object sender, MenuItemEventArgs<IGovernment> args)
 		{

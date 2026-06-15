@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -19,7 +20,7 @@ namespace CivOne.Screens.Dialogs
 	{
 		private bool _update = true;
 
-		public event EventHandler Buy;
+		public event EventHandler? Buy;
 
 		protected override bool HasUpdate(uint gameTick)
 		{
