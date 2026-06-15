@@ -54,7 +54,10 @@ namespace CivOne.Units
 
 			IList<IBuilding> buildings = city.Buildings.Where(b => (b.GetType() != typeof(Buildings.Palace))).ToList();
 
-			int random = Common.Random.Next(0, buildings.Count);
+			// buildings.Count + 1 outcomes: sabotage any one building, or (the last
+			// value) halt production. Next's upper bound is exclusive, so the +1 is
+			// what makes the production-sabotage branch reachable.
+			int random = Common.Random.Next(0, buildings.Count + 1);
 
 			if (random == buildings.Count)
 			{
