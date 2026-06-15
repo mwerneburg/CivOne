@@ -118,6 +118,13 @@ namespace CivOne.Units
 						Player.Gold       -= (short)inciteCost;
 						Game.DisbandUnit(this);
 						oldOwnerPlayer?.IsDestroyed();
+						// Human's city was incited away — show the rebellion art.
+						if (Game.Animations && Human == oldOwnerPlayer)
+						{
+							string? artPath = CivOne.Screens.ImprovementArtScreen.FindArtPath("Incite Rebellion", "event_art");
+							if (artPath is not null)
+								GameTask.Insert(Show.Screen(new CivOne.Screens.ImprovementArtScreen(artPath, "Incite Rebellion", target.Name)));
+						}
 						if (target.Player == Human || Player == Human)
 							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} incite", $"revolt in {target.Name}!"));
 						return true;

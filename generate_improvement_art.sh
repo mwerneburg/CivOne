@@ -66,6 +66,7 @@ resize_and_install "$SRC/SurplusDepot.png"       "surplus_depot.png"
 resize_and_install "$SRC/Xenolab.png"            "xenolab.png"
 
 # Wonders
+resize_and_install "$SRC/HumanGenome.png"             "human_genome.png"
 resize_and_install "$SRC/PoliceStation.png"           "police_station.png"
 resize_and_install "$SRC/AuditAuthority.png"          "audit_authority.png"
 resize_and_install "$SRC/lighthouse.png"              "lighthouse.png"
@@ -130,6 +131,7 @@ resize_and_install_event() {
 
 echo "Installing event art to: $DEST_EVENT"
 
+resize_and_install_event "$SRC/InciteRebellion.png"       "incite_rebellion.png"
 resize_and_install_event "$SRC/civilunrest0.png"          "civilunrest0.png"
 resize_and_install_event "$SRC/civilunrest1.png"          "civilunrest1.png"
 resize_and_install_event "$SRC/civilunrest2.png"          "civilunrest2.png"
