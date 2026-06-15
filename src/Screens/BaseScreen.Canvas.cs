@@ -19,12 +19,12 @@ namespace CivOne.Screens
 {
 	public abstract partial class BaseScreen : IDefaultTextSettings
 	{
-		public TextSettings DefaultTextSettings { get; set; }
+		public TextSettings? DefaultTextSettings { get; set; }
 
 		protected int Width => Bitmap.Width;
 		protected int Height => Bitmap.Height;
 
-		private Bytemap _bitmap;
+		private Bytemap _bitmap = null!;
 		public Bytemap Bitmap
 		{
 			get
@@ -37,7 +37,7 @@ namespace CivOne.Screens
 				_bitmap = value;
 			}
 		}
-		private Palette _palette, _originalColours;
+		private Palette _palette = null!, _originalColours = null!;
 		public Palette Palette
 		{
 			get

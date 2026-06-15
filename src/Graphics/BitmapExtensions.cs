@@ -177,8 +177,8 @@ namespace CivOne.Graphics
 			if (string.IsNullOrWhiteSpace(text)) return bitmap;
 			if (settings is null)
 			{
-				if (bitmap is IDefaultTextSettings)
-					settings = (bitmap as IDefaultTextSettings).DefaultTextSettings;
+				if (bitmap is IDefaultTextSettings dts)
+					settings = dts.DefaultTextSettings ?? new TextSettings();
 				else
 					settings = new TextSettings();
 			}

@@ -12,6 +12,6 @@ namespace CivOne.Graphics
 {
 	public interface IDefaultTextSettings
 	{
-		TextSettings DefaultTextSettings { get; }
+		TextSettings? DefaultTextSettings { get; }
 	}
 }

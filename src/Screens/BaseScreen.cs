@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -28,14 +29,14 @@ namespace CivOne.Screens
 		private bool CanExpand => Common.HasAttribute<Expand>(this);
 		private bool SizeChanged => (this.Width() != CanvasWidth || this.Height() != CanvasHeight);
 
-		protected event ResizeEventHandler OnResize;
+		protected event ResizeEventHandler? OnResize;
 
 		protected void MouseArgsOffset(ref ScreenEventArgs args, int offsetX, int offsetY)
 		{
 			args = new ScreenEventArgs(args.X - offsetX, args.Y - offsetY, args.Buttons);
 		}
 
-		public event EventHandler Closed;
+		public event EventHandler? Closed;
 
 		protected void HandleClose()
 		{
