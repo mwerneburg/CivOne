@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -51,7 +52,7 @@ namespace CivOne.Screens.Reports
 		};
 
 		// Returns (owner, city) for the city currently building or having built this component.
-		private (Player owner, City city, bool built) FindComponent(Enums.Wonder w)
+		private (Player? owner, City? city, bool built) FindComponent(Enums.Wonder w)
 		{
 			byte wonderId = (byte)w;
 			foreach (City c in Game.Instance.GetCities())

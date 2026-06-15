@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -56,7 +57,7 @@ namespace CivOne.Screens.Reports
 				City city = _cities[i];
 
 				bool   invalid    = ProductionInvalid(city);
-				string production = (city.CurrentProduction as ICivilopedia).Name;
+				string? production = (city.CurrentProduction as ICivilopedia)?.Name;
 				string progress   = $"{city.Shields}/{city.CurrentProduction.Price * 10}";
 
 				byte prodColor = invalid ? CassetteTheme.ALERT : CassetteTheme.INK_MID;

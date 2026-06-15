@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -22,7 +23,7 @@ namespace CivOne.Screens.Reports
 
 		protected readonly IBitmap[] Portrait = new Picture[4];
 
-		protected event ScreenEventHandler OnMouseDown;
+		protected event ScreenEventHandler? OnMouseDown;
 
 		protected byte BackgroundColour { get; }
 

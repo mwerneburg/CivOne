@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -40,7 +41,7 @@ namespace CivOne.Screens.Reports
 		private void Replay(int index)
 		{
 			var entry = _entries[index];
-			IScreen screen = entry.Type switch
+			IScreen? screen = entry.Type switch
 			{
 				"SETISignal"          => new SETISignalTransmission(entry.Year),
 				"SouthPoleIntel"      => new SouthPoleIntelReport(entry.Year),

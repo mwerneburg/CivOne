@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -22,7 +23,7 @@ namespace CivOne.Screens.Reports
 
 			IUnit[] units = Game.GetUnits().Where(u => u.Owner == player && u.Home is not null).ToArray();
 
-			IUnit[] production = Game.GetCities().Where(c => c.Owner == player).Where(c => (c.CurrentProduction is IUnit)).Select(c => (c.CurrentProduction as IUnit)).ToArray();
+			IUnit[] production = Game.GetCities().Where(c => c.Owner == player).Where(c => (c.CurrentProduction is IUnit)).Select(c => (IUnit)c.CurrentProduction).ToArray();
 
 			int i = 0;
 			foreach (IUnit unit in Reflect.GetUnits())

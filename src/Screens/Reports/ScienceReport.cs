@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,12 +28,12 @@ namespace CivOne.Screens.Reports
 			public int X, Y, W, H;
 		}
 
-		private TechNode[]              _nodes;
-		private Dictionary<byte, int>   _nodeIdx;   // advance ID → index into _nodes
+		private TechNode[]              _nodes = null!;
+		private Dictionary<byte, int>   _nodeIdx = null!;   // advance ID → index into _nodes
 		private int _treeW, _treeTop, _scrollX;
 		private bool _dirty;
-		private IAdvance _selected;      // node clicked for path highlight
-		private HashSet<byte> _pathIds; // ancestor IDs of _selected (including itself)
+		private IAdvance? _selected;      // node clicked for path highlight
+		private HashSet<byte>? _pathIds; // ancestor IDs of _selected (including itself)
 
 		// layout constants (computed from font)
 		private int _fontH, _nodeH, _rowH, _colW, _nodeW;

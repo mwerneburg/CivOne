@@ -85,7 +85,7 @@ namespace CivOne.Wonders
 			}
 		}
 
-		public string FormatWorldWonder(City city)
+		public string FormatWorldWonder(City? city)
 		{
 			string name = Id < 8 ? $"The {Name}" : Name;
 			string preposition = Id < 7 ? "of" : "in";

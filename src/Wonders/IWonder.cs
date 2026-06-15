@@ -19,6 +19,6 @@ namespace CivOne.Wonders
 		IAdvance? RequiredTech { get; }
 		IAdvance? ObsoleteTech { get; }
 		IBitmap SmallIcon { get; }
-		string FormatWorldWonder(City city);
+		string FormatWorldWonder(City? city);
 	}
 }

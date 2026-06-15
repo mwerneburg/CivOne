@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -80,9 +81,9 @@ namespace CivOne.Screens.Reports
 				if (built) builtCount++;
 
 				bool hasOwner     = componentOwner.TryGetValue(wonderId, out byte pid);
-				Player player     = hasOwner ? Game.GetPlayer(pid) : null;
+				Player? player     = hasOwner ? Game.GetPlayer(pid) : null;
 				bool isHuman      = hasOwner && player == Human;
-				City building     = (built || !hasOwner) ? null : FindBuildingCity(player, wonderId);
+				City? building     = (built || !hasOwner) ? null : FindBuildingCity(player!, wonderId);
 
 				byte nameColor = isHuman ? CassetteTheme.PHOS : CassetteTheme.INK_HIGH;
 				byte statColor = built        ? CassetteTheme.OK
@@ -90,7 +91,7 @@ namespace CivOne.Screens.Reports
 				               : CassetteTheme.INK_LOW;
 
 				string compLabel = ComponentName(wonderId);
-				string civLabel  = hasOwner ? player.TribeNamePlural.ToUpper() : "UNASSIGNED";
+				string civLabel  = hasOwner ? player!.TribeNamePlural.ToUpper() : "UNASSIGNED";
 				string statusStr = built          ? "COMPLETE"
 				                 : building != null ? building.Name.ToUpper()
 				                 : "NOT STARTED";
