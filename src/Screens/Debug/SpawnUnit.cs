@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -25,20 +26,20 @@ namespace CivOne.Screens.Debug
 
 		private readonly Menu _civSelect;
 
-		private Menu _unitSelect;
+		private Menu _unitSelect = null!;
 
 		private int _index = 0;
 
-		private Player _selectedPlayer = null;
+		private Player? _selectedPlayer = null;
 
-		private IUnit _selectedUnit = null;
+		private IUnit? _selectedUnit = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
 		private MouseCursor _cursor = MouseCursor.Pointer;
 		public override MouseCursor Cursor => _cursor;
 
-		public event EventHandler Cancel;
+		public event EventHandler? Cancel;
 
 		private bool _hasUpdate = false;
 
@@ -142,6 +143,7 @@ namespace CivOne.Screens.Debug
 			get
 			{
 				if (_unitX < 0 || _unitY < 0) return false;
+				if (_selectedUnit is null) return false;
 				ITile tile = Map[UnitX, UnitY];
 				if (tile.Units.Any(x => _selectedPlayer != x.Owner)) return false;
 				if (_selectedUnit.Class == UnitClass.Land && tile.City is not null)
@@ -152,7 +154,7 @@ namespace CivOne.Screens.Debug
 				{
 					if (!tile.Units.Any(x => x.Class == UnitClass.Water && x is IBoardable)) return false;
 					
-					int capacity = tile.Units.Where(x => x.Class == UnitClass.Water && x is IBoardable).Sum(x => (x as IBoardable).Cargo);
+					int capacity = tile.Units.Where(x => x.Class == UnitClass.Water && x is IBoardable).Sum(x => (x as IBoardable)!.Cargo);
 					int unitCount = tile.Units.Count(x => x.Class == UnitClass.Land);
 					return (unitCount < capacity);
 				}
@@ -195,10 +197,10 @@ namespace CivOne.Screens.Debug
 
 			if (ValidTile)
 			{
-				IUnit unit = Game.CreateUnit(_selectedUnit.Type, UnitX, UnitY, Game.PlayerNumber(_selectedPlayer), false);
+				IUnit unit = Game.CreateUnit(_selectedUnit!.Type, UnitX, UnitY, Game.PlayerNumber(_selectedPlayer!), false)!;
 				if (unit.Class == UnitClass.Land && Map[UnitX, UnitY].Type == Terrain.Ocean) unit.Sentry = true;
 
-				if (Game.PlayerNumber(_selectedPlayer) < Game.PlayerNumber(Game.CurrentPlayer))
+				if (Game.PlayerNumber(_selectedPlayer!) < Game.PlayerNumber(Game.CurrentPlayer))
 				{
 					unit.MovesLeft = 0;
 				}
@@ -210,7 +212,7 @@ namespace CivOne.Screens.Debug
 
 				if (unit.Class == UnitClass.Air)
 				{
-					(unit as BaseUnitAir).FuelLeft = (unit as BaseUnitAir).TotalFuel;
+					(unit as BaseUnitAir)!.FuelLeft = (unit as BaseUnitAir)!.TotalFuel;
 				}
 				
 				unit.Explore();
@@ -265,7 +267,7 @@ namespace CivOne.Screens.Debug
 				SidebarHint();
 				_cursor = ValidTile ? MouseCursor.Goto : MouseCursor.Pointer;
 				if (!ValidTile) return _hasUpdate;
-				this.AddLayer(_selectedUnit.ToBitmap(Game.PlayerNumber(_selectedPlayer), false), xx, yy);
+				this.AddLayer(_selectedUnit!.ToBitmap(Game.PlayerNumber(_selectedPlayer!), false), xx, yy);
 				
 				return _hasUpdate;
 			}

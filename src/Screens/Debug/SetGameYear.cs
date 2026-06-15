@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -19,13 +20,13 @@ namespace CivOne.Screens.Debug
 	{
 		private readonly Input _input;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		private void GameYear_Accept(object sender, EventArgs args)
 		{
-			Value = (sender as Input).Text;
+			Value = (sender as Input)!.Text;
 			
 			int gameYear;
 			if (!int.TryParse(Value, out gameYear) || gameYear < -4000 || gameYear > 6000)

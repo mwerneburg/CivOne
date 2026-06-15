@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -23,17 +24,17 @@ namespace CivOne.Screens.Debug
 
 		private readonly Menu _civSelect;
 
-		private Menu _advanceSelect;
+		private Menu _advanceSelect = null!;
 
 		private int _index = 0;
 
 		private int _selected = -1;
 
-		private Player _selectedPlayer = null;
+		private Player? _selectedPlayer = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Cancel;
+		public event EventHandler? Cancel;
 
 		private void AdvancesMenu()
 		{
@@ -72,7 +73,7 @@ namespace CivOne.Screens.Debug
 
 			foreach (IAdvance advance in advances)
 			{
-				bool hasAdvance = _selectedPlayer.HasAdvance(advance);
+				bool hasAdvance = _selectedPlayer!.HasAdvance(advance);
 				_advanceSelect.Items.Add($"{(hasAdvance ? '^' : ' ')}{advance.Name}").OnSelect(PlayerAdvances_Accept);
 			}
 
@@ -104,7 +105,7 @@ namespace CivOne.Screens.Debug
 		{
 			IAdvance advance = _advances[_advanceSelect.ActiveItem + _index];
 			_selected = _advanceSelect.ActiveItem;
-			if (_selectedPlayer.HasAdvance(advance))
+			if (_selectedPlayer!.HasAdvance(advance))
 				_selectedPlayer.DeleteAdvance(advance);
 			else
 				_selectedPlayer.AddAdvance(advance);

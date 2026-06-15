@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,15 +22,15 @@ namespace CivOne.Screens.Debug
 	{
 		private readonly City[] _cities = Game.GetCities().OrderBy(x => x.Name).ToArray();
 
-		private Menu _citySelect;
+		private Menu _citySelect = null!;
 
 		private int _index = 0;
 
-		private City _selectedCity = null;
+		private City? _selectedCity = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Cancel;
+		public event EventHandler? Cancel;
 
 		private void CitiesMenu()
 		{

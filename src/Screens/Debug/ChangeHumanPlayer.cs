@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,11 +22,11 @@ namespace CivOne.Screens.Debug
 	{
 		private readonly Menu<Player> _civSelect;
 
-		private Player _selectedPlayer = null;
+		private Player? _selectedPlayer = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		private void ChangePlayer_Accept(object sender, MenuItemEventArgs<Player> args)
 		{

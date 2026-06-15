@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,13 +22,13 @@ namespace CivOne.Screens.Debug
 	{
 		private readonly Menu _civSelect;
 
-		private Input _input;
+		private Input _input = null!;
 
-		private Player _selectedPlayer = null;
+		private Player? _selectedPlayer = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		private void CivSelect_Accept(object sender, EventArgs args)
 		{
@@ -50,7 +51,7 @@ namespace CivOne.Screens.Debug
 
 		private void PlayerGold_Accept(object sender, EventArgs args)
 		{
-			Value = (sender as Input).Text;
+			Value = (sender as Input)!.Text;
 			
 			short playerGold;
 			if (!short.TryParse(Value, out playerGold) || playerGold < 0 || playerGold > 30000)
@@ -59,7 +60,7 @@ namespace CivOne.Screens.Debug
 			}
 			else
 			{
-				_selectedPlayer.Gold = playerGold;
+				_selectedPlayer!.Gold = playerGold;
 				GameTask.Enqueue(Message.General($"{_selectedPlayer.TribeName} gold set to {playerGold}$."));
 			}
 

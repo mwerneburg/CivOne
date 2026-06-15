@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,17 +22,17 @@ namespace CivOne.Screens.Debug
 	{
 		private readonly City[] _cities = Game.GetCities().OrderBy(x => x.Name).ToArray();
 
-		private Menu _citySelect;
+		private Menu _citySelect = null!;
 
-		private Input _input;
+		private Input _input = null!;
 
 		private int _index = 0;
 
-		private City _selectedCity = null;
+		private City? _selectedCity = null;
 
-		public string Value { get; private set; }
+		public string? Value { get; private set; }
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		private void CitiesMenu()
 		{
@@ -87,7 +88,7 @@ namespace CivOne.Screens.Debug
 
 		private void CitySizeSet_Accept(object sender, EventArgs args)
 		{
-			Value = (sender as Input).Text;
+			Value = (sender as Input)!.Text;
 			
 			byte citySize;
 			if (!byte.TryParse(Value, out citySize) || citySize < 1 || citySize > 99)
@@ -96,7 +97,7 @@ namespace CivOne.Screens.Debug
 			}
 			else
 			{
-				_selectedCity.Size = citySize;
+				_selectedCity!.Size = citySize;
 				GameTask.Enqueue(Message.General($"{_selectedCity.Name} size set to {citySize}."));
 			}
 
