@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -23,7 +24,7 @@ namespace CivOne.Screens.CityManagerPanels
 		
 		private bool _update = true;
 		
-		public event EventHandler HeaderUpdate;
+		public event EventHandler? HeaderUpdate;
 
 		protected override bool HasUpdate(uint gameTick)
 		{

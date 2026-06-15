@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -24,7 +25,7 @@ namespace CivOne.Screens.CityManagerPanels
 		private bool _update = true;
 		private int _tileSize = 16;
 
-		public event EventHandler MapUpdate;
+		public event EventHandler? MapUpdate;
 
 		private void DrawResources(ITile tile, int x, int y)
 		{

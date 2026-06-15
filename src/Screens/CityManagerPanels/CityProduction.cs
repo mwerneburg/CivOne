@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -58,11 +59,11 @@ namespace CivOne.Screens.CityManagerPanels
 			{
 				if (_city.CurrentProduction is IBuilding)
 				{
-					return _city.HasBuilding(_city.CurrentProduction as IBuilding);
+					return _city.HasBuilding((_city.CurrentProduction as IBuilding)!);
 				}
 				if (_city.CurrentProduction is IWonder)
 				{
-					return Game.WonderBuilt(_city.CurrentProduction as IWonder);
+					return Game.WonderBuilt((_city.CurrentProduction as IWonder)!);
 				}
 				return false;
 			}
@@ -111,12 +112,12 @@ namespace CivOne.Screens.CityManagerPanels
 
 				if (_city.CurrentProduction is IUnit)
 				{
-					IUnit unit = (_city.CurrentProduction as IUnit);
+					IUnit unit = (_city.CurrentProduction as IUnit)!;
 					this.AddLayer(unit.ToBitmap(_city.Owner), 33, 0);
 				}
 				else
 				{
-					string name = (_city.CurrentProduction as ICivilopedia).Name;
+					string name = (_city.CurrentProduction as ICivilopedia)!.Name;
 					while (Resources.GetTextSize(1, name).Width > 86)
 					{
 						name = $"{name.Substring(0, name.Length - 2)}.";
@@ -144,7 +145,7 @@ namespace CivOne.Screens.CityManagerPanels
 
 		private bool Buy()
 		{
-			string name = (_city.CurrentProduction as ICivilopedia).Name;
+			string name = (_city.CurrentProduction as ICivilopedia)!.Name;
 			short playerGold = Game.CurrentPlayer.Gold;
 			short buyPrice = _city.BuyPrice;
 			if (buyPrice <= 0)

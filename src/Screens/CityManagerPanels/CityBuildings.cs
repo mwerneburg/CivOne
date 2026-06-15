@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,7 +28,7 @@ namespace CivOne.Screens.CityManagerPanels
 		
 		private bool _update = true;
 		
-		public event EventHandler BuildingUpdate;
+		public event EventHandler? BuildingUpdate;
 
 		private int _page = 0;
 
@@ -73,10 +74,10 @@ namespace CivOne.Screens.CityManagerPanels
 				{
 					if (_improvements[i] is IWonder)
 					{
-						DrawWonder((_improvements[i] as IWonder), i % 14);
+						DrawWonder((_improvements[i] as IWonder)!, i % 14);
 						continue;
 					}
-					DrawBuilding((_improvements[i] as IBuilding), i % 14);
+					DrawBuilding((_improvements[i] as IBuilding)!, i % 14);
 					continue;
 				}
 
@@ -94,7 +95,7 @@ namespace CivOne.Screens.CityManagerPanels
 
 		private void SellBuilding(object sender, EventArgs args)
 		{
-			_city.SellBuilding((sender as ConfirmSell).Building);
+			_city.SellBuilding((sender as ConfirmSell)!.Building);
 			_page = 0;
 			_improvements = GetImprovements.ToArray();
 			_update = true;
@@ -111,7 +112,7 @@ namespace CivOne.Screens.CityManagerPanels
 				{
 					if (args.Y >= yy && args.Y < yy + 8 && _improvements[i] is IBuilding)
 					{
-						ConfirmSell confirmSell = new ConfirmSell(_improvements[i] as IBuilding);
+						ConfirmSell confirmSell = new ConfirmSell((_improvements[i] as IBuilding)!);
 						confirmSell.Sell += SellBuilding;
 						Common.AddScreen(confirmSell);
 						return true;
