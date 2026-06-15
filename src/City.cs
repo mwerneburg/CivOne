@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -83,7 +84,7 @@ namespace CivOne
 		}
 		internal int Shields { get; set; }
 		internal int Food { get; set; }
-		internal IProduction CurrentProduction { get; private set; }
+		internal IProduction CurrentProduction { get; private set; } = null!;
 		// Persisted in the COS save file (see Game.Cos.cs).
 		private readonly List<IProduction> _productionQueue = new();
 		private List<ITile> _resourceTiles = new();
@@ -117,7 +118,7 @@ namespace CivOne
 		private short?        _cachedLuxuries;
 		private short?        _cachedTaxes;
 		private short?        _cachedScience;
-		private List<Citizen> _cachedCitizens;
+		private List<Citizen>? _cachedCitizens;
 
 		internal void InvalidateCache()
 		{
@@ -743,7 +744,7 @@ namespace CivOne
 
 		// Find the next wonder that is not yet globally built and is researchable
 		// by this city's player, skipping the optionally supplied beaten wonder.
-		private IWonder NextAvailableWonder(IWonder beaten = null)
+		private IWonder NextAvailableWonder(IWonder? beaten = null)
 		{
 			// Prefer a wonder already planned in the queue
 			IWonder queued = _productionQueue.OfType<IWonder>()
@@ -961,8 +962,8 @@ namespace CivOne
 				{
 					ITile tile = tiles[xx, yy];
 					if (tile is null) continue;
-					if ((xx == 0 || xx == 4) && (yy == 0 || yy == 4)) tiles[xx, yy] = null;
-					if (!player.Visible(tile)) tiles[xx, yy] = null;
+					if ((xx == 0 || xx == 4) && (yy == 0 || yy == 4)) tiles[xx, yy] = null!;
+					if (!player.Visible(tile)) tiles[xx, yy] = null!;
 				}
 				return tiles;
 			}
@@ -1218,7 +1219,7 @@ namespace CivOne
 							}
 							else
 							{
-								var caravan = Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner);
+								var caravan = Game.Instance.CreateUnit(UnitType.Caravan, X, Y, Owner)!;
 								caravan.SetHome(this);
 								if (Human == Owner)
 								{
@@ -1341,7 +1342,7 @@ namespace CivOne
 				else if (CurrentProduction is IUnit currentUnit)
 				{
 					Shields = 0;
-					IUnit unit = Game.Instance.CreateUnit(currentUnit.Type, X, Y, Owner);
+					IUnit unit = Game.Instance.CreateUnit(currentUnit.Type, X, Y, Owner)!;
 					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
 						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);
@@ -1361,7 +1362,7 @@ namespace CivOne
 					}
 					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Diplomat || CurrentProduction is Caravan))
 					{
-						string uname = (CurrentProduction as ICivilopedia)?.Name;
+						string? uname = (CurrentProduction as ICivilopedia)?.Name;
 						if (uname is not null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))
 							Game.Instance.AddReplayEvent(new ReplayData.UnitBuilt(Game.GameTurn, Owner, uname));
 					}
@@ -1393,7 +1394,7 @@ namespace CivOne
 						{
 							_buildings.RemoveAll(x => x is Courthouse);
 						}
-						_buildings.Add(CurrentProduction as IBuilding);
+						_buildings.Add(currentBuilding);
 
 						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
 						message.Done += (s, a) => {
@@ -1405,16 +1406,15 @@ namespace CivOne
 					}
 					else
 					{
-						_buildings.Add(CurrentProduction as IBuilding);
-						GameTask.Enqueue(new ImprovementBuilt(this, (CurrentProduction as IBuilding)));
+						_buildings.Add(currentBuilding);
+						GameTask.Enqueue(new ImprovementBuilt(this, currentBuilding));
 					}
-					string bname = (CurrentProduction as ICivilopedia)?.Name;
+					string? bname = (CurrentProduction as ICivilopedia)?.Name;
 					if (bname is not null && !Game.Instance.GetReplayData<ReplayData.BuildingBuilt>().Any(b => b.BuildingName == bname))
 						Game.Instance.AddReplayEvent(new ReplayData.BuildingBuilt(Game.GameTurn, Owner, bname));
 				}
-				if (CurrentProduction is IWonder)
+				if (CurrentProduction is IWonder wonder)
 				{
-					IWonder wonder = CurrentProduction as IWonder;
 					if (!Game.WonderBuilt(wonder))
 					{
 						Shields = 0;
@@ -1766,7 +1766,7 @@ namespace CivOne
 					if (Player.Cities.Length < 4)
 						return;
 					
-					City admired = null;
+					City? admired = null;
 					int mostAppeal = 0;
 
 					foreach (City city in Game.GetCities())
@@ -1906,7 +1906,7 @@ namespace CivOne
 			// worked tile to Swamp. Sea Platform suppresses (same coastal-engineering
 			// rationale that saves buildings in Major). Eligible source terrain:
 			// Forest, Plains, Grassland, Desert.
-			ITile eroded = null;
+			ITile? eroded = null;
 			if (sev >= 1 && !seaPlatform)
 			{
 				var candidates = new List<ITile>();

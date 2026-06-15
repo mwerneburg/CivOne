@@ -67,7 +67,8 @@ namespace CivOne.Units
 			if (revenue <= 0) revenue = 1;
 
 			Home?.AddTradeRoute(city, ware);
-			city.AddTradeRoute(Home, ware);
+			if (Home is not null)
+				city.AddTradeRoute(Home, ware);
 
 			GameTask.Insert(Message.General(
 				$"{ware} caravan from {homeName}",
