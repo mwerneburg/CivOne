@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -31,14 +32,14 @@ namespace CivOne.Screens
 		private readonly TextSettings _dialogText;
 
 		private readonly City _city;
-		private readonly IProduction _production;
+		private readonly IProduction? _production;
 		private readonly Picture _background;
 		private readonly bool _founded;
 		private readonly bool _firstView;
 		private readonly bool _captured;
 		private readonly bool _disorder;
 		private readonly bool _weLovePresidentDay;
-		private readonly byte[,] _noiseMap;
+		private readonly byte[,] _noiseMap = null!;
 
 		private int _noiseCounter = NOISE_COUNT + 15;
 
@@ -48,7 +49,7 @@ namespace CivOne.Screens
 		private int _houseType = 0;
 
 		private readonly Picture _overlay;
-		private readonly Picture[] _invadersOrRevolters;
+		private readonly Picture[] _invadersOrRevolters = null!;
 
 		private bool _update = true;
 
@@ -67,9 +68,9 @@ namespace CivOne.Screens
 		private struct SmokeParticle { public float X, Y; public int Age; }
 		private readonly System.Collections.Generic.List<SmokeParticle> _smokeParticles
 			= new System.Collections.Generic.List<SmokeParticle>();
-		private (int X, int Y)[] _smokeSources;
+		private (int X, int Y)[] _smokeSources = null!;
 
-		public event EventHandler Skipped;
+		public event EventHandler? Skipped;
 
 		// ── native palette / background ──────────────────────────────────────
 
@@ -338,7 +339,7 @@ namespace CivOne.Screens
 
 		// ── native wonder drawing onto picture ────────────────────────────────
 
-		private void DrawWonder<T>(Picture picture = null, int x = -1, int y = -1) where T : IWonder
+		private void DrawWonder<T>(Picture? picture = null, int x = -1, int y = -1) where T : IWonder
 		{
 			if (picture is null) picture = _background;
 
@@ -433,7 +434,7 @@ namespace CivOne.Screens
 
 		// ── native building drawing ───────────────────────────────────────────
 
-		private void DrawBuilding<T>(Picture picture = null, int x = -1, int y = -1) where T : IBuilding
+		private void DrawBuilding<T>(Picture? picture = null, int x = -1, int y = -1) where T : IBuilding
 		{
 			if (picture is null) picture = _background;
 
@@ -1037,7 +1038,7 @@ namespace CivOne.Screens
 		// ── constructor ───────────────────────────────────────────────────────
 
 		public CityView(City city, bool founded = false, bool firstView = false,
-		                IProduction production = null, bool captured = false,
+		                IProduction? production = null, bool captured = false,
 		                bool disorder = false, bool weLovePresidentDay = false,
 		                bool viewOnly = false)
 		{
@@ -1156,7 +1157,7 @@ namespace CivOne.Screens
 				for (int y = 0; y < 200; y++)
 					_noiseMap[x, y] = (byte)Common.Random.Next(1, NOISE_COUNT);
 
-				string[] lines = { $"{_city.Name} builds", $"{(production as ICivilopedia).Name}." };
+				string[] lines = { $"{_city.Name} builds", $"{(production as ICivilopedia)!.Name}." };
 				int width = lines.Max(l => Resources.GetTextSize(5, l).Width) + 12;
 				var dialog = new Picture(width, 39)
 					.Tile(Pattern.PanelGrey, 1, 1)

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -31,7 +32,7 @@ namespace CivOne.Screens
 
 		private bool Busy => (Game.MovingUnit is not null || Human != Game.CurrentPlayer || GameTask.Any());
 		
-		private GameMenu _gameMenu = null;
+		private GameMenu? _gameMenu = null;
 		private int _menuX, _menuY;
 		private uint _lastGameTick;
 		private bool _update = true;
@@ -184,7 +185,7 @@ namespace CivOne.Screens
 			DrawLayer(_menuBar, gameTick, 0, 0);
 			DrawLayer(_sideBar, gameTick, _rightSideBar ? (Width - 80) : 0, 8);
 			DrawLayer(_gameMap, gameTick, _rightSideBar ? 0 : 80, 8);
-			DrawLayer(_gameMenu, gameTick, _menuX, _menuY);
+			if (_gameMenu is not null) DrawLayer(_gameMenu, gameTick, _menuX, _menuY);
 			
 			_redraw = false;
 			_update = false;
@@ -457,7 +458,7 @@ namespace CivOne.Screens
 
 			if (Width != 320 || Height != 200)
 			{
-				Resize(null, new ResizeEventArgs(Width, Height));
+				Resize(null!, new ResizeEventArgs(Width, Height));
 			}
 			else
 			{

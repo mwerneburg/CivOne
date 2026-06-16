@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -142,7 +143,7 @@ namespace CivOne.Screens
 
 			// Item list
 			int listTop = py + HeaderH + 2;
-			IProduction prev = null;
+			IProduction? prev = null;
 			for (int i = _scrollTop; i < filtered.Length && i < _scrollTop + mvr; i++)
 			{
 				IProduction item = filtered[i];

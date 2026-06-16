@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -16,7 +17,7 @@ namespace CivOne.Screens
 	[Break]
 	internal class Demo : BaseScreen
 	{
-		private readonly byte[] _textColours;
+		private readonly byte[] _textColours = null!;
 		
 		protected override bool HasUpdate(uint gameTick)
 		{

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -42,7 +43,7 @@ namespace CivOne.Screens
 		private bool _hasUpdate = true;
 		private bool _closing = false;
 
-		private Rectangle[] _optionRects;
+		private Rectangle[] _optionRects = null!;
 
 		private int PanelW => 290;
 		private int PanelH => 208;

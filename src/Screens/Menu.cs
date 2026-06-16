@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,16 +21,16 @@ namespace CivOne.Screens
 	[Expand]
 	public class Menu<T> : BaseScreen, IMenu
 	{
-		private readonly Picture _background;
+		private readonly Picture _background = null!;
 		
-		public event EventHandler Cancel;
-		public event EventHandler MissClick;
+		public event EventHandler? Cancel;
+		public event EventHandler? MissClick;
 		
 		public readonly MenuItemCollection<T> Items;
 
 		public string Id => Items.Id;
 
-		public string Title { get; set; }
+		public string Title { get; set; } = null!;
 		public int FontId { get; set; }
 		public int X { get; set; }
 		public int Y { get; set; }
@@ -223,7 +224,7 @@ namespace CivOne.Screens
 			Destroy();
 		}
 		
-		public Menu(string menuId, Palette palette, IBitmap background = null) : base(MouseCursor.Pointer)
+		public Menu(string menuId, Palette palette, IBitmap? background = null) : base(MouseCursor.Pointer)
 		{
 			OnResize += Resize;
 
@@ -250,11 +251,11 @@ namespace CivOne.Screens
 
 	public class Menu : Menu<int>
 	{
-		public Menu(Palette palette, IBitmap background = null) : base(null, palette, background)
+		public Menu(Palette palette, IBitmap? background = null) : base(string.Empty, palette, background)
 		{
 		}
 
-		public Menu(string menuId, Palette palette, IBitmap background = null) : base(menuId, palette, background)
+		public Menu(string menuId, Palette palette, IBitmap? background = null) : base(menuId, palette, background)
 		{
 		}
 	}

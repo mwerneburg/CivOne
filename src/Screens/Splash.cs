@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,7 +21,7 @@ namespace CivOne.Screens
 	{
 		private const int AutoAdvanceTicks = 300; // ~5 seconds
 
-		private Picture _picture;
+		private Picture? _picture;
 		private int _ticks;
 
 		private struct PixelEntry
@@ -127,7 +128,7 @@ namespace CivOne.Screens
 			return new Picture(bytemap, (Palette)palette);
 		}
 
-		internal static Picture MakePicture(int w, int h)
+		internal static Picture? MakePicture(int w, int h)
 		{
 			SplashData raw = Resources.SplashRawImage;
 			if (raw is null) return null;

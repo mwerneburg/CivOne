@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -293,7 +294,7 @@ namespace CivOne.Screens
 				lines.AddRange(IdentificationLines(arch));
 
 				if (tier == 3)
-					lines.AddRange(TechTransferLines(techNames?.FirstOrDefault()));
+					lines.AddRange(TechTransferLines(techNames.FirstOrDefault() ?? string.Empty));
 				else if (tier == 4)
 					lines.AddRange(PactLines(arch, techNames));
 
@@ -336,9 +337,9 @@ namespace CivOne.Screens
 		// ── Constructor ───────────────────────────────────────────────────────
 
 		internal ProbeResultTransmission(string gameDate, VisitorArchetype arch, int tier,
-		                                  string[] techNames = null)
+		                                  string[]? techNames = null)
 		{
-			_lines = BuildLines(gameDate, arch, tier, techNames);
+			_lines = BuildLines(gameDate, arch, tier, techNames ?? System.Array.Empty<string>());
 			InitTypewriter();
 		}
 	}

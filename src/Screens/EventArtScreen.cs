@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,14 +21,14 @@ namespace CivOne.Screens
 	internal class EventArtScreen : BaseScreen
 	{
 		private readonly string _caption;
-		private readonly byte[] _rawRgba;
+		private readonly byte[] _rawRgba = null!;
 		private readonly int _rawW, _rawH;
-		private byte[,] _indices;
+		private byte[,] _indices = null!;
 		private int _builtForW = -1, _builtForH = -1;
 		private int _scaledW, _scaledH;
 		private bool _update = true;
 
-		internal static string FindPath(string key)
+		internal static string? FindPath(string key)
 		{
 			if (string.IsNullOrEmpty(key)) return null;
 			try

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -28,7 +29,7 @@ namespace CivOne.Screens
 			Destroy();
 		}
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		public override bool MouseDown(ScreenEventArgs args)
 		{

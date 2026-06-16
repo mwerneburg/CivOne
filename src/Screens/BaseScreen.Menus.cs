@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -24,7 +25,7 @@ namespace CivOne.Screens
 			Common.AddScreen(menu);
 		}
 
-		protected void CloseMenus(string menuId = null)
+		protected void CloseMenus(string? menuId = null)
 		{
 			foreach (IMenu menu in _menus)
 			{

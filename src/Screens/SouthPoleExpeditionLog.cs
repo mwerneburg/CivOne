@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -56,7 +57,7 @@ namespace CivOne.Screens
 
 		internal static string ConfigPath => Path.Combine(Settings.Instance.DataDirectory, "south_pole_expedition.txt");
 
-		internal static string[] LoadLogLines()
+		internal static string[]? LoadLogLines()
 		{
 			string path = ConfigPath;
 			if (!File.Exists(path)) return null;
@@ -77,7 +78,7 @@ namespace CivOne.Screens
 			return lines.Count > 0 ? lines.ToArray() : null;
 		}
 
-		internal static string[] LoadIntelLines()
+		internal static string[]? LoadIntelLines()
 		{
 			string path = ConfigPath;
 			if (!File.Exists(path)) return null;

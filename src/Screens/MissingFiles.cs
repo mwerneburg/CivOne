@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -34,7 +35,7 @@ namespace CivOne.Screens
 
 		private int _y;
 
-		private Menu _menu = null;
+		private Menu? _menu = null;
 
 		private void Menu_Continue(object sender, EventArgs args)
 		{

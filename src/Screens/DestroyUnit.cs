@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -42,11 +43,11 @@ namespace CivOne.Screens
 		private int _x, _y;
 		
 		private int _noiseCounter = NOISE_COUNT + 2;
-		private readonly byte[,] _noiseMap;
+		private readonly byte[,] _noiseMap = null!;
 
-		private Picture _gameMap, _overlay = null;
+		private Picture? _gameMap, _overlay = null;
 
-		private IBitmap[] _destroySprites = null;
+		private IBitmap[]? _destroySprites = null;
 		
 		private IEnumerable<RenderTile> RenderTiles
 		{
@@ -95,14 +96,14 @@ namespace CivOne.Screens
 					int step = 8 - _noiseCounter--;
 					if (step >= 0 && step < 8)
 					{
-						_overlay.AddLayer(_destroySprites[step], cx + (xx * 16), cy + (yy * 16));
+						_overlay.AddLayer(_destroySprites![step], cx + (xx * 16), cy + (yy * 16));
 					}
 				}
 			}
 
 			if (_animation == DestroyAnimation.Noise)
 			{
-				_overlay.ApplyNoise(_noiseMap, --_noiseCounter);
+				_overlay!.ApplyNoise(_noiseMap, --_noiseCounter);
 			}
 
 			this.AddLayer(_gameMap, cx, cy)

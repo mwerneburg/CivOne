@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -68,7 +69,7 @@ namespace CivOne.Screens
 
 		internal static string ConfigPath => Path.Combine(Settings.Instance.DataDirectory, "seti_signal.txt");
 
-		internal static string[] LoadTransmissionLines()
+		internal static string[]? LoadTransmissionLines()
 		{
 			string path = ConfigPath;
 			if (!File.Exists(path)) return null;

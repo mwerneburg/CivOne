@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -509,7 +510,7 @@ namespace CivOne.Screens
 
 		private void SellBuilding(object sender, EventArgs args)
 		{
-			_city.SellBuilding((sender as ConfirmSell).Building);
+			_city.SellBuilding((sender as ConfirmSell)!.Building);
 			_buildingsPage = 0;
 			_update = true;
 		}
@@ -545,7 +546,7 @@ namespace CivOne.Screens
 			var nameDialog = new CityName(_city.NameId, _city.Name);
 			nameDialog.Accept += (s, _) =>
 			{
-				Game.CityNames[_city.NameId] = (s as CityName).Value;
+				Game.CityNames[_city.NameId] = (s as CityName)!.Value;
 				_update = true;
 			};
 			Common.AddScreen(nameDialog);

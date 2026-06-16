@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -33,8 +34,8 @@ namespace CivOne.Screens
 		internal static ICivilopedia[] Misc = Reflect.GetConcepts().OrderBy(x => x.Name).ToArray();
 		internal static ICivilopedia[] Complete = Reflect.GetCivilopediaAll().OrderBy(x => x.Name).ToArray();
 
-		private readonly ICivilopedia[] _pages;
-		private readonly ICivilopedia _singlePage;
+		private readonly ICivilopedia[] _pages = null!;
+		private readonly ICivilopedia _singlePage = null!;
 		private readonly bool _discovered;
 
 		// True only when this Civilopedia was opened as a tech-discovery notification
@@ -362,7 +363,7 @@ namespace CivOne.Screens
 			return false;
 		}
 
-		private void DrawTerrainTextValues(ref int y, string name, string food = null, string production = null, string trade = null, string foodIrrigation = null, string productionMining = null, string tradeRoads = null)
+		private void DrawTerrainTextValues(ref int y, string name, string? food = null, string? production = null, string? trade = null, string? foodIrrigation = null, string? productionMining = null, string? tradeRoads = null)
 		{
 
 			this.DrawText(name, 0, CassetteTheme.INK_HIGH, OX + 12, y);

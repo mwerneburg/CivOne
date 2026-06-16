@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -36,7 +37,7 @@ namespace CivOne.Screens
 
 		private IBitmap _gameMap;
 
-		private Picture[] _sprites = null;
+		private Picture[]? _sprites = null;
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
@@ -57,7 +58,7 @@ namespace CivOne.Screens
 			this.AddLayer(_gameMap, cx, cy);
 			if (step >= 0 && step < 28)
 			{
-				this.AddLayer(_sprites[step], xx, yy);
+				this.AddLayer(_sprites![step], xx, yy);
 			}
 
 			return true;
@@ -74,7 +75,7 @@ namespace CivOne.Screens
 
 			Bitmap = new Bytemap(width, height);
 			
-			Player renderPlayer = Settings.RevealWorld ? null : Human;
+			Player? renderPlayer = Settings.RevealWorld ? null : Human;
 			_gameMap = Map[_x, _y, _tilesX, _tilesY].ToBitmap(TileSettings.BlinkOff, renderPlayer);
 		}
 
@@ -94,7 +95,7 @@ namespace CivOne.Screens
 				}
 				Palette = palette;
 			}
-			Player renderPlayer = Settings.RevealWorld ? null : Human;
+			Player? renderPlayer = Settings.RevealWorld ? null : Human;
 			_gameMap = Map[_x, _y, 15, 12].ToBitmap(TileSettings.BlinkOff, renderPlayer);
 
 			_sprites = new Picture[28];

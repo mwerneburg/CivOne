@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -35,7 +36,7 @@ namespace CivOne.Screens
 
 		private readonly Player _enemy;
 		private readonly bool _aiInitiated;
-		private readonly List<AIDemand> _demands;
+		private readonly List<AIDemand> _demands = null!;
 
 		private bool _menuAdded = false;
 		private bool _needsRedraw = true;
@@ -565,11 +566,11 @@ namespace CivOne.Screens
 
 		// ── constructor ───────────────────────────────────────────────────────
 
-		public King(Player player, bool aiInitiated = false, List<AIDemand> demands = null)
+		public King(Player player, bool aiInitiated = false, List<AIDemand>? demands = null)
 		{
 			_enemy       = player;
 			_aiInitiated = aiInitiated;
-			_demands     = demands;
+			_demands     = demands ?? new List<AIDemand>();
 
 			// Start with the portrait's full palette so its pixels render correctly,
 			// then overwrite indices 1-17 with the cassette design tokens.

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -17,18 +18,18 @@ namespace CivOne.Screens
 	[Expand, OwnPalette]
 	internal class CityName : BaseScreen
 	{
-		private Input _input;
+		private Input _input = null!;
 
 		public int NameId { get; private set; }
-		public string Value { get; private set; }
+		public string Value { get; private set; } = null!;
 
-		public event EventHandler Accept, Cancel;
+		public event EventHandler? Accept, Cancel;
 
 		private readonly string _initialName;
 
 		private void CityName_Accept(object sender, EventArgs args)
 		{
-			Value = (sender as Input).Text;
+			Value = (sender as Input)!.Text;
 			Accept?.Invoke(this, null);
 			((Input)sender)?.Close();
 			Destroy();

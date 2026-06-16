@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,8 +19,8 @@ namespace CivOne.Screens
 	[Expand]
 	internal class Input : BaseScreen
 	{
-		public event EventHandler Accept;
-		public event EventHandler Cancel;
+		public event EventHandler? Accept;
+		public event EventHandler? Cancel;
 		
 		private string _text;
 		private int _fontId;

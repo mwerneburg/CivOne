@@ -642,7 +642,7 @@ namespace CivOne
 						RecordTransmission($"ProbeInterim{phase}", gameDate);
 						if (phase == 3)
 							GameTask.Enqueue(Show.Screen(new EventArtScreen(
-								EventArtScreen.FindPath("OlvirInSpace"), "VISUAL CONTACT — TAU CETI")));
+								EventArtScreen.FindPath("OlvirInSpace")!, "VISUAL CONTACT — TAU CETI")));
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
 					}
 					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
@@ -690,7 +690,7 @@ namespace CivOne
 					string landfallYear = Common.YearString((ushort)Math.Min(_gameTurn + 30, ushort.MaxValue));
 					RecordTransmission("OlvirArrival", gameDate);
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
-						EventArtScreen.FindPath("MeetTheOlvir"), artCaption)));
+						EventArtScreen.FindPath("MeetTheOlvir")!, artCaption)));
 					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
 				}
 

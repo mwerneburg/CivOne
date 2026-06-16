@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,7 +28,7 @@ namespace CivOne.Screens
 		// Cursor blinks every N frames (half-period)
 		private const int CURSOR_BLINK_HALF = 8;
 
-		protected string[] _lines;
+		protected string[] _lines = null!;
 
 		private int  _totalChars;   // sum of all (line.Length + 1) — +1 is the EOL pause token
 		private int  _printedChars;

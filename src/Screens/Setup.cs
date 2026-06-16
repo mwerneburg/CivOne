@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -55,7 +56,7 @@ namespace CivOne.Screens
 			FileSystem.CopyPlugins(path);
 		}
 
-		private void CreateMenu(string title, int activeItem, MenuItemEventHandler<int> always, params MenuItem<int>[] items) =>
+		private void CreateMenu(string title, int activeItem, MenuItemEventHandler<int>? always, params MenuItem<int>[] items) =>
 			AddMenu(new Menu("Setup", Palette)
 			{
 				Title = $"{title.ToUpper()}:",
@@ -95,7 +96,7 @@ namespace CivOne.Screens
 			Common.AddScreen(screen);
 		};
 
-		private MenuItemEventHandler<int> CloseScreen(Action action = null) => (s, a) =>
+		private MenuItemEventHandler<int> CloseScreen(Action? action = null) => (s, a) =>
 		{
 			Destroy();
 			if (action is not null) action();

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -28,7 +29,7 @@ namespace CivOne.Screens
 
 		private const int NOISE_COUNT = 64;
 		private int _noiseCounter;
-		private readonly byte[,] _noiseMap;
+		private readonly byte[,] _noiseMap = null!;
 		private readonly Enemy[] _enemies;
 
 		private int _enemy = 0;
@@ -36,7 +37,7 @@ namespace CivOne.Screens
 
 		private int _timer = 0;
 
-		private Picture _background, _overlay;
+		private Picture _background = null!, _overlay = null!;
 
 		private string HumanName => Game.CurrentPlayer.LeaderName;
 

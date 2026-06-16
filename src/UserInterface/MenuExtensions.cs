@@ -39,7 +39,7 @@ namespace CivOne.UserInterface
 			return menu;
 		}
 
-		public static Menu<T> Always<T>(this Menu<T> menu, MenuItemEventHandler<T> action)
+		public static Menu<T> Always<T>(this Menu<T> menu, MenuItemEventHandler<T>? action)
 		{
 			if (action is not null)
 			{

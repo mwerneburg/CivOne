@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -25,8 +26,8 @@ namespace CivOne.Screens
 	[Expand]
 	internal class NewGame : BaseScreen
 	{
-		private ICivilization[] _tribesAvailable;
-		private string[] _menuItemsDifficulty, _menuItemsCompetition, _menuItemsTribes;
+		private ICivilization[] _tribesAvailable = null!;
+		private string[] _menuItemsDifficulty = null!, _menuItemsCompetition = null!, _menuItemsTribes = null!;
 
 		private readonly int _maxCompetition;
 		private readonly Picture _background;
@@ -35,7 +36,7 @@ namespace CivOne.Screens
 		private int OffsetY => ((Height - 200) / 2);
 
 		private int _difficulty = -1, _competition = -1, _tribe = -1;
-		private string _leaderName = null, _tribeName = null, _tribeNamePlural = null;
+		private string? _leaderName = null, _tribeName = null, _tribeNamePlural = null;
 		private bool _done = false, _showIntroText = false, _gameCreated = false;
 		private int _borderStyle = -1;
 		

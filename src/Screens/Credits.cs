@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -42,9 +43,9 @@ namespace CivOne.Screens
 		private bool _introSkipped = false;
 		private int _introLine = -1;
 		
-		private IScreen _overlay = null;
+		private IScreen? _overlay = null;
 
-		private IScreen _nextScreen = null;
+		private IScreen? _nextScreen = null;
 		
 		private void HandleIntroText()
 		{
@@ -352,7 +353,7 @@ namespace CivOne.Screens
 		private void Resize(object sender, ResizeEventArgs args)
 		{
 			_done = false;
-			foreach (Menu menu in Common.Screens.Where(x => x is Menu && (x as Menu).Id == "MainMenu"))
+			foreach (Menu menu in Common.Screens.Where(x => x is Menu && (x as Menu)!.Id == "MainMenu"))
 			{
 				menu.X = ((Width - 120) / 2) + 3;
 				menu.Y = Height - 55;
@@ -371,7 +372,7 @@ namespace CivOne.Screens
 			_pictures = new Picture[3];
 			for (int i = 0; i < 2; i++)
 				_pictures[i] = new Picture(320, 200);
-			Picture splash = Splash.MakePicture(320, 200);
+			Picture? splash = Splash.MakePicture(320, 200);
 			_pictures[2] = splash ?? BuildProceduralTitle();
 			if (splash is null)
 			{
@@ -399,8 +400,8 @@ namespace CivOne.Screens
 					DefaultTextSettings = TextSettings.ThreeLayers(15, 15, 7);
 					break;
 			}
-			DefaultTextSettings.Alignment = TextAlign.Center;
-			DefaultTextSettings.FontId = 4;
+			DefaultTextSettings!.Alignment = TextAlign.Center;
+			DefaultTextSettings!.FontId = 4;
 			
 			_menuColours = [8, 15, 7];
 			
