@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,8 +28,8 @@ namespace CivOne
 		
 		private int _terrainMasterWord;
 		private int _landMass, _temperature, _climate, _age;
-		private ITile[,] _tiles;
-		private bool[,] _freshwater;
+		private ITile[,] _tiles = null!;
+		private bool[,] _freshwater = null!;
 
 		// Flood-fill every connected ocean region.  Any region whose tile count is
 		// at or below LAKE_MAX is a freshwater lake — too small to be the open sea.
@@ -415,7 +416,7 @@ namespace CivOne
 		{
 			get
 			{
-				if (y < 0 || y >= HEIGHT) return null;
+				if (y < 0 || y >= HEIGHT) return null!;
 				
 				while (x < 0) x += WIDTH;
 				x = (x % WIDTH);
@@ -460,7 +461,7 @@ namespace CivOne
 			}
 		}
 		
-		private static Map _instance;
+		private static Map _instance = null!;
 		public static Map Instance
 		{
 			get
@@ -484,7 +485,7 @@ namespace CivOne
 		// twice on the same instance (see Map.Generate.cs:989); resetting forces a fresh one.
 		internal static void ResetForPreview()
 		{
-			_instance = null;
+			_instance = null!;
 		}
 
 		private Map()
