@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,7 +22,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static CursorType CursorType => (Settings.CursorType == CursorType.Default && !Resources.Exists("SP257")) ? CursorType.Builtin : Settings.CursorType;
 
-		private static Bytemap CursorPointer()
+		private static Bytemap? CursorPointer()
 		{
 			switch(CursorType)
 			{
@@ -51,7 +52,7 @@ namespace CivOne.Graphics.Sprites
 			}
 		}
 
-		private static Bytemap CursorGoto()
+		private static Bytemap? CursorGoto()
 		{
 			switch(CursorType)
 			{
@@ -83,7 +84,7 @@ namespace CivOne.Graphics.Sprites
 
 		public readonly static ISprite Pointer = new CachedSprite(CursorPointer);
 		public readonly static ISprite Goto = new CachedSprite(CursorGoto);
-		public static ISprite Current
+		public static ISprite? Current
 		{
 			get
 			{

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,8 +19,8 @@ namespace CivOne.Graphics.ImageFormats
 {
 	public class GifFile : IImageFormat, IDisposable
 	{
-		private Palette _palette;
-		private Bytemap _pixels;
+		private Palette? _palette;
+		private Bytemap? _pixels;
 
 		private IEnumerable<byte[]> OutputBlock(byte[] buffer)
 		{
@@ -55,8 +56,8 @@ namespace CivOne.Graphics.ImageFormats
 				writer.Write("GIF89a".ToCharArray());
 
 				// Width x Height
-				writer.Write((ushort)_pixels.Width);
-				writer.Write((ushort)_pixels.Height);
+				writer.Write((ushort)_pixels!.Width);
+				writer.Write((ushort)_pixels!.Height);
 
 				// GCT Descriptor
 				writer.Write((byte)0xF7);
@@ -71,7 +72,7 @@ namespace CivOne.Graphics.ImageFormats
 				for (int i = 0; i < 256; i++)
 				{
 					byte r = 0, g = 0, b = 0;
-					if (_palette.Length > i)
+					if (_palette!.Length > i)
 					{
 						r = _palette[i].R;
 						g = _palette[i].G;
@@ -86,8 +87,8 @@ namespace CivOne.Graphics.ImageFormats
 				writer.Write((ushort)0);
 				writer.Write((ushort)0);
 				// Width x Height
-				writer.Write((ushort)_pixels.Width);
-				writer.Write((ushort)_pixels.Height);
+				writer.Write((ushort)_pixels!.Width);
+				writer.Write((ushort)_pixels!.Height);
 				// No local colour table
 				writer.Write((byte)0x00);
 
@@ -109,7 +110,7 @@ namespace CivOne.Graphics.ImageFormats
 			}
 		}
 
-		public IBitmap GetBitmap()
+		public IBitmap? GetBitmap()
 		{
 			if (_pixels is null || _palette is null)
 				return null;

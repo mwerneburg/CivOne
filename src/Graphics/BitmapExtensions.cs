@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -30,7 +31,7 @@ namespace CivOne.Graphics
 		public static int Height(this IBitmap bitmap) => bitmap.Bitmap.Height;
 		public static int Width(this IBitmap bitmap) => bitmap.Bitmap.Width;
 
-		public static T As<T>(this IBitmap bitmap) where T : class, IBitmap => (bitmap as T);
+		public static T As<T>(this IBitmap bitmap) where T : class, IBitmap => (bitmap as T)!;
 
 		public static IBitmap Clear(this IBitmap bitmap, byte colour = 0) => FillRectangle(bitmap, 0, 0, bitmap.Bitmap.Width, bitmap.Bitmap.Height, colour);
 
@@ -104,8 +105,8 @@ namespace CivOne.Graphics
 		
 		public static IBitmap AddLayer(this IBitmap bitmap, ISprite sprite, Point point) => AddLayer(bitmap, sprite?.Bitmap, point.X, point.Y, false);
 		public static IBitmap AddLayer(this IBitmap bitmap, ISprite sprite, int left = 0, int top = 0) => AddLayer(bitmap, sprite?.Bitmap, left, top, false);
-		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap layer, Point point, bool dispose = false) => AddLayer(bitmap, layer, point.X, point.Y, dispose);
-		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap layer, int left = 0, int top = 0, bool dispose = false)
+		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap? layer, Point point, bool dispose = false) => AddLayer(bitmap, layer, point.X, point.Y, dispose);
+		public static IBitmap AddLayer(this IBitmap bitmap, IBitmap? layer, int left = 0, int top = 0, bool dispose = false)
 		{
 			if (layer is null) return bitmap;
 			AddLayer(bitmap, layer.Bitmap, left, top, false);
@@ -113,7 +114,7 @@ namespace CivOne.Graphics
 			return bitmap;
 		}
 		public static IBitmap AddLayer(this IBitmap bitmap, Bytemap layer, Point point, bool dispose = false) => AddLayer(bitmap, layer, point.X, point.Y, dispose);
-		public static IBitmap AddLayer(this IBitmap bitmap, Bytemap layer, int left = 0, int top = 0, bool dispose = false)
+		public static IBitmap AddLayer(this IBitmap bitmap, Bytemap? layer, int left = 0, int top = 0, bool dispose = false)
 		{
 			if (layer is null) return bitmap;
 			for (int yy = 0; yy < layer.Height; yy++)
@@ -160,10 +161,10 @@ namespace CivOne.Graphics
 			return bitmap;
 		}
 
-		public static IBitmap DrawText(this IBitmap bitmap, string text, int font, byte colour, int x, int y, TextAlign align = Left)
+		public static IBitmap DrawText(this IBitmap bitmap, string? text, int font, byte colour, int x, int y, TextAlign align = Left)
 		{
 			if (string.IsNullOrWhiteSpace(text)) return bitmap;
-			Bytemap textLayer = Resources.GetText(text, font, colour).Bitmap;
+			Bytemap textLayer = Resources.GetText(text!, font, colour).Bitmap;
 			switch(align)
 			{
 				case Center: x -= (textLayer.Width + 1) / 2; break;
@@ -172,7 +173,7 @@ namespace CivOne.Graphics
 			AddLayer(bitmap, textLayer, x, y, dispose: true);
 			return bitmap;
 		}
-		public static IBitmap DrawText(this IBitmap bitmap, string text, int x = 0, int y = 0, TextSettings settings = null)
+		public static IBitmap DrawText(this IBitmap bitmap, string? text, int x = 0, int y = 0, TextSettings? settings = null)
 		{
 			if (string.IsNullOrWhiteSpace(text)) return bitmap;
 			if (settings is null)
@@ -183,30 +184,30 @@ namespace CivOne.Graphics
 					settings = new TextSettings();
 			}
 			
-			Size textSize = Resources.GetTextSize(settings.FontId, text);
+			Size textSize = Resources.GetTextSize(settings.FontId, text!);
 			Bytemap textLayer;
 			if (settings.FirstLetterColour != 0)
 			{
-				textLayer = Resources.GetText(text, settings.FontId, settings.FirstLetterColour, settings.Colour).Bitmap;
+				textLayer = Resources.GetText(text!, settings.FontId, settings.FirstLetterColour, settings.Colour).Bitmap;
 			}
 			else if (settings.TopColour != 0 && settings.BottomColour != 0)
 			{
 				textLayer = new Picture(textSize.Width, textSize.Height + 2)
-					.AddLayer(Resources.GetText(text, settings.FontId, settings.TopColour))
-					.AddLayer(Resources.GetText(text, settings.FontId, settings.BottomColour), top: 2)
-					.AddLayer(Resources.GetText(text, settings.FontId, settings.Colour), top: 1)
+					.AddLayer(Resources.GetText(text!, settings.FontId, settings.TopColour))
+					.AddLayer(Resources.GetText(text!, settings.FontId, settings.BottomColour), top: 2)
+					.AddLayer(Resources.GetText(text!, settings.FontId, settings.Colour), top: 1)
 					.Bitmap;
 			}
 			else if (settings.BottomColour != 0)
 			{
 				textLayer = new Picture(textSize.Width, textSize.Height + 1)
-					.AddLayer(Resources.GetText(text, settings.FontId, settings.BottomColour), top: 1)
-					.AddLayer(Resources.GetText(text, settings.FontId, settings.Colour))
+					.AddLayer(Resources.GetText(text!, settings.FontId, settings.BottomColour), top: 1)
+					.AddLayer(Resources.GetText(text!, settings.FontId, settings.Colour))
 					.Bitmap;
 			}
 			else
 			{
-				textLayer = Resources.GetText(text, settings.FontId, settings.Colour).Bitmap;
+				textLayer = Resources.GetText(text!, settings.FontId, settings.Colour).Bitmap;
 			}
 
 			switch(settings.Alignment)

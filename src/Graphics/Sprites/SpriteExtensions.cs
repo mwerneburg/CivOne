@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -14,7 +15,7 @@ namespace CivOne.Graphics.Sprites
 		public static IBitmap ToBitmap(this ISprite sprite)
 		{
 			if (sprite is null)
-				return null;
+				return null!;
 			return new Picture(sprite.Bitmap, Common.DefaultPalette);
 		}
 	}

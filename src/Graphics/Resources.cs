@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -181,7 +182,7 @@ namespace CivOne.Graphics
 			return textLines.ToArray();
 		}
 		
-		private static Picture _worldMapTiles;
+		private static Picture _worldMapTiles = null!;
 		public static Picture WorldMapTiles
 		{
 			get
@@ -206,11 +207,11 @@ namespace CivOne.Graphics
 					return new Picture(_cache[key].Bitmap, _cache[key].Palette);
 				}
 				
-				Picture output = null;
+				Picture? output = null;
 				PicFile picFile = new PicFile(filename);
 				if ((Settings.GraphicsMode == GraphicsMode.Graphics256 && picFile.GetPicture256 is not null) || picFile.GetPicture16 is null)
 				{
-					output = new Picture(picFile.GetPicture256, picFile.GetPalette256);
+					output = new Picture(picFile.GetPicture256!, picFile.GetPalette256);
 				}
 				else
 				{
@@ -223,10 +224,10 @@ namespace CivOne.Graphics
 		}
 
 		// Runtime-injected images (set by the SDL/API layer at startup)
-		public static IBitmap SpacedockImage { get; set; }
-		public static SplashData SplashRawImage { get; set; }
+		public static IBitmap SpacedockImage { get; set; } = null!;
+		public static SplashData SplashRawImage { get; set; } = null!;
 
-		private static Resources _instance;
+		private static Resources _instance = null!;
 		public static Resources Instance
 		{
 			get
@@ -241,8 +242,8 @@ namespace CivOne.Graphics
 
 		public static void ClearInstance()
 		{
-			_instance = null;
-			_worldMapTiles = null;
+			_instance = null!;
+			_worldMapTiles = null!;
 			PicFile.ClearCache();
 			TextFile.ClearInstance();
 			Sprites.Cursor.ClearCache();

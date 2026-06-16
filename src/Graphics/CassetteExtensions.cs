@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,7 +28,7 @@ namespace CivOne.Graphics
 		// If title is provided, it is rendered in PHOS straddling the top border —
 		// the classic "label in the frame" motif from the prototype.
 		public static IBitmap DrawCassettePanel(this IBitmap bitmap, int x, int y, int w, int h,
-			string title = null, int font = 0)
+			string? title = null, int font = 0)
 		{
 			bitmap.FillRectangle(x + 1, y + 1, w - 2, h - 2, CassetteTheme.BG1);
 			bitmap.FillRectangle(x,         y,         w, 1, CassetteTheme.BORDER);
@@ -38,7 +39,7 @@ namespace CivOne.Graphics
 			if (string.IsNullOrEmpty(title)) return bitmap;
 
 			int fh = Resources.GetFontHeight(font);
-			string label = " " + title.ToUpper() + " ";
+			string label = " " + title!.ToUpper() + " ";
 			Size ts = Resources.GetTextSize(font, label);
 
 			// Punch a gap in the top border behind the title, then draw it centered on the line.

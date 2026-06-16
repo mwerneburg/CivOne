@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -73,7 +74,7 @@ namespace CivOne.Graphics.ImageFormats
 			{
 				return Decode(File.ReadAllBytes(path), out width, out height);
 			}
-			catch { return null; }
+			catch { return null!; }
 		}
 
 		private static int ReadBE32(byte[] d, int i)
@@ -90,10 +91,10 @@ namespace CivOne.Graphics.ImageFormats
 		{
 			width = height = 0;
 			for (int i = 0; i < 8; i++)
-				if (data[i] != _sig[i]) return null;
+				if (data[i] != _sig[i]) return null!;
 
 			int w = 0, h = 0, bitDepth = 0, colorType = 0;
-			byte[] plt = null;
+			byte[]? plt = null;
 			var idatBlocks = new List<byte[]>();
 
 			int pos = 8;
@@ -111,7 +112,7 @@ namespace CivOne.Graphics.ImageFormats
 						h         = ReadBE32(data, dataStart + 4);
 						bitDepth  = data[dataStart + 8];
 						colorType = data[dataStart + 9];
-						if (data[dataStart + 12] != 0) return null; // no Adam7
+						if (data[dataStart + 12] != 0) return null!; // no Adam7
 						break;
 					case "PLTE":
 						plt = new byte[len];
@@ -128,12 +129,12 @@ namespace CivOne.Graphics.ImageFormats
 			}
 			done:
 
-			if (w == 0 || h == 0 || bitDepth != 8 || idatBlocks.Count == 0) return null;
+			if (w == 0 || h == 0 || bitDepth != 8 || idatBlocks.Count == 0) return null!;
 
 			// Concatenate IDAT blocks and decompress (skip 2-byte zlib header)
 			int total = 0;
 			foreach (var b in idatBlocks) total += b.Length;
-			if (total <= 2) return null;
+			if (total <= 2) return null!;
 
 			byte[] idat = new byte[total];
 			int off = 0;

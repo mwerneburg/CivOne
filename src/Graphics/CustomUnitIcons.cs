@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -36,7 +37,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0, 10,  9,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _armor;
+		private static Bytemap _armor = null!;
 		public  static Bytemap Armor => _armor ??= MakeBitmap(_ArmorData);
 
 		private static readonly byte[,] _RiflemenData = new byte[16,16] {
@@ -58,7 +59,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _riflemen;
+		private static Bytemap _riflemen = null!;
 		public  static Bytemap Riflemen => _riflemen ??= MakeBitmap(_RiflemenData);
 
 		private static readonly byte[,] _BomberData = new byte[16,16] {
@@ -80,7 +81,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _bomber;
+		private static Bytemap _bomber = null!;
 		public  static Bytemap Bomber => _bomber ??= MakeBitmap(_BomberData);
 
 		private static readonly byte[,] _FighterData = new byte[16,16] {
@@ -102,7 +103,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _fighter;
+		private static Bytemap _fighter = null!;
 		public  static Bytemap Fighter => _fighter ??= MakeBitmap(_FighterData);
 
 		private static readonly byte[,] _NuclearData = new byte[16,16] {
@@ -124,7 +125,7 @@ namespace CivOne.Graphics
 			{  9,  0,  0,  0,  0,  0,  0,  9, 10, 10, 10, 10,  9,  0,  0,  9 }
 		};
 
-		private static Bytemap _nuclear;
+		private static Bytemap _nuclear = null!;
 		public  static Bytemap Nuclear => _nuclear ??= MakeBitmap(_NuclearData);
 
 		private static readonly byte[,] _BattleshipData = new byte[16,16] {
@@ -146,7 +147,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  9, 10,  0, 10, 10,  9, 10,  9,  0 }
 		};
 
-		private static Bytemap _battleship;
+		private static Bytemap _battleship = null!;
 		public  static Bytemap Battleship => _battleship ??= MakeBitmap(_BattleshipData);
 
 		private static readonly byte[,] _CarrierData = new byte[16,16] {
@@ -168,7 +169,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _carrier;
+		private static Bytemap _carrier = null!;
 		public  static Bytemap Carrier => _carrier ??= MakeBitmap(_CarrierData);
 
 		private static readonly byte[,] _CruiserData = new byte[16,16] {
@@ -190,7 +191,7 @@ namespace CivOne.Graphics
 			{  0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,  9 }
 		};
 
-		private static Bytemap _cruiser;
+		private static Bytemap _cruiser = null!;
 		public  static Bytemap Cruiser => _cruiser ??= MakeBitmap(_CruiserData);
 
 		private static readonly byte[,] _FrigateData = new byte[16,16] {
@@ -212,7 +213,7 @@ namespace CivOne.Graphics
 			{ 10,  9,  9,  9,  9,  9,  9,  9,  0,  9, 11,  9,  0,  9,  0, 10 }
 		};
 
-		private static Bytemap _frigate;
+		private static Bytemap _frigate = null!;
 		public  static Bytemap Frigate => _frigate ??= MakeBitmap(_FrigateData);
 
 		private static readonly byte[,] _IroncladData = new byte[16,16] {
@@ -234,7 +235,7 @@ namespace CivOne.Graphics
 			{  0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,  9 }
 		};
 
-		private static Bytemap _ironclad;
+		private static Bytemap _ironclad = null!;
 		public  static Bytemap Ironclad => _ironclad ??= MakeBitmap(_IroncladData);
 
 		private static readonly byte[,] _SailData = new byte[16,16] {
@@ -256,7 +257,7 @@ namespace CivOne.Graphics
 			{  9, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,  9 }
 		};
 
-		private static Bytemap _sail;
+		private static Bytemap _sail = null!;
 		public  static Bytemap Sail => _sail ??= MakeBitmap(_SailData);
 
 		private static readonly byte[,] _SubmarineData = new byte[16,16] {
@@ -278,7 +279,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  0,  9, 10,  9,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _submarine;
+		private static Bytemap _submarine = null!;
 		public  static Bytemap Submarine => _submarine ??= MakeBitmap(_SubmarineData);
 
 		private static readonly byte[,] _TransportData = new byte[16,16] {
@@ -300,7 +301,7 @@ namespace CivOne.Graphics
 			{  0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10 }
 		};
 
-		private static Bytemap _transport;
+		private static Bytemap _transport = null!;
 		public  static Bytemap Transport => _transport ??= MakeBitmap(_TransportData);
 
 		private static readonly byte[,] _MechInfData = new byte[16,16] {
@@ -322,7 +323,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _mechinf;
+		private static Bytemap _mechinf = null!;
 		public  static Bytemap MechInf => _mechinf ??= MakeBitmap(_MechInfData);
 
 		private static readonly byte[,] _MilitiaData = new byte[16,16] {
@@ -344,7 +345,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  9,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _militia;
+		private static Bytemap _militia = null!;
 		public  static Bytemap Militia => _militia ??= MakeBitmap(_MilitiaData);
 
 		private static readonly byte[,] _PhalanxData = new byte[16,16] {
@@ -366,7 +367,7 @@ namespace CivOne.Graphics
 			{  0,  0,  9,  9,  9,  9,  9,  9,  0,  9,  9,  9,  9,  9,  9,  0 }
 		};
 
-		private static Bytemap _phalanx;
+		private static Bytemap _phalanx = null!;
 		public  static Bytemap Phalanx => _phalanx ??= MakeBitmap(_PhalanxData);
 
 		private static readonly byte[,] _SettlersData = new byte[16,16] {
@@ -388,7 +389,7 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  9,  0, 10, 10,  0,  0,  0,  0,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _settlers;
+		private static Bytemap _settlers = null!;
 		public  static Bytemap Settlers => _settlers ??= MakeBitmap(_SettlersData);
 
 		private static readonly byte[,] _MusketeersData = new byte[16,16] {
@@ -410,10 +411,10 @@ namespace CivOne.Graphics
 			{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9,  9,  0,  0,  0,  0 }
 		};
 
-		private static Bytemap _musketeers;
+		private static Bytemap _musketeers = null!;
 		public  static Bytemap Musketeers => _musketeers ??= MakeBitmap(_MusketeersData);
 
-		public static Bytemap For(IUnit unit)
+		public static Bytemap? For(IUnit unit)
 		{
 			switch (unit)
 			{

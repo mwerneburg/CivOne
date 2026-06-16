@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -21,12 +22,12 @@ namespace CivOne.Graphics.ImageFormats
 		private static void Log(string text, params object[] parameters) => RuntimeHandler.Runtime.Log(text, parameters);
 
 		private static Dictionary<string, PicFile> _cache = new();
-		private readonly byte[] _bytes;
-		private readonly byte[,] _colourTable = null;
+		private readonly byte[] _bytes = null!;
+		private readonly byte[,]? _colourTable = null;
 		private readonly Palette _palette16 = Common.GetPalette16;
 		private readonly Palette _palette256 = new Palette(256);
-		private Bytemap _picture16;
-		private Bytemap _picture256;
+		private Bytemap? _picture16;
+		private Bytemap? _picture256;
 
 		public bool HasPalette16 { get; internal set; }
 		public bool HasPalette256 { get; internal set; }
@@ -36,8 +37,8 @@ namespace CivOne.Graphics.ImageFormats
 		public Palette GetPalette16 => _palette16.Copy();
 		public Palette GetPalette256 => _palette256.Copy();
 
-		public Bytemap GetPicture16 => _picture16;
-		public Bytemap GetPicture256 => _picture256;
+		public Bytemap? GetPicture16 => _picture16;
+		public Bytemap? GetPicture256 => _picture256;
 
 		/// <summary>
 		/// Read the E0 colour replacement table from the PIC file.
@@ -186,8 +187,8 @@ namespace CivOne.Graphics.ImageFormats
 		{
 			if (colourTable is null) return;
 			
-			int width = _picture256.Width;
-			int height = _picture256.Height;
+			int width = _picture256!.Width;
+			int height = _picture256!.Height;
 			
 			_picture16?.Dispose();
 			_picture16 = new Bytemap(width, height);
@@ -234,7 +235,7 @@ namespace CivOne.Graphics.ImageFormats
 				{
 					br.Write((ushort)0x3058);
 
-					byte[] encoded = RLE.Encode(_picture256.ToByteArray());
+					byte[] encoded = RLE.Encode(_picture256!.ToByteArray());
 					encoded = LZW.Encode(encoded);
 					
 					br.Write((ushort)(encoded.Length + 5));
@@ -330,7 +331,7 @@ namespace CivOne.Graphics.ImageFormats
 						break;
 					case 0x3058:
 						ReadPictureX0(ref index);
-						ConvertPictureX0(_colourTable);
+						ConvertPictureX0(_colourTable!);
 						HasPicture256 = true;
 						break;
 					case 0x3158:

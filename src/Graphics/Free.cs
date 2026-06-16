@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,8 +21,8 @@ namespace CivOne.Graphics
 {
 	internal class Free
 	{
-		private Bytemap _panelGrey, _panelBlue;
-		private Bytemap _landBase, _seaBase, _city, _fortify;
+		private Bytemap _panelGrey = null!, _panelBlue = null!;
+		private Bytemap _landBase = null!, _seaBase = null!, _city = null!, _fortify = null!;
 		private Bytemap[] _terrain = new Bytemap[10];
 
 		private IEnumerable<byte> GenerateNoise(params byte[] values)
@@ -117,7 +118,7 @@ namespace CivOne.Graphics
 
 		public Bytemap LakeTile()
 		{
-			byte[] loaded = TryLoadTile("lakes");
+			byte[]? loaded = TryLoadTile("lakes");
 			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 			// Fallback: CYAN(17) primary with sparse deep-blue(18) specks — visually lighter than ocean.
@@ -134,7 +135,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				byte[] loaded = TryLoadTile("desert");
+				byte[]? loaded = TryLoadTile("desert");
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -146,7 +147,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				byte[] loaded = TryLoadTile("forest");
+				byte[]? loaded = TryLoadTile("forest");
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -200,7 +201,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				byte[] loaded = TryLoadTile("mountains");
+				byte[]? loaded = TryLoadTile("mountains");
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -229,7 +230,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				byte[] loaded = TryLoadTile("jungle");
+				byte[]? loaded = TryLoadTile("jungle");
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -258,7 +259,7 @@ namespace CivOne.Graphics
 		{
 			get
 			{
-				byte[] loaded = TryLoadTile("swamp");
+				byte[]? loaded = TryLoadTile("swamp");
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -310,7 +311,7 @@ namespace CivOne.Graphics
 
 		public Bytemap Special(Terrain type)
 		{
-			string specialSection = type switch
+			string? specialSection = type switch
 			{
 				Terrain.Ocean     => "special_ocean",
 				Terrain.Jungle    => "special_jungle",
@@ -326,7 +327,7 @@ namespace CivOne.Graphics
 			};
 			if (specialSection is not null)
 			{
-				byte[] loaded = TryLoadTile(specialSection);
+				byte[]? loaded = TryLoadTile(specialSection);
 				if (loaded is not null)
 					return new Bytemap(16, 16).FromByteArray(loaded);
 			}
@@ -451,18 +452,18 @@ namespace CivOne.Graphics
 		private static readonly string LakeShoresFilePath =
 			Path.Combine(Environment.CurrentDirectory, "lake_shores.txt");
 
-		private Dictionary<string, byte[]> _tileOverrides;
-		private Dictionary<string, byte[]> _shoreOverrides;
-		private Dictionary<string, byte[]> _lakeShoreOverrides;
+		private Dictionary<string, byte[]> _tileOverrides = null!;
+		private Dictionary<string, byte[]> _shoreOverrides = null!;
+		private Dictionary<string, byte[]> _lakeShoreOverrides = null!;
 
-		private byte[] TryLoadTile(string name)
+		private byte[]? TryLoadTile(string name)
 		{
 			if (_tileOverrides is null)
 				_tileOverrides = ParseTilesFile(TilesFilePath);
 			return _tileOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
 
-		private byte[] TryLoadShore(string name)
+		private byte[]? TryLoadShore(string name)
 		{
 			if (_shoreOverrides is null)
 				_shoreOverrides = ParseTilesFile(ShoresFilePath);
@@ -471,7 +472,7 @@ namespace CivOne.Graphics
 
 		// Composite per-direction shore wave overlays from shore_tiles.txt.
 		// Returns null when the file or required sections are absent (falls back to CoastLayer).
-		public Bytemap ShoreLayer(Direction land)
+		public Bytemap? ShoreLayer(Direction land)
 		{
 			if (_shoreOverrides is null)
 				_shoreOverrides = ParseTilesFile(ShoresFilePath);
@@ -490,7 +491,7 @@ namespace CivOne.Graphics
 			])
 			{
 				if (!land.And(pair.Item1)) continue;
-				byte[] tile = TryLoadShore(pair.Item2);
+				byte[]? tile = TryLoadShore(pair.Item2);
 				if (tile is null) continue;
 				output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 				any = true;
@@ -507,7 +508,7 @@ namespace CivOne.Graphics
 			{
 				if (land.And(pair.Item1) && land.Not(pair.Item2) && land.Not(pair.Item3))
 				{
-					byte[] tile = TryLoadShore(pair.Item4);
+					byte[]? tile = TryLoadShore(pair.Item4);
 					if (tile is null) continue;
 					output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 					any = true;
@@ -517,7 +518,7 @@ namespace CivOne.Graphics
 			return any ? output : null;
 		}
 
-		private byte[] TryLoadLakeShore(string name)
+		private byte[]? TryLoadLakeShore(string name)
 		{
 			if (_lakeShoreOverrides is null)
 				_lakeShoreOverrides = ParseTilesFile(LakeShoresFilePath);
@@ -526,7 +527,7 @@ namespace CivOne.Graphics
 
 		// Composite per-direction shore overlays for lake tiles from lake_shores.txt.
 		// Falls back to the same foam/sand pattern as CoastLayer when the file is absent.
-		public Bytemap LakeShoreLayer(Direction land)
+		public Bytemap? LakeShoreLayer(Direction land)
 		{
 			if (_lakeShoreOverrides is null)
 				_lakeShoreOverrides = ParseTilesFile(LakeShoresFilePath);
@@ -546,7 +547,7 @@ namespace CivOne.Graphics
 				])
 				{
 					if (!land.And(pair.Item1)) continue;
-					byte[] tile = TryLoadLakeShore(pair.Item2);
+					byte[]? tile = TryLoadLakeShore(pair.Item2);
 					if (tile is null) continue;
 					output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 					any = true;
@@ -562,7 +563,7 @@ namespace CivOne.Graphics
 				{
 					if (land.And(pair.Item1) && land.Not(pair.Item2) && land.Not(pair.Item3))
 					{
-						byte[] tile = TryLoadLakeShore(pair.Item4);
+						byte[]? tile = TryLoadLakeShore(pair.Item4);
 						if (tile is null) continue;
 						output.AddLayer(new Bytemap(16, 16).FromByteArray(tile));
 						any = true;
@@ -603,7 +604,7 @@ namespace CivOne.Graphics
 			if (!File.Exists(path))
 				return result;
 
-			string currentSection = null;
+			string? currentSection = null;
 			var pixels = new List<byte>();
 
 			foreach (string raw in File.ReadAllLines(path))
@@ -640,7 +641,7 @@ namespace CivOne.Graphics
 		public Bytemap HillTexture(Direction directions)
 		{
 			string section = directions == None ? "hill_standalone" : "hill_connected";
-			byte[] loaded = TryLoadTile(section);
+			byte[]? loaded = TryLoadTile(section);
 			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -741,7 +742,7 @@ namespace CivOne.Graphics
 			// the user's hand-edited cassette-palette shield silhouette would never
 			// be read and the hardcoded SP257-style bright amber blob below would
 			// always win.
-			byte[] loaded = TryLoadTile("special_grassland");
+			byte[]? loaded = TryLoadTile("special_grassland");
 			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -768,7 +769,7 @@ namespace CivOne.Graphics
 		// Irrigation overlay: channels (CYAN/14) + 2×2 soil patches (BORDER/5, INK_LOW/6) in each field cell
 		public Bytemap Irrigation()
 		{
-			byte[] loaded = TryLoadTile("irrigation");
+			byte[]? loaded = TryLoadTile("irrigation");
 			if (loaded is not null)
 				return new Bytemap(16, 16).FromByteArray(loaded);
 
@@ -797,7 +798,7 @@ namespace CivOne.Graphics
 		// Otherwise falls back to the static two-pixel foam/sand pattern below.
 		public Bytemap CoastLayer(Direction land)
 		{
-			Bytemap shore = ShoreLayer(land);
+			Bytemap? shore = ShoreLayer(land);
 			if (shore is not null) return shore;
 
 			const byte foam = 8;  // INK_HIGH — surf/foam
@@ -1161,7 +1162,7 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static Free _instance;
+		private static Free _instance = null!;
 		public static Free Instance
 		{
 			get

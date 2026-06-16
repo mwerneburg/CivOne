@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -19,19 +20,19 @@ namespace CivOne.Graphics.Sprites
 		{
 			public Bytemap Bitmap { get; private set; }
 
-			internal Sprite(Bytemap bitmap)
+			internal Sprite(Bytemap? bitmap)
 			{
-				Bitmap = bitmap;
+				Bitmap = bitmap!;
 			}
 
 			~Sprite()
 			{
 				Bitmap?.Dispose();
-				Bitmap = null;
+				Bitmap = null!;
 			}
 		}
 
-		private readonly Func<T, Bytemap> GetSprite;
+		private readonly Func<T, Bytemap?> GetSprite;
 
 		private readonly Dictionary<T, ISprite> _sprites = new();
 
@@ -52,7 +53,7 @@ namespace CivOne.Graphics.Sprites
 			_sprites.Clear();
 		}
 
-		public CachedSpriteCollection(Func<T, Bytemap> getSprite)
+		public CachedSpriteCollection(Func<T, Bytemap?> getSprite)
 		{
 			GetSprite = getSprite;
 		}

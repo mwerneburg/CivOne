@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -41,7 +42,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetLakeBase() => Free.LakeTile();
 
-		private static Bytemap GetLakeShoreLayer(Direction directions)
+		private static Bytemap? GetLakeShoreLayer(Direction directions)
 		{
 			if (directions == None) return null;
 			return Free.LakeShoreLayer(directions);
@@ -125,7 +126,7 @@ namespace CivOne.Graphics.Sprites
 			if (rivers.And(West)) output.AddLayer(pic[176, 176, 16, 16]);
 		}
 
-		private static Bytemap GetOceanLayer((Direction Land, Direction Rivers) directions)
+		private static Bytemap? GetOceanLayer((Direction Land, Direction Rivers) directions)
 		{
 			if (directions.Land == Direction.None && directions.Rivers == Direction.None)
 				return null;
@@ -137,7 +138,7 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 		
-		private static Bytemap GetRiverLayer(Direction directions)
+		private static Bytemap? GetRiverLayer(Direction directions)
 		{
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -145,7 +146,7 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[(int)directions * 16, 80, 16, 16];
 		}
 
-		private static Bytemap GetTileLayer<T>(Direction directions) where T : ITile, new()
+		private static Bytemap? GetTileLayer<T>(Direction directions) where T : ITile, new()
 		{
 			if (typeof(T) == typeof(Plains))
 				return Free.PlainsTexture();
@@ -333,7 +334,7 @@ namespace CivOne.Graphics.Sprites
 			return Free.Irrigation();
 		}
 
-		private static Bytemap GetMine()
+		private static Bytemap? GetMine()
 		{
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -341,7 +342,7 @@ namespace CivOne.Graphics.Sprites
 			return Resources[picFile].Bitmap[80, 32, 16, 16];
 		}
 
-		private static Bytemap GetFortress()
+		private static Bytemap? GetFortress()
 		{
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -350,7 +351,7 @@ namespace CivOne.Graphics.Sprites
 				.ColourReplace(3, 0);
 		}
 
-		private static Bytemap GetHut()
+		private static Bytemap? GetHut()
 		{
 			string picFile = (GFX256 ? "SP257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -422,7 +423,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Oil = new CachedSprite(GetSpecial<Swamp>);
 		public static readonly ISprite TundraGame = new CachedSprite(GetSpecial<Tundra>);
 
-		public static Bytemap LandCoastErosion(ITile tile)
+		public static Bytemap? LandCoastErosion(ITile tile)
 		{
 			if (tile.IsOcean) return null;
 			bool N  = tile[0,  -1]?.IsOcean == true;
@@ -456,7 +457,7 @@ namespace CivOne.Graphics.Sprites
 				return LakeBase;
 			return tile.IsOcean ? OceanBase : LandBase;
 		}
-		public static ISprite TileLayer(ITile tile)
+		public static ISprite? TileLayer(ITile tile)
 		{
 			Direction directions = None, riverDirections = None;
 			if (tile is Ocean)
@@ -522,7 +523,7 @@ namespace CivOne.Graphics.Sprites
 
 			return null;
 		}
-		public static ISprite TileSpecial(ITile tile)
+		public static ISprite? TileSpecial(ITile tile)
 		{
 			if (tile is River || (!tile.Special && tile.Type != Terrain.Grassland2)) return null;
 			switch (tile)

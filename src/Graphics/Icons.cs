@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,7 +19,7 @@ namespace CivOne.Graphics
 	internal class Icons
 	{
 		private static Resources Resources => Resources.Instance;
-		private static IBitmap _food;
+		private static IBitmap _food = null!;
 		public static IBitmap Food
 		{
 			get
@@ -40,7 +41,7 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static IBitmap _foodLoss;
+		private static IBitmap _foodLoss = null!;
 		public static IBitmap FoodLoss
 		{
 			get
@@ -55,7 +56,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _shield;
+		private static IBitmap _shield = null!;
 		public static IBitmap Shield
 		{
 			get
@@ -75,7 +76,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _shieldLoss;
+		private static IBitmap _shieldLoss = null!;
 		public static IBitmap ShieldLoss
 		{
 			get
@@ -88,7 +89,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _trade;
+		private static IBitmap _trade = null!;
 		public static IBitmap Trade
 		{
 			get
@@ -108,7 +109,7 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static IBitmap _corruption;
+		private static IBitmap _corruption = null!;
 		public static IBitmap Corruption
 		{
 			get
@@ -121,7 +122,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _unhappy;
+		private static IBitmap _unhappy = null!;
 		public static IBitmap Unhappy
 		{
 			get
@@ -134,7 +135,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _luxuries;
+		private static IBitmap _luxuries = null!;
 		public static IBitmap Luxuries
 		{
 			get
@@ -154,7 +155,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _taxes;
+		private static IBitmap _taxes = null!;
 		public static IBitmap Taxes
 		{
 			get
@@ -174,7 +175,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _science;
+		private static IBitmap _science = null!;
 		public static IBitmap Science
 		{
 			get
@@ -194,7 +195,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _spy;
+		private static IBitmap _spy = null!;
 		public static IBitmap Spy
 		{
 			get
@@ -214,7 +215,7 @@ namespace CivOne.Graphics
 			}
 		}
 		
-		private static IBitmap _newspaper;
+		private static IBitmap _newspaper = null!;
 		public static IBitmap Newspaper
 		{
 			get
@@ -227,7 +228,7 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static IBitmap _sellButton;
+		private static IBitmap _sellButton = null!;
 		public static IBitmap SellButton
 		{
 			get
@@ -249,8 +250,8 @@ namespace CivOne.Graphics
 			}
 		}
 
-		private static IBitmap[] _helperArrow;
-		public static IBitmap HelperArrow(Direction direction)
+		private static IBitmap[] _helperArrow = null!;
+		public static IBitmap? HelperArrow(Direction direction)
 		{
 			if (_helperArrow is null)
 			{
@@ -350,7 +351,7 @@ namespace CivOne.Graphics
 		}
 
 		private static IBitmap[] _lamp = new Picture[4];
-		public static IBitmap Lamp(int stage)
+		public static IBitmap? Lamp(int stage)
 		{
 			if (stage < 0 || stage > 3)
 				return null;
