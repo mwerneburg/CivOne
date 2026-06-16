@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -307,7 +308,7 @@ namespace CivOne
 					City wantBack = capturedByHuman.OrderByDescending(c => c.Size).First();
 
 					IAdvance[] wantedTechs = human.Advances.Where(a => !Player.HasAdvance(a)).ToArray();
-					IAdvance wantedTech = wantedTechs.Length >= 1
+					IAdvance? wantedTech = wantedTechs.Length >= 1
 						? wantedTechs.OrderByDescending(a => AdvanceDemandValue(a)).First()
 						: null;
 
@@ -672,10 +673,10 @@ namespace CivOne
 			return score;
 		}
 
-		internal ITile BestSettleSite(IUnit settlers)
+		internal ITile? BestSettleSite(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
-			ITile best = null;
+			ITile? best = null;
 			int bestScore = int.MinValue;
 
 			byte ownId = Game.PlayerNumber(Player);
@@ -746,11 +747,11 @@ namespace CivOne
 			    .FirstOrDefault();
 		}
 
-		private ITile StagingTile(City target)
+		private ITile? StagingTile(City target)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			byte own = Game.PlayerNumber(Player);
-			ITile best = null;
+			ITile? best = null;
 			int bestCount = -1;
 
 			for (int dy = -1; dy <= 1; dy++)
@@ -773,7 +774,7 @@ namespace CivOne
 		// ── naval transport helpers ───────────────────────────────────────────────
 
 		// Ocean tile adjacent to a city — where a transport can drop troops.
-		private ITile LandingTile(City target)
+		private ITile? LandingTile(City target)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			for (int dy = -1; dy <= 1; dy++)
@@ -824,13 +825,13 @@ namespace CivOne
 
 					if (hasPassengers && _attackTarget is not null)
 					{
-						ITile landing = LandingTile(_attackTarget);
+						ITile? landing = LandingTile(_attackTarget);
 						if (landing is not null)
 						{
 							// Already at the landing zone — unload so troops can storm the beach
 							if (Common.DistanceToTile(unit.X, unit.Y, _attackTarget.X, _attackTarget.Y) <= 2)
 							{
-								(unit as BaseUnitSea).Unload();
+								(unit as BaseUnitSea)!.Unload();
 								return;
 							}
 							unit.Goto = new Point(landing.X, landing.Y);
@@ -858,7 +859,7 @@ namespace CivOne
 			// Explorers: head for the nearest unseen tile
 			if (unit is Explorer)
 			{
-				ITile dest = BestExploreTile(unit);
+				ITile? dest = BestExploreTile(unit);
 				if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
 				return;
 			}
@@ -988,7 +989,7 @@ namespace CivOne
 
 					if (_attackTarget is not null)
 					{
-						ITile staging = StagingTile(_attackTarget);
+						ITile? staging = StagingTile(_attackTarget);
 						byte own = Game.PlayerNumber(Player);
 
 						// How many attackers are already at the staging tile?
@@ -996,12 +997,12 @@ namespace CivOne
 						    u.Owner == own && u.Role == UnitRole.LandAttack) ?? 0;
 
 						// Commit when we have enough force; be generous if we outbuilt the defense
-						int defenders = _attackTarget.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+						int defenders = _attackTarget!.Tile!.Units.Count(u => u.Role == UnitRole.Defense);
 						int threshold = Math.Max(2, defenders + 1);
 
 						Point dest = (staged >= threshold || staging is null)
 						    ? new Point(_attackTarget.X, _attackTarget.Y)
-						    : new Point(staging.X, staging.Y);
+						    : new Point(staging!.X, staging!.Y);
 						unit.Goto = dest;
 						return;
 					}
@@ -1167,7 +1168,7 @@ namespace CivOne
 			             .First() == city;
 		}
 
-		private IWonder SelectWonder(City city, StrategyStance stance)
+		private IWonder? SelectWonder(City city, StrategyStance stance)
 		{
 			if (!IsTopProductionCity(city)) return null;
 
@@ -1357,7 +1358,7 @@ namespace CivOne
 			}
 
 			// Wonder: only for the empire's top production city
-			IWonder wonder = SelectWonder(city, stance);
+			IWonder? wonder = SelectWonder(city, stance);
 			if (wonder is not null) Consider(wonder);
 
 			// Second defender once infrastructure is underway
@@ -1447,10 +1448,10 @@ namespace CivOne
 
 		// ── exploration helpers ───────────────────────────────────────────────
 
-		internal ITile BestExploreTile(IUnit unit)
+		internal ITile? BestExploreTile(IUnit unit)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
-			ITile best = null;
+			ITile? best = null;
 			int bestScore = 0; // only move if it adds value
 			var ownCities = Player.Cities;
 
@@ -1487,10 +1488,10 @@ namespace CivOne
 
 		// Ocean-tile target finder for Hydro Engineer: prefers open ocean far from any city
 		// (a candidate floating-city site) over tiles already inside a city's working radius.
-		internal ITile BestFloatingSite(IUnit unit)
+		internal ITile? BestFloatingSite(IUnit unit)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
-			ITile best = null;
+			ITile? best = null;
 			int bestScore = 0;
 			City[] cities = Game.GetCities();
 
@@ -1582,13 +1583,13 @@ namespace CivOne
 
 		// Find the nearest unimproved land tile within the working radius of any
 		// Olvir city.  Returns null if everything reachable is already developed.
-		internal ITile BestOlvirImproveSite(IUnit settler)
+		internal ITile? BestOlvirImproveSite(IUnit settler)
 		{
 			byte ownId = Game.PlayerNumber(Player);
 			City[] ownCities = Game.GetCities().Where(c => c.Owner == ownId).ToArray();
 			if (ownCities.Length == 0) return null;
 
-			ITile best = null;
+			ITile? best = null;
 			int bestDist = int.MaxValue;
 
 			foreach (City city in ownCities)
