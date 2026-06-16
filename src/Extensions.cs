@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -81,7 +82,7 @@ namespace CivOne
 				case AspectRatio.Scaled: return "Scaled (blurry)";
 				case AspectRatio.ScaledFixed: return "Scaled and fixed (blurry)";
 				case AspectRatio.Expand: return "Expand (experimental)";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -91,7 +92,7 @@ namespace CivOne
 			{
 				case GraphicsMode.Graphics256: return "256 colors";
 				case GraphicsMode.Graphics16: return "16 colors";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -102,7 +103,7 @@ namespace CivOne
 				case CursorType.Default: return "Default";
 				case CursorType.Builtin: return "Built-in";
 				case CursorType.Native: return "Native";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -112,7 +113,7 @@ namespace CivOne
 			{
 				case DestroyAnimation.Sprites: return "Sprites (original)";
 				case DestroyAnimation.Noise: return "Noise";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -123,7 +124,7 @@ namespace CivOne
 				case GameOption.Default: return "Default";
 				case GameOption.On: return "On";
 				case GameOption.Off: return "Off";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -134,7 +135,7 @@ namespace CivOne
 				case AggressionLevel.Friendly: return "Friendly";
 				case AggressionLevel.Normal: return "Normal";
 				case AggressionLevel.Aggressive: return "Aggressive";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -145,7 +146,7 @@ namespace CivOne
 				case DevelopmentLevel.Perfectionist: return "Perfectionist";
 				case DevelopmentLevel.Normal: return "Normal";
 				case DevelopmentLevel.Expansionistic: return "Expansionistic";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -156,7 +157,7 @@ namespace CivOne
 				case MilitarismLevel.Civilized: return "Civilized";
 				case MilitarismLevel.Normal: return "Normal";
 				case MilitarismLevel.Militaristic: return "Militaristic";
-				default: return null;
+				default: return null!;
 			}
 		}
 
@@ -170,7 +171,7 @@ namespace CivOne
 		}
 
 		public static IAdvance ToInstance(this Advance advance) => Common.Advances.FirstOrDefault(x => x.Id == (byte)advance);
-		public static ILeader ToInstance(this Leader leader)
+		public static ILeader? ToInstance(this Leader leader)
 		{
 			switch (leader)
 			{
@@ -204,7 +205,7 @@ namespace CivOne
 			}
 		}
 
-		public static IBitmap GifToBitmap(this byte[] buffer)
+		public static IBitmap? GifToBitmap(this byte[] buffer)
 		{
 			using (GifFile gifFile = new GifFile(buffer))
 			{
