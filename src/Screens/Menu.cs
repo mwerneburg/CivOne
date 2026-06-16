@@ -28,7 +28,7 @@ namespace CivOne.Screens
 		
 		public readonly MenuItemCollection<T> Items;
 
-		public string Id => Items.Id;
+		public string Id => Items.Id ?? "";
 
 		public string Title { get; set; } = null!;
 		public int FontId { get; set; }

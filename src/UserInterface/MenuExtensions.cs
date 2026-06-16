@@ -25,7 +25,7 @@ namespace CivOne.UserInterface
 		{
 			if (menu.Title is not null) yield return menu.Title;
 			foreach (MenuItem<T> item in menu.Items)
-				yield return item.Text;
+				if (item.Text is not null) yield return item.Text;
 		}
 
 		public static int GetMenuWidth<T>(this Menu<T> menu) => menu.GetMenuItemTexts().Max(x => Resources.GetText($" {x}", menu.FontId, 5).Width + 2);

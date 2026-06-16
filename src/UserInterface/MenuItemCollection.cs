@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -30,19 +31,19 @@ namespace CivOne.UserInterface
 			}
 		}
 
-		internal string Id { get; private set; }
+		internal string? Id { get; private set; }
 
-		public event EventHandler ItemsChanged;
+		public event EventHandler? ItemsChanged;
 
 		public int Count => _menuItems.Count();
 
-		public void Add(MenuItem<T> menuItem)
+		public void Add(MenuItem<T>? menuItem)
 		{
-			_menuItems.Add(menuItem);
+			_menuItems.Add(menuItem!);
 			ItemsChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		public MenuItem<T> Add(string text, T value = default(T))
+		public MenuItem<T> Add(string? text, T value = default!)
 		{
 			MenuItem<T> menuItem = MenuItem<T>.Create(text, value);
 			_menuItems.Add(menuItem);
@@ -79,7 +80,7 @@ namespace CivOne.UserInterface
 
 		public void Remove(T value)
 		{
-			IEnumerable<MenuItem<T>> items = _menuItems.Where(x => x.Value.Equals(value));
+			IEnumerable<MenuItem<T>> items = _menuItems.Where(x => EqualityComparer<T>.Default.Equals(x.Value, value));
 			if (!items.Any()) return;
 			_menuItems.RemoveAll(x => items.Contains(x));
 			ItemsChanged?.Invoke(this, EventArgs.Empty);
@@ -105,7 +106,7 @@ namespace CivOne.UserInterface
 			}
 		}
 
-		public MenuItemCollection(string id = null)
+		public MenuItemCollection(string? id = null)
 		{
 			Id = id;
 
