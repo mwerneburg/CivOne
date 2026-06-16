@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -32,7 +33,7 @@ namespace CivOne
 		public ILeader Leader => Player.Civilization.Leader;
 
 		// The city this civ is currently marshalling forces to attack.
-		private City _attackTarget;
+		private City? _attackTarget;
 
 		// War-state tracking for peace initiatives.
 		private int _turnsAtWar      = 0;
@@ -71,14 +72,14 @@ namespace CivOne
 				// Navigate to the next unimproved site near an Olvir city.
 				if (unit.Goto.IsEmpty)
 				{
-					ITile next = BestOlvirImproveSite(unit);
+					ITile? next = BestOlvirImproveSite(unit);
 					if (next is not null && (next.X != tile.X || next.Y != tile.Y))
 						unit.Goto = new System.Drawing.Point(next.X, next.Y);
 				}
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile step = Common.GotoStep(unit);
+					ITile? step = Common.GotoStep(unit);
 					if (step is null) { unit.Goto = System.Drawing.Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(step.X - unit.X, step.Y - unit.Y))
 					{
@@ -161,7 +162,7 @@ namespace CivOne
 						}
 					}
 
-					ITile best = BestSettleSite(unit);
+					ITile? best = BestSettleSite(unit);
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);
@@ -178,7 +179,7 @@ namespace CivOne
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
 					{
@@ -234,13 +235,13 @@ namespace CivOne
 				// Drift toward open ocean: find a deep ocean tile beyond any city's working radius.
 				if (unit.Goto.IsEmpty)
 				{
-					ITile dest = BestFloatingSite(unit);
+					ITile? dest = BestFloatingSite(unit);
 					if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
 				}
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
 					if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
 					{
@@ -258,7 +259,7 @@ namespace CivOne
 				// Trim excess defenders in cities (per-city cap of 4)
 				while (unit.Tile.City is not null && unit.Tile.Units.Count(x => x is Militia || x is Phalanx || x is Musketeers || x is Riflemen || x is MechInf) > 4)
 				{
-					IUnit disband = null;
+					IUnit? disband = null;
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Militia)) is not null) { Game.DisbandUnit(disband); continue; }
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Phalanx)) is not null) { Game.DisbandUnit(disband); continue; }
 					if ((disband = unit.Tile.Units.FirstOrDefault(x => x != unit && x is Musketeers)) is not null) { Game.DisbandUnit(disband); continue; }
@@ -275,12 +276,12 @@ namespace CivOne
 				{
 					if (unit.Goto.IsEmpty)
 					{
-						ITile dest = BestExploreTile(unit);
+						ITile? dest = BestExploreTile(unit);
 						if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
 					}
 					if (!unit.Goto.IsEmpty)
 					{
-						ITile next = Common.GotoStep(unit);
+						ITile? next = Common.GotoStep(unit);
 						if (next is null) { unit.Goto = Point.Empty; unit.Fortify = true; return; }
 						if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y)) unit.SkipTurn();
 						return;
@@ -299,12 +300,12 @@ namespace CivOne
 				// re-picks via FirstStepReachable on this very tick.
 				if ((unit is Caravan || unit is Diplomat) && !unit.Goto.IsEmpty)
 				{
-					ITile step = Common.GotoStep(unit, unit.Goto.X, unit.Goto.Y);
+					ITile? step = Common.GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 					bool reachable = step is not null;
-					if (reachable && step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					if (reachable && step!.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
 					                                  && Game.GetPlayer(u.Owner) is Player puStale
 					                                  && !Player.IsAtWar(puStale))) reachable = false;
-					if (reachable && step.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0
+					if (reachable && step!.City is not null && step!.City.Owner != unit.Owner && step!.City.Owner != 0
 					    && Game.GetPlayer(step.City.Owner) is Player pcStale
 					    && pcStale.Civilization is not Civilizations.Barbarian
 					    && !Player.IsAtWar(pcStale)) reachable = false;
@@ -331,7 +332,7 @@ namespace CivOne
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null)
 					{
 						// No land path — try boarding an adjacent friendly transport
@@ -341,7 +342,7 @@ namespace CivOne
 							ITile boardTile = unit.Tile.GetBorderTiles()
 							    .FirstOrDefault(t => t is not null && t.IsOcean
 							        && t.Units.Any(u => u.Owner == own && u is IBoardable)
-							        && t.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable).Cargo)
+							        && t.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable)!.Cargo)
 							           > t.Units.Count(u => u.Class == UnitClass.Land));
 							if (boardTile is not null)
 							{
@@ -361,7 +362,7 @@ namespace CivOne
 					// freeze an attack stack of dozens, since each unit treats the Settler as
 					// "peaceful blocked" and skips turn.
 					{
-						Player nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
+						Player? nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
 						bool peacefulBlock =
 							next.Units.Any(u => {
 								if (u.Owner == unit.Owner) return false;
