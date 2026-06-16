@@ -81,7 +81,7 @@ namespace CivOne.Screens
 		public override bool KeyDown(KeyboardEventArgs args) { Close(); return true; }
 		public override bool MouseDown(ScreenEventArgs args) { Close(); return true; }
 
-		public Newspaper(City city, string[] message, bool showGovernment = false)
+		public Newspaper(City? city, string[] message, bool showGovernment = false)
 		{
 			_message = message;
 			_date    = $"January 1, {Common.YearString(Game.GameTurn)}";

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,8 +19,8 @@ namespace CivOne.Tasks
 	internal class ImprovementBuilt : GameTask
 	{
 		private readonly City _city;
-		private readonly IProduction _improvement;
-		private readonly string _unitName;
+		private readonly IProduction? _improvement;
+		private readonly string? _unitName;
 
 		private void ClosedCityView(object sender, EventArgs args)
 		{
@@ -41,7 +42,7 @@ namespace CivOne.Tasks
 
 		public override void Run()
 		{
-			string name = _unitName ?? (_improvement as ICivilopedia)?.Name;
+			string name = _unitName ?? (_improvement as ICivilopedia)?.Name ?? "";
 
 			if (Human != _city.Owner)
 			{
@@ -57,7 +58,7 @@ namespace CivOne.Tasks
 			}
 			else
 			{
-				string artPath = ImprovementArtScreen.FindArtPath(name);
+				string? artPath = ImprovementArtScreen.FindArtPath(name);
 				if (artPath is not null)
 				{
 					cityView = new ImprovementArtScreen(artPath, name, _city.Name);

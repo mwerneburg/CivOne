@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -17,11 +18,11 @@ namespace CivOne.Tasks
 	{
 		private const int TURN_TIME = 10;
 
-		private ITurn _turnObject = null;
-		private IUnit _unit = null;
+		private ITurn? _turnObject = null;
+		private IUnit? _unit = null;
 		private bool _endTurn = false;
 
-		private Player _gameOver = null;
+		private Player? _gameOver = null;
 
 		private int _step = 0;
 

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -34,9 +35,9 @@ namespace CivOne.Tasks
 			Disband
 		}
 
-		private City _city;
-		private Player _player;
-		private IUnit _unit = null;
+		private City? _city;
+		private Player _player = null!;
+		private IUnit? _unit = null;
 		private int _x, _y;
 		private Order _order;
 
@@ -60,22 +61,22 @@ namespace CivOne.Tasks
 
 			// allowCycle=false: this screen represents a task waiting for a build decision; ← / →
 			// would Destroy() and EndTask(), dropping the founding before the player decides.
-			CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
+			CityManager cityManager = new CityManager(_city!, viewCity: false, allowCycle: false);
 			cityManager.Closed += CityManagerClosed;
 			Common.AddScreen(cityManager);
 		}
 
 		private void CityFounded(object sender, EventArgs args)
 		{
-			CityView cityView = new CityView(_city, firstView: true);
+			CityView cityView = new CityView(_city!, firstView: true);
 			cityView.Closed += CityViewed;
 			Common.AddScreen(cityView);
 		}
 
 		private void CityNameAccept(object sender, EventArgs args)
 		{
-			int nameId = (sender as CityName).NameId;
-			Game.CityNames[nameId] = (sender as CityName).Value;
+			int nameId = (sender as CityName)!.NameId;
+			Game.CityNames[nameId] = (sender as CityName)!.Value;
 			CreateCity(nameId);
 			EndTask();
 		}
@@ -83,7 +84,7 @@ namespace CivOne.Tasks
 		private void CityNameCancel(object sender, EventArgs args)
 		{
 			Human.CityNamesSkipped++;
-			_unit.MovesLeft--;
+			_unit!.MovesLeft--;
 			EndTask();
 		}
 
@@ -94,7 +95,7 @@ namespace CivOne.Tasks
 			{
 				if (_player.IsHuman)
 				{
-					CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
+					CityManager cityManager = new CityManager(_city!, viewCity: false, allowCycle: false);
 					cityManager.Closed += CityManagerClosed;
 					Common.AddScreen(cityManager);
 					return;
@@ -104,7 +105,7 @@ namespace CivOne.Tasks
 					Game.DisbandUnit(_unit);
 				}
 			}
-			Game.UpdateResources(_city.Tile);
+			Game.UpdateResources(_city!.Tile);
 			EndTask();
 		}
 
@@ -175,7 +176,7 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			(_unit as Settlers).BuildIrrigation();
+			(_unit as Settlers)!.BuildIrrigation();
 			EndTask();
 		}
 
@@ -187,7 +188,7 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			(_unit as Settlers).BuildMines();
+			(_unit as Settlers)!.BuildMines();
 			EndTask();
 		}
 
@@ -201,7 +202,7 @@ namespace CivOne.Tasks
 			}
 			if (Game.GetPlayer(_unit.Owner).HasAdvance<Construction>())
 			{
-				(_unit as Settlers).BuildFortress();
+				(_unit as Settlers)!.BuildFortress();
 			}
 			EndTask();
 		}
@@ -214,7 +215,7 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			(_unit as Settlers).BuildRoad();
+			(_unit as Settlers)!.BuildRoad();
 			EndTask();
 		}
 
@@ -225,7 +226,7 @@ namespace CivOne.Tasks
 				EndTask();
 				return;
 			}
-			(_unit as Settlers).CleanPollution();
+			(_unit as Settlers)!.CleanPollution();
 			EndTask();
 		}
 
@@ -266,7 +267,7 @@ namespace CivOne.Tasks
 			}
 		}
 
-		public static Orders FoundCity(IUnit unit = null)
+		public static Orders FoundCity(IUnit? unit = null)
 		{
 			return new Orders()
 			{

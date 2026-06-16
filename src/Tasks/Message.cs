@@ -41,7 +41,7 @@ namespace CivOne.Tasks
 
 		public static Message DisbandUnit(City city, IUnit unit) => new Message(new DisbandUnit(city, unit));
 
-		public static Message NewGoverment(City city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: true));
+		public static Message NewGoverment(City? city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: true));
 
 		public static Message Newspaper(City city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: false));
 

@@ -163,7 +163,7 @@ namespace CivOne.Units
 			if (enemies.Length > 0)
 			{
 				if (Human == Owner && enemies.Length == 1 && enemies[0] is BaseUnitLand)
-					GameTask.Enqueue(Show.DiplomatBribe(enemies[0] as BaseUnitLand, this));
+					GameTask.Enqueue(Show.DiplomatBribe((enemies[0] as BaseUnitLand)!, this));
 				return false;
 			}
 

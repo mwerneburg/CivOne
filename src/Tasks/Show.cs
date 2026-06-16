@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -96,7 +97,7 @@ namespace CivOne.Tasks
 		{
 			get
 			{
-				if (!(Game.ActiveUnit is Settlers settlers)) return null;
+				if (!(Game.ActiveUnit is Settlers settlers)) return null!;
 				GamePlay gamePlay = (GamePlay)Common.Screens.First(s => (s is GamePlay));
 				Goto gotoScreen = new Goto(gamePlay.X, gamePlay.Y);
 				gotoScreen.Closed += (s, a) =>
@@ -140,7 +141,7 @@ namespace CivOne.Tasks
 				Search search = new Search();
 				search.Accept += (s, a) =>
 				{
-					City city = (s as Search).City;
+					City city = (s as Search)!.City;
 					if (city is null) return;
 					GamePlay gamePlay = (GamePlay)Common.Screens.First(x => x.GetType() == typeof(GamePlay));
 					gamePlay.CenterOnPoint(city.X, city.Y);
@@ -155,7 +156,7 @@ namespace CivOne.Tasks
 			{
 				ChooseGovernment chooseGovernment = new ChooseGovernment();
 				chooseGovernment.Closed += (s, a) => {
-					IGovernment result = (s as ChooseGovernment).Result;
+					IGovernment result = (s as ChooseGovernment)!.Result;
 					if (result is null) return;
 					Human.Government = result;
 					GameTask.Insert(Message.NewGoverment(null, $"{Human.TribeName} government", $"changed to {Human.Government.Name}!"));
@@ -186,24 +187,24 @@ namespace CivOne.Tasks
 		
 		public static Show SelectAdvanceAfterCityCapture(Player player, IList<IAdvance> advances) => new Show(new SelectAdvanceAfterCityCapture(player, advances));
 
-		public static Show MeetKing(Player player, bool aiInitiated = false, List<AIDemand> demands = null) => new Show(new King(player, aiInitiated, demands));
+		public static Show MeetKing(Player player, bool aiInitiated = false, List<AIDemand>? demands = null) => new Show(new King(player, aiInitiated, demands));
 
 		public static Show Screen<T>() where T : IScreen, new() => new Show(new T());
 
 		public static Show Screen(Type type)
 		{
-			if (!typeof(IScreen).IsAssignableFrom(type)) return null;
+			if (!typeof(IScreen).IsAssignableFrom(type)) return null!;
 			return new Show((IScreen)Activator.CreateInstance(type));
 		}
 
 		public static Show Screens(IEnumerable<Type> types)
 		{
 			Queue<Type> screenTypeQueue = new Queue<Type>(types.Where(x => typeof(IScreen).IsAssignableFrom(x)));
-			if (screenTypeQueue.Count == 0) return null;
-			Func<Show> nextTask = null;
+			if (screenTypeQueue.Count == 0) return null!;
+			Func<Show> nextTask = null!;
 			nextTask = () =>
 			{
-				if (screenTypeQueue.Count == 0) return null;
+				if (screenTypeQueue.Count == 0) return null!;
 				Show showScreen = Show.Screen(screenTypeQueue.Dequeue());
 				showScreen.Done += (s, a) => GameTask.Insert(nextTask());
 				return showScreen;
@@ -216,7 +217,7 @@ namespace CivOne.Tasks
 		public static Show Screen(IScreen screen) => new Show(screen);
 
 		internal static Show EventArt(string key, string caption)
-			=> new Show(new EventArtScreen(EventArtScreen.FindPath(key), caption));
+			=> new Show(new EventArtScreen(EventArtScreen.FindPath(key)!, caption));
 
 		private Show(IScreen screen)
 		{
