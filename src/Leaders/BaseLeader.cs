@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,7 +19,7 @@ namespace CivOne.Leaders
 {
 	public abstract class BaseLeader : BaseInstance, ILeader
 	{
-		private string _defaultName;
+		private string _defaultName = null!;
 		private string DefaultName
 		{
 			get
@@ -35,15 +36,16 @@ namespace CivOne.Leaders
 		
 		public string Name { get; set; }
 
-		private readonly string _picFile = null;
+		private readonly string? _picFile = null;
 		private readonly int _overlayX;
 		private readonly int _overlayY;
-		private Picture _picture, _portraitSmall;
-		private Picture _pngPortrait;
+		private Picture? _picture;
+		private Picture _portraitSmall;
+		private Picture? _pngPortrait;
 
 		protected abstract Leader Leader { get; }
 
-		private static string LeaderArtPath(string name)
+		private static string? LeaderArtPath(string name)
 		{
 			try
 			{
@@ -55,10 +57,10 @@ namespace CivOne.Leaders
 			catch { return null; }
 		}
 
-		private Picture LoadPngPortrait()
+		private Picture? LoadPngPortrait()
 		{
 			if (_pngPortrait is not null) return _pngPortrait;
-			string path = LeaderArtPath(Name);
+			string? path = LeaderArtPath(Name);
 			if (path is null) return null;
 			byte[] rgba = PngFile.ReadRgba(path, out int w, out int h);
 			if (rgba is null) return null;
@@ -73,10 +75,10 @@ namespace CivOne.Leaders
 			return _pngPortrait;
 		}
 
-		private IBitmap _modifiedPicture, _modifiedPortraitSmall;
+		private IBitmap? _modifiedPicture, _modifiedPortraitSmall;
 		public Picture GetPortrait(FaceState state = FaceState.Neutral)
 		{
-			Picture png = LoadPngPortrait();
+			Picture? png = LoadPngPortrait();
 			if (png is not null) return png;
 
 			if (_modifications.ContainsKey(Leader))
