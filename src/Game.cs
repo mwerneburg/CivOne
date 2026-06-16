@@ -262,7 +262,7 @@ namespace CivOne
 		public bool Circuses { get; set; } = true;
 		public bool Barricades { get; set; } = true;
 
-		public void SetAdvanceOrigin(IAdvance advance, Player player)
+		public void SetAdvanceOrigin(IAdvance advance, Player? player)
 		{
 			if (_advanceOrigin.ContainsKey(advance.Id))
 				return;

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -175,7 +176,7 @@ namespace CivOne
 				}
 				
 				// Starting position found, add Settlers
-				IUnit unit = CreateUnit(UnitType.Settlers, x, y);
+				IUnit unit = CreateUnit(UnitType.Settlers, x, y)!;
 				unit.Owner = player;
 				_units.Add(unit);
 
@@ -251,7 +252,7 @@ namespace CivOne
 			{
 				// If the Bonus value of the civ is 4 or higher, then the civ is granted an extra Settlers unit, for a total of two Settlers units.
 				// In this case, the Bonus value is reduced by 3 afterwards.
-				IUnit unit = CreateUnit(UnitType.Settlers, x, y);
+				IUnit unit = CreateUnit(UnitType.Settlers, x, y)!;
 				unit.Owner = player;
 				_units.Add(unit);
 
@@ -275,7 +276,7 @@ namespace CivOne
 			}
 		}
 		
-		public static void CreateGame(int difficulty, int competition, ICivilization tribe, string leaderName = null, string tribeName = null, string tribeNamePlural = null)
+		public static void CreateGame(int difficulty, int competition, ICivilization tribe, string? leaderName = null, string? tribeName = null, string? tribeNamePlural = null)
 		{
 			if (_instance is not null)
 			{
@@ -292,7 +293,7 @@ namespace CivOne
 			}
 		}
 
-		private Game(int difficulty, int competition, ICivilization tribe, string leaderName, string tribeName, string tribeNamePlural)
+		private Game(int difficulty, int competition, ICivilization tribe, string? leaderName, string? tribeName, string? tribeNamePlural)
 		{
 			// New-game setup sequence:
 			//   1. Apply game options (animations, sound, advice level, etc.).
@@ -315,7 +316,7 @@ namespace CivOne
 			_cities = new List<City>();
 			_units = new List<IUnit>();
 			int slotCount = competition + 1;
-			_players = new List<Player>(Enumerable.Repeat<Player>(null, slotCount));
+			_players = new List<Player>(Enumerable.Repeat<Player>(null!, slotCount));
 			SpaceshipLaunchTurn  = new int[slotCount];
 			SpaceshipArrivalTurn = new int[slotCount];
 			SpaceshipStructural  = new int[slotCount];
