@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -18,21 +19,21 @@ namespace CivOne.Civilizations
 	{
 		public int Id { get; }
 
-		private string _name;
+		private string _name = null!;
 		public string Name
 		{
 			get => Modifications.LastOrDefault(x => x.Name.HasValue)?.Name.Value.Name ?? _name;
 			private set => _name = value;
 		}
 
-		private string _namePlural;
+		private string _namePlural = null!;
 		public string NamePlural
 		{
 			get => Modifications.LastOrDefault(x => x.Name.HasValue)?.Name.Value.Plural ?? _namePlural;
 			private set => _namePlural = value;
 		}
 
-		private ILeader _leader;
+		private ILeader _leader = null!;
 		public ILeader Leader
 		{
 			get => Modifications.LastOrDefault(x => x.LeaderId.HasValue)?.LeaderId.Value.ToInstance() ?? _leader;
@@ -55,7 +56,7 @@ namespace CivOne.Civilizations
 			protected set => _startY = value;
 		}
 
-		private string[] _cityNames;
+		private string[] _cityNames = null!;
 		public string[] CityNames
 		{
 			get => Modifications.LastOrDefault(x => x.CityNames.HasValue)?.CityNames.Value ?? _cityNames;

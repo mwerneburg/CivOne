@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -15,7 +16,7 @@ namespace CivOne.Buildings
 {
 	internal class PowerPlant : BaseBuilding
 	{
-		private static Picture _iconCache = null;
+		private static Picture? _iconCache = null;
 		
 		public PowerPlant() : base(16, 4)
 		{

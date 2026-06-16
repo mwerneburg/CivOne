@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -36,7 +37,7 @@ namespace CivOne.Advances
 			.Where(a => a is not null)
 			.ToArray();
 
-		public Palette OriginalColours => null;
+		public Palette OriginalColours => null!;
 		public IBitmap Icon => new Picture(112, 68);
 		public byte PageCount => 1;
 		public Picture DrawPage(byte pageNumber) => new Picture(320, 200);

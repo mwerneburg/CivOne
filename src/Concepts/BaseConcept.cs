@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -13,8 +14,8 @@ namespace CivOne.Concepts
 {
 	internal abstract class BaseConcept : BaseInstance, IConcept
 	{
-		public string Name { get; protected set; }
-		public IBitmap Icon => null;
+		public string Name { get; protected set; } = null!;
+		public IBitmap Icon => null!;
 		public byte PageCount => 2;
 
 		public virtual string[] GetPageText(byte pageNumber)

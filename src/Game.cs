@@ -834,7 +834,7 @@ namespace CivOne
 
 				if (Barbarian.IsSeaSpawnTurn)
 				{
-					ITile tile = Barbarian.SeaSpawnPosition;
+					ITile? tile = Barbarian.SeaSpawnPosition;
 					if (tile is not null)
 					{
 						foreach (UnitType unitType in Barbarian.SeaSpawnUnits)
@@ -844,7 +844,7 @@ namespace CivOne
 
 				if (Barbarian.IsLandSpawnTurn)
 				{
-					ITile tile = Barbarian.LandSpawnPosition;
+					ITile? tile = Barbarian.LandSpawnPosition;
 					if (tile is not null)
 					{
 						foreach (UnitType unitType in Barbarian.LandSpawnUnits)

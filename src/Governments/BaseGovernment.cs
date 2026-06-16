@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -17,10 +18,10 @@ namespace CivOne.Governments
 	{
 		public byte Id { get; private set; }
 		public string NameAdjective { get; private set; }
-		public IAdvance RequiredTech { get; private set; }
+		public IAdvance? RequiredTech { get; private set; }
 		public int CorruptionMultiplier { get; protected set; }
 
-		internal BaseGovernment(byte id, string name, IAdvance requiredTech = null)
+		internal BaseGovernment(byte id, string name, IAdvance? requiredTech = null)
 		{
 			Id = id;
 			Name = name;
@@ -28,7 +29,7 @@ namespace CivOne.Governments
 			RequiredTech = requiredTech;
 		}
 		
-		internal BaseGovernment(byte id, string name, string nameAdjective, IAdvance requiredTech = null)
+		internal BaseGovernment(byte id, string name, string nameAdjective, IAdvance? requiredTech = null)
 		{
 			Id = id;
 			Name = name;

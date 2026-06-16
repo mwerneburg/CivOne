@@ -1,3 +1,4 @@
+#nullable enable
 ﻿// CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -37,7 +38,7 @@ namespace CivOne.Civilizations
 			}
 		}
 
-		internal static ITile SeaSpawnPosition
+		internal static ITile? SeaSpawnPosition
 		{
 			get
 			{
@@ -53,7 +54,7 @@ namespace CivOne.Civilizations
 		}
 
 		// Land spawn: pick a land tile that is unexplored by all human players and has no city.
-		internal static ITile LandSpawnPosition
+		internal static ITile? LandSpawnPosition
 		{
 			get
 			{

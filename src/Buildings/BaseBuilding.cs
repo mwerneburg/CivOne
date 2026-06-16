@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -20,9 +21,9 @@ namespace CivOne.Buildings
 		
 		private IBitmap GrassIcon => Resources["CITYPIX2"][250, 0, 50, 50].ColourReplace(1, 0);
 		
-		public virtual IBitmap Icon { get; protected set; }
-		public virtual IBitmap SmallIcon { get; protected set; }
-		public string Name { get; protected set; }
+		public virtual IBitmap Icon { get; protected set; } = null!;
+		public virtual IBitmap SmallIcon { get; protected set; } = null!;
+		public string Name { get; protected set; } = null!;
 		public byte PageCount => 2;
 
 		// Override in a derived building to supply custom Civilopedia text.
@@ -71,7 +72,7 @@ namespace CivOne.Buildings
 		
 		protected Building Type { get; set; }
 		
-		public IAdvance RequiredTech { get; protected set; }
+		public IAdvance? RequiredTech { get; protected set; }
 		public short SellPrice { get; protected set; }
 		public short BuyPrice { get; private set; }
 		public byte ProductionId => (byte)(255 - Type);

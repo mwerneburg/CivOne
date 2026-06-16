@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -50,9 +51,9 @@ namespace CivOne.Advances
 			}
 		}
 
-		public Palette OriginalColours { get; private set; }
+		public Palette OriginalColours { get; private set; } = null!;
 		
-		public string Name { get; protected set; }
+		public string Name { get; protected set; } = null!;
 		public byte PageCount => 2;
 		public Picture DrawPage(byte pageNumber)
 		{
