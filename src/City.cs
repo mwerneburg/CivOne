@@ -1568,7 +1568,7 @@ namespace CivOne
 			GameTask.Enqueue(new ProcessScience(Player));
 
 			if (Shields == 0 && !DequeueProduction() && (Player != Human || Settings.Instance.Autopilot))
-				Player.AI.CityProduction(this);
+				Player.AI?.CityProduction(this);
 		}
 
 		public void Disaster()

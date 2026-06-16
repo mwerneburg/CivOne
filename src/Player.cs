@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -27,7 +28,7 @@ namespace CivOne
 	public class Player : BaseInstance, ITurn
 	{
 		private readonly ICivilization _civilization;
-		private readonly string _customLeaderName;
+		private readonly string? _customLeaderName;
 		private readonly string _tribeName, _tribeNamePlural;
 
 		private readonly bool[,] _explored = new bool[Map.WIDTH, Map.HEIGHT];
@@ -52,7 +53,7 @@ namespace CivOne
 		// preset range happens in MapZoomSettings.NormalizeBasisPoints — read it
 		// through that helper rather than via this field directly.
 		public int MapZoomBasisPoints { get; set; } = 1000;
-		private IAdvance _currentResearch = null;
+		private IAdvance? _currentResearch = null;
 		private int _futureTechs = 0;
 
 		// Transient: shields contributed this turn by Infrastructure-Bond donor cities under
@@ -61,7 +62,7 @@ namespace CivOne
 		// the player loop within a single turn.
 		internal int BondPool = 0;
 
-		public event EventHandler Destroyed;
+		public event EventHandler? Destroyed;
 
 		internal int CityNamesSkipped = 0;
 		internal short AnarchyTurnsLeft { get => _anarchy; set => _anarchy = value; }
@@ -85,9 +86,9 @@ namespace CivOne
 
 		// Normally AI is exposed only for non-human players. In Autopilot mode the human
 		// slot gets one too, so unit moves and other "AI-driven" decisions self-resolve.
-		internal AI AI => (!IsHuman || Settings.Instance.Autopilot) ? AI.Instance(this) : null;
+		internal AI? AI => (!IsHuman || Settings.Instance.Autopilot) ? AI.Instance(this) : null;
 		
-		private IGovernment _government;
+		private IGovernment _government = null!;
 		public IGovernment Government
 		{
 			get => _government;
@@ -199,8 +200,9 @@ namespace CivOne
 
 		public int Pollution => Cities.Sum(c => c.SmokeStacks);
 
-		public void AddAdvance(IAdvance advance, bool setOrigin = true)
+		public void AddAdvance(IAdvance? advance, bool setOrigin = true)
 		{
+			if (advance is null) return;
 			if (advance is FutureTech)
 			{
 				_futureTechs++;
@@ -242,7 +244,7 @@ namespace CivOne
 
 		public bool HasAdvance<T>() where T : IAdvance => _advances.Contains(AdvanceId<T>.Id);
 
-		public bool HasAdvance(IAdvance advance) => (advance is null || _advances.Contains(advance.Id));
+		public bool HasAdvance(IAdvance? advance) => (advance is null || _advances.Contains(advance.Id));
 
 		public Player[] Embassies => _embassies.Select(e => Game.Players.FirstOrDefault(p => e == Game.PlayerNumber(p))).Where(p => p is not null).ToArray();
 
@@ -375,7 +377,7 @@ namespace CivOne
 			enemy._warWith.Remove(ownNumber);
 		}
 
-		public IAdvance CurrentResearch
+		public IAdvance? CurrentResearch
 		{
 			get => _currentResearch;
 			set => _currentResearch = value;
@@ -519,11 +521,11 @@ namespace CivOne
 		public bool ProductionAvailable(IProduction production)
 		{
 			if (production is IUnit)
-				return UnitAvailable(production as IUnit);
+				return UnitAvailable((production as IUnit)!);
 			if (production is IBuilding)
-				return BuildingAvailable(production as IBuilding);
+				return BuildingAvailable((production as IBuilding)!);
 			if (production is IWonder)
-				return WonderAvailable(production as IWonder);
+				return WonderAvailable((production as IWonder)!);
 			return true;
 		}
 
@@ -614,7 +616,7 @@ namespace CivOne
 			}
 		}
 
-		public bool Visible(ITile tile)
+		public bool Visible(ITile? tile)
 		{
 			if (tile is null) return false;
 			return Visible(tile.X, tile.Y);
@@ -763,7 +765,7 @@ namespace CivOne
 			if (obj is byte)
 				return Game.PlayerNumber(this) == (byte)obj;
 			if (obj is Player)
-				return Game.PlayerNumber(this) == Game.PlayerNumber(obj as Player);
+				return Game.PlayerNumber(this) == Game.PlayerNumber((obj as Player)!);
 			return false;
 		}
 		
@@ -772,10 +774,10 @@ namespace CivOne
 		public static explicit operator Player(byte playerNumber) => Game.GetPlayer(playerNumber);
 		public static explicit operator byte(Player player) => Game.PlayerNumber(player);
 		
-		public static bool operator ==(Player p1, byte p2) => Game.PlayerNumber(p1) == p2;
-		public static bool operator !=(Player p1, byte p2) => Game.PlayerNumber(p1) != p2;
+		public static bool operator ==(Player? p1, byte p2) => p1 is not null && Game.PlayerNumber(p1) == p2;
+		public static bool operator !=(Player? p1, byte p2) => p1 is null || Game.PlayerNumber(p1) != p2;
 		
-		public Player(ICivilization civilization, string customLeaderName = null, string customTribeName = null, string customTribeNamePlural = null)
+		public Player(ICivilization civilization, string? customLeaderName = null, string? customTribeName = null, string? customTribeNamePlural = null)
 		{
 			_civilization = civilization;
 			// Kept on the Player rather than written into the (shared) civilization

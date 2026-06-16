@@ -43,7 +43,7 @@ namespace CivOne.Tasks
 
 		public static Message NewGoverment(City? city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: true));
 
-		public static Message Newspaper(City city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: false));
+		public static Message Newspaper(City? city, params string[] message) => new Message(new Newspaper(city, message, showGovernment: false));
 
 		public static Message General(params string[] message) => new Message(new MessageBox(message));
 

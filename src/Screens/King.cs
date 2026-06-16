@@ -207,7 +207,7 @@ namespace CivOne.Screens
 					break;
 
 				case AIDemandKind.GiveTech:
-					_enemy.AddAdvance(d.Advance, false);
+					_enemy.AddAdvance(d.Advance!, false);
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					SetResponse(FaceState.Smiling,
 						$"{d.Advance!.Name} — a worthy gift.",
@@ -233,7 +233,7 @@ namespace CivOne.Screens
 
 				case AIDemandKind.GrievancePack:
 					d.City!.Owner = aiNum;
-					if (d.Advance is not null) _enemy.AddAdvance(d.Advance, false);
+					if (d.Advance is not null) _enemy.AddAdvance(d.Advance!, false);
 					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
 					_enemy.SetPeaceTreaty(Human, d.Duration);
 					_enemy.SetAttitudeBonus(Human, d.Duration);
