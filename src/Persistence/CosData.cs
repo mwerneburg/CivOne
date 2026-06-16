@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -14,17 +15,17 @@ namespace CivOne.Persistence
 	public class CosFile
 	{
 		public string Version { get; set; } = "1.0";
-		public CosMeta Meta { get; set; }
-		public CosGame Game { get; set; }
-		public CosMap Map { get; set; }
-		public List<CosPlayer> Players { get; set; }
-		public List<CosCity> Cities { get; set; }
-		public List<CosUnit> Units { get; set; }
+		public CosMeta Meta { get; set; } = null!;
+		public CosGame Game { get; set; } = null!;
+		public CosMap Map { get; set; } = null!;
+		public List<CosPlayer> Players { get; set; } = null!;
+		public List<CosCity> Cities { get; set; } = null!;
+		public List<CosUnit> Units { get; set; } = null!;
 	}
 
 	public class CosMeta
 	{
-		public string Name { get; set; }
+		public string Name { get; set; } = null!;
 		public int Turn { get; set; }
 		public int Difficulty { get; set; }
 	}
@@ -36,16 +37,16 @@ namespace CivOne.Persistence
 		public int Difficulty { get; set; }
 		public int Competition { get; set; }
 		public uint AnthologyTurn { get; set; }
-		public string[] CityNames { get; set; }
-		public Dictionary<int, int> AdvanceOrigin { get; set; }
-		public CosOptions Options { get; set; }
-		public int[] SpaceshipLaunch { get; set; }
-		public int[] SpaceshipArrival { get; set; }
-		public int[] SpaceshipStructural { get; set; }
-		public int[] SpaceshipComponent { get; set; }
-		public int[] SpaceshipModule { get; set; }
+		public string[] CityNames { get; set; } = null!;
+		public Dictionary<int, int> AdvanceOrigin { get; set; } = null!;
+		public CosOptions Options { get; set; } = null!;
+		public int[] SpaceshipLaunch { get; set; } = null!;
+		public int[] SpaceshipArrival { get; set; } = null!;
+		public int[] SpaceshipStructural { get; set; } = null!;
+		public int[] SpaceshipComponent { get; set; } = null!;
+		public int[] SpaceshipModule { get; set; } = null!;
 		// base64-encoded byte array, Width*Height bytes; value = player index who first explored (255 = unvisited)
-		public string FirstExplorer { get; set; }
+		public string FirstExplorer { get; set; } = null!;
 		public bool MapRevealedNotified { get; set; }
 		public uint SETISignalTurn { get; set; }
 		public bool SETISignalReceived { get; set; }
@@ -54,24 +55,24 @@ namespace CivOne.Persistence
 		public bool ProbeDispatched { get; set; }
 		public uint ProbeDispatchTurn { get; set; }
 		public int ProbeInterimPhase { get; set; }
-		public int[] ProbeGrantedAdvanceIds { get; set; }
+		public int[] ProbeGrantedAdvanceIds { get; set; } = null!;
 		public int ProbeOutcomeTier { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
 		// Olvir improvements: list of [x, y, type] triples
-		public List<int[]> OlvirImprovements { get; set; }
+		public List<int[]> OlvirImprovements { get; set; } = null!;
 		// Dome assignments: list of [ownerByte, wonderId] pairs
-		public List<int[]> DomeAssignments { get; set; }
+		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
-		public List<List<int>> ScoreHistory { get; set; }
-		public List<CosReplayEntry> ReplayData { get; set; }
-		public List<CosTransmission> Transmissions { get; set; }
+		public List<List<int>> ScoreHistory { get; set; } = null!;
+		public List<CosReplayEntry> ReplayData { get; set; } = null!;
+		public List<CosTransmission> Transmissions { get; set; } = null!;
 	}
 
 	public class CosTransmission
 	{
-		public string Type { get; set; }   // "SETISignal" | "SouthPoleIntel" | "SouthPoleExpedition"
-		public string Year { get; set; }   // game year string when received
+		public string Type { get; set; } = null!;   // "SETISignal" | "SouthPoleIntel" | "SouthPoleExpedition"
+		public string Year { get; set; } = null!;   // game year string when received
 	}
 
 	public class CosOptions
@@ -88,7 +89,7 @@ namespace CivOne.Persistence
 
 	public class CosReplayEntry
 	{
-		public string Type { get; set; }
+		public string Type { get; set; } = null!;
 		public int Turn { get; set; }
 		// CivilizationDestroyed
 		public int DestroyedId { get; set; }
@@ -100,36 +101,36 @@ namespace CivOne.Persistence
 		public int Y { get; set; }
 		public int OwnerId { get; set; }
 		// WonderBuilt
-		public string WonderName { get; set; }
+		public string WonderName { get; set; } = null!;
 		// TechDiscovered
-		public string TechName { get; set; }
+		public string TechName { get; set; } = null!;
 		// UnitBuilt / BuildingBuilt
-		public string UnitName { get; set; }
-		public string BuildingName { get; set; }
+		public string UnitName { get; set; } = null!;
+		public string BuildingName { get; set; } = null!;
 	}
 
 	public class CosPlayer
 	{
 		public int CivilizationId { get; set; }
-		public string LeaderName { get; set; }
-		public string CitizenName { get; set; }
-		public string CivilizationName { get; set; }
+		public string LeaderName { get; set; } = null!;
+		public string CitizenName { get; set; } = null!;
+		public string CivilizationName { get; set; } = null!;
 		public int Gold { get; set; }
 		public int Science { get; set; }
 		public int TaxRate { get; set; }
 		public int ScienceRate { get; set; }
 		public int StartX { get; set; }
 		public int GovernmentId { get; set; }
-		public int[] Advances { get; set; }
+		public int[] Advances { get; set; } = null!;
 		public int? CurrentResearch { get; set; }
 		public int FutureTechs { get; set; }
 		public int? MilestoneScore { get; set; }
-		public int[] AtWarWith { get; set; }
-		public int[] Embassies { get; set; }
+		public int[] AtWarWith { get; set; } = null!;
+		public int[] Embassies { get; set; } = null!;
 		public int CityNamesSkipped { get; set; }
 		public int? Anarchy { get; set; }
 		// base64-encoded bitset: bit (y*80+x) set if player has explored that tile
-		public string Visibility { get; set; }
+		public string Visibility { get; set; } = null!;
 		// Map zoom level in basis points (1000 = 100%). Default 1000 when the
 		// key is absent; clamped to MapZoomSettings.Min/Max on read. Persisted so
 		// reloading a save keeps the player's chosen zoom.
@@ -138,16 +139,16 @@ namespace CivOne.Persistence
 		// protector's player index and the annual gold amount. The inverse map
 		// (this player's _tributeFrom) is reconstructed on load. Absent or empty
 		// on saves predating the tribute system.
-		public List<CosTribute> TributeTo { get; set; }
+		public List<CosTribute> TributeTo { get; set; } = null!;
 		// Peace-treaty countdowns: { otherPlayerIdx, turnsRemaining } pairs.
 		// "I will not declare war on otherPlayerIdx for turnsRemaining turns."
 		// Decremented at end of each turn; entries reaching 0 are dropped.
 		// Absent or empty on saves predating peace persistence.
-		public List<CosCountdown> PeaceTreaty { get; set; }
+		public List<CosCountdown> PeaceTreaty { get; set; } = null!;
 		// Attitude-bonus countdowns: same shape as PeaceTreaty. Boosts AI
 		// acceptance for diplomacy with the named player for turnsRemaining
 		// turns. Decremented per turn.
-		public List<CosCountdown> AttitudeBonus { get; set; }
+		public List<CosCountdown> AttitudeBonus { get; set; } = null!;
 	}
 
 	public class CosTribute
@@ -173,13 +174,13 @@ namespace CivOne.Persistence
 		public int Size { get; set; }
 		public int Food { get; set; }
 		public int Shields { get; set; }
-		public string Production { get; set; }
-		public string[] ProductionQueue { get; set; }
-		public int[] Buildings { get; set; }
-		public int[] Wonders { get; set; }
-		public int[] ResourceTiles { get; set; }
-		public int[] FortifiedUnits { get; set; }  // legacy: kept for loading old saves
-		public List<CosTradeRoute> TradeRoutes { get; set; }
+		public string Production { get; set; } = null!;
+		public string[] ProductionQueue { get; set; } = null!;
+		public int[] Buildings { get; set; } = null!;
+		public int[] Wonders { get; set; } = null!;
+		public int[] ResourceTiles { get; set; } = null!;
+		public int[] FortifiedUnits { get; set; } = null!;  // legacy: kept for loading old saves
+		public List<CosTradeRoute> TradeRoutes { get; set; } = null!;
 		public bool? WasInDisorder  { get; set; }  // legacy: kept for loading old saves
 		public int?  DisorderTurns  { get; set; }
 		public bool? WasWeLoveKing  { get; set; }
@@ -190,7 +191,7 @@ namespace CivOne.Persistence
 	{
 		public int PartnerX { get; set; }
 		public int PartnerY { get; set; }
-		public string Commodity { get; set; }
+		public string Commodity { get; set; } = null!;
 	}
 
 	public class CosUnit
@@ -236,8 +237,8 @@ namespace CivOne.Persistence
 		public int Width { get; set; } = 80;
 		public int Height { get; set; } = 50;
 		// base64-encoded byte array, Width*Height bytes, terrain type per tile (row-major)
-		public string Terrain { get; set; }
-		public List<CosImprovement> Improvements { get; set; }
+		public string Terrain { get; set; } = null!;
+		public List<CosImprovement> Improvements { get; set; } = null!;
 	}
 
 	public class CosImprovement
