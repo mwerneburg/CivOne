@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -29,11 +30,11 @@ namespace CivOne
 	{
 		private static void Log(string text, params object[] parameters) => RuntimeHandler.Runtime.Log(text, parameters);
 
-		private static Plugin[] _plugins;
+		private static Plugin[] _plugins = null!;
 		private static void LoadPlugins()
 		{
 			if (_plugins is not null) return;
-			_plugins = Directory.GetFiles(Settings.Instance.PluginsDirectory, "*.dll").Select(x => Plugin.Load(x)).Where(x => x is not null).ToArray();
+			_plugins = Directory.GetFiles(Settings.Instance.PluginsDirectory, "*.dll").Select(x => Plugin.Load(x)).OfType<Plugin>().ToArray();
 
 			string[] disabledPlugins = Settings.Instance.DisabledPlugins.ToArray();
 			if (_plugins.Any(x => !disabledPlugins.Contains(x.Filename)))
@@ -48,7 +49,8 @@ namespace CivOne
 
 			List<Plugin> plugins = new List<Plugin>(_plugins ?? new Plugin[0]);
 
-			Plugin plugin = Plugin.Load(filename);
+			Plugin? plugin = Plugin.Load(filename);
+			if (plugin is null) return;
 			plugin.Enabled = true;
 
 			plugins.RemoveAll(x => x.Filename == Path.GetFileName(filename));
@@ -145,7 +147,7 @@ namespace CivOne
 				LoadPlugins();
 				ApplyPlugins();
 			}
-			return _plugins;
+			return _plugins!;
 		}
 
 		private static IEnumerable<Type> PluginModifications

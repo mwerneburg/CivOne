@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -90,7 +91,7 @@ namespace CivOne.IO
 				Reflect.LoadPlugin(destinationFile);
 			}
 
-			Action nextDialog = null;
+			Action nextDialog = null!;
 			nextDialog = () =>
 			{
 				if (dialogs.Count == 0) return;

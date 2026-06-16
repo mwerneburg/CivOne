@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -45,7 +46,7 @@ namespace CivOne.IO
 			return new string[0];
 		}
 		
-		private static TextFile _instance;
+		private static TextFile _instance = null!;
 		public static TextFile Instance
 		{
 			get
@@ -58,7 +59,7 @@ namespace CivOne.IO
 
 		public static void ClearInstance()
 		{
-			_instance = null;
+			_instance = null!;
 		}
 		
 		private TextFile()

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -30,6 +31,6 @@ namespace CivOne.Persistence
 
 		internal static CosFile Deserialize(string yaml) => _deserializer.Deserialize<CosFile>(yaml);
 
-		internal static CosMeta DeserializeMeta(string yaml) => _deserializer.Deserialize<CosFile>(yaml)?.Meta;
+		internal static CosMeta? DeserializeMeta(string yaml) => _deserializer.Deserialize<CosFile>(yaml)?.Meta;
 	}
 }

@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -19,7 +20,7 @@ namespace CivOne.UserInterface
 
 		public IEnumerable<Menu> this[string id] => All.Where(x => x.Id == id);
 
-		private static MenuCollection _instance;
+		private static MenuCollection _instance = null!;
 		public static MenuCollection Instance
 		{
 			get

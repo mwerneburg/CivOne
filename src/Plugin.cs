@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -59,7 +60,7 @@ namespace CivOne
 			}
 		}
 
-		public static Plugin Load(string filePath)
+		public static Plugin? Load(string filePath)
 		{
 			using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(filePath)))
 			{

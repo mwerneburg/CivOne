@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -421,7 +422,7 @@ namespace CivOne
 			}
 		}
 		
-		private static Settings _instance;
+		private static Settings _instance = null!;
 		public static Settings Instance
 		{
 			get

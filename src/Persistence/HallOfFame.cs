@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -14,11 +15,11 @@ namespace CivOne.Persistence
 {
 	internal class HofEntry
 	{
-		internal string LeaderName;
-		internal string TribeName;
+		internal string LeaderName = null!;
+		internal string TribeName = null!;
 		internal int    Score;
-		internal string Victory;
-		internal string Year;
+		internal string Victory = null!;
+		internal string Year = null!;
 	}
 
 	internal static class HallOfFame

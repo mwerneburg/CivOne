@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -45,7 +46,7 @@ namespace CivOne
 			{
 				if (_customSettings.ContainsKey(customSetting.ToLower()))
 					return _customSettings[customSetting.ToLower()];
-				return null;
+				return null!;
 			}
 			set
 			{
@@ -66,7 +67,7 @@ namespace CivOne
 			}
 			catch
 			{
-				return default(T);
+				return default(T)!;
 			}
 		}
 
