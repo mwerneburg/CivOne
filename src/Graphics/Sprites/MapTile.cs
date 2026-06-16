@@ -464,14 +464,14 @@ namespace CivOne.Graphics.Sprites
 			{
 				foreach (Direction direction in (Direction[])[North, East, South, West, NorthWest, NorthEast, SouthWest, SouthEast])
 				{
-					ITile borderTile = tile.GetBorderTile(direction);
+					ITile? borderTile = tile.GetBorderTile(direction);
 					if (borderTile is null) continue;
 					if (borderTile is Ocean) continue;
 					directions |= direction;
 				}
 				foreach (Direction direction in (Direction[])[North, East, South, West])
 				{
-					ITile borderTile = tile.GetBorderTile(direction);
+					ITile? borderTile = tile.GetBorderTile(direction);
 					if (borderTile is null) continue;
 					if (borderTile is River) riverDirections |= direction;
 				}
@@ -480,7 +480,7 @@ namespace CivOne.Graphics.Sprites
 			{
 				foreach (Direction direction in (Direction[])[North, East, South, West])
 				{
-					ITile borderTile = tile.GetBorderTile(direction);
+					ITile? borderTile = tile.GetBorderTile(direction);
 					if (borderTile is null) continue;
 
 					switch (tile)

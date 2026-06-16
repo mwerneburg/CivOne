@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -51,13 +52,13 @@ namespace CivOne.Tiles
 
 		public static Terrain GetBorderType(this ITile tile, Direction direction)
 		{
-			ITile borderTile = GetBorderTile(tile, direction);
+			ITile? borderTile = GetBorderTile(tile, direction);
 			if (borderTile is null) return Terrain.None;
 			if (borderTile.Type == Terrain.Grassland2) return Terrain.Grassland1;
 			return borderTile.Type;
 		}
 
-		public static ITile GetBorderTile(this ITile tile, Direction direction)
+		public static ITile? GetBorderTile(this ITile tile, Direction direction)
 		{
 			switch (direction)
 			{
@@ -101,7 +102,7 @@ namespace CivOne.Tiles
 			Direction output = Direction.None;
 			for (int i = 1; i <= 128; i *= 2)
 			{
-				ITile borderTile = GetBorderTile(tile, (Direction)i);
+				ITile? borderTile = GetBorderTile(tile, (Direction)i);
 				if (borderTile is null || (!borderTile.Road && !borderTile.RailRoad && !borderTile.TransportTube && borderTile.City is null)) continue;
 				output += i;
 			}
@@ -113,7 +114,7 @@ namespace CivOne.Tiles
 			Direction output = Direction.None;
 			for (int i = 1; i <= 128; i *= 2)
 			{
-				ITile borderTile = GetBorderTile(tile, (Direction)i);
+				ITile? borderTile = GetBorderTile(tile, (Direction)i);
 				if (borderTile is null || (!borderTile.RailRoad && !borderTile.TransportTube && borderTile.City is null)) continue;
 				output += i;
 			}
@@ -125,7 +126,7 @@ namespace CivOne.Tiles
 			Direction output = Direction.None;
 			for (int i = 1; i <= 128; i *= 2)
 			{
-				ITile borderTile = GetBorderTile(tile, (Direction)i);
+				ITile? borderTile = GetBorderTile(tile, (Direction)i);
 				if (borderTile is null || (!borderTile.TransportTube && borderTile.City is null)) continue;
 				output += i;
 			}
@@ -169,7 +170,7 @@ namespace CivOne.Tiles
 			return (tile is Forest || tile is Jungle || tile is Swamp);
 		}
 
-		public static IBitmap ToBitmap(this ITile[,] tiles, TileSettings settings = null, Player player = null)
+		public static IBitmap ToBitmap(this ITile[,] tiles, TileSettings? settings = null, Player? player = null)
 		{
 			if (settings is null) settings = TileSettings.Default;
 
@@ -202,7 +203,7 @@ namespace CivOne.Tiles
 			return output;
 		}
 
-		public static IBitmap ToBitmap(this ITile tile, TileSettings settings = null, Player player = null)
+		public static IBitmap ToBitmap(this ITile tile, TileSettings? settings = null, Player? player = null)
 		{
 			if (settings is null) settings = TileSettings.Default;
 
@@ -212,7 +213,7 @@ namespace CivOne.Tiles
 			if (GFX256 && settings.Improvements && tile.DrawIrrigation()) output.AddLayer(MapTile.Irrigation);
 			output.AddLayer(MapTile.TileLayer(tile));
 			output.AddLayer(MapTile.TileSpecial(tile));
-			Bytemap erosion = MapTile.LandCoastErosion(tile);
+			Bytemap? erosion = MapTile.LandCoastErosion(tile);
 			if (erosion is not null) output.AddLayer(erosion, dispose: true);
 			
 			// Add tile improvements
@@ -248,15 +249,15 @@ namespace CivOne.Tiles
 			if (settings.Cities && tile.City is not null)
 			{
 				output.AddLayer(Icons.City(tile.City, smallFont: settings.CitySmallFonts));
-				if (settings.ActiveUnit && tile.Units.Any(u => u == Game.ActiveUnit && u.Owner != Game.PlayerNumber(player)))
+				if (settings.ActiveUnit && tile.Units.Any(u => u == Game!.ActiveUnit && u.Owner != Game.PlayerNumber(player!)))
 				{
 					output.AddLayer(tile.UnitsToPicture(), -1, -1, dispose: true);
 				}
 			}
 			
-			if ((settings.EnemyUnits || settings.Units) && (tile.City is null || tile.Units.Any(u => u == Game.ActiveUnit)))
+			if ((settings.EnemyUnits || settings.Units) && (tile.City is null || tile.Units.Any(u => u == Game!.ActiveUnit)))
 			{
-				int unitCount = tile.Units.Count(u => settings.Units || player is null || u.Owner != Game.PlayerNumber(player));
+				int unitCount = tile.Units.Count(u => settings.Units || player is null || u.Owner != Game!.PlayerNumber(player));
 				if (unitCount > 0)
 				{
 					output.AddLayer(tile.UnitsToPicture(), dispose: true);
@@ -266,7 +267,7 @@ namespace CivOne.Tiles
 			return output;
 		}
 
-		public static IBitmap UnitsToPicture(this ITile tile)
+		public static IBitmap? UnitsToPicture(this ITile tile)
 		{
 			if (tile is null || tile.Units.Length == 0 || (tile.Units.Length == 1 && tile.Units[0] == Game.MovingUnit)) return null;
 			
