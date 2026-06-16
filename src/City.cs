@@ -193,14 +193,14 @@ namespace CivOne
 				if (government is Anarchy || government is Despotism)
 				{
 					int costs = 0;
-					for (int i = 0; i < Units.Count(u => (!(u is Diplomat) && !(u is Caravan))); i++)
+					for (int i = 0; i < Units.Count(u => (!(u is Diplomat) && !(u is ICaravan))); i++)
 					{
 						if (i < _size) continue;
 						costs++;
 					}
 					return costs;
 				}
-				return Units.Count(u => (!(u is Diplomat) && !(u is Caravan)));
+				return Units.Count(u => (!(u is Diplomat) && !(u is ICaravan)));
 			}
 		}
 
@@ -862,7 +862,7 @@ namespace CivOne
 			{
 				int penalty = Player.Government is Governments.Democracy ? 2 : 1;
 				if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
-				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is Caravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
+				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
 				unhappyCount += militaryAway * penalty;
 			}
 			// Pollution unhappiness: each city pays for its own smog. SmokeStacks is
@@ -1356,11 +1356,11 @@ namespace CivOne
 					{
 						unit.SetHome();
 					}
-					if (Human == Owner && (unit is Settlers || unit is HydroEngineer || unit is Diplomat || unit is Caravan))
+					if (Human == Owner && (unit is Settlers || unit is HydroEngineer || unit is Diplomat || unit is ICaravan))
 					{
 						GameTask.Enqueue(new ImprovementBuilt(this, unit));
 					}
-					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Diplomat || CurrentProduction is Caravan))
+					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Diplomat || CurrentProduction is ICaravan))
 					{
 						string? uname = (CurrentProduction as ICivilopedia)?.Name;
 						if (uname is not null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))

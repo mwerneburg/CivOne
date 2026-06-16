@@ -27,17 +27,19 @@ namespace CivOne.Graphics.Sprites
 		{
 			byte colourDark = Common.ColourDark[unit.PlayerNumber];
 			byte colourLight = Common.ColourLight[unit.PlayerNumber];
-			int unitId = (int)unit.Type;
+			// The Sea Caravan borrows the Sail's artwork.
+			UnitType artType = unit.Type == UnitType.SeaCaravan ? UnitType.Sail : unit.Type;
+			int unitId = (int)artType;
 
 			// Collect art as a transparent-background bytemap (index 0 = transparent)
 			Bytemap art;
-			if (CivOne.Units.BaseUnit.GetPngOverride(unit.Type, out Bytemap? pngArt))
+			if (CivOne.Units.BaseUnit.GetPngOverride(artType, out Bytemap? pngArt))
 			{
 				art = pngArt!;
 			}
 			else
 			{
-				IBitmap? baseSprite = BaseSprite(unit.Type);
+				IBitmap? baseSprite = BaseSprite(artType);
 				if (baseSprite is not null)
 				{
 					art = baseSprite.MatchColours(Common.DefaultPalette, 1, 15);
@@ -56,7 +58,7 @@ namespace CivOne.Graphics.Sprites
 					}
 					else
 					{
-						art = Free.GetUnit(unit.Type);
+						art = Free.GetUnit(artType);
 					}
 				}
 				art.ColourReplace((10, CassetteTheme.PHOS_DIM), (2, CassetteTheme.BG3));

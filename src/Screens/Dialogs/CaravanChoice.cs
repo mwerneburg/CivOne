@@ -25,7 +25,7 @@ namespace CivOne.Screens.Dialogs
 	{
 		private const int FONT_ID = 0;
 
-		private readonly Caravan _unit;
+		private readonly ICaravan _unit;
 		private readonly City _city;
 		private bool _update = true;
 
@@ -110,7 +110,7 @@ namespace CivOne.Screens.Dialogs
 			return true;
 		}
 
-		internal CaravanChoice(Caravan unit, City city) : base(MouseCursor.Pointer)
+		internal CaravanChoice(ICaravan unit, City city) : base(MouseCursor.Pointer)
 		{
 			_unit = unit;
 			_city = city;

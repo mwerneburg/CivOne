@@ -16,7 +16,10 @@ using CivOne.Wonders;
 
 namespace CivOne.Units
 {
-	internal class Caravan : BaseUnitLand, ICaravan
+	// A Caravan that sails. Establishes trade routes / helps wonders just like the
+	// land Caravan, but moves over ocean and into coastal cities. Renders with the
+	// Sail sprite (see Graphics/Sprites/Unit.GetUnit).
+	internal class SeaCaravan : BaseUnitSea, ICaravan
 	{
 		public void KeepMoving(City city) => MovementTo(city.X - X, city.Y - Y);
 
@@ -38,20 +41,14 @@ namespace CivOne.Units
 					bool buildingWonder = city.CurrentProduction is IWonder;
 					if (!tooClose || buildingWonder)
 					{
-						// Human player: pause and let the user pick deliver/help-wonder/move-on
-						// via the CaravanChoice dialog. The dialog handles the move itself, so
-						// returning true here without invoking base.MoveTo is correct for humans.
+						// Human player: pause and let the user pick deliver/help-wonder/move-on.
+						// The dialog performs the move itself, so return true without base.MoveTo.
 						if (Game.Human == Owner)
 						{
 							GameTask.Enqueue(Show.CaravanChoice(this, city));
 							return true;
 						}
-						// AI player: no dialog exists. Previously this also returned true,
-						// which the AI loop interpreted as "move succeeded" — but the unit
-						// hadn't actually moved, so it stuck on the same tile turn after turn
-						// until the circuit breaker fired. Fall through to base.MoveTo so the
-						// AI Caravan treats its own city as a normal waypoint en route to a
-						// foreign trade target.
+						// AI: no dialog — fall through so the city is treated as a waypoint.
 					}
 				}
 				else if (Game.Human == Owner && CaravanActions.HasUnbuiltDomeAssignment(city.Owner))
@@ -83,13 +80,13 @@ namespace CivOne.Units
 			return true;
 		}
 
-		public Caravan() : base(5, 0, 1, 2)
+		public SeaCaravan() : base(5, 0, 1, 3, 1)
 		{
-			Type = UnitType.Caravan;
-			Name = "Caravan";
+			Type = UnitType.SeaCaravan;
+			Name = "Sea Caravan";
 			RequiredTech = new Trade();
 			ObsoleteTech = null;
-			SetIcon('E', 0, 1);
+			SetIcon('B', 1, 1); // Sail's unit-panel icon
 		}
 	}
 }
