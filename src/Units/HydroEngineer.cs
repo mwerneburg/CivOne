@@ -200,7 +200,7 @@ namespace CivOne.Units
 			}
 		}
 
-		public HydroEngineer() : base(4, 0, 1, 3)
+		public HydroEngineer() : base(4, 0, 1, 6)
 		{
 			Type = UnitType.HydroEngineer;
 			Name = "Hydro Engineer";
