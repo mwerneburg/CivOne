@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -28,9 +29,9 @@ namespace CivOne
 {
 	public class RuntimeHandler
 	{
-		private static RuntimeHandler _instance;
+		private static RuntimeHandler _instance = null!;
 		internal static RuntimeHandler Instance => _instance;
-		internal static IRuntime Runtime { get; private set; }
+		internal static IRuntime Runtime { get; private set; } = null!;
 		
 		private Settings Settings => Settings.Instance;
 		private IScreen TopScreen => Common.TopScreen;
@@ -102,7 +103,7 @@ namespace CivOne
 		// menu, Options, and the Civilopedia don't auto-dismiss themselves — toggling
 		// Autopilot inside Options would otherwise immediately untoggle it.
 		private uint _autopilotDwell = 0;
-		private IScreen _autopilotLastTop = null;
+		private IScreen? _autopilotLastTop = null;
 		private const uint AUTOPILOT_DWELL_TICKS = 30;  // ~0.5s at the 60-tick rate
 
 		// Screens where pressing Enter would be a user-initiated action (toggling an option,
@@ -211,7 +212,7 @@ namespace CivOne
 				}
 				else
 				{
-					Runtime.Cursor = null;
+					Runtime.Cursor = null!;
 				}
 			}
 		}

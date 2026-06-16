@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -667,7 +668,7 @@ namespace CivOne
 			return dist;
 		}
 
-		private void CreateRivers(int[,] distToOcean = null)
+		private void CreateRivers(int[,]? distToOcean = null)
 		{
 			Log("Map: Stage 6 - Create rivers");
 

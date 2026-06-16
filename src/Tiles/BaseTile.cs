@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -94,7 +95,7 @@ namespace CivOne.Tiles
 		}
 
 		public Terrain Type { get; protected set; }
-		public string Name { get; protected set; }
+		public string Name { get; protected set; } = null!;
 		public byte PageCount => 1;
 		public Picture DrawPage(byte pageNumber) => new Picture(320, 200);
 		
@@ -218,8 +219,8 @@ namespace CivOne.Tiles
 		
 		// This method is used to calculate whether a river or grassland tile is special.
 		protected bool AlternateSpecial() => ((X + Y) % 4 == 0) || ((X + Y) % 4 == 3);
-		public City City => Game?.GetCity(X, Y);
-		public IUnit[] Units => Game?.GetUnits(X, Y);
+		public City City => (Game?.GetCity(X, Y))!;
+		public IUnit[] Units => (Game?.GetUnits(X, Y))!;
 
 		public ITile this[int relativeX, int relativeY] => Map[X + relativeX, Y + relativeY];
 		public ITile[,] this[int relativeX, int relativeY, int width, int height] => Map[X + relativeX, Y + relativeY, width, height];

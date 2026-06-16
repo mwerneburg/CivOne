@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -73,7 +74,7 @@ namespace CivOne
 					Size           = city.Size,
 					Food           = city.Food,
 					Shields        = city.Shields,
-					Production     = city.CurrentProduction?.GetType().Name,
+					Production     = (city.CurrentProduction?.GetType().Name)!,
 					ProductionQueue = city.ProductionQueue.Select(p => p.GetType().Name).ToArray(),
 					Buildings      = city.Buildings.Select(b => (int)b.Id).ToArray(),
 					Wonders        = wonders,
@@ -236,7 +237,7 @@ namespace CivOne
 					default:
 						return null;
 				}
-			}).Where(e => e is not null).ToList();
+			}).OfType<CosReplayEntry>().ToList();
 
 			string displayName = BuildDisplayName();
 			var cos = new CosFile
@@ -276,12 +277,12 @@ namespace CivOne
 					ProbeDispatched         = ProbeDispatched,
 					ProbeDispatchTurn       = ProbeDispatchTurn,
 					ProbeInterimPhase       = ProbeInterimPhase,
-					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null,
+					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null!,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
 					OlvirImprovements       = OlvirImprovements.Count > 0
 					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
-					                          : null,
+					                          : null!,
 					DomeAssignments         = DomeAssignments
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
@@ -336,7 +337,7 @@ namespace CivOne
 			_difficulty  = g.Difficulty;
 			_competition = g.Competition;
 			int slotCount = cos.Players.Count;
-			_players  = new List<Player>(Enumerable.Repeat<Player>(null, slotCount));
+			_players  = new List<Player>(Enumerable.Repeat<Player>(null!, slotCount));
 			_cities   = new List<City>();
 			_units    = new List<IUnit>();
 			SpaceshipLaunchTurn  = new int[slotCount];
@@ -540,7 +541,7 @@ namespace CivOne
 			var cityById = new Dictionary<int, City>();
 			for (int ci = 0; ci < (cos.Cities?.Count ?? 0); ci++)
 			{
-				var cd   = cos.Cities[ci];
+				var cd   = cos.Cities![ci];
 				if (cd.X < 0 || cd.X >= Map.WIDTH || cd.Y < 0 || cd.Y >= Map.HEIGHT)
 				{
 					Log($"Skipping corrupt city id={cd.Id} at ({cd.X},{cd.Y}) — out of bounds for {Map.WIDTH}x{Map.HEIGHT} map");
@@ -581,6 +582,7 @@ namespace CivOne
 				foreach (int unitTypeId in cd.FortifiedUnits ?? Array.Empty<int>())
 				{
 					var unit = CreateUnit((UnitType)unitTypeId, city.X, city.Y);
+					if (unit is null) continue;
 					unit.Status = (byte)(1 << 3); // fortified
 					unit.Owner  = city.Owner;
 					unit.SetHome(city);
@@ -597,7 +599,7 @@ namespace CivOne
 			// Restore trade routes now that all cities exist
 			for (int ci = 0; ci < (cos.Cities?.Count ?? 0); ci++)
 			{
-				var cd = cos.Cities[ci];
+				var cd = cos.Cities![ci];
 				if (cd.TradeRoutes is null || !cityById.TryGetValue(cd.Id, out var city)) continue;
 				foreach (var tr in cd.TradeRoutes)
 				{
@@ -698,7 +700,7 @@ namespace CivOne
 			// the accumulated drift. Human cities are skipped — the player may have
 			// intentionally created Entertainers or chosen specific tiles, and we don't
 			// want to override those choices.
-			byte humanIdx = PlayerNumber(HumanPlayer);
+			byte humanIdx = PlayerNumber(HumanPlayer!);
 			foreach (City city in _cities)
 			{
 				if (city.Owner == humanIdx) continue;

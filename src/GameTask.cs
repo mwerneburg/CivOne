@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -17,12 +18,12 @@ namespace CivOne
 {
 	public abstract class GameTask : BaseInstance
 	{
-		private static GameTask _currentTask = null;
+		private static GameTask? _currentTask = null;
 		private static List<GameTask> _tasks = new();
 
 		public static bool Any() => (_tasks.Count > 0);
 		public static bool Is<T>() where T : GameTask => (_currentTask is not null && _currentTask is T);
-		public static bool Fast => Common.HasAttribute<Fast>(_currentTask);
+		public static bool Fast => _currentTask is not null && Common.HasAttribute<Fast>(_currentTask);
 		public static int Count<T>() where T : GameTask => _tasks.Count(t => t is T);
 
 		private static void NextTask()
@@ -95,7 +96,7 @@ namespace CivOne
 
 		private static void Finish(object sender, EventArgs args)
 		{
-			_tasks.Remove((sender as GameTask));
+			_tasks.Remove((sender as GameTask)!);
 			if (!_tasks.Any())
 			{
 				_currentTask = null;
@@ -105,8 +106,8 @@ namespace CivOne
 			NextTask();
 		}
 
-		public static event TaskEventHandler Started;
-		public event EventHandler Done;
+		public static event TaskEventHandler? Started;
+		public event EventHandler? Done;
 
 		protected virtual bool Step() => false;
 

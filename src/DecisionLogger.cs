@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -67,11 +68,11 @@ namespace CivOne
 {
 	internal static class DecisionLogger
 	{
-		private static string _gameId;
-		private static StreamWriter _writer;
+		private static string _gameId = null!;
+		private static StreamWriter? _writer;
 		private static readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
 		private static readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
-		private static Task _writerTask;
+		private static Task _writerTask = null!;
 		private static volatile bool _active;
 
 		// ── lifecycle ────────────────────────────────────────────────────────────
@@ -157,7 +158,7 @@ namespace CivOne
 				? ownCities.Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y))
 				: 255;
 
-			Player ownerPlayer = game?.GetPlayer(unit.Owner);
+			Player? ownerPlayer = game?.GetPlayer(unit.Owner);
 			string civName    = ownerPlayer?.Civilization?.NamePlural ?? "?";
 			string leaderName = ownerPlayer?.LeaderName ?? "?";
 
@@ -165,7 +166,7 @@ namespace CivOne
 				KV("type",         "settler"),
 				KV("game_id",      _gameId),
 				KV("turn",         turn),
-				KV("is_human",     ownerPlayer is not null && ownerPlayer == game.HumanPlayer),
+				KV("is_human",     ownerPlayer is not null && ownerPlayer == game?.HumanPlayer),
 				KV("civ",          civName),
 				KV("leader",       leaderName),
 				KV("terrain",      tile.GetType().Name),
@@ -230,7 +231,7 @@ namespace CivOne
 				KV("defenders",     defenders),
 				KV("nearest_enemy", nearestEnemy),
 				KV("at_war",        atWar),
-				KV("own_gold",      player.Gold),
+				KV("own_gold",      player?.Gold ?? 0),
 				KV("own_cities",    ownCities.Length),
 				KV("stance",        stance),
 				KV("action",        productionName),

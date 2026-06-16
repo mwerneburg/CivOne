@@ -136,7 +136,7 @@ namespace CivOne
 			=> Transmissions.Add(new TransmissionRecord { Type = type, Year = year });
 
 		// Exploration: byte[x, y] = player index who first revealed that tile; 255 = unvisited
-		private byte[,] _firstExplorer;
+		private byte[,] _firstExplorer = null!;
 		internal byte[,] FirstExplorer
 		{
 			get
@@ -206,7 +206,7 @@ namespace CivOne
 					Log("[AI]   diag: continent mismatch — pathfinder will return null. Likely a stale Goto from a previous turn that AssignMission picked before reachability was checked.");
 				}
 
-				ITile step = Common.GotoStep(unit, gx, gy);
+				ITile? step = Common.GotoStep(unit, gx, gy);
 				if (step is null)
 				{
 					Log("[AI]   diag: GotoStep returned null — no land path. Goto should be cleared but isn't.");
@@ -309,7 +309,7 @@ namespace CivOne
 		
 		internal string GameYear => Common.YearString(GameTurn);
 		
-		internal Player HumanPlayer { get; set; }
+		internal Player HumanPlayer { get; set; } = null!;
 		
 		internal Player CurrentPlayer => _players[_currentPlayer];
 
@@ -897,7 +897,7 @@ namespace CivOne
 			{
 				if (unit is not null && !unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null)
 					{
 						unit.Goto = Point.Empty;

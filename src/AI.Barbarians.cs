@@ -107,7 +107,7 @@ namespace CivOne
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null)
 					{
 						// No path to current target — give up for this turn.
@@ -193,7 +193,7 @@ namespace CivOne
 
 				if (!unit.Goto.IsEmpty)
 				{
-					ITile next = Common.GotoStep(unit);
+					ITile? next = Common.GotoStep(unit);
 					if (next is null)
 					{
 						// Arrived or path blocked — re-evaluate next turn.

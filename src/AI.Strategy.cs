@@ -880,7 +880,7 @@ namespace CivOne
 
 				bool FirstStepReachable(City c)
 				{
-					ITile step = Common.GotoStep(unit, c.X, c.Y);
+					ITile? step = Common.GotoStep(unit, c.X, c.Y);
 					if (step is null) return false;
 					if (step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
 					                     && Game.GetPlayer(u.Owner) is Player pu
@@ -928,7 +928,7 @@ namespace CivOne
 
 				bool FirstStepReachable(City c)
 				{
-					ITile step = Common.GotoStep(unit, c.X, c.Y);
+					ITile? step = Common.GotoStep(unit, c.X, c.Y);
 					if (step is null) return false;
 					// Peaceful-block: AI.Move at line ~343 refuses the step if the next tile
 					// holds a non-warring player's unit, or is a non-Barbarian city at peace

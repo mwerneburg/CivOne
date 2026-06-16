@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -48,7 +49,7 @@ namespace CivOne
 		// Lazily cached like Advances/Buildings/Wonders above; the old per-access
 		// Reflect.GetCivilizations() re-instantiated every civilization each call.
 		// Safe to share now that Player no longer mutates Leader.Name on its instance.
-		private static ICivilization[] _civilizations;
+		private static ICivilization[] _civilizations = null!;
 		public static ICivilization[] Civilizations => _civilizations ??= Reflect.GetCivilizations().ToArray();
 		// Slots 0–7: original civs (0=Barbarians). Slots 8–15: reserved for narrative factions (Olvir=8, Others=9).
 		// Slots 16–19: extra capacity for max-competition games (NewGame caps at 17 civs; with barbarians + Olvir that's 19 slots).
@@ -136,7 +137,7 @@ namespace CivOne
 				}
 				
 				Log("Error: Capture folder is full.");
-				return null;
+				return null!;
 			}
 		}
 		
@@ -229,9 +230,9 @@ namespace CivOne
 
 		// A* pathfinder for GoTo orders. Returns the next tile to move into, or null if unreachable.
 		// Cost units: railroad=1, road=3, terrain=Movement*9 (max 18 for hills/forest).
-		public static ITile GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
+		public static ITile? GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 
-		public static ITile GotoStep(IUnit unit, int gx, int gy)
+		public static ITile? GotoStep(IUnit unit, int gx, int gy)
 		{
 			int sx = unit.X, sy = unit.Y;
 			if (sx == gx && sy == gy) return null;
@@ -392,7 +393,7 @@ namespace CivOne
 			return BytesToArray(reader.ReadBytes(length), itemLength);
 		}
 		
-		private static Palette _palette16;
+		private static Palette _palette16 = null!;
 		public static Palette GetPalette16
 		{
 			get
@@ -424,7 +425,7 @@ namespace CivOne
 			}
 		}
 
-		private static Palette _palette256;
+		private static Palette _palette256 = null!;
 		public static Palette GetPalette256
 		{
 			get

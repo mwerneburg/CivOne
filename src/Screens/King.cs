@@ -166,18 +166,18 @@ namespace CivOne.Screens
 		{
 			if (d.Kind == AIDemandKind.GrievancePack)
 			{
-				var parts = new System.Collections.Generic.List<string> { $"Return {d.City.Name}" };
-				if (d.Advance is not null) parts.Add(d.Advance.Name);
+				var parts = new System.Collections.Generic.List<string> { $"Return {d.City!.Name}" };
+				if (d.Advance is not null) parts.Add(d.Advance!.Name);
 				if (d.Amount > 0) parts.Add($"${d.Amount}");
 				return $"Accept settlement: {string.Join(" + ", parts)} → {d.Duration} turns of peace";
 			}
 			return d.Kind switch
 			{
-				AIDemandKind.ReturnCity => $"Return {d.City.Name} → {d.Duration} turns of peace",
+				AIDemandKind.ReturnCity => $"Return {d.City!.Name} → {d.Duration} turns of peace",
 				AIDemandKind.GiveMap   => $"Share your maps → {d.Duration} turns of goodwill",
-				AIDemandKind.GiveTech  => $"Transfer {d.Advance.Name} → {d.Duration} turns of goodwill",
+				AIDemandKind.GiveTech  => $"Transfer {d.Advance!.Name} → {d.Duration} turns of goodwill",
 				AIDemandKind.GiveMoney => $"Pay ${d.Amount} tribute → {d.Duration} turns of goodwill",
-				AIDemandKind.CedeCity  => $"Cede {d.City.Name} → {d.Duration} turns of goodwill",
+				AIDemandKind.CedeCity  => $"Cede {d.City!.Name} → {d.Duration} turns of goodwill",
 				_                      => "Unknown demand"
 			};
 		}
@@ -190,11 +190,11 @@ namespace CivOne.Screens
 			switch (d.Kind)
 			{
 				case AIDemandKind.ReturnCity:
-					d.City.Owner = aiNum;
+					d.City!.Owner = aiNum;
 					Human.MakePeace(_enemy);
 					_enemy.SetPeaceTreaty(Human, d.Duration);
 					SetResponse(FaceState.Smiling,
-						$"{d.City.Name} is restored to us.",
+						$"{d.City!.Name} is restored to us.",
 						$"We guarantee {d.Duration} turns of peace.");
 					break;
 
@@ -210,7 +210,7 @@ namespace CivOne.Screens
 					_enemy.AddAdvance(d.Advance, false);
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					SetResponse(FaceState.Smiling,
-						$"{d.Advance.Name} — a worthy gift.",
+						$"{d.Advance!.Name} — a worthy gift.",
 						$"{d.Duration} turns of goodwill — agreed.");
 					break;
 
@@ -224,24 +224,24 @@ namespace CivOne.Screens
 					break;
 
 				case AIDemandKind.CedeCity:
-					d.City.Owner = aiNum;
+					d.City!.Owner = aiNum;
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					SetResponse(FaceState.Smiling,
-						$"{d.City.Name} joins our realm.",
+						$"{d.City!.Name} joins our realm.",
 						$"{d.Duration} turns of goodwill — agreed.");
 					break;
 
 				case AIDemandKind.GrievancePack:
-					d.City.Owner = aiNum;
+					d.City!.Owner = aiNum;
 					if (d.Advance is not null) _enemy.AddAdvance(d.Advance, false);
 					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
 					_enemy.SetPeaceTreaty(Human, d.Duration);
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					var responseLines = new System.Collections.Generic.List<string>
 					{
-						$"{d.City.Name} is restored to us."
+						$"{d.City!.Name} is restored to us."
 					};
-					if (d.Advance is not null) responseLines.Add($"{d.Advance.Name} received.");
+					if (d.Advance is not null) responseLines.Add($"{d.Advance!.Name} received.");
 					if (d.Amount > 0) responseLines.Add($"${d.Amount} received.");
 					responseLines.Add($"{d.Duration} turns of peace — agreed.");
 					SetResponse(FaceState.Smiling, responseLines.ToArray());

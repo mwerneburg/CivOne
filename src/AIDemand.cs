@@ -1,3 +1,4 @@
+#nullable enable
 // CivOne
 //
 // To the extent possible under law, the person who associated CC0 with
@@ -16,12 +17,12 @@ namespace CivOne
 	internal class AIDemand
 	{
 		internal AIDemandKind Kind     { get; }
-		internal City         City     { get; }
-		internal IAdvance     Advance  { get; }
+		internal City?        City     { get; }
+		internal IAdvance?    Advance  { get; }
 		internal int          Amount   { get; }
 		internal int          Duration { get; }
 
-		internal AIDemand(AIDemandKind kind, City city = null, IAdvance advance = null, int amount = 0, int duration = 50)
+		internal AIDemand(AIDemandKind kind, City? city = null, IAdvance? advance = null, int amount = 0, int duration = 50)
 		{
 			Kind     = kind;
 			City     = city;
