@@ -17,6 +17,7 @@ using CivOne.Graphics;
 using CivOne.IO;
 using CivOne.Tasks;
 using CivOne.Tiles;
+using CivOne.UserInterface;
 using CivOne.Units;
 
 namespace CivOne.Screens.GamePlayPanels
@@ -540,11 +541,34 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'W':
 					GameTask.Enqueue(Orders.Wait(Game.ActiveUnit));
 					break;
+				// Settler terraform / auto actions: dispatch to the active unit's own
+				// menu item by its shortcut, so these stay in sync with the unit menu.
+				case 'A':   // Build Aquafarm
+				case 'V':   // Plant Forest
+				case 'E':   // Auto-Improve
+				case 'N':   // Engineer River
+				case 'O':   // Build Road To...
+					return ActivateUnitMenuShortcut(char.ToLower(args.KeyChar).ToString());
 			}
 
 			return false;
 		}
-		
+
+		// Find the active unit's menu item whose shortcut matches and trigger it.
+		// Reuses the unit menu's own tile/tech conditions (an inapplicable action is
+		// simply absent from MenuItems, so the key does nothing).
+		private bool ActivateUnitMenuShortcut(string shortcut)
+		{
+			if (Game.ActiveUnit is null) return false;
+			foreach (MenuItem<int> item in Game.ActiveUnit.MenuItems)
+			{
+				if (item is null || item.Shortcut != shortcut || !item.Enabled) continue;
+				item.Select();
+				return true;
+			}
+			return false;
+		}
+
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
 			if (Game.CurrentPlayer != Human)

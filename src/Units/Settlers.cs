@@ -749,12 +749,12 @@ namespace CivOne.Units
 
 		private MenuItem<int> MenuAddRiver() => MenuItem<int>
 			.Create("Engineer River")
-			.SetShortcut("e")
+			.SetShortcut("n")
 			.OnSelect((s, a) => BuildAddRiver());
 
 		private MenuItem<int> MenuBuildRoadTo() => MenuItem<int>
 			.Create("Build Road To...")
-			.SetShortcut("t")
+			.SetShortcut("o")
 			.OnSelect((s, a) => GameTask.Enqueue(Show.RoadTo));
 
 		private MenuItem<int> MenuBuildIrrigation() => MenuItem<int>
