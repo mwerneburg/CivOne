@@ -162,7 +162,7 @@ namespace CivOne
 
 					if (tile.IsOcean) continue; // Is it an ocean tile?
 					if (tile.Hut) continue; // Is there a hut on this tile?
-					if (_units.Any(u => u.X == x || u.Y == y)) continue; // Is there already a unit on this tile?
+					if (_units.Any(u => u.X == x && u.Y == y)) continue; // Is there already a unit on this exact tile? (|| would reject whole rows/columns and starve placement)
 					if (tile.LandValue < (12 - (loopCounter / 32))) continue; // Is the land value high enough?
 					if (_cities.Any(c => Common.DistanceToTile(x, y, c.X, c.Y) < (baseSeparation - (loopCounter / 64)))) continue; // Distance to other cities
 					if (_units.Any(u => (u is Settlers) && Common.DistanceToTile(x, y, u.X, u.Y) < (baseSeparation - (loopCounter / 64)))) continue; // Distance to other settlers
@@ -181,6 +181,38 @@ namespace CivOne
 
 				_players[player].StartX = (short)x;
 				return;
+			}
+
+			// Fallback: the constrained search above can still exhaust its 2000 tries on
+			// crowded or fragmented maps. A civ left without a settler has no city and no
+			// unit, so IsDestroyed() wipes it on turn 1 — recorded as "destroyed by
+			// Barbarians" (Game.PlayerDestroyed uses player 0 as the placeholder killer).
+			// That was the real cause of NPC civs vanishing in the opening rounds. Place
+			// the settler on the best habitable, unoccupied land tile so every civ enters
+			// the game; spacing from existing settlers is preferred but not required.
+			{
+				bool Habitable(ITile t) => t is not null && !t.IsOcean && !(t is Mountains) && !(t is Arctic);
+				ITile? best = null;
+				int bestScore = int.MinValue;
+				for (int yy = 2; yy < Map.HEIGHT - 2; yy++)
+				for (int xx = 0; xx < Map.WIDTH; xx++)
+				{
+					ITile t = Map[xx, yy];
+					if (!Habitable(t) || t.City is not null) continue;
+					if (_units.Any(u => u.X == xx && u.Y == yy)) continue;
+					int nearest = _units.Where(u => u is Settlers)
+						.Select(u => Common.DistanceToTile(xx, yy, u.X, u.Y))
+						.DefaultIfEmpty(999).Min();
+					int score = t.LandValue + Math.Min(nearest, 24);
+					if (score > bestScore) { bestScore = score; best = t; }
+				}
+				if (best is not null)
+				{
+					IUnit unit = CreateUnit(UnitType.Settlers, best.X, best.Y)!;
+					unit.Owner = player;
+					_units.Add(unit);
+					_players[player].StartX = (short)best.X;
+				}
 			}
 		}
 
