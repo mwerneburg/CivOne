@@ -1237,13 +1237,24 @@ namespace CivOne
 			// Early City Walls when a foreign city is within striking distance and Masonry is
 			// researched. Walls triple defender strength — a cheaper insurance policy than
 			// constantly re-building Militia after every barbarian raid wipes the garrison.
+			byte threatOwnId = Game.PlayerNumber(Player);
 			{
-				byte threatOwnId = Game.PlayerNumber(Player);
 				bool threatenedByNeighbor = Game.GetCities().Any(c => c.Owner != threatOwnId
 					&& Common.DistanceToTile(c.X, c.Y, city.X, city.Y) <= 10);
 				if (threatenedByNeighbor && Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>())
 					Consider(new CityWalls());
 			}
+
+			// Barbarian/enemy raid nearby: a lone Militia loses to a Legion, so garrison a
+			// second defender (and City Walls where available) when a hostile unit is close.
+			// Barbarians (owner 0) spawn in human-unexplored areas — i.e. on top of AI civs —
+			// so this is the difference between a city surviving the early raids and falling.
+			bool hostileNear = Game.GetUnits().Any(u => u.Owner != threatOwnId
+				&& (u.Owner == 0 || Player.IsAtWar(Game.GetPlayer(u.Owner)))
+				&& Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 3);
+			if (hostileNear && defenders < 2) Consider(BestDefender());
+			if (hostileNear && Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>())
+				Consider(new CityWalls());
 
 			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
 			// Without this, tiny AI civs build Militia → Barracks → Settlers → ship
@@ -1252,7 +1263,11 @@ namespace CivOne
 			// of the standard infrastructure chain.
 			if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) Consider(new Granary());
 
-			if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
+			// Barracks is deliberately NOT considered here. It only makes future units
+			// veteran — no growth, no expansion, no immediate defense — yet it used to sit
+			// at slot #4 ahead of Settlers and infrastructure, so tiny AI cities burned
+			// their early shields on it (Barracks was the single most-built early item in
+			// the decision logs). It is now built only in the Militarize stance.
 
 			int ownCities = Player.Cities.Length;
 			// Match the city target used by GetStance (line 70-73) so that the Settler-cap and
@@ -1300,10 +1315,11 @@ namespace CivOne
 				if (Player.HasAdvance<Pottery>()          && !city.HasBuilding<Granary>())   Consider(new Granary());
 			}
 
-			// Militarize: garrison up to 2, then attackers
+			// Militarize: garrison up to 2, barracks for veterans, then attackers
 			if (stance == StrategyStance.Militarize)
 			{
 				if (defenders < 2) Consider(BestDefender());
+				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());
 			}
 
@@ -1421,14 +1437,13 @@ namespace CivOne
 			// 1. Defensive unit if city is undefended
 			if (defenders < 1) plan.Add(BestDefender());
 
-			// 2. Explorer — one free scout early on
-			if (Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer) < 1)
-				plan.Add(new Explorer());
+			// Explorer and Barracks are intentionally not front-loaded here. A free scout
+			// and a veteran-unit building used to sit ahead of Militia and Settlers, so even
+			// the easiest-difficulty AI under-defended and under-expanded. The standard plan
+			// (appended below) still queues an Explorer under its per-city cap, and Barracks
+			// only when militarizing.
 
-			// 3. Barracks
-			if (!city.HasBuilding<Barracks>()) plan.Add(new Barracks());
-
-			// 3. Militia — capped at 4× city count
+			// 2. Militia — capped at 4× city count
 			if (ownMilitia < ownCities * 4 && plan.All(x => !(x is Militia)))
 				plan.Add(new Militia());
 
