@@ -141,11 +141,14 @@ namespace CivOne.Screens.GamePlayPanels
 				.FillRectangle(0, 0, _gameInfo.Width, 1, CassetteTheme.BORDER)
 				.AddScanlines();
 
-			if (Settings.CursorCoords && GamePlay.CursorTile is (int cx, int cy))
+			// Mouse-over readout, drawn at the bottom of the panel so a long name like
+			// "Babylonians" has room and it sits clear of the active-unit details above. The
+			// civilization name shows whenever the cursor is over a visible foreign city/unit;
+			// the coordinates are opt-in (Settings.CursorCoords). Called last in every path so
+			// nothing overdraws it.
+			void DrawHoverInfo()
 			{
-				_gameInfo.DrawText($"{cx}:{cy}", 0, CassetteTheme.INK_MID, 76, 2, TextAlign.Right);
-
-				// Hovering a visible, foreign city or unit: name the civilization it belongs to.
+				if (GamePlay.CursorTile is not (int cx, int cy)) return;
 				if (Human.Visible(cx, cy))
 				{
 					var tile = Map.Instance[cx, cy];
@@ -153,14 +156,17 @@ namespace CivOne.Screens.GamePlayPanels
 					            : tile.Units.Length > 0 ? tile.Units[0].Owner
 					            : (byte?)null;
 					if (owner is byte o && o != Game.PlayerNumber(Human))
-						_gameInfo.DrawText(Game.GetPlayer(o).TribeName, 0, CassetteTheme.PHOS, 76, 10, TextAlign.Right);
+						_gameInfo.DrawText(Game.GetPlayer(o).TribeName, 0, CassetteTheme.PHOS, 76, _gameInfo.Height - 9, TextAlign.Right);
 				}
+				if (Settings.CursorCoords)
+					_gameInfo.DrawText($"{cx}:{cy}", 0, CassetteTheme.INK_MID, 76, _gameInfo.Height - 17, TextAlign.Right);
 			}
 
 			if (Game.CurrentPlayer != Human || (unit is not null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
 				byte dotColour = (gameTick % 4 < 2) ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 				_gameInfo.FillRectangle(2, _gameInfo.Height - 8, 6, 6, dotColour);
+				DrawHoverInfo();
 				return;
 			}
 
@@ -220,6 +226,8 @@ namespace CivOne.Screens.GamePlayPanels
 				_gameInfo.DrawText("Press Enter", 0, CassetteTheme.INK_MID, 4, 42, TextAlign.Left);
 				_gameInfo.DrawText("to continue", 0, CassetteTheme.INK_MID, 4, 50, TextAlign.Left);
 			}
+
+			DrawHoverInfo();
 		}
 		
 		// ─── WLTK notification strip ──────────────────────────────────────────

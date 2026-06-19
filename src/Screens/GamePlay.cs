@@ -374,7 +374,9 @@ namespace CivOne.Screens
 		{
 			(int X, int Y)? previous = CursorTile;
 			CursorTile = ResolveCursorTile(args.X, args.Y);
-			if (Settings.CursorCoords && !Nullable.Equals(previous, CursorTile))
+			// Redraw on any tile change: the side-panel names the foreign civ under the cursor
+			// (always-on), and optionally the coordinates.
+			if (!Nullable.Equals(previous, CursorTile))
 				_update = true;
 			return false;
 		}
