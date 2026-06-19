@@ -488,8 +488,11 @@ namespace CivOne
 				if (Game.Instance.DomeAssignments.Count == 0)
 					return false;
 
-				// Each player may only build their assigned component(s).
-				if (!Game.Instance.GetDomeAssignments(this).Any(w => wonder.Id == (byte)w))
+				// AI players each build only their assigned component(s), which spreads the
+				// dome across civilizations. The human may build ANY of the five: when the
+				// assigned AI civs stall, can't be reached, or get wiped out, that is the only
+				// way the dome ever gets completed.
+				if (!IsHuman && !Game.Instance.GetDomeAssignments(this).Any(w => wonder.Id == (byte)w))
 					return false;
 
 				// Spaceship launch does not block dome — both paths can coexist.

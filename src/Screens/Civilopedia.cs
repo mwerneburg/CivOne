@@ -196,6 +196,11 @@ namespace CivOne.Screens
 					this.DrawText("Requires: (none)", 0, CassetteTheme.INK_MID, OX + 12, yy);
 				yy += 9;
 				this.DrawText($"Cost: {w.Price * 10} shields", 0, CassetteTheme.INK_MID, OX + 12, yy);
+				if (w.ObsoleteTech is not null)
+				{
+					yy += 9;
+					DrawLabelLink(OX + 12, yy, "Obsolete with: ", w.ObsoleteTech.Name, w.ObsoleteTech as ICivilopedia);
+				}
 				return;
 			}
 			if (_singlePage is IUnit u)
@@ -207,6 +212,11 @@ namespace CivOne.Screens
 				yy += 9;
 				this.DrawText($"Cost: {u.Price * 10} resources", 0, CassetteTheme.INK_MID, OX + 12, yy); yy += 9;
 				this.DrawText($"Attack: {u.Attack}   Defense: {u.Defense}   Move: {u.Move}", 0, CassetteTheme.INK_MID, OX + 12, yy);
+				if (u.ObsoleteTech is not null)
+				{
+					yy += 9;
+					DrawLabelLink(OX + 12, yy, "Obsolete with: ", u.ObsoleteTech.Name, u.ObsoleteTech as ICivilopedia);
+				}
 				return;
 			}
 			if (_singlePage is IAdvance adv)
