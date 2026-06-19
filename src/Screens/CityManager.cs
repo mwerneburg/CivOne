@@ -203,7 +203,7 @@ namespace CivOne.Screens
 			// Corruption field
 			string corrVal = _city.Corruption > 0 ? $"{_city.Corruption}" : "NONE";
 			byte corrColor = _city.Corruption > 0 ? CassetteTheme.PHOS : CassetteTheme.INK_MID;
-			this.DrawCassetteField("CORRUPT", corrVal, cx, cy, cw, 0, corrColor);
+			this.DrawCassetteField("CORRUPTION", corrVal, cx, cy, cw, 0, corrColor);
 			cy += fieldH;
 
 			// Upkeep field (shield costs)
