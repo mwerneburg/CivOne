@@ -598,7 +598,7 @@ namespace CivOne
 					SETISignalTurn = 0;
 					SETISignalReceived = true;
 					if (VisitorType == VisitorArchetype.None)
-						VisitorType = VisitorArchetype.Refugees; // TEMP: force Olvir path for testing
+						VisitorType = VisitorOverride() ?? SelectVisitorArchetype(); // CIVONE_VISITOR overrides the quality-weighted draw
 					TauCetiEscalationTurn = (uint)(_gameTurn + 20);
 					SETISignalTransmission.EnsureConfigFile();
 					string gameDate = GameYear;
@@ -670,10 +670,22 @@ namespace CivOne
 					}
 				}
 
-				// Olvir arrival scene
+				// Visitor arrival scene
 				if (OlvirArrivalTurn > 0 && _gameTurn >= OlvirArrivalTurn)
 				{
 					OlvirArrivalTurn = 0;
+
+					// The Owners ("The Others") arrive to reclaim humanity — a cinematic ending.
+					// A defended world (dome complete) becomes a disputed claim and humanity
+					// endures as a peer; an undefended one is recovered outright. Game over either way.
+					if (VisitorType == VisitorArchetype.Owners)
+					{
+						ArriveOwners();
+						return;
+					}
+
+					// Refugees (Olvir) — and, until their own arcs are built, the other archetypes
+					// fall through to the peaceful-settlement path.
 					bool probeWasSent = (ProbeInterimPhase == 4);
 					string artCaption = probeWasSent
 						? VisitorType switch
@@ -1347,6 +1359,90 @@ namespace CivOne
 			int dx = Math.Abs(x1 - x2);
 			if (dx > Map.WIDTH / 2) dx = Map.WIDTH - dx;
 			return Math.Max(dx, Math.Abs(y1 - y2));
+		}
+
+		// Test/dev override: set CIVONE_VISITOR=Owners|Refugees|Evaluators|Conquerors to force
+		// which Tau Ceti archetype arrives. Dynamic, quality-based selection is still TODO.
+		private static VisitorArchetype? VisitorOverride()
+		{
+			string? v = System.Environment.GetEnvironmentVariable("CIVONE_VISITOR");
+			if (!string.IsNullOrWhiteSpace(v) && System.Enum.TryParse(v, ignoreCase: true, out VisitorArchetype a) && a != VisitorArchetype.None)
+				return a;
+			return null;
+		}
+
+		// Quality-weighted choice of which Tau Ceti archetype arrives, judged from the human
+		// civilization's character at the moment first contact is made. A peaceful, enlightened,
+		// clean civilization tilts toward the Refugees (who seek a welcoming ally); a polluted,
+		// embattled, autocratic one tilts toward the Owners (whose reclamation falls hardest on a
+		// careless, undefended world). The draw is only WEIGHTED, never fixed — your civilization
+		// changes the odds, not the outcome, so replays still surprise. Only Refugees and Owners
+		// have arcs today; Evaluators/Conquerors join the draw as their content is built.
+		private VisitorArchetype SelectVisitorArchetype()
+		{
+			Player h = HumanPlayer;
+			int score = 0; // positive = enlightened (Refugees), negative = harsh (Owners)
+
+			// Government — the clearest read on a civilization's character.
+			if (h.Government is CivOne.Governments.Democracy)      score += 3;
+			else if (h.Government is CivOne.Governments.Republic)  score += 2;
+			else if (h.Government is CivOne.Governments.Monarchy)  score -= 1;
+			else                                                  score -= 2; // Despotism / Anarchy / Communism
+
+			// Wars — an aggressive, embattled civ leans Owners.
+			int wars = _players.Count(p => p != null && p != h && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian) && h.IsAtWar(p));
+			score -= Math.Min(wars, 3);
+
+			// Happiness / culture — Temple coverage across the empire leans Refugees.
+			if (h.Cities.Length > 0)
+			{
+				double temples = h.Cities.Count(c => c.HasBuilding<Temple>()) / (double)h.Cities.Length;
+				if (temples >= 0.6) score += 2;
+				else if (temples <= 0.2) score -= 1;
+			}
+
+			// Pollution — a smoke-choked world is loud and careless; leans Owners.
+			if (h.Pollution >= 8)      score -= 2;
+			else if (h.Pollution == 0) score += 1;
+
+			// Map the character score to P(Refugees), clamped so it is never deterministic.
+			double pRefugees = 0.5 + score * 0.07;
+			if (pRefugees < 0.20) pRefugees = 0.20;
+			if (pRefugees > 0.80) pRefugees = 0.80;
+
+			return Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
+				? VisitorArchetype.Refugees
+				: VisitorArchetype.Owners;
+		}
+
+		// The Owners arrival is an ending, forked on whether the planetary defence dome was built.
+		private void ArriveOwners()
+		{
+			bool domeHeld = DomeComplete;
+			string gameDate = GameYear;
+			RecordTransmission("OwnersArrival", gameDate);
+
+			// Art hook: drop an Owners image (e.g. event_art/theothers.png) and show it here with
+			// an EventArtScreen, exactly like the Olvir arrival. Text-only for now.
+			GameTask.Enqueue(Show.Screen(new Screens.OwnersArrivalTransmission(gameDate, domeHeld)));
+
+			if (domeHeld)
+			{
+				// The dome held: humanity survives as a negotiating peer, not recovered cargo.
+				HumanPlayer.AwardMilestone(150);
+				DecisionLogger.EndGame(HumanPlayer.Score, "Disputed Claim", humanWon: true, turns: _gameTurn);
+				int fame = EndSequence.SaveAndGetIndex(HumanPlayer, "Disputed Claim");
+				GameTask ft;
+				GameTask.Enqueue(ft = Show.Screen(new FinalScore("Disputed Claim")));
+				ft.Done += (s, a) => EndSequence.ChainAfterFinal(fame, () => Runtime.Quit());
+			}
+			else
+			{
+				// No defence stood ready: the cargo is recovered. Humanity loses.
+				DecisionLogger.EndGame(HumanPlayer.Score, "Reclamation", humanWon: false, turns: _gameTurn);
+				GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+			}
 		}
 
 		private void SpawnOlvir()
