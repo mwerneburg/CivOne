@@ -142,7 +142,20 @@ namespace CivOne.Screens.GamePlayPanels
 				.AddScanlines();
 
 			if (Settings.CursorCoords && GamePlay.CursorTile is (int cx, int cy))
+			{
 				_gameInfo.DrawText($"{cx}:{cy}", 0, CassetteTheme.INK_MID, 76, 2, TextAlign.Right);
+
+				// Hovering a visible, foreign city or unit: name the civilization it belongs to.
+				if (Human.Visible(cx, cy))
+				{
+					var tile = Map.Instance[cx, cy];
+					byte? owner = tile.City is not null ? tile.City.Owner
+					            : tile.Units.Length > 0 ? tile.Units[0].Owner
+					            : (byte?)null;
+					if (owner is byte o && o != Game.PlayerNumber(Human))
+						_gameInfo.DrawText(Game.GetPlayer(o).TribeName, 0, CassetteTheme.PHOS, 76, 10, TextAlign.Right);
+				}
+			}
 
 			if (Game.CurrentPlayer != Human || (unit is not null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
 			{
