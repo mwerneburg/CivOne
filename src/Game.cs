@@ -817,6 +817,33 @@ namespace CivOne
 					return;
 				}
 
+				// 2200 AD: post-contact backstop ending. While the alien-contact arc is active
+				// (SETISignalReceived) the 2100 score ending above is waived, and the only built-in
+				// finish is the Dome victory — which may never come if the Olvir struggle or land
+				// somewhere the player can't reach. Without a backstop such a game runs forever.
+				// From 2200 AD, close it out with a "Coexistence" ending that scores the peaceful,
+				// multi-species Earth the player built and held together.
+				if (Common.TurnToYear(_gameTurn) >= 2200 && SETISignalReceived)
+				{
+					Player? olvir = _players.FirstOrDefault(p => p.Civilization is Civilizations.Olvir);
+					int olvirCities = olvir?.Cities.Length ?? 0;
+					int coexistence = 100                                                    // reached a peaceful end at all
+					                + (VisitorType == VisitorArchetype.Refugees ? 100 : 0)   // they came in peace, and stayed that way
+					                + olvirCities * 25                                       // every surviving Olvir city is a home made on Earth
+					                + OlvirImprovements.Count * 5;                            // and a shared world reshaped together
+					HumanPlayer.AwardMilestone(coexistence);
+
+					DecisionLogger.EndGame(HumanPlayer.Score, "Coexistence", humanWon: true, turns: _gameTurn);
+					int coexFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Coexistence");
+					GameTask.Enqueue(Message.Newspaper(null!, "The year is 2200.",
+						olvirCities > 0 ? "Two species share one Earth." : "Earth endures, alone.",
+						$"Your score: {HumanPlayer.Score}"));
+					GameTask coexFt;
+					GameTask.Enqueue(coexFt = Show.Screen(new FinalScore("Coexistence")));
+					coexFt.Done += (s, a) => EndSequence.ChainAfterFinal(coexFame, () => Runtime.Quit());
+					return;
+				}
+
 				PerformAutoSave();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
