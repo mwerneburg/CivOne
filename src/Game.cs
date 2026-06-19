@@ -1359,7 +1359,15 @@ namespace CivOne
 				.Sum(c => c.CityNames.Length);
 
 			bool CityFree(int x, int y) => !_cities.Any(c => c.X == x && c.Y == y && c.Size > 0);
-			bool IsLand(int x, int y) => !(Map[x, y] is Ocean) && y > 0 && y < Map.HEIGHT - 1;
+			// Habitable land only: never settle the Olvir on Arctic (the poles), Mountains,
+			// or right up against the polar ice bands — that's how an Olvir city ended up
+			// stranded on "Antarctica" amid barbarians, unreachable and doomed.
+			bool IsLand(int x, int y)
+			{
+				ITile t = Map[x, y];
+				return t is not null && !(t is Ocean) && !(t is Arctic) && !(t is Mountains)
+				    && y > Map.HEIGHT / 10 && y < Map.HEIGHT - Map.HEIGHT / 10;
+			}
 			bool CoastalTile(ITile t) => t.GetBorderTiles().Any(b => b is Ocean);
 			bool IsEquatorial(int y) => y > Map.HEIGHT / 4 && y < 3 * Map.HEIGHT / 4;
 
@@ -1395,13 +1403,18 @@ namespace CivOne
 			if (jungleCity != default)
 				chosen.Add(jungleCity);
 
-			// 3) Fill remaining slots: prefer coastal land, then any habitable land.
+			// 3) Fill remaining slots: prefer reachable, lived-in landmasses (continents that
+			//    already hold a city) so the Olvir land where the player can actually trade
+			//    with or defend them — not on an empty island the human never explored and the
+			//    barbarians own — then coastal, then anywhere habitable.
+			var populatedContinents = new HashSet<byte>(_cities.Select(c => Map[c.X, c.Y].ContinentId));
 			IEnumerable<(int x, int y)> CoastalFirst() =>
 				Enumerable.Range(0, Map.WIDTH)
 					.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
 					.Where(t => IsLand(t.x, t.y) && CityFree(t.x, t.y) && FarEnough(t.x, t.y)
 					         && !chosen.Any(p => p.x == t.x && p.y == t.y))
-					.OrderByDescending(t => CoastalTile(Map[t.x, t.y]) ? 1 : 0)
+					.OrderByDescending(t => populatedContinents.Contains(Map[t.x, t.y].ContinentId) ? 1 : 0)
+					.ThenByDescending(t => CoastalTile(Map[t.x, t.y]) ? 1 : 0)
 					.ThenBy(_ => Common.Random.Next(10000));
 
 			foreach (var (x, y) in CoastalFirst().Take(4 - chosen.Count))
