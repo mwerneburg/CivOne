@@ -1234,6 +1234,21 @@ namespace CivOne
 			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
 
+			// Difficulty 0 (Chieftain): front-load a militia screen, an early settler and a
+			// Temple ahead of the standard infrastructure chain. (Folded in from a former
+			// stand-alone PlanChieftain method that only ever added these three then ran this
+			// same plan — Consider() dedupes by type, matching its old plan.All(...) guards.)
+			if (Game.Difficulty == 0)
+			{
+				byte chId       = Game.PlayerNumber(Player);
+				int  chCities   = Player.Cities.Length;
+				int  chMilitia  = Game.GetUnits().Count(u => u.Owner == chId && u is Militia);
+				int  chSettlers = Game.GetUnits().Count(u => u.Owner == chId && u is Settlers);
+				if (chMilitia < chCities * 4) Consider(new Militia());
+				if (city.Size >= 4 && city.FoodIncome >= 0 && chSettlers < Math.Max(1, chCities / 2)) Consider(new Settlers());
+				if (!city.HasBuilding<Temple>()) Consider(new Temple());
+			}
+
 			// Early City Walls when a foreign city is within striking distance and Masonry is
 			// researched. Walls triple defender strength — a cheaper insurance policy than
 			// constantly re-building Militia after every barbarian raid wipes the garrison.
@@ -1418,44 +1433,6 @@ namespace CivOne
 				IProduction[] items = city.AvailableProduction.ToArray();
 				Consider(items[Common.Random.Next(items.Length)]);
 			}
-
-			return plan;
-		}
-
-		// ── Chieftain-specific production plan ────────────────────────────────
-
-		private List<IProduction> PlanChieftain(City city, StrategyStance stance)
-		{
-			var plan = new List<IProduction>();
-
-			int defenders  = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
-			byte ownId     = Game.PlayerNumber(Player);
-			int ownCities  = Player.Cities.Length;
-			int ownMilitia = Game.GetUnits().Count(u => u.Owner == ownId && u is Militia);
-			int ownSettlers = Game.GetUnits().Count(u => u.Owner == ownId && u is Settlers);
-
-			// 1. Defensive unit if city is undefended
-			if (defenders < 1) plan.Add(BestDefender());
-
-			// Explorer and Barracks are intentionally not front-loaded here. A free scout
-			// and a veteran-unit building used to sit ahead of Militia and Settlers, so even
-			// the easiest-difficulty AI under-defended and under-expanded. The standard plan
-			// (appended below) still queues an Explorer under its per-city cap, and Barracks
-			// only when militarizing.
-
-			// 2. Militia — capped at 4× city count
-			if (ownMilitia < ownCities * 4 && plan.All(x => !(x is Militia)))
-				plan.Add(new Militia());
-
-			// 4. Settler — size >= 4 so the city stays viable at size 3; cap at 1 per 2 cities; never from a starving city
-			if (city.Size >= 4 && city.FoodIncome >= 0 && ownSettlers < Math.Max(1, ownCities / 2) && plan.All(x => !(x is Settlers)))
-				plan.Add(new Settlers());
-
-			// 5. Temple
-			if (!city.HasBuilding<Temple>()) plan.Add(new Temple());
-
-			// 6. Append standard plan items (no duplicates)
-			PlanProductionInto(plan, city, stance);
 
 			return plan;
 		}

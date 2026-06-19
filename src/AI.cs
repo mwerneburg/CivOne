@@ -464,9 +464,7 @@ namespace CivOne
 
 			city.ClearProductionQueue();
 			var stance = GetStance();
-			var plan = Game.Difficulty == 0
-				? PlanChieftain(city, stance)
-				: PlanProduction(city, stance);
+			var plan = PlanProduction(city, stance);
 			city.SetProduction(plan[0]);
 			DecisionLogger.LogCityProduction(city, plan[0], stance.ToString());
 			for (int i = 1; i < plan.Count; i++)
