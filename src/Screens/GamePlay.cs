@@ -46,6 +46,7 @@ namespace CivOne.Screens
 		internal int Y => _gameMap.Y;
 		internal int TilesX => _gameMap.TilesX;
 		internal int TilesY => _gameMap.TilesY;
+		internal int TilePixelSize => _gameMap.TilePixelSize;
 
 		// True when an in-game menu overlay (Game / Orders / Advisors / World) is open on top
 		// of the map. Used by Autopilot to skip its synthetic Enter so an open menu doesn't
