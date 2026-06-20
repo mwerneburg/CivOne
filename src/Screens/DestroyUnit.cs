@@ -224,6 +224,26 @@ namespace CivOne.Screens
 			_x = Common.GamePlay.X;
 			_y = Common.GamePlay.Y;
 
+			// The animation renders only the 15×12 tile window at (_x, _y) and draws the
+			// explosion at the unit's offset within it. When the fighting happens outside the
+			// current map view — most observed combat, and attacks at the screen edge — the
+			// sprite lands off-screen and nothing is seen (the "plays maybe one time in five"
+			// problem). Re-center on the combat so it's always visible, but only for fights the
+			// player can actually observe, so battles hidden in fog stay hidden.
+			int relX = _unit.X - _x;
+			while (relX < 0) relX += Map.WIDTH;
+			while (relX >= Map.WIDTH) relX -= Map.WIDTH;
+			int relY = _unit.Y - _y;
+			if ((relX >= 15 || relY < 0 || relY >= 12) && Human.Visible(_unit.X, _unit.Y))
+			{
+				// Combat is off the current view but the player can see it: pan the real map to
+				// it (camera follows the battle) so the explosion is visible and the view stays
+				// coherent afterwards instead of flashing a re-centered patch and reverting.
+				Common.GamePlay.CenterOnPoint(_unit.X, _unit.Y);
+				_x = Common.GamePlay.X;
+				_y = Common.GamePlay.Y;
+			}
+
 			using var p = Common.DefaultPalette;
 			Palette = p;
 			_gameMap = GameMap;
