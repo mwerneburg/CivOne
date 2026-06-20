@@ -301,10 +301,12 @@ namespace CivOne
 				{
 					ITile? step = Common.GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 					bool reachable = step is not null;
-					if (reachable && step!.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
+					// A Caravan or Diplomat's step into a foreign city is its purpose, not a blocked path.
+					bool civilianCityEntry = (unit is Caravan || unit is Diplomat) && step?.City is not null && step.City.Owner != unit.Owner && step.City.Owner != 0;
+					if (reachable && !civilianCityEntry && step!.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
 					                                  && Game.GetPlayer(u.Owner) is Player puStale
 					                                  && !Player.IsAtWar(puStale))) reachable = false;
-					if (reachable && step!.City is not null && step!.City.Owner != unit.Owner && step!.City.Owner != 0
+					if (reachable && !civilianCityEntry && step!.City is not null && step!.City.Owner != unit.Owner && step!.City.Owner != 0
 					    && Game.GetPlayer(step.City.Owner) is Player pcStale
 					    && pcStale.Civilization is not Civilizations.Barbarian
 					    && !Player.IsAtWar(pcStale)) reachable = false;
@@ -362,6 +364,12 @@ namespace CivOne
 					// "peaceful blocked" and skips turn.
 					{
 						Player? nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
+						// A Caravan or Diplomat stepping onto a foreign city is its purpose, not an
+						// act of war (Caravan.Confront → trade route; Diplomat.Confront → steal /
+						// incite / sabotage). Without this exemption the peaceful-city block clears
+						// the unit's Goto on the final step into its target, so it never enters — the
+						// Caravan just shuttles between cities on the rails, the Diplomat never spies.
+						bool civilianCityEntry = (unit is Caravan || unit is Diplomat) && next.City is not null && next.City.Owner != unit.Owner;
 						bool peacefulBlock =
 							next.Units.Any(u => {
 								if (u.Owner == unit.Owner) return false;
@@ -370,7 +378,7 @@ namespace CivOne
 								return p is not null && !Player.IsAtWar(p);
 							})
 							|| (nextCityOwner is not null && nextCityOwner.Civilization is not Civilizations.Barbarian && !Player.IsAtWar(nextCityOwner));
-						if (peacefulBlock)
+						if (peacefulBlock && !civilianCityEntry)
 						{
 							unit.Goto = Point.Empty;
 							unit.SkipTurn();

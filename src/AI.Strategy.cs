@@ -881,6 +881,10 @@ namespace CivOne
 				{
 					ITile? step = Common.GotoStep(unit, c.X, c.Y);
 					if (step is null) return false;
+					// When the first step IS the target city, the Diplomat is adjacent and the step
+					// is its spy mission (steal / incite / sabotage) — not a blocked path. Allow it;
+					// AI.Move grants the matching exemption so the unit actually enters.
+					if (step.X == c.X && step.Y == c.Y) return true;
 					if (step.Units.Any(u => u.Owner != unit.Owner && u.Owner != 0
 					                     && Game.GetPlayer(u.Owner) is Player pu
 					                     && !Player.IsAtWar(pu))) return false;
@@ -929,6 +933,10 @@ namespace CivOne
 				{
 					ITile? step = Common.GotoStep(unit, c.X, c.Y);
 					if (step is null) return false;
+					// When the first step IS the target city, the Caravan is adjacent and the step
+					// is its trade-route delivery — not a blocked path. Allow it; AI.Move grants the
+					// matching exemption so the unit actually enters instead of shuttling on the rails.
+					if (step.X == c.X && step.Y == c.Y) return true;
 					// Peaceful-block: AI.Move at line ~343 refuses the step if the next tile
 					// holds a non-warring player's unit, or is a non-Barbarian city at peace
 					// with us. Mirror that here so we don't commit to a target we'd refuse
