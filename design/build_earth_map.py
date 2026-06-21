@@ -71,9 +71,15 @@ GRASS, JUNGLE, HILLS, MTNS, DESERT, ARCTIC  = 10, 11, 12, 13, 14, 15
 # Bands are queried from the equator outward; first match wins.
 LAT_BANDS = [
     ( 0, 15, JUNGLE),    # tropical
-    (15, 30, DESERT),    # subtropical (Sahara/Sahel band)
-    (30, 45, FOREST),    # warm temperate
-    (45, 60, FOREST),    # cool temperate
+    (15, 30, GRASS),     # subtropical — was DESERT, which turned monsoon India and
+                         # the wet subtropics into dead sand. The real deserts at this
+                         # latitude (Sahara, Arabia, Thar, Kalahari, Australia, American
+                         # SW) are explicit MOIST_OVERRIDES below, so they stay desert.
+    (30, 45, GRASS),     # warm temperate — the world's grasslands/steppe/prairie
+    (45, 60, GRASS),     # cool temperate — was FOREST; defaulted the whole temperate
+                         # belt (every civ heartland) to 1-food forest, which starved
+                         # cities under Despotism. blend_biomes() sprinkles forest and
+                         # wetland back in so it's mixed grassland, not a green carpet.
     (60, 70, TUNDRA),    # subarctic
     (70, 90, ARCTIC),    # polar
 ]
@@ -213,22 +219,19 @@ STRAITS = [
 # Source data: bounding boxes hand-derived from Natural Earth's 10m Lakes
 # polygon set. Boxes are intentionally tight to avoid swallowing coast.
 MAJOR_LAKES = [
-    # North America
-    ( 46.5, 48.5, -92.0, -85.0, "Superior"),
-    ( 41.5, 46.0, -88.0, -84.5, "Michigan"),
-    ( 43.0, 46.5, -84.5, -80.0, "Huron"),
-    ( 41.5, 43.0, -83.5, -78.5, "Erie"),
-    ( 43.5, 44.5, -80.0, -75.5, "Ontario"),
+    # North America — the Laurentian Great Lakes are now polygons (see below) so
+    # their distinctive orientations read better than five rectangles.
     ( 60.5, 63.0,-117.0,-108.0, "GreatSlave"),
     ( 65.0, 67.0,-125.0,-119.0, "GreatBear"),
-    # Eurasia
-    ( 43.0, 47.0,  58.0,  62.0, "Aral"),
-    ( 51.5, 56.0, 104.0, 110.0, "Baikal"),
-    ( 45.0, 46.5,  73.0,  79.0, "Balkhash"),
+    # Eurasia — Aral, Balkhash and Baikal are now polygons (see below).
     ( 60.0, 63.0,  31.5,  35.5, "Ladoga"),
-    # Other
-    (-15.0,-12.5,  33.5,  36.0, "Tana"),
-    ( 60.0, 62.0,  78.0,  85.0, "WestSiberian"),
+    # "Tana" box (lat -15..-12.5, lon 33.5-36) removed: it was not Lake Tana
+    # (that is in Ethiopia, +12°N) — it sat on the southern end of Lake Malawi and
+    # gave it an unrealistic rectangular bulge. Malawi's polygon now runs the lake's
+    # full length, and the real Lake Tana is added as a polygon below.
+    # "WestSiberian" (lat 60-62, lon 78-85) removed: there is no present-day lake
+    # in the West Siberian Plain — that area is the Vasyugan lowland/swamp, not
+    # open water. Let the elevation pass decide the terrain there.
 ]
 
 # Lakes whose real-world shorelines are too irregular to approximate as a
@@ -254,19 +257,70 @@ MAJOR_LAKE_POLYGONS = [
         (  0.3, 32.6), (  0.0, 34.5), ( -2.5, 34.7),
         ( -3.0, 32.2), ( -1.5, 31.6),
     ]),
-    # Tanganyika: long narrow rift lake, ~670 km × 50 km.
+    # Tanganyika: long narrow rift lake, ~670 km × 50 km. Kept ~1.2° wide so the
+    # near-vertical strip stays continuous when rasterised at 1.1°/tile (a thinner
+    # outline drops tiles and breaks the lake into segments).
     ("Tanganyika", [
-        ( -3.4, 29.3), ( -5.5, 29.7), ( -7.8, 30.6), ( -8.7, 30.8),
-        ( -7.8, 30.4), ( -5.5, 29.4),
+        ( -3.3, 28.9), ( -3.3, 29.7), ( -6.0, 30.3), ( -8.9, 31.1),
+        ( -8.9, 30.1), ( -6.0, 29.1),
     ]),
-    # Malawi: long narrow rift lake, ~580 km × 75 km.
+    # Malawi: long narrow rift lake, ~580 km × 75 km. Runs the full length to its
+    # southern basin (~-14.5) now that the bogus "Tana" box no longer covers it.
     ("Malawi", [
-        ( -9.5, 34.0), (-11.5, 34.6), (-13.5, 34.7), (-14.5, 35.1),
-        (-13.5, 34.4), (-11.5, 34.2),
+        ( -9.4, 33.9), (-11.5, 34.3), (-13.0, 34.7), (-14.5, 35.2),
+        (-14.5, 34.6), (-13.0, 34.1), (-11.5, 33.8),
     ]),
     # Turkana: narrow N-S rift lake.
     ("Turkana", [
         (  4.6, 35.9), (  3.5, 36.4), (  2.4, 36.2), (  3.5, 35.7),
+    ]),
+    # ── Laurentian Great Lakes ──────────────────────────────────────────────
+    # Each traced to its real orientation rather than a bounding box: Superior
+    # tilts ENE, Michigan runs N-S, Huron hooks NW-SE, Erie/Ontario are thin
+    # E-W ribbons. At ~1.1°/tile these are small, but the outlines stop the
+    # cluster reading as five stacked rectangles.
+    ("Superior", [
+        ( 48.4, -91.5), ( 48.5, -88.0), ( 47.6, -84.8),
+        ( 46.7, -85.2), ( 46.9, -88.5), ( 47.6, -91.8),
+    ]),
+    ("Michigan", [
+        ( 45.9, -86.7), ( 44.2, -86.0), ( 42.2, -86.4),
+        ( 41.6, -87.2), ( 43.2, -87.7), ( 45.4, -87.4),
+    ]),
+    ("Huron", [
+        ( 46.3, -84.3), ( 46.0, -82.0), ( 44.4, -80.2),
+        ( 43.1, -81.8), ( 44.1, -83.5), ( 45.4, -84.4),
+    ]),
+    ("Erie", [
+        ( 42.9, -83.3), ( 42.7, -80.0), ( 42.2, -78.7),
+        ( 41.5, -81.5), ( 41.9, -83.2),
+    ]),
+    ("Ontario", [
+        ( 44.4, -79.8), ( 44.2, -76.8), ( 43.5, -75.7),
+        ( 43.3, -78.5), ( 43.8, -79.7),
+    ]),
+    # ── Central Asia ────────────────────────────────────────────────────────
+    # Aral: oval, elongated N-S, widest in the middle (1960 shoreline).
+    ("Aral", [
+        ( 46.8, 60.0), ( 46.0, 61.6), ( 44.4, 61.3),
+        ( 43.5, 59.8), ( 44.3, 58.4), ( 45.9, 58.8),
+    ]),
+    # Balkhash: long crescent, narrows and bends south-east at its midpoint.
+    ("Balkhash", [
+        ( 46.4, 73.2), ( 46.6, 75.0), ( 45.9, 77.5),
+        ( 45.0, 79.0), ( 44.8, 77.8), ( 45.6, 75.5), ( 45.8, 73.5),
+    ]),
+    # Baikal: long, narrow, crescent rift lake oriented NE-SW (~636 km × 50 km).
+    # Was a fat 6-tile box; this traces the thin diagonal sliver instead.
+    ("Baikal", [
+        ( 55.6, 110.4), ( 53.4, 107.8), ( 51.4, 104.8),
+        ( 51.6, 103.6), ( 53.6, 106.5), ( 55.8, 109.2),
+    ]),
+    # ── East Africa ─────────────────────────────────────────────────────────
+    # Lake Tana (Ethiopia, source of the Blue Nile) — the REAL one at +12°N, not
+    # the mislabelled box that used to sit on Lake Malawi's southern end.
+    ("Tana", [
+        ( 12.3, 37.0), ( 12.2, 37.6), ( 11.6, 37.5), ( 11.6, 37.0),
     ]),
 ]
 
@@ -455,6 +509,34 @@ def moisture_override(lat: float, lon: float) -> int | None:
             out = biome
     return out
 
+def blend_biomes(grid: np.ndarray, seed: int = 20260621) -> int:
+    """Break up the big single-biome swaths so temperate grassland, forest, and
+    the great deserts all read as mixed country instead of flat carpets — and the
+    deserts get the occasional oasis. Deterministic (fixed seed); per-tile, so it
+    only salts the flat biomes and never touches elevation-set Hills/Mountains/
+    Tundra/Jungle or any water. Each tile's fate is decided by one random draw:
+
+        open flatland (Grass/Plains) → some Forest + a little Swamp
+        Forest                       → some Plains + a little Swamp
+        Desert                       → a little Plains + Swamp (oasis)
+    """
+    rng = np.random.default_rng(seed)
+    r = rng.random(grid.shape)
+    before = grid.copy()
+
+    open_flat = (before == GRASS) | (before == PLAINS)
+    forest    = (before == FOREST)
+    desert    = (before == DESERT)
+
+    grid[open_flat & (r < 0.05)]                  = SWAMP
+    grid[open_flat & (r >= 0.05) & (r < 0.20)]    = FOREST
+    grid[forest    & (r < 0.06)]                  = SWAMP
+    grid[forest    & (r >= 0.06) & (r < 0.26)]    = PLAINS
+    grid[desert    & (r < 0.03)]                  = SWAMP
+    grid[desert    & (r >= 0.03) & (r < 0.10)]    = PLAINS
+
+    return int(np.sum(grid != before))
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -501,6 +583,11 @@ def main() -> int:
                     code = ARCTIC if abs(lat) >= 80 else TUNDRA
             grid[y, x] = code
             counts[code] = counts.get(code, 0) + 1
+
+    # Blend complementary terrain into the big single-biome swaths (and add desert
+    # oases). Runs after the biome/override pass but before land-force/lakes/rivers
+    # so those still win on the tiles they touch.
+    blend_tiles = blend_biomes(grid)
 
     # Land-force overrides run BEFORE lakes/straits so subsequent water passes
     # can still carve through (e.g. Mississippi delta river crossing forced FL
@@ -549,6 +636,7 @@ def main() -> int:
     print(f"  dimensions: {args.width}x{args.height} = {total} tiles")
     print(f"  land:   {land} ({100*land/total:.1f}%)")
     print(f"  ocean:  {counts.get(OCEAN, 0)} ({100*counts.get(OCEAN, 0)/total:.1f}%)")
+    print(f"  blend:   {blend_tiles} tiles re-mixed across grassland/forest/desert")
     print(f"  rivers:  {river_tiles} tiles drawn across {len(MAJOR_RIVERS)} polylines (4-connected)")
     print(f"  lakes:   {lake_tiles} land tiles carved across {len(MAJOR_LAKES)} boxes + {len(MAJOR_LAKE_POLYGONS)} polygons (engine flags as freshwater)")
     print(f"  land-force: {land_force_tiles} ocean tiles reclaimed across {len(LAND_FORCES)} polygons")

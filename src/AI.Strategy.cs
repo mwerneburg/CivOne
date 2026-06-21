@@ -266,16 +266,26 @@ namespace CivOne
 		{
 			if (Player.Government is Gov.Anarchy) return;
 
-			// Only revolt from a stable position
-			StrategyStance stance = GetStance();
-			if (stance == StrategyStance.Militarize || stance == StrategyStance.Consolidate) return;
-
-			// Don't revolt while at war
-			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
-
 			if (BestGovernment() is null) return; // already optimal
 
-			// ~25 % chance per turn → roughly 4-turn lag before acting
+			// Don't revolt while at war — the anarchy interregnum is too dangerous.
+			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
+
+			// Escaping Despotism is the single biggest economic win: it lifts the despot
+			// tile penalty that suppresses irrigation and keeps cities tiny. Pursue it
+			// eagerly — any stance, high chance — the moment a better government (Monarchy)
+			// is available, rather than waiting for a Develop/Expand window.
+			if (Player.Government is Gov.Despotism)
+			{
+				if (Common.Random.Next(100) < 60)
+					Player.Revolt();
+				return;
+			}
+
+			// Further upgrades (Monarchy → Republic/Democracy, etc.): only revolt from a
+			// stable, developing position, and less often.
+			StrategyStance stance = GetStance();
+			if (stance == StrategyStance.Militarize || stance == StrategyStance.Consolidate) return;
 			if (Common.Random.Next(100) < 25)
 				Player.Revolt();
 		}
