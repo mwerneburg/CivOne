@@ -594,6 +594,17 @@ namespace CivOne
 				// Expansion penalty: even war-minded leaders are less eager while still settling
 				if (stillExpanding) chance -= 10;
 
+				// Trade deterrent: an AI profiting from trade routes with this civ is reluctant
+				// to wreck them. Sums the value of routes our cities hold with the enemy (either
+				// side's caravan may have built them), capped at -15 so a rich partner is
+				// meaningfully safer but a determined warmonger can still strike.
+				byte enemyNum = (byte)Game.PlayerNumber(enemy);
+				int tradeValue = Player.Cities
+				    .SelectMany(c => c.TradeRoutes)
+				    .Where(r => r.Partner.Owner == enemyNum)
+				    .Sum(r => r.Value);
+				if (tradeValue > 0) chance -= Math.Min(15, tradeValue / 2);
+
 				if (Common.Random.Next(100) < chance)
 				{
 					Player.DeclareWar(enemy);
