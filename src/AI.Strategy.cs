@@ -375,6 +375,25 @@ namespace CivOne
 			    (Player.HasAttitudeBonus(human) || Player.HasPeaceTreaty(human)))
 				return;
 
+			// Humanitarian plea: a small civ at peace with a starving city begs the human for
+			// aid rather than extorting. Far likelier than routine diplomacy so a doomed
+			// frontier neighbour reaches out while it still can; the attitude-bonus return
+			// above stops it begging again right after a successful airdrop.
+			if (!Player.IsAtWar(human) && Player.Cities.Length <= 2)
+			{
+				City? dying = Player.Cities
+					.Where(c => c.Size <= 2 && c.FoodIncome < 0)
+					.OrderBy(c => c.Size).ThenBy(c => c.FoodIncome)
+					.FirstOrDefault();
+				if (dying is not null)
+				{
+					if (Common.Random.Next(100) >= 40) return;
+					var plea = new List<AIDemand> { new AIDemand(AIDemandKind.BegForAid, city: dying, amount: 50, duration: 40) };
+					GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true, demands: plea));
+					return;
+				}
+			}
+
 			// Base ~3 % per turn; personality and war status nudge the odds
 			int chance = 3;
 			if (Leader.Aggression == AggressionLevel.Aggressive) chance += 4;

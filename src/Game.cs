@@ -322,6 +322,10 @@ namespace CivOne
 			if (player is null) return;
 
 			ICivilization destroyed = player.Civilization;
+			// A civ destroyed during its own turn had no external attacker — its last city
+			// starved out (City.cs famine → Size 0 → DestroyCity). Report that as a collapse
+			// rather than mislabelling it "by the Barbarians" (the old player-0 fallback).
+			bool selfCollapse = Game.CurrentPlayer.Civilization == destroyed;
 			ICivilization destroyedBy = Game.CurrentPlayer.Civilization;
 			if (destroyedBy == destroyed) destroyedBy = Game.GetPlayer(0).Civilization;
 
@@ -351,7 +355,10 @@ namespace CivOne
 				}
 			}
 
-			GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", $"by {destroyedBy.NamePlural}!"));
+			if (selfCollapse)
+				GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", "in collapse!"));
+			else
+				GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", $"by {destroyedBy.NamePlural}!"));
 		}
 		
 		internal byte PlayerNumber(Player player)
@@ -1038,6 +1045,19 @@ namespace CivOne
 			}
 			if (!Map[x, y].IsOcean)
 			{
+				// A city founded on Forest/Jungle/Swamp sits on a 1-food centre tile (the
+				// city-centre floor only guarantees 1 food, and AddCity's irrigation below
+				// skips these terrains). A human clears the forest first; the AI doesn't know
+				// to, so its towns starve. Clear it for non-human civs — same Forest/Jungle/
+				// Swamp → Grassland conversion the Settler's "change to plains" action performs.
+				// Olvir excluded: refugees have their own jungle-tolerant placement (SpawnOlvir).
+				if (!player.IsHuman && !(player.Civilization is Civilizations.Olvir)
+				    && (Map[x, y] is Forest || Map[x, y] is Jungle || Map[x, y] is Swamp))
+				{
+					Map[x, y].Irrigation = false;
+					Map[x, y].Mine = false;
+					Map.ChangeTileType(x, y, Terrain.Grassland1);
+				}
 				if ((Map[x, y] is Desert) || (Map[x, y] is Grassland) || (Map[x, y] is Hills) || (Map[x, y] is Plains) || (Map[x, y] is River))
 					Map[x, y].Irrigation = true;
 				if (!Map[x, y].RailRoad)

@@ -148,6 +148,8 @@ namespace CivOne.Screens
 		{
 			bool atWar = Human.IsAtWar(_enemy);
 			var agg = _enemy.Civilization.Leader.Aggression;
+			if (_demands.Any(d => d.Kind == AIDemandKind.BegForAid))
+				return [$"Our people starve, {Human.LeaderName}.", "We come not to demand, but to beg."];
 			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))
 				return agg == AggressionLevel.Aggressive
 					? [$"You seized our cities, {Human.LeaderName}.", "We demand reparations."]
@@ -172,6 +174,7 @@ namespace CivOne.Screens
 			}
 			return d.Kind switch
 			{
+				AIDemandKind.BegForAid => $"Send aid: ${d.Amount} + emergency food → {d.Duration} turns of goodwill",
 				AIDemandKind.ReturnCity => $"Return {d.City!.Name} → {d.Duration} turns of peace",
 				AIDemandKind.GiveMap   => $"Share your maps → {d.Duration} turns of goodwill",
 				AIDemandKind.GiveTech  => $"Transfer {d.Advance!.Name} → {d.Duration} turns of goodwill",
@@ -188,6 +191,23 @@ namespace CivOne.Screens
 
 			switch (d.Kind)
 			{
+				case AIDemandKind.BegForAid:
+					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
+					// Emergency food airdrop: refill the starving city's store and pull a size-1
+					// town back from the brink. A reprieve, not a cure — if its tiles can't feed
+					// it, it will starve again (the forest-clear at founding is the real fix).
+					if (d.City is not null && Game.GetCities().Contains(d.City))
+					{
+						d.City.Food = d.City.FoodRequired;
+						if (d.City.Size == 1) d.City.Size++;
+					}
+					_enemy.SetAttitudeBonus(Human, d.Duration);
+					Human.SetAttitudeBonus(_enemy, d.Duration); // gratitude flows both ways
+					SetResponse(FaceState.Smiling,
+						"Your generosity saves our people.",
+						$"The {_enemy.TribeNamePlural} will not forget this.");
+					break;
+
 				case AIDemandKind.ReturnCity:
 					d.City!.Owner = aiNum;
 					Human.MakePeace(_enemy);
@@ -252,6 +272,13 @@ namespace CivOne.Screens
 		{
 			CloseMenus();
 			var agg = _enemy.Civilization.Leader.Aggression;
+			if (_demands.Any(d => d.Kind == AIDemandKind.BegForAid))
+			{
+				SetResponse(FaceState.Neutral,
+					"Then we are truly alone.",
+					"History will remember your silence.");
+				return;
+			}
 			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))
 			{
 				SetResponse(FaceState.Angry,
