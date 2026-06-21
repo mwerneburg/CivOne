@@ -190,9 +190,15 @@ namespace CivOne
 		private int _techStolenTurn = 0;
 		public bool TechStolen
 		{
-			get => _techStolenTurn > 0 && Game.Instance.GameTurn - _techStolenTurn < TechStealCooldown;
-			set => _techStolenTurn = value ? Game.Instance.GameTurn : 0;
+			// Game.Instance is null while a save is still being deserialized (the singleton
+			// isn't published until Game's constructor returns), so guard both accessors. The
+			// load path uses LoadTechStolen below to restore the stamp without it.
+			get => _techStolenTurn > 0 && Game.Instance is not null && Game.Instance.GameTurn - _techStolenTurn < TechStealCooldown;
+			set => _techStolenTurn = (value && Game.Instance is not null) ? Game.Instance.GameTurn : 0;
 		}
+		// Restore the cooldown from a COS save using the loaded turn, since Game.Instance
+		// isn't available yet during construction.
+		internal void LoadTechStolen(bool stolen, ushort currentTurn) => _techStolenTurn = stolen ? currentTurn : 0;
 
 		internal int ShieldCosts
 		{

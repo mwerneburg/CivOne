@@ -592,7 +592,7 @@ namespace CivOne
 
 				city.DisorderTurns = cd.DisorderTurns ?? ((cd.WasInDisorder ?? false) ? 1 : 0);
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
-				city.TechStolen    = cd.TechStolen    ?? false;
+				city.LoadTechStolen(cd.TechStolen ?? false, GameTurn);
 				cityById[cd.Id] = city;
 				_cities.Add(city);
 			}
