@@ -271,6 +271,7 @@ namespace CivOne
 					MapRevealedNotified  = MapRevealedNotified,
 					SETISignalTurn          = SETISignalTurn,
 					SETISignalReceived      = SETISignalReceived,
+					VisitorsArrived         = VisitorsArrived,
 					VisitorArchetype        = (int)VisitorType,
 					TauCetiEscalationTurn   = TauCetiEscalationTurn,
 					ProbeDispatched         = ProbeDispatched,
@@ -470,6 +471,7 @@ namespace CivOne
 			MapRevealedNotified   = g.MapRevealedNotified;
 			SETISignalTurn        = g.SETISignalTurn;
 			SETISignalReceived    = g.SETISignalReceived;
+			VisitorsArrived       = g.VisitorsArrived;
 			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
 			ProbeDispatched         = g.ProbeDispatched;

@@ -386,11 +386,14 @@ namespace CivOne
 		{
 			get
 			{
-				bool setiActive = Game.Started && (Game.Instance?.SETISignalReceived ?? false);
+				// Post-contact advances (alien biology, transit conduits, …) require having
+				// actually met the visitors — not just detecting their SETI signal. Detecting
+				// the signal lets you prepare (probe, dome); arrival lets you study them.
+				bool contacted = Game.Started && (Game.Instance?.VisitorsArrived ?? false);
 				bool any = false;
 				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id) && !(a is FutureTech)))
 				{
-					if (advance is Advances.BasePostContactAdvance pc && !pc.AvailablePreContact && !setiActive) continue;
+					if (advance is Advances.BasePostContactAdvance pc && !pc.AvailablePreContact && !contacted) continue;
 					if (advance.RequiredTechs.Length > 0 && !advance.RequiredTechs.All(a => _advances.Contains(a.Id))) continue;
 					any = true;
 					yield return advance;

@@ -18,7 +18,7 @@ namespace CivOne.Advances
 			"XENOBIOLOGY is the empirical study",
 			"of life beyond Earth. Gifted to",
 			"all civilizations at first contact",
-			"with the Olvir, it unlocks the",
+			"with the aliens, it unlocks the",
 			"Xenolab, which boosts science by",
 			"50%, and forms the basis of",
 			"Transit Conduit research.",

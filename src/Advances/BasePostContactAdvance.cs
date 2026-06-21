@@ -13,10 +13,11 @@ using CivOne.Graphics;
 
 namespace CivOne.Advances
 {
-	// Advances in this group are hidden from the research menu until Game.SETISignalReceived
-	// is true. The gate is enforced in Player.AvailableResearch — all prereqs may be met,
-	// but the advance still won't appear until first contact. Subclasses must implement
-	// GetPageText() for Civilopedia display; icons and page art are stubbed (no legacy assets).
+	// Advances in this group are hidden from the research menu until Game.VisitorsArrived
+	// is true — i.e. until the aliens actually arrive (first contact), not merely when their
+	// SETI signal is detected ~80 turns earlier. The gate is enforced in Player.AvailableResearch:
+	// all prereqs may be met, but the advance still won't appear until contact. Subclasses must
+	// implement GetPageText() for Civilopedia display; icons and page art are stubbed (no legacy assets).
 	//
 	// Exception: subclasses that override AvailablePreContact to true represent Earth-bound
 	// science humanity can develop without the Olvir kick-start; they appear as normal

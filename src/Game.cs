@@ -65,6 +65,12 @@ namespace CivOne
 		// Gates the InterstellarProbe wonder and both response paths (dome / spaceship).
 		internal bool SETISignalReceived;
 
+		// Set permanently when the visitors actually arrive (first contact) — ~80 turns
+		// after the SETI signal. Gates the post-contact tech tree (Xenobiology et al.):
+		// you can detect the signal and prepare, but you can't study alien biology until
+		// you've met them.
+		internal bool VisitorsArrived;
+
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;
 
@@ -681,6 +687,7 @@ namespace CivOne
 				if (OlvirArrivalTurn > 0 && _gameTurn >= OlvirArrivalTurn)
 				{
 					OlvirArrivalTurn = 0;
+					VisitorsArrived = true; // first contact — unlocks the post-contact tech tree
 
 					// The Owners ("The Others") arrive to reclaim humanity — a cinematic ending.
 					// A defended world (dome complete) becomes a disputed claim and humanity
