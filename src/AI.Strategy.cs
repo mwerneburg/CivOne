@@ -1412,12 +1412,14 @@ namespace CivOne
 
 			// Diplomats: useful under every stance (espionage, sabotage, incite revolt).
 			// Previously gated to non-Militarize, which is why no civ ever built one in heavy
-			// fighting eras. One per 3 cities, minimum 2 empire-wide.
+			// fighting eras. One per 2 cities, minimum 3 empire-wide — espionage (especially
+			// tech theft, now repeatable via the TechStolen cooldown) is high-value, and
+			// diplomats are consumed on use, so a larger steady-state pool keeps spies in play.
 			if (Player.HasAdvance<Writing>())
 			{
 				byte ownId2 = Game.PlayerNumber(Player);
 				int ownDiplomats = Game.GetUnits().Count(u => u.Owner == ownId2 && u is Diplomat);
-				int diplomatCap  = Math.Max(2, Player.Cities.Length / 3);
+				int diplomatCap  = Math.Max(3, Player.Cities.Length / 2);
 				if (ownDiplomats < diplomatCap)
 					Consider(new Diplomat());
 			}

@@ -181,8 +181,18 @@ namespace CivOne
 		public int  DisorderTurns {get; set;} = 0;
 		public bool WasInDisorder { get => DisorderTurns > 0; set { if (value && DisorderTurns == 0) DisorderTurns = 1; else if (!value) DisorderTurns = 0; } }
 		public bool WasWeLoveKing {get; set;} = false;
-		// Prevents a diplomat from stealing from the same city twice until it changes hands.
-		public bool TechStolen { get; set; } = false;
+		// After a diplomat steals tech here, the city is locked against further theft for
+		// TechStealCooldown turns (then it's fair game again — Civ1 allows repeat espionage).
+		// Stored as the turn of the last theft so the lock expires on its own; 0 = never/expired.
+		// The public bool keeps the rest of the codebase (and the COS save) unchanged: it reads
+		// true only while still on cooldown, and `= true` stamps the current turn.
+		private const int TechStealCooldown = 20;
+		private int _techStolenTurn = 0;
+		public bool TechStolen
+		{
+			get => _techStolenTurn > 0 && Game.Instance.GameTurn - _techStolenTurn < TechStealCooldown;
+			set => _techStolenTurn = value ? Game.Instance.GameTurn : 0;
+		}
 
 		internal int ShieldCosts
 		{
