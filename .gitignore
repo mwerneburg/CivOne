@@ -9,3 +9,9 @@
 **/sounds/**
 **/obj/**
 **/design/**
+
+# Bundled engine defaults (leader/event/improvement art + data) are embedded into the SDL
+# build and MUST be tracked, even though they live under a data/ directory the rule above
+# ignores. Without this, newly-added art is silently dropped from commits — and from any
+# machine that pulls — producing missing images at runtime.
+!runtime/sdl/Resources/defaults/data/**

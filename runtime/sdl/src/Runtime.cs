@@ -81,143 +81,39 @@ namespace CivOne
 		}
 		void IRuntime.Quit() => SignalQuit = true;
 
-		private static readonly Dictionary<string, string[]> _defaultAssets = new Dictionary<string, string[]>
+		private const string DefaultsPrefix = "CivOne.Resources.defaults.";
+
+		// Directory segments inside the embedded defaults tree. Resource names mangle '/' -> '.',
+		// and filenames may themselves contain '.', so InstallDefaults peels known (dot-free)
+		// directory segments off the front and treats whatever remains as the filename. Only a
+		// brand-new defaults *subdirectory* ever needs adding here -- individual files never do.
+		private static readonly HashSet<string> DefaultsDirs = new HashSet<string>
 		{
-			["CivOne.Resources.defaults.splash.png"]                           = new[] { "splash.png" },
-			["CivOne.Resources.defaults.data.seti_signal.txt"]                = new[] { "data", "seti_signal.txt" },
-			["CivOne.Resources.defaults.data.south_pole_expedition.txt"]      = new[] { "data", "south_pole_expedition.txt" },
-			["CivOne.Resources.defaults.data.improvement_art.aqueduct.png"]       = new[] { "data", "improvement_art", "aqueduct.png" },
-			["CivOne.Resources.defaults.data.improvement_art.bank.png"]           = new[] { "data", "improvement_art", "bank.png" },
-			["CivOne.Resources.defaults.data.improvement_art.barracks.png"]       = new[] { "data", "improvement_art", "barracks.png" },
-			["CivOne.Resources.defaults.data.improvement_art.cathedral.png"]      = new[] { "data", "improvement_art", "cathedral.png" },
-			["CivOne.Resources.defaults.data.improvement_art.city_walls.png"]     = new[] { "data", "improvement_art", "city_walls.png" },
-			["CivOne.Resources.defaults.data.improvement_art.colosseum.png"]      = new[] { "data", "improvement_art", "colosseum.png" },
-			["CivOne.Resources.defaults.data.improvement_art.courthouse.png"]     = new[] { "data", "improvement_art", "courthouse.png" },
-			["CivOne.Resources.defaults.data.improvement_art.factory.png"]        = new[] { "data", "improvement_art", "factory.png" },
-			["CivOne.Resources.defaults.data.improvement_art.granary.png"]        = new[] { "data", "improvement_art", "granary.png" },
-			["CivOne.Resources.defaults.data.improvement_art.hydro_plant.png"]    = new[] { "data", "improvement_art", "hydro_plant.png" },
-			["CivOne.Resources.defaults.data.improvement_art.library.png"]        = new[] { "data", "improvement_art", "library.png" },
-			["CivOne.Resources.defaults.data.improvement_art.lighthouse.png"]     = new[] { "data", "improvement_art", "lighthouse.png" },
-			["CivOne.Resources.defaults.data.improvement_art.marketplace.png"]    = new[] { "data", "improvement_art", "marketplace.png" },
-			["CivOne.Resources.defaults.data.improvement_art.mass_transit.png"]   = new[] { "data", "improvement_art", "mass_transit.png" },
-			["CivOne.Resources.defaults.data.improvement_art.nuclear_plant.png"]  = new[] { "data", "improvement_art", "nuclear_plant.png" },
-			["CivOne.Resources.defaults.data.improvement_art.observatory.png"]    = new[] { "data", "improvement_art", "observatory.png" },
-			["CivOne.Resources.defaults.data.improvement_art.palace.png"]         = new[] { "data", "improvement_art", "palace.png" },
-			["CivOne.Resources.defaults.data.improvement_art.power_plant.png"]    = new[] { "data", "improvement_art", "power_plant.png" },
-			["CivOne.Resources.defaults.data.improvement_art.recycling_cntr..png"] = new[] { "data", "improvement_art", "recycling_cntr..png" },
-			["CivOne.Resources.defaults.data.improvement_art.sam_battery.png"]    = new[] { "data", "improvement_art", "sam_battery.png" },
-			["CivOne.Resources.defaults.data.improvement_art.sewer_system.png"]   = new[] { "data", "improvement_art", "sewer_system.png" },
-			["CivOne.Resources.defaults.data.improvement_art.shipyard.png"]       = new[] { "data", "improvement_art", "shipyard.png" },
-			["CivOne.Resources.defaults.data.improvement_art.temple.png"]         = new[] { "data", "improvement_art", "temple.png" },
-			["CivOne.Resources.defaults.data.improvement_art.university.png"]     = new[] { "data", "improvement_art", "university.png" },
-			// Wonders and SDI Defense
-			["CivOne.Resources.defaults.data.improvement_art.apollo_program.png"]          = new[] { "data", "improvement_art", "apollo_program.png" },
-			["CivOne.Resources.defaults.data.improvement_art.copernicus'_observatory.png"] = new[] { "data", "improvement_art", "copernicus'_observatory.png" },
-			["CivOne.Resources.defaults.data.improvement_art.cure_for_cancer.png"]         = new[] { "data", "improvement_art", "cure_for_cancer.png" },
-			["CivOne.Resources.defaults.data.improvement_art.darwin's_voyage.png"]         = new[] { "data", "improvement_art", "darwin's_voyage.png" },
-			["CivOne.Resources.defaults.data.improvement_art.great_library.png"]           = new[] { "data", "improvement_art", "great_library.png" },
-			["CivOne.Resources.defaults.data.improvement_art.great_wall.png"]              = new[] { "data", "improvement_art", "great_wall.png" },
-			["CivOne.Resources.defaults.data.improvement_art.hanging_gardens.png"]         = new[] { "data", "improvement_art", "hanging_gardens.png" },
-			["CivOne.Resources.defaults.data.improvement_art.hoover_dam.png"]              = new[] { "data", "improvement_art", "hoover_dam.png" },
-			["CivOne.Resources.defaults.data.improvement_art.interstellar_probe.png"]      = new[] { "data", "improvement_art", "interstellar_probe.png" },
-			["CivOne.Resources.defaults.data.improvement_art.isaac_newton's_college.png"]  = new[] { "data", "improvement_art", "isaac_newton's_college.png" },
-			["CivOne.Resources.defaults.data.improvement_art.j.s.bach's_cathedral.png"]    = new[] { "data", "improvement_art", "j.s.bach's_cathedral.png" },
-			["CivOne.Resources.defaults.data.improvement_art.magellan's_expedition.png"]   = new[] { "data", "improvement_art", "magellan's_expedition.png" },
-			["CivOne.Resources.defaults.data.improvement_art.manhattan_project.png"]       = new[] { "data", "improvement_art", "manhattan_project.png" },
-			["CivOne.Resources.defaults.data.improvement_art.michelangelo's_chapel.png"]   = new[] { "data", "improvement_art", "michelangelo's_chapel.png" },
-			["CivOne.Resources.defaults.data.improvement_art.oracle.png"]                  = new[] { "data", "improvement_art", "oracle.png" },
-			["CivOne.Resources.defaults.data.improvement_art.pyramids.png"]                = new[] { "data", "improvement_art", "pyramids.png" },
-			["CivOne.Resources.defaults.data.improvement_art.colossus.png"]                 = new[] { "data", "improvement_art", "colossus.png" },
-			["CivOne.Resources.defaults.data.improvement_art.dome_command_hub.png"]        = new[] { "data", "improvement_art", "dome_command_hub.png" },
-			["CivOne.Resources.defaults.data.improvement_art.dome_emitter_array.png"]     = new[] { "data", "improvement_art", "dome_emitter_array.png" },
-			["CivOne.Resources.defaults.data.improvement_art.dome_kinetic_ring.png"]      = new[] { "data", "improvement_art", "dome_kinetic_ring.png" },
-			["CivOne.Resources.defaults.data.improvement_art.dome_power_core.png"]        = new[] { "data", "improvement_art", "dome_power_core.png" },
-			["CivOne.Resources.defaults.data.improvement_art.dome_sensor_net.png"]        = new[] { "data", "improvement_art", "dome_sensor_net.png" },
-			["CivOne.Resources.defaults.data.improvement_art.sdi_defense.png"]             = new[] { "data", "improvement_art", "sdi_defense.png" },
-			["CivOne.Resources.defaults.data.improvement_art.seti_program.png"]           = new[] { "data", "improvement_art", "seti_program.png" },
-			["CivOne.Resources.defaults.data.improvement_art.marco_polo's_voyage.png"]   = new[] { "data", "improvement_art", "marco_polo's_voyage.png" },
-			["CivOne.Resources.defaults.data.improvement_art.zheng_he's_voyage.png"]     = new[] { "data", "improvement_art", "zheng_he's_voyage.png" },
-			["CivOne.Resources.defaults.data.improvement_art.shakespeare's_theatre.png"]   = new[] { "data", "improvement_art", "shakespeare's_theatre.png" },
-			["CivOne.Resources.defaults.data.improvement_art.south_pole_expedition.png"]   = new[] { "data", "improvement_art", "south_pole_expedition.png" },
-			["CivOne.Resources.defaults.data.improvement_art.united_nations.png"]          = new[] { "data", "improvement_art", "united_nations.png" },
-			["CivOne.Resources.defaults.data.improvement_art.women's_suffrage.png"]        = new[] { "data", "improvement_art", "women's_suffrage.png" },
-			["CivOne.Resources.defaults.data.improvement_art.taj_mahal.png"]               = new[] { "data", "improvement_art", "taj_mahal.png" },
-			["CivOne.Resources.defaults.data.improvement_art.hagia_sofia.png"]             = new[] { "data", "improvement_art", "hagia_sofia.png" },
-			// Leader art
-			["CivOne.Resources.defaults.data.leader_art.atilla.png"]           = new[] { "data", "leader_art", "atilla.png" },
-			["CivOne.Resources.defaults.data.leader_art.abe_lincoln.png"]      = new[] { "data", "leader_art", "abe_lincoln.png" },
-			["CivOne.Resources.defaults.data.leader_art.alexander.png"]        = new[] { "data", "leader_art", "alexander.png" },
-			["CivOne.Resources.defaults.data.leader_art.caesar.png"]           = new[] { "data", "leader_art", "caesar.png" },
-			["CivOne.Resources.defaults.data.leader_art.deng_xiaoping.png"]    = new[] { "data", "leader_art", "deng_xiaoping.png" },
-			["CivOne.Resources.defaults.data.leader_art.elizabeth_i.png"]      = new[] { "data", "leader_art", "elizabeth_i.png" },
-			["CivOne.Resources.defaults.data.leader_art.frederick.png"]        = new[] { "data", "leader_art", "frederick.png" },
-			["CivOne.Resources.defaults.data.leader_art.genghis_khan.png"]     = new[] { "data", "leader_art", "genghis_khan.png" },
-			["CivOne.Resources.defaults.data.leader_art.hammurabi.png"]        = new[] { "data", "leader_art", "hammurabi.png" },
-			["CivOne.Resources.defaults.data.leader_art.m_gandhi.png"]         = new[] { "data", "leader_art", "m_gandhi.png" },
-			["CivOne.Resources.defaults.data.leader_art.montezuma.png"]        = new[] { "data", "leader_art", "montezuma.png" },
-			["CivOne.Resources.defaults.data.leader_art.napoleon.png"]         = new[] { "data", "leader_art", "napoleon.png" },
-			["CivOne.Resources.defaults.data.leader_art.peter_the_great.png"]  = new[] { "data", "leader_art", "peter_the_great.png" },
-			["CivOne.Resources.defaults.data.leader_art.ramesses.png"]         = new[] { "data", "leader_art", "ramesses.png" },
-			["CivOne.Resources.defaults.data.leader_art.shaka.png"]            = new[] { "data", "leader_art", "shaka.png" },
-			["CivOne.Resources.defaults.data.leader_art.the_council.png"]      = new[] { "data", "leader_art", "the_council.png" },
-			// Event art
-			["CivOne.Resources.defaults.data.event_art.civilunrest0.png"]       = new[] { "data", "event_art", "civilunrest0.png" },
-			["CivOne.Resources.defaults.data.event_art.civilunrest1.png"]       = new[] { "data", "event_art", "civilunrest1.png" },
-			["CivOne.Resources.defaults.data.event_art.civilunrest2.png"]       = new[] { "data", "event_art", "civilunrest2.png" },
-			["CivOne.Resources.defaults.data.event_art.governmentcollapses.png"] = new[] { "data", "event_art", "governmentcollapses.png" },
-			["CivOne.Resources.defaults.data.event_art.cityconquered.png"]         = new[] { "data", "event_art", "cityconquered.png" },
-			["CivOne.Resources.defaults.data.event_art.cityliberated.png"]        = new[] { "data", "event_art", "cityliberated.png" },
-			["CivOne.Resources.defaults.data.event_art.famine.png"]               = new[] { "data", "event_art", "famine.png" },
-			["CivOne.Resources.defaults.data.event_art.globalwarming.png"]        = new[] { "data", "event_art", "globalwarming.png" },
-			["CivOne.Resources.defaults.data.event_art.nuclearbombdetonation.png"] = new[] { "data", "event_art", "nuclearbombdetonation.png" },
-			["CivOne.Resources.defaults.data.event_art.nuclearmeltdown.png"]      = new[] { "data", "event_art", "nuclearmeltdown.png" },
-			["CivOne.Resources.defaults.data.event_art.pollution.png"]            = new[] { "data", "event_art", "pollution.png" },
-			["CivOne.Resources.defaults.data.event_art.spaceshiparrived.png"]     = new[] { "data", "event_art", "spaceshiparrived.png" },
-			["CivOne.Resources.defaults.data.event_art.spaceshipintercepted.png"] = new[] { "data", "event_art", "spaceshipintercepted.png" },
-			["CivOne.Resources.defaults.data.event_art.spaceshiplaunched.png"]    = new[] { "data", "event_art", "spaceshiplaunched.png" },
-			["CivOne.Resources.defaults.data.event_art.welovethekingday.png"]     = new[] { "data", "event_art", "welovethekingday.png" },
-			["CivOne.Resources.defaults.data.event_art.OlvirInSpace.png"]        = new[] { "data", "event_art", "OlvirInSpace.png" },
-			["CivOne.Resources.defaults.data.event_art.MeetTheOlvir.png"]        = new[] { "data", "event_art", "MeetTheOlvir.png" },
-			// Unit tiles
-			["CivOne.Resources.defaults.unit_tiles.unit_tiles.txt"] = new[] { "unit_tiles", "unit_tiles.txt" },
-			["CivOne.Resources.defaults.unit_tiles.Armor.png"]       = new[] { "unit_tiles", "Armor.png" },
-			["CivOne.Resources.defaults.unit_tiles.Artillery.png"]   = new[] { "unit_tiles", "Artillery.png" },
-			["CivOne.Resources.defaults.unit_tiles.Battleship.png"]  = new[] { "unit_tiles", "Battleship.png" },
-			["CivOne.Resources.defaults.unit_tiles.Bomber.png"]      = new[] { "unit_tiles", "Bomber.png" },
-			["CivOne.Resources.defaults.unit_tiles.Cannon.png"]      = new[] { "unit_tiles", "Cannon.png" },
-			["CivOne.Resources.defaults.unit_tiles.Caravan.png"]     = new[] { "unit_tiles", "Caravan.png" },
-			["CivOne.Resources.defaults.unit_tiles.Carrier.png"]     = new[] { "unit_tiles", "Carrier.png" },
-			["CivOne.Resources.defaults.unit_tiles.Catapult.png"]    = new[] { "unit_tiles", "Catapult.png" },
-			["CivOne.Resources.defaults.unit_tiles.Chariot.png"]     = new[] { "unit_tiles", "Chariot.png" },
-			["CivOne.Resources.defaults.unit_tiles.Diplomat.png"]    = new[] { "unit_tiles", "Diplomat.png" },
-			["CivOne.Resources.defaults.unit_tiles.Fighter.png"]     = new[] { "unit_tiles", "Fighter.png" },
-			["CivOne.Resources.defaults.unit_tiles.Frigate.png"]     = new[] { "unit_tiles", "Frigate.png" },
-			["CivOne.Resources.defaults.unit_tiles.Legion.png"]      = new[] { "unit_tiles", "Legion.png" },
-			["CivOne.Resources.defaults.unit_tiles.MechInf.png"]     = new[] { "unit_tiles", "MechInf.png" },
-			["CivOne.Resources.defaults.unit_tiles.militia.png"]     = new[] { "unit_tiles", "militia.png" },
-			["CivOne.Resources.defaults.unit_tiles.Musketeers.png"]  = new[] { "unit_tiles", "Musketeers.png" },
-			["CivOne.Resources.defaults.unit_tiles.Nuclear.png"]     = new[] { "unit_tiles", "Nuclear.png" },
-			["CivOne.Resources.defaults.unit_tiles.Phalanx.png"]     = new[] { "unit_tiles", "Phalanx.png" },
-			["CivOne.Resources.defaults.unit_tiles.Riflemen.png"]    = new[] { "unit_tiles", "Riflemen.png" },
-			["CivOne.Resources.defaults.unit_tiles.Settlers.png"]    = new[] { "unit_tiles", "Settlers.png" },
-			["CivOne.Resources.defaults.unit_tiles.Submarine.png"]   = new[] { "unit_tiles", "Submarine.png" },
-			["CivOne.Resources.defaults.unit_tiles.Trireme.png"]     = new[] { "unit_tiles", "Trireme.png" },
-			// Garrison icons (32×32, used directly in the city garrison panel)
-			["CivOne.Resources.defaults.garrison_icons.Militia.png"] = new[] { "garrison_icons", "Militia.png" },
+			"data", "garrison_icons", "unit_tiles", "leader_art", "event_art", "improvement_art",
 		};
 
-		// Deploys embedded assets on first run. Only files listed in _defaultAssets are installed;
-		// adding a new file here is not enough — it must also be added as an EmbeddedResource in
-		// the .csproj. Files under defaults/data/ are covered by the repo's **/data/** .gitignore
-		// rule and must be staged with 'git add -f' before they will be tracked in the repository.
+		// Deploys every embedded defaults asset to the storage dir on first run (skipping files
+		// that already exist). Enumerates the assembly manifest, so any EmbeddedResource added
+		// under Resources/defaults/ is installed automatically -- no per-file registration. This
+		// replaced a hand-maintained table that silently dropped newly-added art (leader/event/
+		// improvement images) from fresh installs.
 		private static void InstallDefaults(string storageDir)
 		{
 			Assembly asm = Assembly.GetExecutingAssembly();
-			foreach (var pair in _defaultAssets)
+			foreach (string name in asm.GetManifestResourceNames())
 			{
-				string targetPath = Path.Combine(new[] { storageDir }.Concat(pair.Value).ToArray());
+				if (!name.StartsWith(DefaultsPrefix)) continue;
+
+				string[] segments = name.Substring(DefaultsPrefix.Length).Split('.');
+				var dirs = new List<string>();
+				int i = 0;
+				while (i < segments.Length - 2 && DefaultsDirs.Contains(segments[i]))
+					dirs.Add(segments[i++]);
+				string fileName = string.Join(".", segments.Skip(i));
+
+				string targetPath = Path.Combine(new[] { storageDir }.Concat(dirs).Append(fileName).ToArray());
 				if (File.Exists(targetPath)) continue;
-				using (Stream src = asm.GetManifestResourceStream(pair.Key))
+				using (Stream src = asm.GetManifestResourceStream(name))
 				{
 					if (src == null) continue;
 					Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
