@@ -51,10 +51,6 @@ namespace CivOne
 			    && Player.Visible(c.X, c.Y)))
 				return StrategyStance.Militarize;
 
-			// Militarize: human player is running away — drop economic goals and arm up
-			if (HumanIsDominant() && Human is not null && IsNeighbor(Human))
-				return StrategyStance.Militarize;
-
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
 			if (Leader.Militarism == MilitarismLevel.Militaristic
 			    || Leader.Aggression == AggressionLevel.Aggressive)
@@ -533,40 +529,6 @@ namespace CivOne
 				}
 			}
 
-			// ── Coalition against a runaway human ────────────────────────────────
-			if (HumanIsDominant())
-			{
-				// Wind down existing AI-vs-AI wars (~25 % chance per war per turn).
-				// MakePeace is bilateral so only one side needs to call it.
-				foreach (Player ally in Game.Players)
-				{
-					if (ally == Player || ally.IsDestroyed() || ally.IsHuman) continue;
-					if (Game.PlayerNumber(ally) == 0) continue; // not barbarians
-					if (!Player.IsAtWar(ally)) continue;
-					if (Common.Random.Next(100) < 25)
-						Player.MakePeace(ally);
-				}
-
-				// Non-Rep/Dem civs with an army may now turn on the human
-				if (!Player.RepublicDemocratic)
-				{
-					int own = MilitaryScore(Player);
-					Player human = Human;
-					if (own > 0 && human is not null && !human.IsDestroyed()
-					    && !Player.IsAtWar(human) && IsNeighbor(human)
-					    && !human.HasWonder<UnitedNations>())
-					{
-						// Base 10 %, +5 % per difficulty level, +10 % if we can field half their force
-						int chance = 10 + Game.Difficulty * 5;
-						if (own >= MilitaryScore(human) / 2) chance += 10;
-						if (Common.Random.Next(100) < chance)
-							Player.DeclareWar(human);
-					}
-				}
-
-				// No new inter-AI wars while coalition is active
-				return;
-			}
 			// ── Normal war logic below ───────────────────────────────────────────
 
 			// Republics and Democracies are blocked by their Senate from starting wars
