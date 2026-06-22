@@ -423,8 +423,16 @@ namespace CivOne.Graphics
 			if (city.HasBuilding<CityWalls>())
 				output.AddLayer(Generic.Fortify, 0, 0);
 
-			output.FillRectangle(0, 13, 16, 2, Common.ColourLight[city.Owner]);
-			output.FillRectangle(0, 15, 16, 1, Common.ColourDark[city.Owner]);
+			// Quartered owner banner (heraldic style): primary + accent on opposite diagonals,
+			// so the two-colour PAIR identifies the civ even when a single colour repeats across
+			// slots. Replaces the old flat light-over-dark strip, where many civs read as one
+			// colour and some pairs were identical (Barbarians vs. another red civ).
+			byte pri = Common.ColourLight[city.Owner];
+			byte sec = Common.BannerSecondary[city.Owner];
+			output.FillRectangle(0, 13, 8, 2, pri);   // top-left
+			output.FillRectangle(8, 13, 8, 2, sec);   // top-right
+			output.FillRectangle(0, 15, 8, 1, sec);   // bottom-left
+			output.FillRectangle(8, 15, 8, 1, pri);   // bottom-right
 			return output;
 		}
 
@@ -460,8 +468,16 @@ namespace CivOne.Graphics
 			if (city.HasBuilding<CityWalls>())
 				output.AddLayer(Generic.Fortify, 0, 0);
 
-			output.FillRectangle(0, 13, 16, 2, Common.ColourLight[city.Owner]);
-			output.FillRectangle(0, 15, 16, 1, Common.ColourDark[city.Owner]);
+			// Quartered owner banner (heraldic style): primary + accent on opposite diagonals,
+			// so the two-colour PAIR identifies the civ even when a single colour repeats across
+			// slots. Replaces the old flat light-over-dark strip, where many civs read as one
+			// colour and some pairs were identical (Barbarians vs. another red civ).
+			byte pri = Common.ColourLight[city.Owner];
+			byte sec = Common.BannerSecondary[city.Owner];
+			output.FillRectangle(0, 13, 8, 2, pri);   // top-left
+			output.FillRectangle(8, 13, 8, 2, sec);   // top-right
+			output.FillRectangle(0, 15, 8, 1, sec);   // bottom-left
+			output.FillRectangle(8, 15, 8, 1, pri);   // bottom-right
 			return output;
 		}
 	}

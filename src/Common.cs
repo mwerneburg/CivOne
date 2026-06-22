@@ -52,8 +52,18 @@ namespace CivOne
 		public static ICivilization[] Civilizations => _civilizations ??= Reflect.GetCivilizations().ToArray();
 		// Slots 0–7: original civs (0=Barbarians). Slots 8–15: reserved for narrative factions (Olvir=8, Others=9).
 		// Slots 16–19: extra capacity for max-competition games (NewGame caps at 17 civs; with barbarians + Olvir that's 19 slots).
-		public static byte[] ColourLight = [16, 15, 10, 9, 14, 11, 13, 7,  17, 16, 14, 13, 12, 11, 15,  7,  9, 14, 11, 13];
-		public static byte[] ColourDark  = [ 4,  7,  2, 1, 10,  3,  4, 8,   5,  4,  3,  4,  4,  3,  5,  3,  1, 10,  3,  4];
+		//
+		// City banners are drawn QUARTERED (Icons.City) using ColourLight as the primary and
+		// BannerSecondary as the accent, so the per-slot *pair* is the identity — every pair
+		// below is unique even where a primary colour repeats (only ~9 bright palette colours
+		// exist for 20 slots). All primaries are now bright/visible (palette indices 7..17), so
+		// no civ shows as a near-black sliver on the minimap or in reports the way the old
+		// table did (e.g. slot 3/16 were both near-black; slot 0 and 9 were identical 16/4).
+		// ColourDark is left as the original dark shades — the Intelligence Report uses it as a
+		// button background with ColourLight text on top, which needs the dark contrast.
+		public static byte[] ColourLight     = [16, 11, 13, 14, 17, 15, 16, 11, 13, 14, 17, 15, 16, 11, 13, 14, 17, 15, 12,  7];
+		public static byte[] BannerSecondary = [15, 17, 14, 13, 16, 11, 17, 15, 16, 15, 13, 14, 13, 14, 17, 16, 15, 16, 17, 16];
+		public static byte[] ColourDark      = [ 4,  7,  2,  1, 10,  3,  4,  8,  5,  4,  3,  4,  4,  3,  5,  3,  1, 10,  3,  4];
 		
 		internal static IEnumerable<string> AllCityNames => Civilizations.Select(x => x.CityNames).SelectMany(x => x);
 

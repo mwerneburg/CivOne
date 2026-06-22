@@ -155,7 +155,13 @@ namespace CivOne.Screens
 		{
 			int yy = 34;
 
-			string[] blurb = GetBlurb(_pageNumber);
+			// With "Civilopedia Text" off we open straight on the stats page (page 2, skipping
+			// the verbose page 1 — see the constructor). But every wonder/building/unit keeps
+			// "what it does" on page 1 and its historical flavour on page 2, so that skip would
+			// show only backstory + stats and never the gameplay effect. Pull the page-1 (effect)
+			// blurb onto the stats page instead, so a quick look always tells you what it does.
+			byte blurbPage = (!Game.CivilopediaText && _pageNumber == 2) ? (byte)1 : _pageNumber;
+			string[] blurb = GetBlurb(blurbPage);
 			foreach (string line in blurb)
 			{
 				this.DrawText(line, 0, CassetteTheme.INK_HIGH, OX + 12, yy);
