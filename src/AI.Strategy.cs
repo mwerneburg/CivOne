@@ -1068,7 +1068,7 @@ namespace CivOne
 					if (a is Conscription)        weight += 8;
 					if (a is Automobile)          weight += 8;
 					if (a is LaborUnion)          weight += 8;
-					if (a is Masonry)             weight += 4; // CityWalls for defence
+					if (a is Masonry)             weight += 4; // gateway to Construction -> Aqueduct (growth)
 					break;
 
 				case StrategyStance.Develop:
@@ -1259,27 +1259,18 @@ namespace CivOne
 				if (!city.HasBuilding<Temple>()) Consider(new Temple());
 			}
 
-			// Early City Walls when a foreign city is within striking distance and Masonry is
-			// researched. Walls triple defender strength — a cheaper insurance policy than
-			// constantly re-building Militia after every barbarian raid wipes the garrison.
+			// Garrison a flexible second defender when a hostile unit is actually close — a
+			// barbarian raid or a war party within 3 tiles. We deliberately do NOT build City
+			// Walls (here or in the standard chain below): per play-testing they are slow to
+			// build, drain upkeep, and fold to Catapults, Knights, and bribing Diplomats. A
+			// mobile second defender you can re-station or disband on a shield crunch is the
+			// better, more flexible insurance. (Barbarians, owner 0, spawn in human-unexplored
+			// areas — i.e. on top of AI civs — so this often decides whether an early city survives.)
 			byte threatOwnId = Game.PlayerNumber(Player);
-			{
-				bool threatenedByNeighbor = Game.GetCities().Any(c => c.Owner != threatOwnId
-					&& Common.DistanceToTile(c.X, c.Y, city.X, city.Y) <= 10);
-				if (threatenedByNeighbor && Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>())
-					Consider(new CityWalls());
-			}
-
-			// Barbarian/enemy raid nearby: a lone Militia loses to a Legion, so garrison a
-			// second defender (and City Walls where available) when a hostile unit is close.
-			// Barbarians (owner 0) spawn in human-unexplored areas — i.e. on top of AI civs —
-			// so this is the difference between a city surviving the early raids and falling.
 			bool hostileNear = Game.GetUnits().Any(u => u.Owner != threatOwnId
 				&& (u.Owner == 0 || Player.IsAtWar(Game.GetPlayer(u.Owner)))
 				&& Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 3);
 			if (hostileNear && defenders < 2) Consider(BestDefender());
-			if (hostileNear && Player.HasAdvance<Masonry>() && !city.HasBuilding<CityWalls>())
-				Consider(new CityWalls());
 
 			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
 			// Without this, tiny AI civs build Militia → Barracks → Settlers → ship
@@ -1370,7 +1361,6 @@ namespace CivOne
 			if (Player.HasAdvance<CeremonialBurial>()  && !city.HasBuilding<Temple>())        Consider(new Temple());
 			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
 			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
-			if (Player.HasAdvance<Masonry>()           && !city.HasBuilding<CityWalls>())     Consider(new CityWalls());
 			if (Player.HasAdvance<Rocketry>()          && !city.HasBuilding<SamBattery>())    Consider(new SamBattery());
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
