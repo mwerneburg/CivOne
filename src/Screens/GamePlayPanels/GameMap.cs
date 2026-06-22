@@ -507,6 +507,10 @@ namespace CivOne.Screens.GamePlayPanels
 					Game.DisbandUnit(Game.ActiveUnit);
 					return true;
 				case 'H':
+					// 'h' is also the Settler's "Raise to Hills" terraform shortcut. Prefer that
+					// when the active unit offers it on the current tile (the menu item is only
+					// present on raisable terrain); otherwise fall back to Set-Home-city.
+					if (ActivateUnitMenuShortcut("h")) return true;
 					Game.ActiveUnit.SetHome();
 					return true;
 				case 'I':
@@ -543,11 +547,17 @@ namespace CivOne.Screens.GamePlayPanels
 					break;
 				// Settler terraform / auto actions: dispatch to the active unit's own
 				// menu item by its shortcut, so these stay in sync with the unit menu.
+				// (An inapplicable action is simply absent from MenuItems, so the key
+				// falls through — see ActivateUnitMenuShortcut.)
 				case 'A':   // Build Aquafarm
 				case 'V':   // Plant Forest
 				case 'E':   // Auto-Improve
 				case 'N':   // Engineer River
 				case 'O':   // Build Road To...
+				case 'L':   // Lower to Plains
+				case 'J':   // Plant Jungle
+				case 'K':   // Thaw to Grassland
+				case 'Q':   // Build Canopy Array
 					return ActivateUnitMenuShortcut(char.ToLower(args.KeyChar).ToString());
 			}
 
