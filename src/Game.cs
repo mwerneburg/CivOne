@@ -343,17 +343,24 @@ namespace CivOne
 				return;
 			}
 
-			// Before 0 AD, respawn destroyed AI civs using their alternate civilization variant.
-			// Each civ has a "buddy" with Id offset by 7 (e.g. Romans Id=1 <-> Mongols Id=8).
-			// If the buddy hasn't already been destroyed this game, spawn it in the same player slot.
-			if (!(destroyed is Barbarian) && Common.TurnToYear(_gameTurn) < 0)
+			// Before 0 AD, respawn a destroyed AI civ as its buddy variant. ONLY the original
+			// civs (Id 1–14) are paired: they share player slots 1–7 in two banks, so each has a
+			// buddy at Id ± 7 (e.g. Romans Id=1 <-> Russians Id=8). Extended civs (Id 17–26) hold
+			// exclusive slots and have NO buddy — the Id − 7 formula would map them onto an
+			// original civ (Persians 18 → Aztecs 11, Inca 23 → Olvir 16, …) and spawn a duplicate
+			// or special-case civ. That bug produced two Aztecs in one game (a destroyed Persia
+			// respawning as a second, randomly-placed Aztec while the real Aztecs were still alive).
+			if (!(destroyed is Barbarian) && destroyed.Id >= 1 && destroyed.Id <= 14 && Common.TurnToYear(_gameTurn) < 0)
 			{
 				byte playerSlot = (byte)destroyed.PreferredPlayerNumber;
 				int buddyId = destroyed.Id >= 8 ? destroyed.Id - 7 : destroyed.Id + 7;
 				bool buddyDestroyed = _replayData.OfType<ReplayData.CivilizationDestroyed>()
 					.Any(rd => rd.DestroyedId == buddyId);
+				// Never resurrect a buddy that is still in the game — the second guard that the
+				// two-Aztecs bug slipped past (it only checked whether the buddy was *destroyed*).
+				bool buddyAlive = _players.Any(p => p is not null && p.Civilization.Id == buddyId);
 				ICivilization buddyCiv = Common.Civilizations.FirstOrDefault(c => c.Id == buddyId);
-				if (!buddyDestroyed && buddyCiv is not null)
+				if (!buddyDestroyed && !buddyAlive && buddyCiv is not null)
 				{
 					_players[playerSlot] = new Player(buddyCiv);
 					_players[playerSlot].Destroyed += PlayerDestroyed;
