@@ -949,17 +949,17 @@ namespace CivOne
 				return;
 			}
 
-			// Caravans: head for the most distant foreign city (trade route gold), but only
-			// among cities on the same continent so we don't dispatch the unit on an impossible
-			// walk across the ocean.
+			// Caravans: head for the nearest worthwhile foreign city (trade route gold), but
+			// only among cities on the same continent so we don't dispatch the unit on an
+			// impossible walk across the ocean.
 			if (unit is Caravan)
 			{
 				// Caravans deliver trade-route gold by entering a foreign city
-				// (Caravan.cs:127, EstablishTradeRoute). Prefer the most-distant foreign
-				// city on the same continent (distance scales the gold bonus), but verify
-				// the first step is actually reachable — otherwise multiple Caravans all
-				// pick the same far-off target whose path is wedged by a peaceful neighbour,
-				// loop in AI.Move until the circuit breaker fires, and waste turn budget.
+				// (Caravan.cs:127, EstablishTradeRoute). Target the nearest reachable foreign
+				// city (see the targeting note below for why nearest, not most-distant), and
+				// verify the first step is actually reachable — otherwise a Caravan can commit
+				// to a target whose path is wedged by a peaceful neighbour, loop in AI.Move
+				// until the circuit breaker fires, and waste turn budget.
 				//
 				// No own-city fallback: walking an AI Caravan into its own city does nothing
 				// (CaravanChoice is human-only at Caravan.cs:100-103); the unit would idle
@@ -989,12 +989,21 @@ namespace CivOne
 					return true;
 				}
 
-				// Distance-ranked candidates. Iterate descending (max gold), skipping any
-				// whose first step we can't take. The first reachable candidate wins.
-				City target = Game.GetCities()
+				// Deliver to the NEAREST reachable foreign city, not the most distant. "Most
+				// distant" maximised the gold bonus on paper but was an unstable target: each
+				// time the caravan crossed the midpoint between two far cities the ranking
+				// flipped and it doubled back, so it shuttled along the rails forever and never
+				// delivered. Nearest stays nearest as the caravan approaches, so it commits and
+				// pays out. Prefer a city of real size (a worthwhile route, per play-test note);
+				// fall back to the nearest city of any size so the unit always delivers rather
+				// than idling for endless turns at its owner's upkeep.
+				const int popFloor = 3;
+				var byDistance = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
-				    .OrderByDescending(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
-				    .FirstOrDefault(FirstStepReachable);
+				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+				    .ToList();
+				City target = byDistance.FirstOrDefault(c => c.Size >= popFloor && FirstStepReachable(c))
+				           ?? byDistance.FirstOrDefault(FirstStepReachable);
 
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				else unit.SkipTurn();
