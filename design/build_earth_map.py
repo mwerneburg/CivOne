@@ -209,6 +209,16 @@ STRAITS = [
     ( 1.2, 103.8, "Malacca"),       # Sumatra/Malay strait (may already be open at this resolution)
 ]
 
+# A one-tile-wide ocean lane hugging the North African coast, from the Atlantic west of
+# Gibraltar east to the waters off Tripoli, so the Mediterranean opens to the Atlantic. At
+# ~1.1°/tile the basin otherwise floods to an isolated inland lake (Gibraltar's lone strait
+# tile can't bridge it). Traced (lat, lon) just along the coast: Morocco/Algeria/Tunisia at
+# ~36-37°N, dipping toward Tripoli at ~33°N. carve_sea_channel only fills the land gaps.
+MED_CHANNEL = [
+    (35.8, -7.5), (35.7, -5.5), (36.2, -1.0), (36.7,  4.0),
+    (37.0,  9.0), (35.0, 11.5), (33.5, 13.5),
+]
+
 
 # ── Major lakes ───────────────────────────────────────────────────────────────
 # Each entry forces *all* tiles inside the bounding box to Ocean. After the
@@ -397,6 +407,50 @@ def carve_strait(grid: np.ndarray, lat: float, lon: float) -> bool:
                 grid[y, x] = OCEAN
                 return True
     return False
+
+
+def carve_sea_channel(grid: np.ndarray, waypoints) -> int:
+    """Rasterise a 4-connected polyline, flipping every land tile it crosses to Ocean.
+    A single strait shave (carve_strait) only opens one tile; this cuts a continuous
+    one-tile-wide lane where the coarse resolution seals a whole sea off — e.g. the
+    Mediterranean, which floods to a 140-tile inland lake until a channel along the
+    North African coast reconnects it to the Atlantic. Tiles already Ocean are left
+    as-is, so the lane only fills the land gaps. Returns the number of tiles carved."""
+    h, w = grid.shape
+    carved = 0
+
+    def carve(x: int, y: int):
+        nonlocal carved
+        if not (0 <= x < w and 0 <= y < h): return
+        if grid[y, x] != OCEAN:
+            grid[y, x] = OCEAN
+            carved += 1
+
+    pts = []
+    for lat, lon in waypoints:
+        y = max(0, min(h - 1, int(((90.0 - lat) / 180.0) * h)))
+        x = max(0, min(w - 1, int(((lon + 180.0) / 360.0) * w)))
+        pts.append((x, y))
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        dx = abs(x1 - x0); dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
+        cx, cy = x0, y0
+        while True:
+            carve(cx, cy)
+            if cx == x1 and cy == y1: break
+            e2 = 2 * err
+            step_x = (e2 >= dy)
+            step_y = (e2 <= dx)
+            if step_x and step_y:
+                carve(cx + sx, cy)   # orthogonal stepping stone keeps the lane 4-connected
+                err += dy + dx; cx += sx; cy += sy
+            elif step_x:
+                err += dy; cx += sx
+            elif step_y:
+                err += dx; cy += sy
+    return carved
 
 
 def carve_lake_box(grid: np.ndarray, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> int:
@@ -611,6 +665,8 @@ def main() -> int:
     strait_tiles = 0
     for lat, lon, name in STRAITS:
         if carve_strait(grid, lat, lon): strait_tiles += 1
+    # Sea channels: cut continuous lanes where a single strait shave isn't enough.
+    channel_tiles = carve_sea_channel(grid, MED_CHANNEL)
     river_tiles = 0
     for name, waypoints in MAJOR_RIVERS:
         river_tiles += draw_river_polyline(grid, waypoints, args.sea_level)
@@ -641,6 +697,7 @@ def main() -> int:
     print(f"  lakes:   {lake_tiles} land tiles carved across {len(MAJOR_LAKES)} boxes + {len(MAJOR_LAKE_POLYGONS)} polygons (engine flags as freshwater)")
     print(f"  land-force: {land_force_tiles} ocean tiles reclaimed across {len(LAND_FORCES)} polygons")
     print(f"  straits: {strait_tiles} tiles opened of {len(STRAITS)} configured")
+    print(f"  channels: {channel_tiles} tiles carved (Mediterranean -> Atlantic lane)")
     for code, count in sorted(counts.items(), key=lambda kv: -kv[1]):
         print(f"  {name.get(code, '?'):8s} {count:6d} ({100*count/total:5.1f}%)")
     return 0
