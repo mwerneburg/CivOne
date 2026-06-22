@@ -388,6 +388,21 @@ namespace CivOne.Units
 			}
 			else if (this is Nuclear)
 			{
+				// Real (space-based) SDI: a defender holding the Fusion Core wonder intercepts
+				// the incoming strike anywhere over its cities/forces — the missile is shot down
+				// rather than detonating. (The legacy per-city SDI Defense building was never
+				// wired up; this is the genuine empire-wide interceptor.)
+				Player? nukeTarget = moveTarget.City is not null
+					? Game.GetPlayer(moveTarget.City.Owner)
+					: (moveTarget.Units.FirstOrDefault(u => u.Owner != Owner) is IUnit du ? Game.GetPlayer(du.Owner) : null);
+				if (nukeTarget is not null && nukeTarget.HasWonder<Wonders.FusionCore>())
+				{
+					if (Human == Owner || Human == nukeTarget)
+						GameTask.Enqueue(Message.General("Nuclear strike intercepted", $"by the {nukeTarget.TribeName} Fusion Core!"));
+					Game.DisbandUnit(this);
+					return true;
+				}
+
 				Show nukeShow = Show.EventArt("nuclearbombdetonation", "Nuclear bomb detonated!");
 				nukeShow.Done += (s, a) =>
 				{

@@ -47,5 +47,6 @@ namespace CivOne.Enums
 		TajMahal                 = 34,
 		HagiaSofia               = 35,
 		AuditAuthority           = 36,
+		FusionCore               = 37,
 	}
 }
