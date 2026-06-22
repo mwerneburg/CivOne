@@ -127,7 +127,11 @@ namespace CivOne
 				// that commitment and don't detour to found a city at the current tile.
 				if (unit.Goto.IsEmpty)
 				{
-					if (validCity && nearestCity > 3)
+					// Found new cities only while still expanding (below the stance city target);
+					// a built-out empire (Develop/Consolidate) terraforms its existing cities'
+					// tiles instead of founding ever-smaller towns — see BestImproveSite.
+					bool expanding = GetStance() == StrategyStance.Expand;
+					if (validCity && nearestCity > 3 && expanding)
 					{
 						DecisionLogger.LogSettlerAction(unit, "found");
 						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
@@ -161,7 +165,11 @@ namespace CivOne
 						}
 					}
 
-					ITile? best = BestSettleSite(unit);
+					// Built-out empires head for a tile to irrigate; expanding ones for a new city
+					// site. When not expanding we don't fall back to a settle site — founding is
+					// gated on `expanding`, so a settler sent there couldn't act and would just mill;
+					// a null here drifts it home (below) to wait for terraforming work instead.
+					ITile? best = expanding ? BestSettleSite(unit) : BestImproveSite(unit);
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);

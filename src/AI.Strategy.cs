@@ -702,6 +702,42 @@ namespace CivOne
 			return best;
 		}
 
+		// Nearest tile worth terraforming near our own cities — an un-irrigated farm tile
+		// next to fresh water, inside a city's work radius. A built-out empire sends its
+		// settlers here to raise city food (irrigation) instead of founding ever-smaller
+		// towns; this is the fix for AI cities stalling at ~+0.8 food/turn. Null when there's
+		// nothing useful to improve nearby.
+		internal ITile? BestImproveSite(IUnit settlers)
+		{
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
+			byte ownId = Game.PlayerNumber(Player);
+			var claimed = new System.Collections.Generic.HashSet<(int, int)>(
+				Game.GetUnits().OfType<Settlers>()
+				    .Where(s => s != settlers && s.Owner == ownId && !s.Goto.IsEmpty)
+				    .Select(s => (s.Goto.X, s.Goto.Y)));
+
+			ITile? best = null;
+			int bestDist = int.MaxValue;
+			for (int dy = -6; dy <= 6; dy++)
+			for (int dx = -6; dx <= 6; dx++)
+			{
+				int tx = (settlers.X + dx + mapWidth) % mapWidth;
+				int ty = settlers.Y + dy;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				if (tile.Irrigation || tile.Mine) continue;
+				bool farmable = (tile is Grassland || tile is River || tile is Plains || tile is Desert)
+					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
+				if (!farmable) continue;
+				if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
+				if (claimed.Contains((tx, ty))) continue;
+				int d = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
+				if (d < bestDist) { bestDist = d; best = tile; }
+			}
+			return best;
+		}
+
 		// ── unit mission assignment ────────────────────────────────────────────
 		// Sets unit.Goto; leaves it empty if no useful mission is found.
 
@@ -1349,6 +1385,20 @@ namespace CivOne
 				int minSize = Leader.Development == Expansionistic ? 3
 				            : Leader.Development == Normal          ? 4 : 4;
 				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+					Consider(new Settlers());
+			}
+
+			// Worker settlers: a built-out empire (Develop/Consolidate) keeps a few settlers
+			// terraforming — irrigating the tiles its cities work — so cities reach the food
+			// surplus to grow past size 3 instead of stalling. Capped at ~1 per 4 cities so it
+			// doesn't crowd out economy, and only from healthy cities with mass to spend.
+			// AI.Move routes these to BestImproveSite() rather than founding new towns.
+			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
+			    && city.Size >= 4 && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers))
+			{
+				byte wsId = Game.PlayerNumber(Player);
+				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
+				if (workers < Math.Max(1, ownCities / 4))
 					Consider(new Settlers());
 			}
 
