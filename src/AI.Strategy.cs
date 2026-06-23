@@ -1488,10 +1488,18 @@ namespace CivOne
 					Consider(new Caravan());
 			}
 
-			// Fallback: first available production item
+			// Fallback: nothing useful left to build, so pick a random available item — but
+			// NEVER the Palace when the civ already has a capital. Building a Palace just
+			// relocates the capital (City.cs:1412), so a random pick here had built-out AI civs
+			// forever shuffling their seat of government. A capital-less civ (lost its capital in
+			// war) is still allowed one, so it can re-establish a corruption-free centre.
 			if (plan.Count == 0)
 			{
-				IProduction[] items = city.AvailableProduction.ToArray();
+				bool hasCapital = Player.Cities.Any(c => c.HasBuilding<Palace>());
+				IProduction[] items = city.AvailableProduction
+				    .Where(p => !hasCapital || !(p is Palace))
+				    .ToArray();
+				if (items.Length == 0) items = city.AvailableProduction.ToArray();
 				Consider(items[Common.Random.Next(items.Length)]);
 			}
 
