@@ -1355,14 +1355,15 @@ namespace CivOne
 					// — otherwise the city stalls forever with completed-but-uncreated Settlers.
 				}
 				else if ((CurrentProduction is Settlers || CurrentProduction is HydroEngineer)
-				         && Size == 1 && Player.Cities.Length > 1)
+				         && Size == 1 && Player.Cities.Length > 1 && !Player.IsHuman)
 				{
 					// A Settlers/HydroEngineer costs 1 population. The only-city case is rescued by
 					// the Size++ bump below, but a size-1 town in a MULTI-city civ would drop to 0
 					// and be destroyed. That's how famished AI towns vanish: they queue a settler at
-					// a healthy size, famine down to 1, then the completed settler wipes the town.
-					// Hold instead — keep the shields and wait for the city to regrow (or for the
-					// AI to re-plan production), rather than self-destructing.
+					// a healthy size, famine down to 1, then the completed settler wipes the town —
+					// so for the AI we hold instead, keeping the shields until the city regrows.
+					// The HUMAN is exempt (!Player.IsHuman): abandoning a size-1 city by completing
+					// a Settler — relocating its last population — is a deliberate, legitimate move.
 				}
 				else if (CurrentProduction is IUnit currentUnit)
 				{
