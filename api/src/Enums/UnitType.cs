@@ -46,5 +46,7 @@ namespace CivOne.Enums
 		Explorer = 28,
 		HydroEngineer = 29,
 		SeaCaravan = 30,
+		HoverTank = 31,
+		FusionInf = 32,
 	}
 }

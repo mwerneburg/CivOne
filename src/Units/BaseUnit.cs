@@ -529,7 +529,7 @@ namespace CivOne.Units
 			{
 				// Handle movement in MovementDone
 			}
-			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.City is null && moveTarget.Movement > 1)
+			else if (MovesLeft == 0 && !moveTarget.Road && moveTarget.City is null && moveTarget.Movement > 1 && !IgnoresTerrainCost)
 			{
 				bool success;
 				if (PartMoves >= 2)
@@ -817,7 +817,11 @@ namespace CivOne.Units
 		}
 		public byte MovesLeft { get; set; }
 		public byte PartMoves { get; set; }
-		
+
+		// Hover units glide over rough terrain at the normal 1-MP/tile rate — they skip the
+		// last-move penalty for entering Hills/Mountains (see MoveTo). Default off.
+		public virtual bool IgnoresTerrainCost => false;
+
 		public virtual void NewTurn()
 		{
 			if (FortifyActive)

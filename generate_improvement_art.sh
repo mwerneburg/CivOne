@@ -66,6 +66,7 @@ resize_and_install "$SRC/SurplusDepot.png"       "surplus_depot.png"
 resize_and_install "$SRC/Xenolab.png"            "xenolab.png"
 
 # Wonders
+resize_and_install "$SRC/FusionCore.png"              "fusion_core.png"
 resize_and_install "$SRC/HumanGenome.png"             "human_genome.png"
 resize_and_install "$SRC/PoliceStation.png"           "police_station.png"
 resize_and_install "$SRC/AuditAuthority.png"          "audit_authority.png"

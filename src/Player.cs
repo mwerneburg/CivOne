@@ -425,6 +425,10 @@ namespace CivOne
 			// Require Manhattan Project to be built for Nuclear unit
 			if ((unit is Nuclear) && !Game.Instance.WonderBuilt<ManhattanProject>())
 				return false;
+
+			// The fusion war machine is unlocked by the builder's OWN Fusion Core wonder.
+			if ((unit is HoverTank || unit is FusionInf) && !HasWonder<FusionCore>())
+				return false;
 			
 			// Determine if the unit requires a tech
 			if (unit.RequiredTech is null)
