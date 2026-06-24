@@ -27,7 +27,6 @@ namespace CivOne.Enums
 		Colosseum = 13,
 		Factory = 14,
 		MfgPlant = 15,
-		SdiDefense = 16,
 		RecyclingCenter = 17,
 		PowerPlant = 18,
 		HydroPlant = 19,

@@ -445,7 +445,7 @@ namespace CivOne
 		{
 			if (building is Colosseum && !Game.Instance.Circuses)
 				return false;
-			if ((building is CityWalls || building is SdiDefense) && !Game.Instance.Barricades)
+			if (building is CityWalls && !Game.Instance.Barricades)
 				return false;
 
 			if (building is ISpaceShip)

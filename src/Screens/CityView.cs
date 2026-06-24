@@ -498,13 +498,6 @@ namespace CivOne.Screens
 			else if (typeof(T) == typeof(MfgPlant))
 				DrawNativeBuilding(picture, x, y, CassetteTheme.BG1, CassetteTheme.INK_MID, "~",
 				                   CassetteTheme.INK_MID, 2);
-			else if (typeof(T) == typeof(SdiDefense))
-			{
-				// Dome shape
-				DrawNativeBuilding(picture, x, y, CassetteTheme.BG2, CassetteTheme.PHOS_GLOW, "o");
-				// Beacon highlight
-				picture.FillRectangle(x + 22, y + 4, 5, 5, CassetteTheme.PHOS_GLOW);
-			}
 			else if (typeof(T) == typeof(RecyclingCenter))
 				DrawNativeBuilding(picture, x, y, CassetteTheme.BG3, CassetteTheme.OK, "X");
 			else if (typeof(T) == typeof(NuclearPlant))
@@ -627,7 +620,7 @@ namespace CivOne.Screens
 					typeof(Library), typeof(Courthouse), typeof(Bank), typeof(Cathedral),
                     typeof(ObservatoryBuilding),
 					typeof(UniversityBuilding), typeof(Colosseum), typeof(Factory), typeof(MfgPlant),
-					typeof(SdiDefense), typeof(RecyclingCenter), typeof(NuclearPlant),
+					typeof(RecyclingCenter), typeof(NuclearPlant),
 					typeof(Lighthouse), typeof(HangingGardens), typeof(Oracle), typeof(DarwinsVoyage)
 				])
 				{
@@ -648,7 +641,6 @@ namespace CivOne.Screens
 						else if (type == typeof(Colosseum))        id = CityViewMap.Colosseum;
 						else if (type == typeof(Factory))          id = CityViewMap.Factory;
 						else if (type == typeof(MfgPlant))         id = CityViewMap.MfgPlant;
-						else if (type == typeof(SdiDefense))       id = CityViewMap.SdiDefense;
 						else if (type == typeof(RecyclingCenter))  id = CityViewMap.RecyclingCenter;
 						else if (type == typeof(NuclearPlant))     id = CityViewMap.NuclearPlant;
 						else if (type == typeof(Lighthouse))       id = CityViewMap.Lighthouse;
@@ -765,7 +757,6 @@ namespace CivOne.Screens
 					case CityViewMap.Colosseum:      DrawBuildingOverlay<Colosseum>(dx, dy);        continue;
 					case CityViewMap.Factory:        DrawBuildingOverlay<Factory>(dx, dy);          continue;
 					case CityViewMap.MfgPlant:       DrawBuildingOverlay<MfgPlant>(dx, dy);         continue;
-					case CityViewMap.SdiDefense:     DrawBuildingOverlay<SdiDefense>(dx, dy);       continue;
 					case CityViewMap.RecyclingCenter: DrawBuildingOverlay<RecyclingCenter>(dx, dy); continue;
 					case CityViewMap.NuclearPlant:   DrawBuildingOverlay<NuclearPlant>(dx, dy);     continue;
 					case CityViewMap.Lighthouse:     DrawWonderOverlay<Lighthouse>(dx, dy, -52);    continue;
