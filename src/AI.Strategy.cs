@@ -37,8 +37,16 @@ namespace CivOne
 			var cities = Player.Cities;
 
 			// Consolidate: Rep/Dem with unhappy majorities can't sustain expansion
-			if (Player.RepublicDemocratic && cities.Length > 0
-			    && cities.Count(c => c.UnhappyCitizens > 0) * 2 > cities.Length)
+			// Consolidate: a happiness crisis — drop expansion and build Temples/Colosseums/
+			// Cathedrals (this stance front-loads them). Republics/Democracies feel unhappiness
+			// early, so they consolidate on widespread discontent; the harsher governments only
+			// once cities actually tip into disorder. The LuxuriesRate >= 4 clause keeps us in
+			// Consolidate while ConsiderSliders is leaning on the luxury slider, so we keep
+			// building happiness infrastructure until luxuries can wind back down toward science.
+			if (cities.Length > 0 && (
+			        (Player.RepublicDemocratic && cities.Count(c => c.UnhappyCitizens > 0) * 2 > cities.Length)
+			        || cities.Count(c => c.IsInDisorder) >= 2
+			        || Player.LuxuriesRate >= 4))
 				return StrategyStance.Consolidate;
 
 			// Militarize: already at war
@@ -123,7 +131,21 @@ namespace CivOne
 			if (Player.IsDestroyed()) return;
 			if (Player.Government is Gov.Anarchy) return;
 
-			// AI manages happiness through buildings; wind down any luxury spending.
+			// Happiness safety valve: pump luxuries UP while cities are rioting, then wind them
+			// back down once order returns. Civil disorder freezes a city's production AND its
+			// growth, so with luxuries pinned at 0 and too few happiness buildings, a growing
+			// empire tips into the grow→riot→shrink→recover oscillation (the mid-game "wasting
+			// illness"). Raising luxuries quells it far faster than waiting for a Temple to
+			// finish; it costs science, but GetStance flips to Consolidate to build the
+			// happiness infrastructure that lets luxuries fall back toward research.
+			int rioting = Player.Cities.Count(c => c.IsInDisorder);
+			if (rioting > 0)
+			{
+				int maxLux = 10 - Player.TaxesRate;   // keep science >= 0
+				if (Player.LuxuriesRate < maxLux)
+					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
+				return;
+			}
 			if (Player.LuxuriesRate > 0)
 			{
 				Player.LuxuriesRate--;
