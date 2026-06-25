@@ -1607,6 +1607,11 @@ namespace CivOne
 			upgraded.SetHome(unit.Home);
 			upgraded.SkipTurn();
 
+			// Drop the old unit from its home city's support list before discarding it.
+			// Without this the upgraded-away unit lingers in the city's _homeUnits as a ghost
+			// and keeps charging shield upkeep (City.ShieldCosts) — every upgrade leaked one,
+			// which is how a city with a single Mech. Inf. ended up paying 7 shields of upkeep.
+			unit.SetHome(null);
 			_units.Remove(unit);
 			_units.Add(upgraded);
 		}
