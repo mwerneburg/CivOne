@@ -319,9 +319,14 @@ namespace CivOne
 
 			if (atWar)
 			{
-				// At war: ask for captured cities back in exchange for peace
-				foreach (City city in Game.GetCities().Where(c => c.Owner == humanNum && c.OriginalOwner == aiNum))
-					demands.Add(new AIDemand(AIDemandKind.ReturnCity, city: city, duration: 100));
+				// At war: ask for ONE captured city back in exchange for peace — the most
+				// valuable (largest) one. Listing every lost city at once reads ridiculously.
+				City? wantBack = Game.GetCities()
+					.Where(c => c.Owner == humanNum && c.OriginalOwner == aiNum)
+					.OrderByDescending(c => c.Size)
+					.FirstOrDefault();
+				if (wantBack is not null)
+					demands.Add(new AIDemand(AIDemandKind.ReturnCity, city: wantBack, duration: 100));
 			}
 			else if (Game.GameTurn >= 30)
 			{
