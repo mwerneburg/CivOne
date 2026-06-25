@@ -1344,6 +1344,19 @@ namespace CivOne
 				&& Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 3);
 			if (hostileNear && defenders < 2) Consider(BestDefender());
 
+			// Preventive happiness: a city on the verge of disorder — unhappy citizens no
+			// longer outweighed by happy ones — builds a Temple (then Colosseum, then
+			// Cathedral) NOW, ahead of growth, military and settlers. Stance-independent and
+			// high priority because a rioting city produces nothing: getting ahead of the
+			// happiness ceiling breaks the grow→riot→luxury-quell→grow sawtooth that was
+			// leaving the AIs relying on the reactive luxury valve instead of infrastructure.
+			if (city.UnhappyCitizens > 0 && city.UnhappyCitizens >= city.HappyCitizens)
+			{
+				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    Consider(new Temple());
+				if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
+				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>()) Consider(new Cathedral());
+			}
+
 			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
 			// Without this, tiny AI civs build Militia → Barracks → Settlers → ship
 			// settler → city drops to size 1 → cycle repeats, and the city never
