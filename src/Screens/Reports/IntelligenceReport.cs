@@ -105,6 +105,17 @@ namespace CivOne.Screens.Reports
 					this.DrawText("No embassy established.", 0, CassetteTheme.INK_LOW, OX + 160, yy + 2, TextAlign.Center);
 				}
 
+				// State of relations with us. Always known — you know who you're at war with,
+				// embassy or not — so this shows for every civ, alongside the INFO button line.
+				if (!player.IsHuman)
+				{
+					bool atWar = Human.IsAtWar(player);
+					bool truce = !atWar && Human.HasPeaceTreaty(player);
+					this.DrawText(atWar ? "AT WAR" : truce ? "TRUCE" : "PEACE", 0,
+						atWar ? CassetteTheme.ALERT : truce ? CassetteTheme.PHOS : CassetteTheme.OK,
+						OX + 8, yy + 14);
+				}
+
 				yy += 24;
 			}
 		}
