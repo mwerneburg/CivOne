@@ -14,6 +14,8 @@ namespace CivOne.Units
 {
 	internal class MechInf : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.FusionInf;
+
 		public MechInf() : base(5, 6, 6, 3)
 		{
 			Type = UnitType.MechInf;

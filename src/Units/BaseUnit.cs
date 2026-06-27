@@ -918,6 +918,9 @@ namespace CivOne.Units
 			IUnit? target = Game.PeekUnit(UpgradesTo.Value);
 			if (target is null) return false;
 			if (target.RequiredTech is not null && !Player.HasAdvance(target.RequiredTech)) return false;
+			// Honour wonder/availability gates (e.g. Fusion Inf needs the Fusion Core wonder,
+			// not just the tech) so the upgrade button can't bypass what building enforces.
+			if (!Player.ProductionAvailable(target)) return false;
 			targetName = target.Name;
 			cost = (int)target.Price * 10;
 			return Player.Gold >= cost;
