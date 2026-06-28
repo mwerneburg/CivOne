@@ -905,33 +905,46 @@ namespace CivOne.Units
 		// Returns the unit type this unit can upgrade to (one step), or null if none.
 		public virtual UnitType? UpgradesTo => null;
 
-		// Returns true when all conditions for upgrading are met, populating target name and gold cost.
-		// Conditions: unit is in a city with a Barracks, target tech is researched, player has the gold.
-		protected bool CanUpgrade(out string targetName, out int cost)
+		// Returns true when all conditions for upgrading are met, populating the resolved
+		// target type, its name and the gold cost. Conditions: unit is in a city with a
+		// Barracks, a fieldable target exists in its upgrade chain, and the player has the gold.
+		protected bool CanUpgrade(out UnitType targetType, out string targetName, out int cost)
 		{
+			targetType = default;
 			targetName = "";
 			cost = 0;
 			if (!UpgradesTo.HasValue) return false;
 			City city = Map[X, Y].City;
 			if (city is null || city.Owner != Owner) return false;
 			if (!city.HasBuilding<Barracks>()) return false;
-			IUnit? target = Game.PeekUnit(UpgradesTo.Value);
-			if (target is null) return false;
-			if (target.RequiredTech is not null && !Player.HasAdvance(target.RequiredTech)) return false;
-			// Honour wonder/availability gates (e.g. Fusion Inf needs the Fusion Core wonder,
-			// not just the tech) so the upgrade button can't bypass what building enforces.
-			if (!Player.ProductionAvailable(target)) return false;
-			targetName = target.Name;
-			cost = (int)target.Price * 10;
-			return Player.Gold >= cost;
+
+			// Walk the upgrade chain to the first unit the player can actually field, skipping
+			// obsolete or otherwise unavailable intermediates. Without this an obsolete middle
+			// tier (e.g. Knights once Automobile is researched) seals off the whole chain and the
+			// unit below it (Chariot) can never upgrade — here it skips straight to Armor.
+			// ProductionAvailable covers tech, obsolescence and wonder gates in one check.
+			UnitType? next = UpgradesTo;
+			for (int guard = 0; next.HasValue && guard < 16; guard++)   // guard: chains are short and acyclic
+			{
+				IUnit? cand = Game.PeekUnit(next.Value);
+				if (cand is null) break;
+				if (Player.ProductionAvailable(cand))
+				{
+					targetType = next.Value;
+					targetName = cand.Name;
+					cost = (int)cand.Price * 10;
+					return Player.Gold >= cost;
+				}
+				next = (cand as BaseUnit)?.UpgradesTo;
+			}
+			return false;
 		}
 
 		protected MenuItem<int>? MenuUpgrade()
 		{
-			if (!CanUpgrade(out string targetName, out int cost)) return null;
-			UnitType upgrade = UpgradesTo!.Value;
+			if (!CanUpgrade(out UnitType targetType, out string targetName, out int cost)) return null;
 			return MenuItem<int>.Create($"Upgrade to {targetName} ({cost}g)")
-				.OnSelect((s, a) => Game.UpgradeUnit(this, upgrade, cost));
+				.OnSelect((s, a) => Game.UpgradeUnit(this, targetType, cost));
 		}
 
 		public abstract IEnumerable<MenuItem<int>> MenuItems { get; }

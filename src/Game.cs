@@ -1159,6 +1159,8 @@ namespace CivOne
 				case UnitType.Explorer: unit = new Explorer(); break;
 				case UnitType.HydroEngineer: unit = new HydroEngineer(); break;
 				case UnitType.SeaCaravan: unit = new SeaCaravan(); break;
+				case UnitType.HoverTank: unit = new HoverTank(); break;
+				case UnitType.FusionInf: unit = new FusionInf(); break;
 				default: return null;
 			}
 			unit.X = x;

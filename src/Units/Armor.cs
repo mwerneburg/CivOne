@@ -14,6 +14,8 @@ namespace CivOne.Units
 {
 	internal class Armor : BaseUnitLand
 	{
+		public override UnitType? UpgradesTo => UnitType.HoverTank;
+
 		public Armor() : base(8, 10, 5, 3)
 		{
 			Type = UnitType.Armor;
