@@ -1965,20 +1965,18 @@ namespace CivOne
 
 			GameTask.Enqueue(Show.EventArt("hurricane", $"{title} {Name}!"));
 
-			List<string> msg = new() { $"{title} {Name}!" };
+			// Advisor message: damage summary only — no title repeat, no unsolicited advice.
+			List<string> msg = new();
 			if (sizeLoss > 0)
-				msg.Add(sizeLoss == 1 ? "1 citizen displaced." : $"{sizeLoss} citizens displaced.");
+				msg.Add($"Pop -{sizeLoss}.");
 			foreach (var name in demolished)
-				msg.Add($"{name} destroyed!");
+				msg.Add($"{name} destroyed.");
 			if (eroded is not null)
-				msg.Add("Coastline eroded into wetland.");
+				msg.Add("Coastline eroded.");
 			if (seaPlatform && (wasCatastrophic || sev == 1))
-				msg.Add("SEA PLATFORM held — losses limited.");
-			else if (!seaPlatform && Player.HasAdvance<Advances.AquaticColonization>())
-				msg.Add("Citizens demand SEA PLATFORM.");
-			else if (!seaPlatform)
-				msg.Add("Coastal defences inadequate — research continues.");
-			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
+				msg.Add("Sea Platform reduced losses.");
+			if (msg.Count > 0)
+				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
 		}
 
 		// Real sea: ocean tile that's NOT flagged as a freshwater lake. Lakes are stored as
