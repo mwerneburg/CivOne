@@ -1313,6 +1313,36 @@ namespace CivOne
 
 			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
 
+			// Olvir production: refugee fleet prioritises rapid expansion and sea infrastructure
+			// over military and normal civic buildings. They don't build wonders or advanced
+			// civic buildings — just the minimum garrison, food storage, and settlers.
+			if (Player.Civilization is Olvir)
+			{
+				byte oid = Game.PlayerNumber(Player);
+				int olvCities = Player.Cities.Length;
+				int olvSettlers = Game.GetUnits().Count(u => u.Owner == oid && u is Settlers);
+				// One defender per city — they're pacifist, not helpless.
+				if (defenders < 1) Consider(BestDefender());
+				// Granary feeds growth (Pottery always known for Olvir — late-era arrival).
+				if (!city.HasBuilding<Granary>()) Consider(new Granary());
+				// Keep one settler per city when below the expansion cap (30 cities).
+				// Size >= 2 and positive food required to avoid shrinking the city.
+				if (city.Size >= 2 && city.FoodIncome >= 0 && olvSettlers < Math.Max(olvCities, 4)
+				    && !city.Units.Any(u => u is Settlers) && olvCities < 30)
+					Consider(new Settlers());
+				// HydroEngineer for ocean/floating-city founding.
+				if (Player.HasAdvance<AquaticColonization>()
+				    && Game.GetUnits().Count(u => u.Owner == oid && u is HydroEngineer) < olvCities / 3 + 1)
+					Consider(new HydroEngineer());
+				// Post-contact buildings that are thematically Olvir.
+				if (Player.HasAdvance<Xenobiology>()        && !city.HasBuilding<Xenolab>())        Consider(new Xenolab());
+				if (Player.HasAdvance<AquaticColonization>() && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean)
+				                                              && !city.HasBuilding<SeaPlatform>())   Consider(new SeaPlatform());
+				// Fallback to another defender so the city produces something.
+				if (plan.Count == 0 || (plan.Count == 1 && plan[0] is IUnit)) Consider(BestDefender());
+				return plan;
+			}
+
 			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
 
@@ -1709,6 +1739,35 @@ namespace CivOne
 				}
 			}
 			return best;
+		}
+
+		// Find the best tile for the Olvir to found a new city on. Prefers ocean tiles
+		// (if AquaticColonization is known) and coastal land, targeting "disused" space
+		// — tiles not yet claimed by any city. Minimum separation from any existing city
+		// is 4 (relaxed from the 8-tile spawn spread) so they pack in more densely over time.
+		internal ITile? BestOlvirSettleSite(IUnit settler)
+		{
+			bool hasAquatic = Player.HasAdvance<AquaticColonization>();
+			int half = Map.HEIGHT / 10;
+
+			return Enumerable.Range(0, Map.WIDTH)
+				.SelectMany(x => Enumerable.Range(1, Map.HEIGHT - 2).Select(y => (x, y)))
+				.Where(t =>
+				{
+					ITile tile = Map[t.x, t.y];
+					if (tile is null || tile is Arctic || tile is Mountains) return false;
+					if (t.y <= half || t.y >= Map.HEIGHT - half) return false;
+					if (tile.City is not null) return false;
+					if (tile.IsOcean && !hasAquatic) return false;
+					// Must be at least 4 tiles from any existing city.
+					if (!Game.GetCities().All(c => Common.DistanceToTile(c.X, c.Y, t.x, t.y) >= 4)) return false;
+					return true;
+				})
+				// Prefer ocean first (Olvir affinity), then coastal, then anywhere habitable.
+				.OrderByDescending(t => Map[t.x, t.y].IsOcean ? 2 : Map[t.x, t.y].GetBorderTiles().Any(b => b.IsOcean) ? 1 : 0)
+				.ThenBy(_ => Common.Random.Next(1000))
+				.Select(t => Map[t.x, t.y])
+				.FirstOrDefault();
 		}
 	}
 }

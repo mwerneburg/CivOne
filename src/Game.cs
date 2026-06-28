@@ -93,6 +93,7 @@ namespace CivOne
 
 		// Turn on which the Olvir arrival scene fires (0 = not yet scheduled).
 		internal uint OlvirArrivalTurn;
+		internal uint OlvirProximityAlarmTurn; // turn of the last "Olvir settling near you" advisor message
 
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
@@ -659,10 +660,12 @@ namespace CivOne
 						int phase = ++ProbeInterimPhase;
 						string gameDate = GameYear;
 						RecordTransmission($"ProbeInterim{phase}", gameDate);
+						// Text before art: the report builds to "artificial origin probable",
+						// then the picture confirms it. Swapped from original art-first order.
+						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
 						if (phase == 3)
 							GameTask.Enqueue(Show.Screen(new EventArtScreen(
 								EventArtScreen.FindPath("OlvirInSpace")!, "VISUAL CONTACT — TAU CETI")));
-						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
 					}
 					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
 					{
@@ -726,19 +729,62 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
 				}
 
+				// Olvir proximity alarm: once the visitors are on the ground and expanding,
+				// periodically warn the human when an Olvir city is within 6 tiles of one
+				// of their own cities — the "naive colonisation" pressure the player should
+				// feel. Rate-limited to once every 15 turns to avoid advisor spam.
+				if (VisitorsArrived && VisitorType == VisitorArchetype.Refugees
+				    && (_gameTurn - OlvirProximityAlarmTurn) >= 15)
+				{
+					Player? olvir = _players.FirstOrDefault(p => p.Civilization is Civilizations.Olvir);
+					if (olvir is not null && olvir.Cities.Length > 0)
+					{
+						City? encroaching = olvir.Cities
+							.FirstOrDefault(oc => HumanPlayer.Cities
+								.Any(hc => Common.DistanceToTile(oc.X, oc.Y, hc.X, hc.Y) <= 6));
+						if (encroaching is not null)
+						{
+							OlvirProximityAlarmTurn = (uint)_gameTurn;
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"Citizens are alarmed:",
+								$"Olvir city {encroaching.Name}",
+								"is settling near our borders.",
+								"Unrest is rising."));
+						}
+					}
+				}
+
 				// Check for dome victory (all five components built)
 				if (!_domeVictoryFired && DomeFiveComponents.All(w => WonderBuilt(w)))
 				{
 					_domeVictoryFired = true;
 					HumanPlayer.AwardMilestone(150);
-					DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn);
 					string gameDate = GameYear;
 					RecordTransmission("DomeComplete", gameDate);
-					int domeFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Dome Victory");
 					var doneScreen = new Screens.DomeCompleteTransmission(gameDate, VisitorType);
-					var finalScore = new Screens.Reports.FinalScore("Dome Victory");
 					GameTask.Enqueue(Show.Screen(doneScreen));
-					GameTask.Enqueue(Show.Screen(finalScore));
+
+					if (!SETISignalReceived)
+					{
+						// Classic game (no alien arc): the Dome is the end.
+						DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn);
+						int domeFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Dome Victory");
+						GameTask domeFt;
+						GameTask.Enqueue(domeFt = Show.Screen(new Screens.Reports.FinalScore("Dome Victory")));
+						domeFt.Done += (s, a) => EndSequence.ChainAfterFinal(domeFame, () => Runtime.Quit());
+					}
+					else
+					{
+						// SETI arc: the Dome is a milestone, not the end. The game continues
+						// until 2200 AD (Coexistence ending). The Olvir still approach; their
+						// arrival and the final score fire on schedule.
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"The Dome is operational.",
+							OlvirArrivalTurn > 0
+								? $"Olvir landfall est. {Common.YearString((ushort)OlvirArrivalTurn)}."
+								: "Await the visitors.",
+							"Continue to 2200 AD."));
+					}
 				}
 
 				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
@@ -782,8 +828,16 @@ namespace CivOne
 						if (humanWins)
 						{
 							HumanPlayer.AwardMilestone(100);
-							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
-								"Your colony ship reaches Alpha Centauri — but the game is far from over."));
+							string acCaption = VisitorType == VisitorArchetype.Refugees
+								? "Colony established — Alpha Centauri II. The Olvir know this star."
+								: "Colony established — Alpha Centauri II. Humanity is no longer bound to Earth.";
+							GameTask.Enqueue(Show.EventArt("spaceshiparrived", acCaption));
+							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+								"Alpha Centauri II: colonised.",
+								DomeComplete
+									? "The Dome guards Earth."
+									: "The Dome must still be built.",
+								"Continue to 2200 AD."));
 							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;
 						}
 						else
@@ -1503,7 +1557,10 @@ namespace CivOne
 			bool CoastalTile(ITile t) => t.GetBorderTiles().Any(b => b is Ocean);
 			bool IsEquatorial(int y) => y > Map.HEIGHT / 4 && y < 3 * Map.HEIGHT / 4;
 
-			const int MinSpread = 12; // Chebyshev distance between Olvir cities
+			// Spawn spread: 8 tiles between initial landing sites (was 12). The Olvir
+			// are a refugee fleet that packs in wherever it can — not a civ spacing out
+			// its empire. Tighter spread means more initial cities and faster coverage.
+			const int MinSpread = 8;
 			var chosen = new List<(int x, int y)>();
 
 			bool FarEnough(int x, int y) =>
@@ -1517,7 +1574,7 @@ namespace CivOne
 				.ToList();
 
 			(int x, int y) oceanCity = oceans.FirstOrDefault(t => FarEnough(t.x, t.y));
-			if (oceanCity == default) oceanCity = oceans.FirstOrDefault(); // fallback: any equatorial ocean
+			if (oceanCity == default) oceanCity = oceans.FirstOrDefault();
 
 			if (oceanCity != default)
 				chosen.Add(oceanCity);
@@ -1530,15 +1587,14 @@ namespace CivOne
 				.ToList();
 
 			(int x, int y) jungleCity = jungles.FirstOrDefault(t => FarEnough(t.x, t.y));
-			if (jungleCity == default) jungleCity = jungles.FirstOrDefault(); // fallback: any jungle
+			if (jungleCity == default) jungleCity = jungles.FirstOrDefault();
 
 			if (jungleCity != default)
 				chosen.Add(jungleCity);
 
-			// 3) Fill remaining slots: prefer reachable, lived-in landmasses (continents that
-			//    already hold a city) so the Olvir land where the player can actually trade
-			//    with or defend them — not on an empty island the human never explored and the
-			//    barbarians own — then coastal, then anywhere habitable.
+			// 3) Fill remaining 4 slots: prefer populated continents, then coastal land.
+			// Landing 6 initial cities (up from 4) gives the Olvir enough mass to survive
+			// early conflict and keeps expansion pressure on immediately.
 			var populatedContinents = new HashSet<byte>(_cities.Select(c => Map[c.X, c.Y].ContinentId));
 			IEnumerable<(int x, int y)> CoastalFirst() =>
 				Enumerable.Range(0, Map.WIDTH)
@@ -1549,26 +1605,32 @@ namespace CivOne
 					.ThenByDescending(t => CoastalTile(Map[t.x, t.y]) ? 1 : 0)
 					.ThenBy(_ => Common.Random.Next(10000));
 
-			foreach (var (x, y) in CoastalFirst().Take(4 - chosen.Count))
+			foreach (var (x, y) in CoastalFirst().Take(6 - chosen.Count))
 				chosen.Add((x, y));
 
-			if (chosen.Count == 0) return; // safety: nothing found
+			if (chosen.Count == 0) return; // safety
 
-			// 3) Create the Olvir player.
+			// Create the Olvir player.
 			var olvirPlayer = new Player(olvirCiv, "The Council");
 			AddPlayer(olvirPlayer);
 			byte owner = PlayerNumber(olvirPlayer);
 
-			// 4) Place cities, settlement overlays, and settlers.
+			// Place cities. Each starts at size 2 with a Granary so they hit the ground
+			// running: a size-1 city with no food store takes many turns to grow, blunting
+			// the refugee-fleet pressure the player should feel immediately after landfall.
 			for (int i = 0; i < chosen.Count; i++)
 			{
 				int nameId = nameStart + (i % olvirCiv.CityNames.Length);
 				City? city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
 				if (city is null) continue;
 
+				city.Size = 2;
+				city.AddBuilding(new Buildings.Granary());
+
 				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
 
-				// Ocean cities don't get a settler — land settlers can't work ocean tiles.
+				// Each land city gets a settler immediately for expansion.
+				// Ocean cities don't — land settlers can't work ocean tiles.
 				if (!Map[chosen[i].x, chosen[i].y].IsOcean)
 				{
 					IUnit? settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);

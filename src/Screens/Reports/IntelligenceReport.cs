@@ -80,6 +80,17 @@ namespace CivOne.Screens.Reports
 			OnMouseDown += MouseDown;
 
 			int yy = 30;
+
+			// Olvir approach banner — visible from the Tau Ceti warning until landfall.
+			if (Game.Instance.SETISignalReceived && !Game.Instance.VisitorsArrived
+			    && Game.Instance.OlvirArrivalTurn > 0)
+			{
+				string eta = Common.YearString((ushort)Game.Instance.OlvirArrivalTurn);
+				this.FillRectangle(0, yy, Width, 1, CassetteTheme.ALERT)
+				    .DrawText("TAU CETI APPROACH IN PROGRESS", 0, CassetteTheme.ALERT, OX + 8, yy + 3)
+				    .DrawText($"Estimated landfall: {eta}", 0, CassetteTheme.PHOS, OX + 200, yy + 3);
+				yy += 14;
+			}
 			foreach (Player player in Game.Players.Where(p => p != 0 && !p.IsDestroyed()))
 			{
 				this.FillRectangle(0, yy, Width, 1, 9);

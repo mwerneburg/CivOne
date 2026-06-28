@@ -57,8 +57,50 @@ namespace CivOne
 			if (unit is Settlers && Player.Civilization is Olvir)
 			{
 				ITile tile = unit.Tile;
+				int olvCities = Player.Cities.Length;
+				bool shouldExpand = olvCities < 30;
 
-				// Place an Olvir improvement on the current tile if it's unimproved land.
+				// Expansion phase: try to found a new city on the current tile or navigate
+				// toward the best settle site. Olvir pack more densely than normal civs
+				// (minimum 4-tile separation vs. the standard 3+) and prefer ocean/coastal.
+				if (shouldExpand)
+				{
+					bool validCity = tile.City is null
+					    && !(tile is Arctic) && !(tile is Mountains)
+					    && (tile.IsOcean ? Player.HasAdvance<AquaticColonization>() : true);
+					int nearestCity = Game.GetCities().Any()
+					    ? Game.GetCities().Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y))
+					    : 255;
+
+					if (unit.Goto.IsEmpty)
+					{
+						if (validCity && nearestCity >= 4)
+						{
+							DecisionLogger.LogSettlerAction(unit, "olvir-found");
+							GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
+							unit.SkipTurn();
+							return;
+						}
+						ITile? site = BestOlvirSettleSite(unit);
+						if (site is not null && (site.X != tile.X || site.Y != tile.Y))
+							unit.Goto = new System.Drawing.Point(site.X, site.Y);
+					}
+
+					if (!unit.Goto.IsEmpty)
+					{
+						ITile? step = Common.GotoStep(unit);
+						if (step is null) { unit.Goto = System.Drawing.Point.Empty; unit.SkipTurn(); return; }
+						if (!unit.MoveTo(step.X - unit.X, step.Y - unit.Y))
+						{
+							unit.Goto = System.Drawing.Point.Empty;
+							unit.SkipTurn();
+						}
+						return;
+					}
+				}
+
+				// Improvement phase (empire mature or expansion blocked): place Olvir
+				// improvements near existing cities.
 				if (!tile.IsOcean && tile.City is null
 				    && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
 				{
@@ -68,7 +110,6 @@ namespace CivOne
 					return;
 				}
 
-				// Navigate to the next unimproved site near an Olvir city.
 				if (unit.Goto.IsEmpty)
 				{
 					ITile? next = BestOlvirImproveSite(unit);
