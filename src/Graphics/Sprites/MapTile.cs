@@ -525,6 +525,13 @@ namespace CivOne.Graphics.Sprites
 		}
 		private static readonly Dictionary<(Terrain, byte), CachedSprite> _faunaSprites = new();
 
+		public static void ReloadSpecials()
+		{
+			_faunaSprites.Clear();
+			foreach (ISprite s in new[] { Seals, Oasis, Game, Shield, Coal, Gems, Gold, Fish, Horses, Oil, TundraGame })
+				(s as ICached)?.Clear();
+		}
+
 		private static ISprite FaunaSprite(Terrain terrain, byte continentId)
 		{
 			var key = (terrain, continentId);

@@ -491,6 +491,13 @@ namespace CivOne.Graphics
 		private Dictionary<string, byte[]> _shoreOverrides = null!;
 		private Dictionary<string, byte[]> _lakeShoreOverrides = null!;
 
+		public void ReloadTiles()
+		{
+			_tileOverrides    = null!;
+			_shoreOverrides   = null!;
+			_lakeShoreOverrides = null!;
+		}
+
 		private byte[]? TryLoadTile(string name)
 		{
 			if (_tileOverrides is null)

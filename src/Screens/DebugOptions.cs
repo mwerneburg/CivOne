@@ -27,6 +27,13 @@ namespace CivOne.Screens
 			Destroy();
 		}
 
+		private void MenuReloadFreeTiles(object sender, EventArgs args)
+		{
+			Free.Instance.ReloadTiles();
+			MapTile.ReloadSpecials();
+			Destroy();
+		}
+
 		private void MenuSetGameYear(object sender, EventArgs args)
 		{
 			GameTask.Enqueue(Show.Screen<SetGameYear>());
@@ -134,6 +141,7 @@ namespace CivOne.Screens
 				menu.Items.Add("Meet With King").OnSelect(MenuMeetWithKing);
 				menu.Items.Add("Toggle Reveal World").OnSelect(MenuRevealWorld);
 				menu.Items.Add("Show PowerGraph").OnSelect(MenuShowPowerGraph);
+				menu.Items.Add("Reload Free Tiles").OnSelect(MenuReloadFreeTiles);
 
 				this.FillRectangle(24, 16, 105, menu.RowHeight * (menu.Items.Count + 1), 5);
 
