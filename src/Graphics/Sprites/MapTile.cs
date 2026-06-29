@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Collections.Generic;
 using CivOne.Enums;
 using CivOne.IO;
 using CivOne.Tiles;
@@ -522,6 +523,16 @@ namespace CivOne.Graphics.Sprites
 
 			return null;
 		}
+		private static readonly Dictionary<(Terrain, byte), CachedSprite> _faunaSprites = new();
+
+		private static ISprite FaunaSprite(Terrain terrain, byte continentId)
+		{
+			var key = (terrain, continentId);
+			if (!_faunaSprites.TryGetValue(key, out var sprite))
+				_faunaSprites[key] = sprite = new CachedSprite(() => Free.Special(terrain, continentId));
+			return sprite;
+		}
+
 		public static ISprite? TileSpecial(ITile tile)
 		{
 			if (tile is River || (!tile.Special && tile.Type != Terrain.Grassland2)) return null;
@@ -529,15 +540,15 @@ namespace CivOne.Graphics.Sprites
 			{
 				case Arctic _: return Seals;
 				case Desert _: return Oasis;
-				case Forest _: return Game;
+				case Forest _: return FaunaSprite(Terrain.Forest, tile.ContinentId);
 				case Grassland _: return Shield;
 				case Hills _: return Coal;
 				case Jungle _: return Gems;
 				case Mountains _: return Gold;
 				case Ocean _: return Fish;
-				case Plains _: return Horses;
+				case Plains _: return FaunaSprite(Terrain.Plains, tile.ContinentId);
 				case Swamp _: return Oil;
-				case Tundra _: return TundraGame;
+				case Tundra _: return FaunaSprite(Terrain.Tundra, tile.ContinentId);
 			}
 			return null;
 		}

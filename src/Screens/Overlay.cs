@@ -80,11 +80,11 @@ namespace CivOne.Screens
 					switch (tile.Type)
 					{
 						case Terrain.Desert: text = (tile.Special ? "Oasis" : "Desert"); break;
-						case Terrain.Plains: text = (tile.Special ? "Horses" : "Plains"); break;
-						case Terrain.Forest: text = (tile.Special ? "Game" : "Desert"); break;
+						case Terrain.Plains: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Plains) : "Plains"); break;
+						case Terrain.Forest: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Forest) : "Desert"); break;
 						case Terrain.Hills: text = (tile.Special ? "Coal" : "Hills"); break;
 						case Terrain.Mountains: text = (tile.Special ? "Gold" : "Mountains"); break;
-						case Terrain.Tundra: text = (tile.Special ? "Game" : "Tundra"); break;
+						case Terrain.Tundra: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Tundra) : "Tundra"); break;
 						case Terrain.Arctic: text = (tile.Special ? "Seals" : "Arctic"); break;
 						case Terrain.Swamp: text = (tile.Special ? "Oil" : "Wetland"); break;
 						case Terrain.Jungle: text = (tile.Special ? "Gems" : "Jungle"); break;
@@ -195,8 +195,32 @@ namespace CivOne.Screens
 			};
 		}
 
+		// Continent IDs are assigned largest-first (1 = biggest landmass, 15 = tiny fragments).
+		private static string FaunaName(byte continentId, Terrain terrain)
+		{
+			int theme = continentId switch {
+				1 or 2 => 0,                              // Standard — large continents
+				15     => 3,                              // Island — NZ-type fragments
+				_ when continentId % 2 == 1 => 1,        // Gondwanan — odd mid-size IDs
+				_                           => 2,         // Australasian — even mid-size IDs
+			};
+			return (theme, terrain) switch {
+				(1, Terrain.Plains) => "Terror Bird",
+				(1, Terrain.Forest) => "Cassowary",
+				(1, Terrain.Tundra) => "Mammoth",
+				(2, Terrain.Plains) => "Kangaroo",
+				(2, Terrain.Forest) => "Wallaby",
+				(2, Terrain.Tundra) => "Wombat",
+				(3, Terrain.Plains) => "Emu",
+				(3, Terrain.Forest) => "Kiwi",
+				(3, Terrain.Tundra) => "Moa",
+				(_, Terrain.Plains) => "Horses",
+				_                   => "Game",
+			};
+		}
+
 		private Overlay() : base(MouseCursor.Pointer)
-		{	
+		{
 			Palette = Common.TopScreen.Palette;
 		}
 	}

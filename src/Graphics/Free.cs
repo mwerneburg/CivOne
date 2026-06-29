@@ -308,6 +308,42 @@ namespace CivOne.Graphics
 			}
 		}
 
+		// Returns the fauna-specific section name for continent-aware Plains/Forest/Tundra specials,
+		// or null for standard/non-fauna terrain (falls back to Special(type)).
+		private static string? FaunaSection(Terrain terrain, byte continentId)
+		{
+			int theme = continentId switch {
+				1 or 2 => 0,
+				15     => 3,
+				_ when continentId % 2 == 1 => 1,
+				_                           => 2,
+			};
+			return (theme, terrain) switch {
+				(1, Terrain.Plains) => "special_plains_terror_bird",
+				(1, Terrain.Forest) => "special_forest_cassowary",
+				(1, Terrain.Tundra) => "special_tundra_mammoth",
+				(2, Terrain.Plains) => "special_plains_kangaroo",
+				(2, Terrain.Forest) => "special_forest_wallaby",
+				(2, Terrain.Tundra) => "special_tundra_wombat",
+				(3, Terrain.Plains) => "special_plains_emu",
+				(3, Terrain.Forest) => "special_forest_kiwi",
+				(3, Terrain.Tundra) => "special_tundra_moa",
+				_                   => null,
+			};
+		}
+
+		public Bytemap Special(Terrain type, byte continentId)
+		{
+			string? section = FaunaSection(type, continentId);
+			if (section is not null)
+			{
+				byte[]? loaded = TryLoadTile(section);
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+			}
+			return Special(type);
+		}
+
 		public Bytemap Special(Terrain type)
 		{
 			string? specialSection = type switch
