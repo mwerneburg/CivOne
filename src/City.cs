@@ -254,6 +254,7 @@ namespace CivOne
 			OlvirImprovementType.Aquafarm         => 2, // coastal aquaculture
 			OlvirImprovementType.BiofilterWall    => 1, // bio-engineered soil
 			OlvirImprovementType.SettlementCluster => 1, // integrated colony
+			OlvirImprovementType.CanopyArray       => 1, // managed canopy ecology
 			_ => 0
 		};
 
