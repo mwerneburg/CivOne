@@ -1629,6 +1629,27 @@ namespace CivOne
 
 				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
 
+				// Seed surrounding tiles so the size-2 city has positive food income from
+				// turn 1. Without this, ocean/jungle cities have FoodIncome < 0 and shrink
+				// back to size 1 immediately.
+				for (int dx = -1; dx <= 1; dx++)
+				for (int dy = -1; dy <= 1; dy++)
+				{
+					if (dx == 0 && dy == 0) continue;
+					int nx = (chosen[i].x + dx + Map.WIDTH) % Map.WIDTH;
+					int ny = chosen[i].y + dy;
+					if (ny <= 0 || ny >= Map.HEIGHT - 1) continue;
+					if (OlvirImprovements.ContainsKey((nx, ny))) continue;
+					ITile nt = Map[nx, ny];
+					if (nt is Tiles.Arctic) continue;
+					Enums.OlvirImprovementType nbImp = nt.IsOcean
+						? Enums.OlvirImprovementType.Aquafarm
+						: (nt is Tiles.Forest || nt is Tiles.Jungle)
+							? Enums.OlvirImprovementType.CanopyArray
+							: Enums.OlvirImprovementType.SettlementCluster;
+					OlvirImprovements[(nx, ny)] = nbImp;
+				}
+
 				// Each land city gets a settler immediately for expansion.
 				// Ocean cities don't — land settlers can't work ocean tiles.
 				if (!Map[chosen[i].x, chosen[i].y].IsOcean)

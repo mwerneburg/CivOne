@@ -286,19 +286,20 @@ namespace CivOne
 
 			if (BestGovernment() is null) return; // already optimal
 
-			// Don't revolt while at war — the anarchy interregnum is too dangerous.
-			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
-
 			// Escaping Despotism is the single biggest economic win: it lifts the despot
 			// tile penalty that suppresses irrigation and keeps cities tiny. Pursue it
-			// eagerly — any stance, high chance — the moment a better government (Monarchy)
-			// is available, rather than waiting for a Develop/Expand window.
+			// eagerly — any stance, high chance, even at war — AI wars rarely end (see
+			// GetStance), so waiting for peace means staying a despot forever, and that
+			// permanent stunting outweighs the anarchy interregnum risk.
 			if (Player.Government is Gov.Despotism)
 			{
 				if (Common.Random.Next(100) < 60)
 					Player.Revolt();
 				return;
 			}
+
+			// Don't revolt while at war — the anarchy interregnum is too dangerous.
+			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
 
 			// Further upgrades (Monarchy → Republic/Democracy, etc.): only revolt from a
 			// stable, developing position, and less often.
@@ -1380,11 +1381,16 @@ namespace CivOne
 			// high priority because a rioting city produces nothing: getting ahead of the
 			// happiness ceiling breaks the grow→riot→luxury-quell→grow sawtooth that was
 			// leaving the AIs relying on the reactive luxury valve instead of infrastructure.
+			// Marketplace sits after Temple: 80 shields vs the Colosseum's 100, pays gold
+			// upkeep instead of draining it, and multiplies the luxury slider that
+			// ConsiderSliders pumps during riots. Colosseum is gated on size 4 so a
+			// 2-shield town doesn't spend 50 turns on it.
 			if (city.UnhappyCitizens > 0 && city.UnhappyCitizens >= city.HappyCitizens)
 			{
-				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    Consider(new Temple());
-				if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
-				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>()) Consider(new Cathedral());
+				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())      Consider(new Temple());
+				if (Player.HasAdvance<Currency>()         && !city.HasBuilding<MarketPlace>()) Consider(new MarketPlace());
+				if (Player.HasAdvance<Construction>()     && city.Size >= 4 && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
+				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>())   Consider(new Cathedral());
 			}
 
 			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
@@ -1446,10 +1452,18 @@ namespace CivOne
 				if (Player.HasAdvance<Pottery>()          && !city.HasBuilding<Granary>())   Consider(new Granary());
 			}
 
-			// Militarize: garrison up to 2, barracks for veterans, then attackers
+			// Militarize: garrison up to 2, barracks for veterans, then attackers.
+			// One worker even at war: AI wars rarely end (GetStance flips to Militarize
+			// whenever at war with anyone), so a civ that loses its last settler mid-war
+			// would otherwise never improve another tile — the "zero improvements" wasting
+			// disease. Roads serve troop movement anyway.
 			if (stance == StrategyStance.Militarize)
 			{
 				if (defenders < 2) Consider(BestDefender());
+				byte mzId = Game.PlayerNumber(Player);
+				if (city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(u => u is Settlers)
+				    && !Game.GetUnits().Any(u => u.Owner == mzId && u is Settlers))
+					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());
 			}
@@ -1472,8 +1486,10 @@ namespace CivOne
 			// surplus to grow past size 3 instead of stalling. Capped at ~1 per 4 cities so it
 			// doesn't crowd out economy, and only from healthy cities with mass to spend.
 			// AI.Move routes these to BestImproveSite() rather than founding new towns.
+			// Size gate is 2, not 4: size 4 is exactly what the worker exists to reach —
+			// an unirrigated city stuck at 1-3 must still be able to build its way out.
 			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
-			    && city.Size >= 4 && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers))
+			    && city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
