@@ -542,9 +542,15 @@ namespace CivOne
 					// War exhaustion: long campaign with an empty treasury.
 					bool exhausted = _turnsAtWar > 40 && Player.Gold < 50;
 
-					if (losingTerritory || exhausted)
+					// Stalemate: a long war in which we haven't lost ground either. Without
+					// this exit, two solvent civs in a going-nowhere war stay at war forever
+					// (neither loses territory, neither goes broke), which locks both in the
+					// Militarize stance for the rest of the game.
+					bool stalemate = _turnsAtWar > 30 && Player.Cities.Length >= _peacetimeCities;
+
+					if (losingTerritory || exhausted || stalemate)
 					{
-						int peaceChance = losingTerritory ? 30 : 20;
+						int peaceChance = losingTerritory ? 30 : stalemate ? 25 : 20;
 						foreach (Player enemy in aiEnemies)
 						{
 							if (Common.Random.Next(100) < peaceChance)
@@ -1262,6 +1268,44 @@ namespace CivOne
 					return assigned;
 			}
 
+			// Never start a wonder that is already built or already obsolete — an
+			// obsolete wonder is pure shield waste, and the stance lists below used
+			// to allow it.
+			bool Buildable(IWonder w) =>
+				!Game.WonderBuilt(w) && !Game.WonderObsolete(w) && Player.ProductionAvailable(w);
+
+			// Catch-up: a civ well behind the tech leader takes the Great Library
+			// first — its entire effect (free advances known by two other civs) is
+			// catch-up, so it's worth the most to exactly the civs doing the worst.
+			int leaderTech = Game.Players
+			    .Where(p => p != Player && !p.IsDestroyed() && Game.PlayerNumber(p) != 0)
+			    .Select(p => p.Advances.Length)
+			    .DefaultIfEmpty(0).Max();
+			if (leaderTech - Player.Advances.Length >= 4)
+			{
+				IWonder library = new GreatLibrary();
+				if (Buildable(library)) return library;
+			}
+
+			// Power tier: empire-wide passives whose value scales with city count and
+			// needs no follow-up decisions. Any civ with a wonder-capable city should
+			// take these before the stance-flavoured picks. Happiness first — the
+			// grow→riot→shrink cycle is what actually kills AI empires.
+			var power = new List<IWonder>
+			{
+				new HangingGardens(),        // +1 happy in every city
+				new MichelangelosChapel(),   // continent-wide Cathedral effect
+				new JSBachsCathedral(),      // -2 unhappy, all continent cities
+				new LeonardosWorkshop(),     // free unit upgrades
+				new Pyramids(),              // government flexibility
+				new AdamSmithsTradingHouse(),// building upkeep relief
+				new HooverDam(),             // industry without pollution plants
+				new CureForCancer()          // +1 happy in every city
+			};
+			if (Player.RepublicDemocratic) power.Insert(3, new WomensSuffrage());
+			IWonder? pick = power.FirstOrDefault(Buildable);
+			if (pick is not null) return pick;
+
 			IWonder[] preferred;
 			if (stance == StrategyStance.Militarize)
 			{
@@ -1294,8 +1338,7 @@ namespace CivOne
 				};
 			}
 
-			return preferred.FirstOrDefault(w =>
-				!Game.WonderBuilt(w) && Player.ProductionAvailable(w));
+			return preferred.FirstOrDefault(Buildable);
 		}
 
 		// ── full production plan for a city ────────────────────────────────────
@@ -1342,6 +1385,22 @@ namespace CivOne
 				// Fallback to another defender so the city produces something.
 				if (plan.Count == 0 || (plan.Count == 1 && plan[0] is IUnit)) Consider(BestDefender());
 				return plan;
+			}
+
+			// Per-city threat: one border war shouldn't militarize the whole empire.
+			// A city with no hostile unit or enemy city within 8 tiles builds like a
+			// developing city even while the empire is at war — only frontline cities
+			// pay the war tax. GetStance() stays empire-wide for research, sliders and
+			// diplomacy; this demotion is production-only.
+			if (stance == StrategyStance.Militarize)
+			{
+				byte flId = Game.PlayerNumber(Player);
+				bool Hostile(byte owner) => owner != flId
+					&& (owner == 0 || Player.IsAtWar(Game.GetPlayer(owner)));
+				bool frontline =
+					Game.GetUnits().Any(u => Hostile(u.Owner) && Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 8)
+					|| Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, city.X, city.Y) <= 8);
+				if (!frontline) stance = StrategyStance.Develop;
 			}
 
 			// Universal first: garrison before barracks so a city isn't left naked while building.
@@ -1423,7 +1482,10 @@ namespace CivOne
 			// where Pottery is researched) breaks the "size-1 cycle" where AI civs
 			// repeatedly ship a settler and revert to size 1, never accumulating food.
 			// Never build settlers from a starving city — that accelerates population loss.
-			if (ownCities < 3 && stance != StrategyStance.Consolidate)
+			// Runs in every stance: for a 1-2 city civ, expansion IS survival, and shipping
+			// a settler out of a size-3 city even relieves a happiness crisis (fewer mouths,
+			// fewer malcontents). Stances reorder priorities; they don't veto survival needs.
+			if (ownCities < 3)
 			{
 				bool granaryReady = !Player.HasAdvance<Pottery>() || city.HasBuilding<Granary>();
 				if (city.Size >= 3 && granaryReady && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
