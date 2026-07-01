@@ -484,6 +484,19 @@ namespace CivOne
 
 			StrategyStance stance = GetStance();
 			int[] weights = available.Select(a => AdvanceWeight(a, stance)).ToArray();
+
+			// Government escape: no stance list weights Monarchy, so a despot civ kept
+			// rolling weight-1 odds against 5-9 weighted picks and stayed in Despotism
+			// for centuries — tile penalty intact, cities stuck at size 1-2, even with
+			// both prerequisites long since researched. While stuck in Despotism or
+			// Anarchy, any advance that unlocks a better government dominates the roll.
+			if (Player.Government is Despotism || Player.Government is Anarchy)
+			{
+				for (int i = 0; i < available.Length; i++)
+					if (available[i] is Advances.Monarchy || available[i] is TheRepublic)
+						weights[i] += 20;
+			}
+
 			int total = weights.Sum();
 
 			int roll = Common.Random.Next(total);
