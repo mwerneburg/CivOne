@@ -194,13 +194,25 @@ namespace CivOne
 			foreach (City city in Player.Cities)
 			{
 				if (city.CurrentProduction is null) continue;
-				if (city.Shields <= 0) continue; // no tail-end discount without prior investment
 				if (city.IsInDisorder && city.CurrentProduction is IBuilding) continue;
 
 				int fullCost = city.CurrentProduction.Price * 10;
 				int gold     = Player.Gold;
 				short buy    = city.BuyPrice;
 				double done  = (double)city.Shields / fullCost;
+
+				// Desperation: a tiny civ sitting on a big hoard converts gold to tempo.
+				// For a 1-3 city civ (often an isolated island start), gold is the only
+				// lever it has — 500 unspent gold and a 1-shield city means centuries of
+				// nothing. Any production, any completion level, keep a 100g cushion.
+				if (Player.Cities.Length <= 3 && gold >= 200 && buy <= gold - 100)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+					continue;
+				}
+
+				if (city.Shields <= 0) continue; // no tail-end discount without prior investment
 
 				// Emergency: undefended city with an enemy land unit adjacent.
 				// Rush the current production if it's a defender, even at low completion.

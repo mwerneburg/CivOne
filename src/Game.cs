@@ -947,7 +947,14 @@ namespace CivOne
 				foreach (City city in _cities)
 					city.HurricaneCheck(hurricaneWarming);
 
-				if (Barbarian.IsSeaSpawnTurn)
+				// Barbarian population cap: spawns used to accumulate without limit (127
+				// units by the late game — collectively larger than any AI army), pinning
+				// nearby AI civs in the Militarize stance forever and erasing their size-1
+				// cities. New raids only spawn while the horde is below the cap.
+				const int barbarianCap = 30;
+				int barbarianUnits = _units.Count(u => u.Owner == 0);
+
+				if (Barbarian.IsSeaSpawnTurn && barbarianUnits < barbarianCap)
 				{
 					ITile? tile = Barbarian.SeaSpawnPosition;
 					if (tile is not null)
@@ -957,7 +964,7 @@ namespace CivOne
 					}
 				}
 
-				if (Barbarian.IsLandSpawnTurn)
+				if (Barbarian.IsLandSpawnTurn && barbarianUnits < barbarianCap)
 				{
 					ITile? tile = Barbarian.LandSpawnPosition;
 					if (tile is not null)
