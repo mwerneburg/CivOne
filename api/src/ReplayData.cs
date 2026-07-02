@@ -51,13 +51,15 @@ namespace CivOne
 		public class CityDestroyed : ReplayData
 		{
 			public readonly int CityId, CityNameId, X, Y;
+			public readonly byte OwnerId; // owner at the time of destruction
 
-			public CityDestroyed(int turn, int cityId, int cityNameId, int x, int y) : base(turn)
+			public CityDestroyed(int turn, int cityId, int cityNameId, int x, int y, byte ownerId = 0) : base(turn)
 			{
 				CityId = cityId;
 				CityNameId = cityNameId;
 				X = x;
 				Y = y;
+				OwnerId = ownerId;
 			}
 		}
 

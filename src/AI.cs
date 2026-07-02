@@ -493,8 +493,15 @@ namespace CivOne
 			if (Player.Government is Despotism || Player.Government is Anarchy)
 			{
 				for (int i = 0; i < available.Length; i++)
+				{
 					if (available[i] is Advances.Monarchy || available[i] is TheRepublic)
 						weights[i] += 20;
+					// Pull civs missing the prerequisites toward Monarchy too — the boost
+					// above is useless to a despot who never researched Code of Laws or
+					// Ceremonial Burial in the first place.
+					if (available[i] is CodeOfLaws || available[i] is CeremonialBurial)
+						weights[i] += 10;
+				}
 			}
 
 			int total = weights.Sum();

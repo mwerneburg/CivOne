@@ -330,11 +330,13 @@ namespace CivOne
 
 			ICivilization destroyed = player.Civilization;
 			// A civ destroyed during its own turn had no external attacker — its last city
-			// starved out (City.cs famine → Size 0 → DestroyCity). Report that as a collapse
-			// rather than mislabelling it "by the Barbarians" (the old player-0 fallback).
+			// starved out (City.cs famine → Size 0 → DestroyCity). Record the collapse as
+			// self-destruction (DestroyedById == DestroyedId) so the replay can say
+			// "collapsed" instead of mislabelling it "by the Barbarians" (the old
+			// player-0 fallback, which the advisor message below had already stopped
+			// using but the replay record hadn't).
 			bool selfCollapse = Game.CurrentPlayer.Civilization == destroyed;
 			ICivilization destroyedBy = Game.CurrentPlayer.Civilization;
-			if (destroyedBy == destroyed) destroyedBy = Game.GetPlayer(0).Civilization;
 
 			_replayData.Add(new ReplayData.CivilizationDestroyed(_gameTurn, destroyed.Id, destroyedBy.Id));
 
@@ -1154,7 +1156,7 @@ namespace CivOne
 		public void DestroyCity(City city)
 		{
 			int cityIdx = _cities.IndexOf(city);
-			_replayData.Add(new ReplayData.CityDestroyed(_gameTurn, cityIdx, city.NameId, city.X, city.Y));
+			_replayData.Add(new ReplayData.CityDestroyed(_gameTurn, cityIdx, city.NameId, city.X, city.Y, city.Owner));
 			foreach (IUnit unit in _units.Where(u => u.Home == city).ToArray())
 			{
 				unit.SetHome(null);

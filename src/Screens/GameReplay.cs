@@ -229,7 +229,8 @@ namespace CivOne.Screens
 						string cname = cd.CityNameId < Game.CityNames.Length ? Game.CityNames[cd.CityNameId] : "?";
 						ClearTerritory(cd.X, cd.Y);
 						_cities.Remove((cd.X, cd.Y));
-						_log.Add($"{cname} destroyed");
+						string tribe = PlayerTribeName(cd.OwnerId);
+						_log.Add($"{cname} ({tribe}) destroyed");
 						break;
 					}
 					case ReplayData.WonderBuilt wb:
@@ -268,6 +269,12 @@ namespace CivOne.Screens
 					case ReplayData.CivilizationDestroyed cvd:
 					{
 						string dead = CivName(cvd.DestroyedId);
+						// Self-destruction marks a famine collapse, not a conquest.
+						if (cvd.DestroyedId == cvd.DestroyedById)
+						{
+							_log.Add($"{dead} civilization collapses");
+							break;
+						}
 						string killer = CivName(cvd.DestroyedById);
 						_log.Add($"{dead} destroyed by {killer}");
 						break;
