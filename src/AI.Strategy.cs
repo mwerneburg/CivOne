@@ -204,8 +204,14 @@ namespace CivOne
 				// Desperation: a tiny civ sitting on a big hoard converts gold to tempo.
 				// For a 1-3 city civ (often an isolated island start), gold is the only
 				// lever it has — 500 unspent gold and a 1-shield city means centuries of
-				// nothing. Any production, any completion level, keep a 100g cushion.
-				if (Player.Cities.Length <= 3 && gold >= 200 && buy <= gold - 100)
+				// nothing. Any completion level, keep a 100g cushion — but only spend on
+				// production that breaks the deadlock: population, buildings, or a first
+				// defender. The Inca burned ~350g rush-buying queued Diplomats.
+				bool worthBuying = city.CurrentProduction is IBuilding
+					|| city.CurrentProduction is Settlers
+					|| (city.CurrentProduction is IUnit defUnit && defUnit.Role == UnitRole.Defense
+					    && !city.Tile.Units.Any(u => u.Role == UnitRole.Defense));
+				if (Player.Cities.Length <= 3 && gold >= 200 && buy <= gold - 100 && worthBuying)
 				{
 					Player.Gold -= buy;
 					city.Shields = fullCost;
@@ -255,6 +261,27 @@ namespace CivOne
 					Player.Gold -= buy;
 					city.Shields = fullCost;
 				}
+			}
+		}
+
+		// ── garrison upkeep relief ────────────────────────────────────────────
+
+		// A city whose garrison upkeep eats its entire shield output can never
+		// complete anything: the Inca deadlock was a size-1 hills city carrying two
+		// Militia — 1 shield income, 1 upkeep, net zero, production frozen for
+		// centuries. Disband one excess home defender per turn until the city
+		// produces again. Never touches the last defender.
+		internal void ConsiderGarrisonUpkeep()
+		{
+			if (Player.IsDestroyed()) return;
+			foreach (City city in Player.Cities)
+			{
+				if (city.ShieldIncome > 0) continue;
+				IUnit[] garrison = city.Units
+					.Where(u => u.Role == UnitRole.Defense && u.X == city.X && u.Y == city.Y)
+					.ToArray();
+				if (garrison.Length <= 1) continue;
+				Game.DisbandUnit(garrison.Last());
 			}
 		}
 
@@ -1444,7 +1471,10 @@ namespace CivOne
 			bool hostileNear = Game.GetUnits().Any(u => u.Owner != threatOwnId
 				&& (u.Owner == 0 || Player.IsAtWar(Game.GetPlayer(u.Owner)))
 				&& Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 3);
-			if (hostileNear && defenders < 2) Consider(BestDefender());
+			// Second defender capped by city size: a size-1 city under Despotism supports
+			// exactly one unit free, so a second garrison eats the city-center shield and
+			// deadlocks production forever (the Inca case).
+			if (hostileNear && defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 
 			// Preventive happiness: a city on the verge of disorder — unhappy citizens no
 			// longer outweighed by happy ones — builds a Temple (then Colosseum, then
@@ -1533,7 +1563,7 @@ namespace CivOne
 			// disease. Roads serve troop movement anyway.
 			if (stance == StrategyStance.Militarize)
 			{
-				if (defenders < 2) Consider(BestDefender());
+				if (defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 				byte mzId = Game.PlayerNumber(Player);
 				if (city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(u => u is Settlers)
 				    && !Game.GetUnits().Any(u => u.Owner == mzId && u is Settlers))
@@ -1628,7 +1658,11 @@ namespace CivOne
 			{
 				byte ownId2 = Game.PlayerNumber(Player);
 				int ownDiplomats = Game.GetUnits().Count(u => u.Owner == ownId2 && u is Diplomat);
-				int diplomatCap  = Math.Max(3, Player.Cities.Length / 2);
+				// Floor capped by city count: the old Max(3, …) floor made a 1-city civ
+				// owe 3 Diplomats — consumed on use, rebuilt forever — which made Diplomat
+				// the #1 AI production item ahead of Settlers. Tiny civs have better uses
+				// for their shields than espionage.
+				int diplomatCap  = Math.Min(Player.Cities.Length, Math.Max(3, Player.Cities.Length / 2));
 				if (ownDiplomats < diplomatCap)
 					Consider(new Diplomat());
 			}
