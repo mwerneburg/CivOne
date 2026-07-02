@@ -218,6 +218,18 @@ namespace CivOne
 					continue;
 				}
 
+				// Idle treasury: past 500 gold, any empire buys buildings outright at any
+				// completion level. The Lakota sat on 1,361 gold while four cities
+				// hand-built units at 2 shields/turn — the tail-end rules below never
+				// fire because nothing reaches 60% done. Buildings only: units are
+				// cheap enough to build and wonders keep their 70% clinch rule.
+				if (city.CurrentProduction is IBuilding && gold >= 500 && buy <= gold - 200)
+				{
+					Player.Gold -= buy;
+					city.Shields = fullCost;
+					continue;
+				}
+
 				if (city.Shields <= 0) continue; // no tail-end discount without prior investment
 
 				// Emergency: undefended city with an enemy land unit adjacent.

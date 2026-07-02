@@ -477,6 +477,19 @@ namespace CivOne
 
 		internal void ChooseResearch()
 		{
+			// Research lock-in escape: the government-escape weights below only apply
+			// when a new target is rolled, so a despot already grinding a long target
+			// (chosen before the prerequisites landed, or loaded from an old save)
+			// never gives Monarchy a vote. Science points are a player-level pool, so
+			// switching targets costs nothing.
+			if ((Player.Government is Despotism || Player.Government is Anarchy)
+			    && Player.CurrentResearch is not null && Player.CurrentResearch is not Advances.Monarchy)
+			{
+				IAdvance? monarchy = Player.AvailableResearch.FirstOrDefault(a => a is Advances.Monarchy);
+				if (monarchy is not null)
+					Player.CurrentResearch = monarchy;
+			}
+
 			if (Player.CurrentResearch is not null) return;
 
 			IAdvance[] available = Player.AvailableResearch.ToArray();

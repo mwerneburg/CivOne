@@ -340,6 +340,12 @@ namespace CivOne
 
 			_replayData.Add(new ReplayData.CivilizationDestroyed(_gameTurn, destroyed.Id, destroyedBy.Id));
 
+			// A dead civ can't negotiate: clear its war states both ways so survivors
+			// aren't stuck "at war" with a ghost for the rest of the game (and a buddy
+			// respawn reusing this player slot starts clean).
+			foreach (Player p in _players.Where(p => p is not null && p != player))
+				p.MakePeace(player);
+
 			if (player.IsHuman)
 			{
 				// TODO: Move Game Over code here
