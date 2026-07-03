@@ -320,6 +320,7 @@ namespace CivOne
 				var cos  = CosSerializer.Deserialize(text);
 				_instance = new Game(cos);
 				_instance.FixDomeAssignmentsIfNeeded();
+				_instance.ClearGhostWars();
 				WLTKNotifications.Clear();
 				DecisionLogger.BeginGame();
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
@@ -759,6 +760,27 @@ namespace CivOne
 				if (_units[i].Owner != g.HumanPlayer || _units[i].Busy) continue;
 				_activeUnit = i;
 				if (_units[i].MovesLeft > 0) break;
+			}
+
+		}
+
+		// Ghost-war sweep: clear war states involving already-destroyed civs. The
+		// destruction-time cleanup in PlayerDestroyed only helps civs that die after
+		// it shipped — saves made before it (e.g. the 800 AD restart save) carry wars
+		// with long-dead civs baked in, and those can never be renegotiated because
+		// the dead can't come to the table. Passive asset check rather than
+		// IsDestroyed(), which disbands units and fires events as a side effect.
+		// Called from LoadCos after _instance is set (MakePeace needs Game.Instance).
+		private void ClearGhostWars()
+		{
+			foreach (Player dead in _players.Where(p => p is not null))
+			{
+				byte num = PlayerNumber(dead);
+				if (num == 0) continue; // barbarians aren't a diplomatic entity
+				if (_cities.Any(c => c.Owner == num && c.Size > 0)) continue;
+				if (_units.Any(u => u.Owner == num)) continue;
+				foreach (Player alive in _players.Where(p => p is not null && p != dead))
+					alive.MakePeace(dead);
 			}
 		}
 

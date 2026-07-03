@@ -335,6 +335,20 @@ namespace CivOne
 		{
 			if (Player.Government is Gov.Anarchy) return;
 
+			// Research lock-in escape. This must live here, on the every-turn path —
+			// ChooseResearch only runs when the research slot is empty or a target just
+			// completed, never while one is in flight, so an escape placed there is dead
+			// code (the English ground Mysticism for a century with Monarchy available).
+			// Science points are a player-level pool; switching targets costs nothing.
+			if (Player.Government is Gov.Despotism
+			    && Player.CurrentResearch is not null
+			    && Player.CurrentResearch is not Advances.Monarchy)
+			{
+				IAdvance monarchy = Player.AvailableResearch.FirstOrDefault(a => a is Advances.Monarchy);
+				if (monarchy is not null)
+					Player.CurrentResearch = monarchy;
+			}
+
 			if (BestGovernment() is null) return; // already optimal
 
 			// Escaping Despotism is the single biggest economic win: it lifts the despot
