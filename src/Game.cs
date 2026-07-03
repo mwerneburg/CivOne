@@ -830,7 +830,33 @@ namespace CivOne
 				{
 					bool humanWins = SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] == bestArrival;
 
-					if (SETISignalReceived)
+					if (SETISignalReceived && VisitorType == VisitorArchetype.Owners)
+					{
+						// Owners timeline: nothing leaves. The recovery fleet's pickets take
+						// every colony ship — launched before or after the arrival at Earth,
+						// Dome or no Dome. Even the negotiated outcome leaves humanity a
+						// contained nuisance, not a spacefaring species.
+						for (int p = 1; p < _players.Count; p++)
+						{
+							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+							SpaceshipArrivalTurn[p] = 0;
+							if (_players[p] == HumanPlayer)
+							{
+								GameTask.Enqueue(Show.EventArt("spaceshipintercepted",
+									"Contact lost. Final telemetry shows an object of impossible size."));
+								GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+									"The colony ship is gone.",
+									"Something was waiting on the",
+									"road to Alpha Centauri."));
+							}
+							else
+							{
+								GameTask.Enqueue(Message.Newspaper(null!,
+									$"{_players[p].TribeNamePlural} spaceship", "lost in deep space!", "No survivors."));
+							}
+						}
+					}
+					else if (SETISignalReceived)
 					{
 						// Story arc active: acknowledge the arrival but keep playing.
 						if (humanWins)

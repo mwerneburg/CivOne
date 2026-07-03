@@ -6,6 +6,8 @@ PATH=$PATH:/opt/homebrew/bin/dotnet
 export PATH
 DOTNET_ROOT=/opt/homebrew/Cellar/dotnet/10.0.300/libexec
 export DOTNET_ROOT
+#CIVONE_VISITOR=Owners
+#export CIVONE_VISITORS
 
 dotnet build runtime/sdl/CivOne.SDL.csproj -c DebugMacOS 
 dotnet build runtime/sdl/CivOne.SDL.csproj -c ReleaseMacOS
