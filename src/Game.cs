@@ -1576,8 +1576,6 @@ namespace CivOne
 				// The Decapitation: strikes resolve immediately, then the player reads
 				// about it. The Fusion Core holder's capital is saved by the same
 				// space-based interceptors that stop Nuclear units (BaseUnit.Confront).
-				// Phase 2 (the landing — The Others join as a hostile faction and seize
-				// cities) will hang off this point.
 				Player? coreHolder = ExecuteOwnersStrike(out int struck);
 				GameTask.Enqueue(Show.Screen(new Screens.OwnersStrikeTransmission(
 					gameDate, coreHolder?.TribeNamePlural, struck)));
@@ -1585,6 +1583,11 @@ namespace CivOne
 				City? humanCapital = HumanPlayer.Cities.FirstOrDefault(c => c.HasBuilding<Palace>());
 				if (humanCapital is not null && HumanPlayer != coreHolder)
 					GameTask.Enqueue(Show.EventArt("nuclearbombdetonation", $"Orbital strike on {humanCapital.Name}!"));
+
+				// The Landing: The Others join as a faction, seize the ports, and the
+				// war for repossession begins.
+				int seized = ExecuteOwnersLanding();
+				GameTask.Enqueue(Show.Screen(new Screens.OwnersLandingTransmission(gameDate, seized)));
 			}
 		}
 
@@ -1635,6 +1638,72 @@ namespace CivOne
 				Log($"Owners strike: capital {capital.Name} ({p.TribeName}) hit");
 			}
 			return coreHolder;
+		}
+
+		// Phase 2 of the Owners invasion: The Others join as a live faction and seize
+		// the world's ports — up to a quarter of all cities, capped at half of any one
+		// civ's so the war has survivors, capitals exempt (already rubble; a one-city
+		// civ can't lose its last city to the seizure). Largest coastal cities go
+		// first: they administrate, and administrators take the harbours. Every
+		// surviving civilization is on the manifest — war with all, peace with none.
+		// Returns the number of cities seized.
+		private int ExecuteOwnersLanding()
+		{
+			ICivilization othersCiv = Common.Civilizations.First(c => c is Civilizations.TheOthers);
+			var others = new Player(othersCiv, "The Registry");
+			AddPlayer(others);
+			byte num = PlayerNumber(others);
+
+			// The occupation force arrives with the full catalogue of its own science,
+			// a treasury, and no interest in constitutional experiments.
+			foreach (IAdvance adv in Common.Advances.Where(a => !(a is FutureTech)))
+				if (!others.HasAdvance(adv)) others.AddAdvance(adv, false);
+			others.Government = new Governments.Communism();
+			others.Gold = 1500;
+
+			// Pick the seizure list: group by owner, cap per civ, ports-first.
+			City[] world = _cities.Where(c => c.Size > 0 && c.Owner != 0 && c.Owner != num).ToArray();
+			int quota = world.Length / 4;
+			var seizedList = new List<City>();
+			bool Coastal(City c) => Map[c.X, c.Y].GetBorderTiles().Any(t => t.IsOcean);
+			foreach (var group in world.GroupBy(c => c.Owner))
+			{
+				int civCap = group.Count() / 2;
+				seizedList.AddRange(group
+					.Where(c => !c.HasBuilding<Palace>())
+					.OrderByDescending(Coastal)
+					.ThenByDescending(c => c.Size)
+					.Take(civCap));
+			}
+			seizedList = seizedList
+				.OrderByDescending(Coastal)
+				.ThenByDescending(c => c.Size)
+				.Take(quota)
+				.ToList();
+
+			foreach (City city in seizedList)
+			{
+				// The defenders are deprecated; units homed here elsewhere fight on unsupported.
+				foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())
+					DisbandUnit(unit);
+				foreach (IUnit unit in city.Units.ToArray())
+					unit.SetHome(null);
+
+				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, num));
+				city.Owner = num;
+				city.ResetResourceTiles();
+
+				// Occupation garrison: the recovery detail, not an army.
+				CreateUnit(UnitType.FusionInf, city.X, city.Y, num);
+				CreateUnit(UnitType.FusionInf, city.X, city.Y, num);
+				CreateUnit(UnitType.HoverTank, city.X, city.Y, num);
+			}
+
+			foreach (Player p in _players.Where(p => p is not null && p != others && !p.IsDestroyed()))
+				others.DeclareWar(p);
+
+			Log($"Owners landing: {seizedList.Count} cities seized (quota {quota} of {world.Length})");
+			return seizedList.Count;
 		}
 
 		private void SpawnOlvir()

@@ -334,6 +334,7 @@ namespace CivOne
 		internal void ConsiderGovernment()
 		{
 			if (Player.Government is Gov.Anarchy) return;
+			if (Player.Civilization is TheOthers) return; // the administration does not revolt
 
 			// Research lock-in escape. This must live here, on the every-turn path —
 			// ChooseResearch only runs when the research slot is empty or a target just
@@ -458,6 +459,7 @@ namespace CivOne
 		{
 			if (Game.PlayerNumber(Player) == 0) return;
 			if (Player.Civilization is Olvir) return; // refugees seek coexistence, not negotiation
+			if (Player.Civilization is TheOthers) return; // the Registry does not take meetings
 			if (Player.Government is Governments.Anarchy) return;
 
 			if (Player.IsDestroyed()) return;
@@ -546,6 +548,9 @@ namespace CivOne
 			// Barbarians use their own logic; governments in revolution are distracted
 			if (Game.PlayerNumber(Player) == 0) return;
 			if (Player.Civilization is Olvir) return; // refugees do not declare war
+			// The Others arrive at war with everyone and stay there: no tribute, no
+			// peace initiatives, no fresh declarations needed.
+			if (Player.Civilization is TheOthers) return;
 			if (Player.Government is Governments.Anarchy) return;
 
 			// ── Track war duration and peacetime city baseline ───────────────────
@@ -572,6 +577,7 @@ namespace CivOne
 				Player[] tributeCandidates = Game.Players
 				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
 				             && Game.PlayerNumber(p) != 0
+				             && !(p.Civilization is TheOthers) // the Registry takes cities, not gold
 				             && Player.IsAtWar(p)
 				             && Player.HasEmbassy(p)
 				             && ownPower * 2 < MilitaryScore(p))
@@ -595,7 +601,8 @@ namespace CivOne
 			{
 				Player[] aiEnemies = Game.Players
 				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
-				             && Game.PlayerNumber(p) != 0 && Player.IsAtWar(p))
+				             && Game.PlayerNumber(p) != 0 && Player.IsAtWar(p)
+				             && !(p.Civilization is TheOthers)) // no peace with the manifest's author
 				    .ToArray();
 
 				if (aiEnemies.Length > 0)

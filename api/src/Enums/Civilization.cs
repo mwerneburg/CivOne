@@ -44,5 +44,8 @@ namespace CivOne.Enums
 		Ottomans,
 		Ethiopians,
 		Iroquois,
+		// Story-arc faction like the Olvir: joins mid-game via AddPlayer when the
+		// Owners archetype invades — never selected at game setup.
+		TheOthers = 27,
 	}
 }

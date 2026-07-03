@@ -225,7 +225,9 @@ namespace CivOne
 		// from turn one. Humans keep whatever the map dealt them.
 		private void PrepareStartingTile(byte player, int x, int y)
 		{
-			if (_players[player].IsHuman) return;
+			// Compare against the ctor-set field, not Player.IsHuman — the latter goes
+			// through Game.Instance, which is still null while the Game is constructing.
+			if (_players[player] == HumanPlayer) return;
 			if (!(Map[x, y] is Hills)) return;
 			Map.ChangeTileType(x, y, Terrain.Plains);
 			Map[x, y].Road = true;

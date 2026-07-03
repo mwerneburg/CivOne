@@ -42,5 +42,6 @@ namespace CivOne.Enums
 		Suleiman,
 		HaileSelassie,
 		Hiawatha,
+		TheRegistry,
 	}
 }
