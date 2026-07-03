@@ -1521,19 +1521,22 @@ namespace CivOne
 				: VisitorArchetype.Owners;
 		}
 
-		// The Owners arrival is an ending, forked on whether the planetary defence dome was built.
+		// The Owners arrival forks on whether the planetary defence dome was built.
+		// Dome held: a negotiated ending (Disputed Claim). No dome: Phase 1 of the
+		// invasion — orbital strikes on every capital, and the game continues as a
+		// playable war rather than ending on a cutscene.
 		private void ArriveOwners()
 		{
 			bool domeHeld = DomeComplete;
 			string gameDate = GameYear;
 			RecordTransmission("OwnersArrival", gameDate);
 
-			// Art hook: drop an Owners image (e.g. event_art/theothers.png) and show it here with
-			// an EventArtScreen, exactly like the Olvir arrival. Text-only for now.
-			GameTask.Enqueue(Show.Screen(new Screens.OwnersArrivalTransmission(gameDate, domeHeld)));
-
 			if (domeHeld)
 			{
+				// Art hook: drop an Owners image (e.g. event_art/theothers.png) and show it here
+				// with an EventArtScreen, exactly like the Olvir arrival. Text-only for now.
+				GameTask.Enqueue(Show.Screen(new Screens.OwnersArrivalTransmission(gameDate, domeHeld)));
+
 				// The dome held: humanity survives as a negotiating peer, not recovered cargo.
 				HumanPlayer.AwardMilestone(150);
 				DecisionLogger.EndGame(HumanPlayer.Score, "Disputed Claim", humanWon: true, turns: _gameTurn);
@@ -1544,10 +1547,68 @@ namespace CivOne
 			}
 			else
 			{
-				// No defence stood ready: the cargo is recovered. Humanity loses.
-				DecisionLogger.EndGame(HumanPlayer.Score, "Reclamation", humanWon: false, turns: _gameTurn);
-				GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+				// The Decapitation: strikes resolve immediately, then the player reads
+				// about it. The Fusion Core holder's capital is saved by the same
+				// space-based interceptors that stop Nuclear units (BaseUnit.Confront).
+				// Phase 2 (the landing — The Others join as a hostile faction and seize
+				// cities) will hang off this point.
+				Player? coreHolder = ExecuteOwnersStrike(out int struck);
+				GameTask.Enqueue(Show.Screen(new Screens.OwnersStrikeTransmission(
+					gameDate, coreHolder?.TribeNamePlural, struck)));
+
+				City? humanCapital = HumanPlayer.Cities.FirstOrDefault(c => c.HasBuilding<Palace>());
+				if (humanCapital is not null && HumanPlayer != coreHolder)
+					GameTask.Enqueue(Show.EventArt("nuclearbombdetonation", $"Orbital strike on {humanCapital.Name}!"));
 			}
+		}
+
+		// Phase 1 of the Owners invasion: one orbital strike per surviving civilization's
+		// capital (the Palace city). Effects mirror a nuclear detonation plus meltdown
+		// fallout: half the population, the garrison and anything adjacent vaporised,
+		// fallout across the hinterland, and up to two buildings destroyed (never the
+		// Palace — the ruin stays the capital). Returns the Fusion Core holder whose
+		// capital was saved, if any; `struck` counts the capitals actually hit.
+		private Player? ExecuteOwnersStrike(out int struck)
+		{
+			struck = 0;
+			Player? coreHolder = null;
+			foreach (Player p in _players.Where(p => p is not null && PlayerNumber(p) != 0 && !p.IsDestroyed()).ToArray())
+			{
+				City? capital = p.Cities.FirstOrDefault(c => c.HasBuilding<Palace>());
+				if (capital is null) continue;
+
+				if (p.HasWonder<FusionCore>())
+				{
+					coreHolder = p;
+					continue;
+				}
+				struck++;
+
+				capital.Size = (byte)Math.Max(1, capital.Size / 2);
+
+				foreach (ITile tile in Map.QueryMapPart(capital.X - 2, capital.Y - 2, 5, 5))
+				{
+					if (tile is null || tile.IsOcean || tile.City is not null) continue;
+					tile.Pollution = true;
+				}
+
+				foreach (ITile tile in Map.QueryMapPart(capital.X - 1, capital.Y - 1, 3, 3))
+				{
+					if (tile is null) continue;
+					foreach (IUnit u in tile.Units.ToArray())
+						DisbandUnit(u);
+				}
+
+				for (int i = 0; i < 2; i++)
+				{
+					IBuilding[] burnable = capital.Buildings.Where(b => !(b is Palace)).ToArray();
+					if (burnable.Length == 0) break;
+					capital.RemoveBuilding(burnable[Common.Random.Next(burnable.Length)]);
+				}
+
+				Log($"Owners strike: capital {capital.Name} ({p.TribeName}) hit");
+			}
+			return coreHolder;
 		}
 
 		private void SpawnOlvir()
