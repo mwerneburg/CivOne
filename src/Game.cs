@@ -346,6 +346,21 @@ namespace CivOne
 			foreach (Player p in _players.Where(p => p is not null && p != player))
 				p.MakePeace(player);
 
+			// Repossession: breaking the occupation ends the Owners arc. The last
+			// Registry city has fallen — a victory ending regardless of whose armies
+			// finished it; the world was taken back together.
+			if (destroyed is Civilizations.TheOthers)
+			{
+				HumanPlayer.AwardMilestone(200);
+				DecisionLogger.EndGame(HumanPlayer.Score, "Repossession", humanWon: true, turns: _gameTurn);
+				int repoFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Repossession");
+				GameTask.Enqueue(Message.Newspaper(null!, "The last Registry city", "has fallen!", "The manifest is closed."));
+				GameTask repoFt;
+				GameTask.Enqueue(repoFt = Show.Screen(new FinalScore("Repossession")));
+				repoFt.Done += (s, a) => EndSequence.ChainAfterFinal(repoFame, () => Runtime.Quit());
+				return;
+			}
+
 			if (player.IsHuman)
 			{
 				// TODO: Move Game Over code here
@@ -967,6 +982,30 @@ namespace CivOne
 
 				PerformAutoSave();
 
+				// The manifest is being processed: every 5th turn, each Registry-held
+				// city of size 2+ loses a citizen to the transports, and the Registry
+				// banks the cargo. The occupation is a countdown, not a stalemate —
+				// liberation is the only way to stop the collection.
+				Player? registry = _players.FirstOrDefault(p => p is not null
+					&& p.Civilization is Civilizations.TheOthers && !p.IsDestroyed());
+				if (registry is not null && _gameTurn % 5 == 0)
+				{
+					byte rnum = PlayerNumber(registry);
+					byte hnum = PlayerNumber(HumanPlayer);
+					bool humanLoss = false;
+					foreach (City c in _cities.Where(c => c.Owner == rnum && c.Size >= 2).ToArray())
+					{
+						c.Size--;
+						registry.Gold += 25;
+						if (c.OriginalOwner == hnum) humanLoss = true;
+					}
+					if (humanLoss)
+						GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+							"Transports lift from the",
+							"occupied cities. The population",
+							"is being collected."));
+				}
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -1557,10 +1596,15 @@ namespace CivOne
 			string gameDate = GameYear;
 			RecordTransmission("OwnersArrival", gameDate);
 
+			// Arrival art: the fleet over Earth. Optional — plays before the transmissions
+			// in both branches when data/event_art/TheOthersArrive.png exists.
+			string? arriveArt = Screens.EventArtScreen.FindPath("TheOthersArrive");
+			if (arriveArt is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(arriveArt,
+					domeHeld ? "ARRIVAL — THE CLAIM IS DISPUTED" : "ARRIVAL — RECOVERY FLEET IN ORBIT")));
+
 			if (domeHeld)
 			{
-				// Art hook: drop an Owners image (e.g. event_art/theothers.png) and show it here
-				// with an EventArtScreen, exactly like the Olvir arrival. Text-only for now.
 				GameTask.Enqueue(Show.Screen(new Screens.OwnersArrivalTransmission(gameDate, domeHeld)));
 
 				// The dome held: humanity survives as a negotiating peer, not recovered cargo.
@@ -1692,6 +1736,10 @@ namespace CivOne
 				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, num));
 				city.Owner = num;
 				city.ResetResourceTiles();
+				// The Registry does not finish the previous administration's paperwork:
+				// drop the inherited production queue and put the works to war material.
+				city.ClearProductionQueue();
+				city.SetProduction(new Units.MechInf());
 
 				// Occupation garrison: the recovery detail, not an army.
 				CreateUnit(UnitType.FusionInf, city.X, city.Y, num);
