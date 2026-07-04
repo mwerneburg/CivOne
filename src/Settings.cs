@@ -40,6 +40,7 @@ namespace CivOne
 		private bool _riverFastMovement = false;
 		private bool _debugMenu = false;
 		private bool _cursorCoords = false;
+		private bool _quietBuilds = false;
 		private bool _powerSaving = false;
 		private bool _autopilot = false;
 		private bool _deityEnabled = false;
@@ -195,6 +196,19 @@ namespace CivOne
 			{
 				_cursorCoords = value;
 				SetSetting("CursorCoords", _cursorCoords ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		// When a completed building's city still has items in its production queue,
+		// skip the City Manager popup — the queue already answers "what next?".
+		internal bool QuietBuilds
+		{
+			get => _quietBuilds;
+			set
+			{
+				_quietBuilds = value;
+				SetSetting("QuietBuilds", _quietBuilds ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -452,6 +466,7 @@ namespace CivOne
 			GetSetting("RiverFastMovement", ref _riverFastMovement);
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("CursorCoords", ref _cursorCoords);
+			GetSetting("QuietBuilds", ref _quietBuilds);
 			GetSetting("PowerSaving", ref _powerSaving);
 			// Autopilot intentionally NOT loaded from the profile — always starts off.
 			GetSetting("DeityEnabled", ref _deityEnabled);

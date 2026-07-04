@@ -141,6 +141,7 @@ namespace CivOne.Screens
 				("Circuses",          () => Game.Circuses,        () => { Game.Circuses        = !Game.Circuses;        }),
 				("Barricades",        () => Game.Barricades,      () => { Game.Barricades      = !Game.Barricades;      }),
 				("Cursor Coords",     () => Settings.CursorCoords, () => { Settings.CursorCoords = !Settings.CursorCoords; }),
+				("Quiet Build Queue", () => Settings.QuietBuilds,  () => { Settings.QuietBuilds  = !Settings.QuietBuilds;  }),
 				("Power Saving",      () => Settings.PowerSaving, () => { Settings.PowerSaving  = !Settings.PowerSaving;  }),
 				("Autopilot",         () => Settings.Autopilot,   () => { Settings.Autopilot   = !Settings.Autopilot;   }),
 				("Debug Menu",        () => Settings.DebugMenu,   () => { Settings.DebugMenu   = !Settings.DebugMenu;   }),

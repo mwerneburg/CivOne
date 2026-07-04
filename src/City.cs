@@ -1281,13 +1281,16 @@ namespace CivOne
 			{
 				Food -= FoodRequired;
 
+				// Growth caps: no advisor message — it re-fired every time the food store
+				// refilled, spamming the turn. The City Manager's food storage view and the
+				// Aqueduct/Sewer entries in the build list carry the same information.
 				if (Size == 7 && !_buildings.Any(b => b.Id == (int)Building.Aqueduct))
 				{
-					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, $"{Name} requires an AQUEDUCT", "for further growth."));
+					// blocked: needs Aqueduct
 				}
 				else if (Size == 12 && !_buildings.Any(b => b.Id == (int)Building.SewerSystem))
 				{
-					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, $"{Name} requires a SEWER SYSTEM", "for further growth."));
+					// blocked: needs Sewer System
 				}
 				else
 				{

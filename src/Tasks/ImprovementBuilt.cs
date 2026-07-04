@@ -32,6 +32,14 @@ namespace CivOne.Tasks
 				return;
 			}
 
+			// Quiet Build Queue: when the city's production queue already holds the
+			// next item, there is no decision to make — skip the City Manager popup.
+			if (Settings.Instance.QuietBuilds && _city.ProductionQueue.Count > 0)
+			{
+				EndTask();
+				return;
+			}
+
 			// allowCycle=false: ← / → must not navigate away. Destroy() fires Closed → EndTask,
 			// which would advance the news queue past the city the player is supposed to decide on.
 			CityManager cityManager = new CityManager(_city, viewCity: false, allowCycle: false);
