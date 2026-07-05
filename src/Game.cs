@@ -354,6 +354,9 @@ namespace CivOne
 				HumanPlayer.AwardMilestone(200);
 				DecisionLogger.EndGame(HumanPlayer.Score, "Repossession", humanWon: true, turns: _gameTurn);
 				int repoFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Repossession");
+				string? repoArt = Screens.EventArtScreen.FindPath("Repossession");
+				if (repoArt is not null)
+					GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(repoArt, "REPOSSESSION — THE MANIFEST IS CLOSED")));
 				GameTask.Enqueue(Message.Newspaper(null!, "The last Registry city", "has fallen!", "The manifest is closed."));
 				GameTask repoFt;
 				GameTask.Enqueue(repoFt = Show.Screen(new FinalScore("Repossession")));
