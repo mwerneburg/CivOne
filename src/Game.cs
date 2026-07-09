@@ -94,6 +94,7 @@ namespace CivOne
 		// Turn on which the Olvir arrival scene fires (0 = not yet scheduled).
 		internal uint OlvirArrivalTurn;
 		internal uint OlvirProximityAlarmTurn; // turn of the last "Olvir settling near you" advisor message
+		internal uint OlvirBloomEndTurn;       // last turn of the post-landfall settlement bloom (0 = no bloom)
 
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
@@ -776,6 +777,29 @@ namespace CivOne
 								$"Olvir city {encroaching.Name}",
 								"is settling near our borders.",
 								"Unrest is rising."));
+						}
+					}
+				}
+
+				// Olvir bloom: the refugees' reproductive strategy borders on semelparity —
+				// one overwhelming generation of settlement after landfall, then it is
+				// spent. While the window is open the colony buds free cities every turn,
+				// escalating with its own mass, until the window closes or bloom mass
+				// (40 cities) is reached.
+				if (VisitorsArrived && VisitorType == VisitorArchetype.Refugees
+				    && OlvirBloomEndTurn > 0 && _gameTurn <= OlvirBloomEndTurn)
+				{
+					Player? bloom = _players.FirstOrDefault(p => p.Civilization is Civilizations.Olvir);
+					if (bloom is not null && bloom.Cities.Length > 0 && bloom.Cities.Length < 40)
+					{
+						int buds = Math.Max(1, bloom.Cities.Length / 6);
+						foreach (City parent in bloom.Cities.OrderBy(_ => Common.Random.Next(10000)).ToArray())
+						{
+							if (buds <= 0 || bloom.Cities.Length >= 40) break;
+							var site = FindOlvirBudSite(parent);
+							if (site is null) continue;
+							if (FoundOlvirCity(bloom, site.Value.x, site.Value.y) is not null)
+								buds--;
 						}
 					}
 				}
@@ -1761,11 +1785,6 @@ namespace CivOne
 		{
 			ICivilization olvirCiv = Common.Civilizations.First(c => c is Civilizations.Olvir);
 
-			// Compute where Olvir city names start in the flat AllCityNames array.
-			int nameStart = Common.Civilizations
-				.Where(c => c.Id < olvirCiv.Id)
-				.Sum(c => c.CityNames.Length);
-
 			bool CityFree(int x, int y) => !_cities.Any(c => c.X == x && c.Y == y && c.Size > 0);
 			// Habitable land only: never settle the Olvir on Arctic (the poles), Mountains,
 			// or right up against the polar ice bands — that's how an Olvir city ended up
@@ -1835,52 +1854,17 @@ namespace CivOne
 			// Create the Olvir player.
 			var olvirPlayer = new Player(olvirCiv, "The Council");
 			AddPlayer(olvirPlayer);
-			byte owner = PlayerNumber(olvirPlayer);
 
 			// Place cities. Each starts at size 2 with a Granary so they hit the ground
 			// running: a size-1 city with no food store takes many turns to grow, blunting
 			// the refugee-fleet pressure the player should feel immediately after landfall.
-			for (int i = 0; i < chosen.Count; i++)
-			{
-				int nameId = nameStart + (i % olvirCiv.CityNames.Length);
-				City? city = AddCity(olvirPlayer, nameId, chosen[i].x, chosen[i].y);
-				if (city is null) continue;
+			foreach (var (x, y) in chosen)
+				FoundOlvirCity(olvirPlayer, x, y);
 
-				city.Size = 2;
-				city.AddBuilding(new Buildings.Granary());
-
-				OlvirImprovements[(chosen[i].x, chosen[i].y)] = Enums.OlvirImprovementType.SettlementCluster;
-
-				// Seed surrounding tiles so the size-2 city has positive food income from
-				// turn 1. Without this, ocean/jungle cities have FoodIncome < 0 and shrink
-				// back to size 1 immediately.
-				for (int dx = -1; dx <= 1; dx++)
-				for (int dy = -1; dy <= 1; dy++)
-				{
-					if (dx == 0 && dy == 0) continue;
-					int nx = (chosen[i].x + dx + Map.WIDTH) % Map.WIDTH;
-					int ny = chosen[i].y + dy;
-					if (ny <= 0 || ny >= Map.HEIGHT - 1) continue;
-					if (OlvirImprovements.ContainsKey((nx, ny))) continue;
-					ITile nt = Map[nx, ny];
-					if (nt is Tiles.Arctic) continue;
-					Enums.OlvirImprovementType nbImp = nt.IsOcean
-						? Enums.OlvirImprovementType.Aquafarm
-						: (nt is Tiles.Forest || nt is Tiles.Jungle)
-							? Enums.OlvirImprovementType.CanopyArray
-							: Enums.OlvirImprovementType.SettlementCluster;
-					OlvirImprovements[(nx, ny)] = nbImp;
-				}
-
-				// Each land city gets a settler immediately for expansion.
-				// Ocean cities don't — land settlers can't work ocean tiles.
-				if (!Map[chosen[i].x, chosen[i].y].IsOcean)
-				{
-					IUnit? settler = CreateUnit(UnitType.Settlers, chosen[i].x, chosen[i].y, owner);
-					if (settler is not null)
-						settler.SkipTurn();
-				}
-			}
+			// Open the settlement bloom window: the Olvir reproductive strategy borders
+			// on semelparity — one overwhelming generation of budding after landfall,
+			// then it is spent. See the bloom block in the turn loop.
+			OlvirBloomEndTurn = (uint)(_gameTurn + 25);
 
 			// 5) Gift Xenobiology to all surviving civs — contact with the Olvir makes
 			//    the advance immediately researchable through observation.
@@ -1891,6 +1875,92 @@ namespace CivOne
 					if (!p.HasAdvance<Xenobiology>())
 						p.AddAdvance(xenobiology, false);
 			}
+		}
+
+		// Found a single Olvir settlement: size 2 with a Granary, a SettlementCluster
+		// under the city, seeded neighbour tiles for positive food from turn 1, a
+		// settler for land expansion, and — on coastal/ocean sites — a free Hydro
+		// Engineer with no home city (zero upkeep) that threads transport-tube lines
+		// between the colony's cities (see the Olvir branch in AI.Move).
+		private City? FoundOlvirCity(Player olvirPlayer, int x, int y)
+		{
+			ICivilization olvirCiv = olvirPlayer.Civilization;
+			int nameStart = Common.Civilizations
+				.Where(c => c.Id < olvirCiv.Id)
+				.Sum(c => c.CityNames.Length);
+			int nameId = nameStart + (olvirPlayer.Cities.Length % olvirCiv.CityNames.Length);
+
+			City? city = AddCity(olvirPlayer, nameId, x, y);
+			if (city is null) return null;
+			byte owner = PlayerNumber(olvirPlayer);
+
+			city.Size = 2;
+			city.AddBuilding(new Buildings.Granary());
+
+			OlvirImprovements[(x, y)] = Enums.OlvirImprovementType.SettlementCluster;
+
+			// Seed surrounding tiles so the size-2 city has positive food income from
+			// turn 1. Without this, ocean/jungle cities have FoodIncome < 0 and shrink
+			// back to size 1 immediately.
+			for (int dx = -1; dx <= 1; dx++)
+			for (int dy = -1; dy <= 1; dy++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int nx = (x + dx + Map.WIDTH) % Map.WIDTH;
+				int ny = y + dy;
+				if (ny <= 0 || ny >= Map.HEIGHT - 1) continue;
+				if (OlvirImprovements.ContainsKey((nx, ny))) continue;
+				ITile nt = Map[nx, ny];
+				if (nt is Tiles.Arctic) continue;
+				Enums.OlvirImprovementType nbImp = nt.IsOcean
+					? Enums.OlvirImprovementType.Aquafarm
+					: (nt is Tiles.Forest || nt is Tiles.Jungle)
+						? Enums.OlvirImprovementType.CanopyArray
+						: Enums.OlvirImprovementType.SettlementCluster;
+				OlvirImprovements[(nx, ny)] = nbImp;
+			}
+
+			// Each land city gets a settler immediately for expansion.
+			// Ocean cities don't — land settlers can't work ocean tiles.
+			if (!Map[x, y].IsOcean)
+			{
+				IUnit? settler = CreateUnit(UnitType.Settlers, x, y, owner);
+				if (settler is not null)
+					settler.SkipTurn();
+			}
+
+			// Coastal and ocean cities launch an unsupported Hydro Engineer.
+			if (Map[x, y].IsOcean || Map[x, y].GetBorderTiles().Any(t => t.IsOcean))
+			{
+				IUnit? hydro = CreateUnit(UnitType.HydroEngineer, x, y, owner);
+				if (hydro is not null)
+					hydro.SkipTurn();
+			}
+
+			return city;
+		}
+
+		// Pick a bloom site 4–6 tiles out from a parent city: no polar bands, no
+		// Arctic/Mountains, and at least 4 tiles from every existing city (the
+		// Olvir packing density). Ocean tiles are valid — the Olvir are amphibious.
+		private (int x, int y)? FindOlvirBudSite(City parent)
+		{
+			City[] cities = _cities.Where(c => c.Size > 0).ToArray();
+			var candidates = new List<(int x, int y)>();
+			for (int dx = -6; dx <= 6; dx++)
+			for (int dy = -6; dy <= 6; dy++)
+			{
+				if (Math.Max(Math.Abs(dx), Math.Abs(dy)) < 4) continue;
+				int x = (parent.X + dx + Map.WIDTH) % Map.WIDTH;
+				int y = parent.Y + dy;
+				if (y <= Map.HEIGHT / 10 || y >= Map.HEIGHT - Map.HEIGHT / 10) continue;
+				ITile t = Map[x, y];
+				if (t is null || t is Tiles.Arctic || t is Tiles.Mountains) continue;
+				if (cities.Any(c => TileDistance(x, y, c.X, c.Y) < 4)) continue;
+				candidates.Add((x, y));
+			}
+			if (candidates.Count == 0) return null;
+			return candidates[Common.Random.Next(candidates.Count)];
 		}
 
 		internal void PerformAutoSave()

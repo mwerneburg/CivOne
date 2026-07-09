@@ -59,6 +59,7 @@ namespace CivOne.Persistence
 		public int ProbeOutcomeTier { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
 		public uint OlvirProximityAlarmTurn { get; set; }
+		public uint OlvirBloomEndTurn { get; set; }
 		// Olvir improvements: list of [x, y, type] triples
 		public List<int[]> OlvirImprovements { get; set; } = null!;
 		// Dome assignments: list of [ownerByte, wonderId] pairs

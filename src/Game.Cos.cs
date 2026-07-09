@@ -281,6 +281,7 @@ namespace CivOne
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
 					OlvirProximityAlarmTurn = OlvirProximityAlarmTurn,
+					OlvirBloomEndTurn       = OlvirBloomEndTurn,
 					OlvirImprovements       = OlvirImprovements.Count > 0
 					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -483,6 +484,7 @@ namespace CivOne
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;
 			OlvirProximityAlarmTurn = g.OlvirProximityAlarmTurn;
+			OlvirBloomEndTurn       = g.OlvirBloomEndTurn;
 			if (g.OlvirImprovements is not null)
 				foreach (var triple in g.OlvirImprovements)
 					if (triple.Length == 3)

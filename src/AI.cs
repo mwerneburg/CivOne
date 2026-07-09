@@ -240,6 +240,51 @@ namespace CivOne
 				return;
 			}
 
+			// Olvir Hydro Engineers thread transport-tube lines between the colony's
+			// cities: lay a tube wherever they stand on bare ocean, and shuttle from
+			// city to city so their wake becomes a corridor. No reachable target →
+			// fall through to the generic hydro behaviour below.
+			if (unit is HydroEngineer olvirHydro && Player.Civilization is Olvir)
+			{
+				ITile here = unit.Tile;
+				if (here.IsOcean && here.City is null && !here.TransportTube)
+				{
+					DecisionLogger.LogSettlerAction(unit, "olvir-tube");
+					olvirHydro.BuildSeaTube();
+					unit.SkipTurn();
+					return;
+				}
+
+				if (unit.Goto.IsEmpty)
+				{
+					// Pick among the three nearest coastal/ocean sister cities at random,
+					// so a fully-tubed corridor doesn't trap the engineer in a shuttle loop.
+					City[] targets = Player.Cities
+						.Where(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y) >= 4
+						         && (Map[c.X, c.Y].IsOcean || Map[c.X, c.Y].GetBorderTiles().Any(t => t.IsOcean)))
+						.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y))
+						.Take(3)
+						.ToArray();
+					if (targets.Length > 0)
+					{
+						City target = targets[Common.Random.Next(targets.Length)];
+						unit.Goto = new Point(target.X, target.Y);
+					}
+				}
+
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile? step = Common.GotoStep(unit);
+					if (step is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+					if (!unit.MoveTo(step.X - unit.X, step.Y - unit.Y))
+					{
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+					}
+					return;
+				}
+			}
+
 			if (unit is HydroEngineer)
 			{
 				ITile tile = unit.Tile;
