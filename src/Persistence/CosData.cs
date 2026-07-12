@@ -62,6 +62,8 @@ namespace CivOne.Persistence
 		public uint OlvirBloomEndTurn { get; set; }
 		// Olvir improvements: list of [x, y, type] triples
 		public List<int[]> OlvirImprovements { get; set; } = null!;
+		// Thing outbreak clocks: list of [x, y, deadlineTurn] triples
+		public List<int[]> ThingOutbreaks { get; set; } = null!;
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }

@@ -285,6 +285,9 @@ namespace CivOne
 					OlvirImprovements       = OlvirImprovements.Count > 0
 					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
+					ThingOutbreaks          = ThingOutbreaks.Count > 0
+					                          ? ThingOutbreaks.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
+					                          : null!,
 					DomeAssignments         = DomeAssignments
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
@@ -489,6 +492,10 @@ namespace CivOne
 				foreach (var triple in g.OlvirImprovements)
 					if (triple.Length == 3)
 						OlvirImprovements[(triple[0], triple[1])] = (Enums.OlvirImprovementType)triple[2];
+			if (g.ThingOutbreaks is not null)
+				foreach (var triple in g.ThingOutbreaks)
+					if (triple.Length == 3)
+						ThingOutbreaks[(triple[0], triple[1])] = (uint)triple[2];
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

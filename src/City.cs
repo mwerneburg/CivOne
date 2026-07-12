@@ -1451,12 +1451,32 @@ namespace CivOne
 						AddWonder(wonder);
 						Game.Instance.AddReplayEvent(new ReplayData.WonderBuilt(Game.GameTurn, Owner, (wonder as ICivilopedia).Name, X, Y));
 						var impTask = new ImprovementBuilt(this, wonder);
-						if (wonder is Wonders.SouthPoleExpedition && Player == Human)
+						if (wonder is Wonders.SouthPoleExpedition)
 						{
-							Game.SpaceshipComponent[Game.PlayerNumber(Player)] += 2;
+							// Whoever builds the wonder brings back the curse: the anomaly can
+							// be the propulsion cache — or something that was waiting in the ice.
+							City? infected = Game.Instance.TrySouthPoleCurse(Player, this);
 							string gameYear = Game.GameYear;
-							Game.Instance.RecordTransmission("SouthPoleExpedition", gameYear);
-							impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
+							if (Player == Human)
+							{
+								if (infected is null)
+									Game.SpaceshipComponent[Game.PlayerNumber(Player)] += 2;
+								Game.Instance.RecordTransmission("SouthPoleExpedition", gameYear);
+								impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
+							}
+							if (infected is not null)
+							{
+								// The reveal plays for the human either way — it is world news.
+								// For the human builder it lands right after the expedition log.
+								string infectedName = infected.Name;
+								impTask.Done += (s, a) =>
+								{
+									string? thingArt = EventArtScreen.FindPath("TheThing");
+									if (thingArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(thingArt, $"QUARANTINE — {infectedName.ToUpper()} HAS GONE DARK")));
+									GameTask.Enqueue(Show.Screen(new Screens.ThingOutbreakTransmission(gameYear, infectedName)));
+								};
+							}
 						}
 						if (wonder is Wonders.DarwinsVoyage)
 						{

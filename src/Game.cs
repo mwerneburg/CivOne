@@ -102,6 +102,10 @@ namespace CivOne
 		// Olvir land-use improvements keyed by map tile (x, y).
 		internal readonly Dictionary<(int x, int y), Enums.OlvirImprovementType> OlvirImprovements = new();
 
+		// The Thing outbreak: infected city tile → turn on which the city is consumed
+		// and the organism spreads (see ProcessThingOutbreaks).
+		internal readonly Dictionary<(int x, int y), uint> ThingOutbreaks = new();
+
 		// Dome path: which player (owner byte) is assigned to which dome wonder component(s).
 		// Populated when the Tau Ceti approach warning fires.
 		internal readonly Dictionary<byte, List<Enums.Wonder>> DomeAssignments = new();
@@ -350,6 +354,16 @@ namespace CivOne
 			// Repossession: breaking the occupation ends the Owners arc. The last
 			// Registry city has fallen — a victory ending regardless of whose armies
 			// finished it; the world was taken back together.
+			// Containment: the last infected city is gone — by force or by fire. The
+			// game continues; the outbreak was a crisis, not an ending.
+			if (destroyed is Civilizations.TheThing)
+			{
+				ThingOutbreaks.Clear();
+				GameTask.Enqueue(Message.Newspaper(null!, "The outbreak is over.",
+					"The ice holds", "its secrets again."));
+				return;
+			}
+
 			if (destroyed is Civilizations.TheOthers)
 			{
 				HumanPlayer.AwardMilestone(200);
@@ -1032,6 +1046,9 @@ namespace CivOne
 							"occupied cities. The population",
 							"is being collected."));
 				}
+
+				// The Thing: advance the outbreak clocks (South Pole Expedition curse).
+				ProcessThingOutbreaks();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -1779,6 +1796,155 @@ namespace CivOne
 
 			Log($"Owners landing: {seizedList.Count} cities seized (quota {quota} of {world.Length})");
 			return seizedList.Count;
+		}
+
+		// ── The Thing (South Pole Expedition curse) ─────────────────────────
+
+		// The expedition can bring back something other than propulsion components.
+		// Weighted by the builder's character — same philosophy as the visitor
+		// archetype draw: conduct changes the odds, never fixes the outcome. A
+		// warlike, polluted, autocratic civilization is far more likely to thaw
+		// the wrong thing. Returns the infected ground-zero city, or null when
+		// the expedition returns with only what it went for.
+		// Test/dev override: CIVONE_THING=1 forces the curse.
+		internal City? TrySouthPoleCurse(Player builder, City wonderCity)
+		{
+			int score = 0;
+			if (builder.Government is CivOne.Governments.Democracy)      score += 3;
+			else if (builder.Government is CivOne.Governments.Republic)  score += 2;
+			else if (builder.Government is CivOne.Governments.Monarchy)  score -= 1;
+			else                                                         score -= 2;
+
+			int wars = _players.Count(p => p != null && p != builder && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian) && builder.IsAtWar(p));
+			score -= Math.Min(wars, 3);
+
+			if (builder.Pollution >= 8)      score -= 2;
+			else if (builder.Pollution == 0) score += 1;
+
+			double pCurse = 0.35 - score * 0.07; // score +3 → 14%, score −5 → 70%
+			if (pCurse < 0.10) pCurse = 0.10;
+			if (pCurse > 0.70) pCurse = 0.70;
+
+			bool cursed = System.Environment.GetEnvironmentVariable("CIVONE_THING") == "1"
+				|| Common.Random.Next(100) < (int)Math.Round(pCurse * 100);
+			if (!cursed) return null;
+
+			// Ground zero: the expedition came home to the wrong port — the builder's
+			// smallest city on the wonder city's continent, never the wonder city
+			// itself unless it is the builder's only city there.
+			byte bnum = PlayerNumber(builder);
+			byte continent = Map[wonderCity.X, wonderCity.Y].ContinentId;
+			City ground = _cities
+				.Where(c => c.Owner == bnum && c.Size > 0 && c != wonderCity
+				         && Map[c.X, c.Y].ContinentId == continent)
+				.OrderBy(c => c.Size)
+				.ThenByDescending(c => TileDistance(c.X, c.Y, wonderCity.X, wonderCity.Y))
+				.FirstOrDefault() ?? wonderCity;
+
+			InfectCity(ground);
+			Log($"South Pole curse: {ground.Name} infected (builder {builder.TribeName}, pCurse {pCurse:0.00})");
+			return ground;
+		}
+
+		// The Thing takes a city: the faction joins on first infection, the garrison
+		// is assimilated where it stands, and the five-turn clock starts. Infected
+		// cities cannot be saved — capture just destroys them (ProcessThingOutbreaks).
+		internal void InfectCity(City city)
+		{
+			Player thing = GetOrCreateThing();
+			byte tnum = PlayerNumber(thing);
+			if (city.Owner == tnum || city.Size == 0) return;
+
+			// Units homed here elsewhere fight on unsupported; the garrison is
+			// assimilated where it stands, plus the organism itself.
+			foreach (IUnit unit in city.Units.ToArray())
+				unit.SetHome(null);
+			foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())
+			{
+				unit.Owner = tnum;
+				unit.SetHome(null);
+				unit.Fortify = true;
+			}
+			CreateUnit(UnitType.MechInf, city.X, city.Y, tnum);
+
+			_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, tnum));
+			city.Owner = tnum;
+			city.ResetResourceTiles();
+			city.ClearProductionQueue();
+			city.SetProduction(new Units.Militia());
+			ThingOutbreaks[(city.X, city.Y)] = (uint)(_gameTurn + 5);
+		}
+
+		private Player GetOrCreateThing()
+		{
+			Player? thing = _players.FirstOrDefault(p => p is not null && p.Civilization is Civilizations.TheThing);
+			if (thing is not null) return thing;
+
+			ICivilization thingCiv = Common.Civilizations.First(c => c is Civilizations.TheThing);
+			thing = new Player(thingCiv, "The Thing");
+			AddPlayer(thing);
+			foreach (Player p in _players.Where(p => p is not null && p != thing && !p.IsDestroyed()))
+				thing.DeclareWar(p);
+			return thing;
+		}
+
+		// Infected cities are on a five-turn clock. Destroyed in time (by anyone) —
+		// the line holds. Not in time — the city is consumed and the organism reaches
+		// the two nearest cities on the same continent, whoever owns them. Captured —
+		// there was nothing left to save; the city is razed on the next pass.
+		private void ProcessThingOutbreaks()
+		{
+			if (ThingOutbreaks.Count == 0) return;
+
+			Player? thing = _players.FirstOrDefault(p => p is not null && p.Civilization is Civilizations.TheThing);
+			byte tnum = thing is not null ? PlayerNumber(thing) : (byte)0;
+
+			foreach (var kv in ThingOutbreaks.ToArray())
+			{
+				City? city = GetCity(kv.Key.x, kv.Key.y);
+				if (city is null || city.Size == 0)
+				{
+					ThingOutbreaks.Remove(kv.Key); // destroyed in time — the line held
+					continue;
+				}
+				if (thing is null || city.Owner != tnum)
+				{
+					// Captured instead of destroyed: whatever walked out wore their faces.
+					ThingOutbreaks.Remove(kv.Key);
+					string capturedName = city.Name;
+					DestroyCity(city);
+					GameTask.Enqueue(Message.Newspaper(null!, $"{capturedName} burned!",
+						"Nothing inside", "could be saved."));
+					continue;
+				}
+				if (_gameTurn < kv.Value) continue;
+
+				// The clock ran out: the city is consumed, and the organism moves.
+				ThingOutbreaks.Remove(kv.Key);
+				byte continent = Map[city.X, city.Y].ContinentId;
+				City[] spread = _cities
+					.Where(n => n.Size > 0 && n.Owner != tnum && n != city
+					         && Map[n.X, n.Y].ContinentId == continent)
+					.OrderBy(n => TileDistance(n.X, n.Y, city.X, city.Y))
+					.Take(2)
+					.ToArray();
+
+				string lostName = city.Name;
+				foreach (IUnit u in Map[city.X, city.Y].Units.Where(u => u.Owner == tnum).ToArray())
+					DisbandUnit(u);
+				DestroyCity(city);
+				foreach (City n in spread)
+					InfectCity(n);
+
+				if (spread.Length > 0)
+					GameTask.Enqueue(Message.Newspaper(null!, $"{lostName} is gone.",
+						string.Join(" and ", spread.Select(n => n.Name)),
+						spread.Length > 1 ? "have stopped answering." : "has stopped answering."));
+				else
+					GameTask.Enqueue(Message.Newspaper(null!, $"{lostName} is gone.",
+						"The silence that follows", "is total."));
+			}
 		}
 
 		private void SpawnOlvir()

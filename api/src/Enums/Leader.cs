@@ -43,5 +43,6 @@ namespace CivOne.Enums
 		HaileSelassie,
 		Hiawatha,
 		TheRegistry,
+		TheOrganism,
 	}
 }

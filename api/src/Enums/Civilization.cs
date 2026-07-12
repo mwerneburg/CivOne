@@ -47,5 +47,9 @@ namespace CivOne.Enums
 		// Story-arc faction like the Olvir: joins mid-game via AddPlayer when the
 		// Owners archetype invades — never selected at game setup.
 		TheOthers = 27,
+		// Story-arc faction: the South Pole Expedition's cursed outcome. Owns
+		// infected cities on a destruction timer; joins mid-game via AddPlayer,
+		// never selected at game setup.
+		TheThing = 28,
 	}
 }
