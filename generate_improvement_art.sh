@@ -167,5 +167,6 @@ resize_and_install_event "$SRC/SplinterRepublic.png"      "SplinterRepublic.png"
 resize_and_install_event "$SRC/KingInYellow.png"          "KingInYellow.png"
 resize_and_install_event "$SRC/Anomaly.png"               "Anomaly.png"
 resize_and_install_event "$SRC/Leviathan.png"             "Leviathan.png"
+resize_and_install_event "$SRC/Visitations.png"           "Visitations.png"
 
 echo "Done."

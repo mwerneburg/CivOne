@@ -138,6 +138,12 @@ namespace CivOne
 		internal int AnomalyX, AnomalyY;
 		internal uint AnomalyEndTurn;
 
+		// Pyramids curse: the alignment is a beacon. The wonder city is visited
+		// for the next four thousand years (ProcessVisitations) — the haunting
+		// follows the monument, whoever holds the city.
+		internal bool VisitationsActive;
+		internal int VisitationsX, VisitationsY;
+
 		// Grey goo (Nanobot Factory curse): consumed tile → turn it was consumed.
 		// Goo tiles yield nothing (City yield guards), eat units that end a turn
 		// on them, and the front doubles every 5 turns (ProcessGreyGoo). Settlers
@@ -1209,6 +1215,9 @@ namespace CivOne
 				// Newton's anomaly: gifts and thefts from other whens.
 				ProcessAnomaly();
 
+				// The Visitations: the beacon over the Pyramids, four thousand years.
+				ProcessVisitations();
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -2210,6 +2219,65 @@ namespace CivOne
 						home.RemoveTradeRoutesTo(partner);
 					}
 				}
+		}
+
+		// ── Pyramids curse: the Visitations ──────────────────────────────────
+		// The alignment is a beacon, and it will burn for four thousand years.
+		// A small per-turn roll (hurricane mold) over the wonder city: a
+		// household vanishes, a field burns in perfect circles, or — rarely —
+		// recovered debris advances the owner's research. Mostly harmless,
+		// permanently unsettling, no counterplay by design: an ambient haunting
+		// that ends only if the monument's city does.
+		private void ProcessVisitations()
+		{
+			if (!VisitationsActive) return;
+			City? monument = GetCity(VisitationsX, VisitationsY);
+			if (monument is null || monument.Size == 0)
+			{
+				VisitationsActive = false; // the beacon is rubble; the sky moves on
+				return;
+			}
+			if (Common.Random.Next(100) >= 6) return;
+
+			Player owner = GetPlayer(monument.Owner);
+			int roll = Common.Random.Next(10);
+			if (roll < 4 && monument.Size > 1)
+			{
+				monument.Size--;
+				if (owner.IsHuman)
+					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+						$"A household in {monument.Name}",
+						"stands empty this morning.",
+						"The beds are made."));
+			}
+			else if (roll < 8)
+			{
+				ITile? field = monument.ResourceTiles
+					.Where(t => !t.IsOcean && t.City is null && !t.Pollution)
+					.OrderBy(_ => Common.Random.Next(100))
+					.FirstOrDefault();
+				if (field is not null)
+				{
+					field.Pollution  = true;
+					field.Irrigation = false;
+					field.Mine       = false;
+					InvalidateCitiesAt(field.X, field.Y);
+					if (owner.IsHuman)
+						GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+							$"Near {monument.Name}: a field",
+							"burned overnight,",
+							"in perfect circles."));
+				}
+			}
+			else
+			{
+				owner.Science += 20;
+				if (owner.IsHuman)
+					GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+						$"Debris recovered near {monument.Name}.",
+						"The metal remembers",
+						"a different sky."));
+			}
 		}
 
 		// ── Newton's College curse: the temporal anomaly ─────────────────────

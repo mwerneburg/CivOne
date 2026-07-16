@@ -310,6 +310,9 @@ namespace CivOne
 					AnomalyX                = AnomalyX,
 					AnomalyY                = AnomalyY,
 					AnomalyEndTurn          = AnomalyEndTurn,
+					VisitationsActive       = VisitationsActive,
+					VisitationsX            = VisitationsX,
+					VisitationsY            = VisitationsY,
 					GooTiles                = GooTiles.Count > 0
 					                          ? GooTiles.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -554,6 +557,9 @@ namespace CivOne
 			AnomalyX           = g.AnomalyX;
 			AnomalyY           = g.AnomalyY;
 			AnomalyEndTurn     = g.AnomalyEndTurn;
+			VisitationsActive  = g.VisitationsActive;
+			VisitationsX       = g.VisitationsX;
+			VisitationsY       = g.VisitationsY;
 			if (g.GooTiles is not null)
 				foreach (var triple in g.GooTiles)
 					if (triple.Length == 3)

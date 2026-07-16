@@ -1571,6 +1571,26 @@ namespace CivOne
 									"automatically, free of charge."));
 							}
 						}
+						if (wonder is Wonders.Pyramids && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the alignment is a beacon (docs/cursed_wonders.md #4).
+							// The wonder city is visited for the next four thousand years
+							// (Game.ProcessVisitations) — no counterplay, by design.
+							Game.Instance.VisitationsActive = true;
+							Game.Instance.VisitationsX = X;
+							Game.Instance.VisitationsY = Y;
+							string monument = Name;
+							impTask.Done += (s, a) =>
+							{
+								string? tapestry = EventArtScreen.FindPath("Visitations");
+								if (tapestry is not null)
+									GameTask.Enqueue(Show.Screen(new EventArtScreen(tapestry,
+										"AS RECORDED IN LATER CENTURIES")));
+								GameTask.Enqueue(Message.Newspaper(null!, "The capstone is set!",
+									$"Lights stand over {monument}",
+									"by night. They do not move."));
+							};
+						}
 						if (wonder is Wonders.Lighthouse && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the light carries farther than intended (docs/cursed_wonders.md

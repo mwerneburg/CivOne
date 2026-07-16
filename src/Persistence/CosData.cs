@@ -83,6 +83,10 @@ namespace CivOne.Persistence
 		public int AnomalyX { get; set; }
 		public int AnomalyY { get; set; }
 		public uint AnomalyEndTurn { get; set; }
+		// Pyramids visitations: beacon city tile; inactive unless the flag is set.
+		public bool VisitationsActive { get; set; }
+		public int VisitationsX { get; set; }
+		public int VisitationsY { get; set; }
 		// Grey goo tiles: [x, y, turnConsumed] triples, plus the doubling clock
 		// and whether the Nanobot Factory rolled cursed (no upgrades ever).
 		public List<int[]> GooTiles { get; set; } = null!;
