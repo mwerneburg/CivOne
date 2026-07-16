@@ -1135,6 +1135,10 @@ namespace CivOne
 				// The Thing: advance the outbreak clocks (South Pole Expedition curse).
 				ProcessThingOutbreaks();
 
+				// Cultural defection: disorderly frontier towns may choose a more
+				// admired civilization's flag.
+				ProcessCultureDefections();
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -1701,6 +1705,17 @@ namespace CivOne
 				else if (temples <= 0.2) score -= 1;
 			}
 
+			// Accumulated culture — a deep artistic and civic tradition, relative to
+			// the world's, reads as an enlightened civilization.
+			Player[] cultureRivals = _players.Where(p => p != null && p != h && !p.IsDestroyed()
+				&& PlayerNumber(p) != 0).ToArray();
+			if (cultureRivals.Length > 0)
+			{
+				double avgCulture = cultureRivals.Average(p => p.Culture);
+				if (h.Culture > avgCulture * 2)      score += 2;
+				else if (h.Culture * 2 < avgCulture) score -= 1;
+			}
+
 			// Pollution — a smoke-choked world is loud and careless; leans Owners.
 			if (h.Pollution >= 8)      score -= 2;
 			else if (h.Pollution == 0) score += 1;
@@ -1893,6 +1908,59 @@ namespace CivOne
 			foreach (Player payer in p.TributePayers)
 				output += payer.TributeAmountTo(p);
 			return output;
+		}
+
+		// ── Cultural defection ───────────────────────────────────────────────
+		// Civ III's city flipping without the borders: a small, unhappy, lightly
+		// garrisoned city in the cultural shadow of a far more admired neighbour
+		// may choose the other flag. Peaceful only — an enemy's culture doesn't
+		// flip cities, armies do. Rare and headline-worthy: at most one per turn.
+		private void ProcessCultureDefections()
+		{
+			foreach (City city in _cities
+				.Where(c => c.Size > 0 && c.Size <= 5 && c.Owner != 0)
+				.OrderBy(_ => Common.Random.Next(10000)).ToArray())
+			{
+				Player owner = GetPlayer(city.Owner);
+				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing) continue;
+				if (city.HasBuilding<Palace>()) continue;
+				if (!city.IsInDisorder) continue;
+				if (Map[city.X, city.Y].Units.Count(u => u.Owner == city.Owner) >= 2) continue;
+
+				// The pull: the strongest nearby foreign culture, at peace with the
+				// owner, with at least triple the owner's accumulated culture.
+				Player? magnet = _cities
+					.Where(n => n.Size > 0 && n.Owner != city.Owner && n.Owner != 0
+					         && TileDistance(n.X, n.Y, city.X, city.Y) <= 5)
+					.Select(n => GetPlayer(n.Owner))
+					.Where(p => !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing)
+					         && !p.IsAtWar(owner)
+					         && p.Culture >= 100 && p.Culture >= owner.Culture * 3)
+					.OrderByDescending(p => p.Culture)
+					.FirstOrDefault();
+				if (magnet is null) continue;
+				if (Common.Random.Next(100) >= 8) continue;
+
+				byte mnum = PlayerNumber(magnet);
+				// The garrison walks away; units homed here fight on unsupported.
+				foreach (IUnit u in Map[city.X, city.Y].Units.ToArray())
+					DisbandUnit(u);
+				foreach (IUnit u in city.Units.ToArray())
+					u.SetHome(null);
+				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, mnum));
+				string oldTribe = owner.TribeNamePlural;
+				city.Owner = mnum;
+				city.ResetResourceTiles();
+				city.ClearProductionQueue();
+				city.SetProduction(new Units.Militia());
+
+				if (owner.IsHuman || magnet.IsHuman
+				    || HumanPlayer.HasEmbassy(owner) || HumanPlayer.HasEmbassy(magnet))
+					GameTask.Enqueue(Message.Newspaper(null!, $"{city.Name} defects!",
+						$"Citizens abandon the {oldTribe}",
+						$"for {magnet.TribeName} culture."));
+				break; // at most one defection per turn
+			}
 		}
 
 		// ── The Thing (South Pole Expedition curse) ─────────────────────────

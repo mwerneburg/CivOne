@@ -156,6 +156,15 @@ namespace CivOne
 
 		internal int ExplorationCredits;
 
+		// Culture: accumulated cultural weight of the empire's buildings and wonders
+		// (City.CultureRate, accrued in NewTurn). Read by diplomacy (AIAccepts), the
+		// visitor-archetype draw, and the cultural-defection check; the Evaluators
+		// arc will read it too.
+		private int _culture;
+		public int Culture => _culture;
+		public int CultureRate => Cities.Sum(c => c.CultureRate);
+		internal void SetCulture(int culture) => _culture = culture; // COS load
+
 		public int Score =>
 			Population / 5000 +                      // 2 pts per 10,000 people
 			_advances.Count * 3 +                    // 3 pts per advance
@@ -766,6 +775,9 @@ namespace CivOne
 					AI?.ChooseGovernment();
 			}
 			if (_anarchy > 0) _anarchy--;
+
+			// Culture accrues from the empire's civic fabric.
+			_culture += CultureRate;
 
 			foreach (byte k in _peaceTreaty.Keys.ToArray())
 				if (--_peaceTreaty[k] <= 0) _peaceTreaty.Remove(k);

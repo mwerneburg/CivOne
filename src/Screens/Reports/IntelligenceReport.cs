@@ -49,6 +49,8 @@ namespace CivOne.Screens.Reports
 					.DrawText($"{player.Gold}$", 0, CassetteTheme.OK, OX + 73, y)
 					.DrawText("Military:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
 					.DrawText($"{Game.GetUnits().Count(x => player == x.Owner)} Units", 0, CassetteTheme.INK_HIGH, OX + 67, y)
+					.DrawText("Culture:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight))
+					.DrawText($"{player.Culture} (+{player.CultureRate}/turn)", 0, CassetteTheme.INK_HIGH, OX + 67, y)
 					.DrawText("Foreign Affairs:", 0, CassetteTheme.INK_MID, OX + 16, (y += fontHeight + 4));
 
 				// Tribute relationships, visible if the *human* has an embassy with the

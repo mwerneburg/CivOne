@@ -133,6 +133,8 @@ namespace CivOne.Persistence
 		public int? CurrentResearch { get; set; }
 		public int FutureTechs { get; set; }
 		public int? MilestoneScore { get; set; }
+		// Accumulated culture points. Absent on saves predating the culture ledger.
+		public int? Culture { get; set; }
 		public int[] AtWarWith { get; set; } = null!;
 		public int[] Embassies { get; set; } = null!;
 		public int CityNamesSkipped { get; set; }

@@ -398,6 +398,19 @@ namespace CivOne
 		private int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
+
+		// Cultural weight per turn: faith, arts, and learning. Wonders radiate 3;
+		// obsolete wonders still count 1 — old glory endures. Accumulated into
+		// Player.Culture each turn; read by diplomacy, the visitor-archetype draw,
+		// and the cultural-defection check.
+		internal int CultureRate =>
+			(HasBuilding<Buildings.Temple>() ? 1 : 0)
+			+ (HasBuilding<Buildings.Colosseum>() ? 1 : 0)
+			+ (HasBuilding<LibraryBuilding>() ? 1 : 0)
+			+ (HasBuilding<Buildings.Cathedral>() ? 2 : 0)
+			+ (HasBuilding<UniversityBuilding>() ? 2 : 0)
+			+ (HasBuilding<Buildings.CivicMonument>() ? 3 : 0)
+			+ Wonders.Sum(w => Game.WonderObsolete(w) ? 1 : 3);
 		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
 		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));
 		internal short TradeScience => (short)(_cachedTradeScience ??= (short)(TradeTotal - TradeLuxuries - TradeTaxes));

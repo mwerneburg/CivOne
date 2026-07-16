@@ -187,6 +187,7 @@ namespace CivOne
 					CurrentResearch  = player.CurrentResearch?.Id,
 					FutureTechs      = player.FutureTechs,
 					MilestoneScore   = player.MilestoneScore,
+					Culture          = player.Culture,
 					AtWarWith        = Enumerable.Range(0, playerCount)
 				                   .Where(j => j != p && _players[p].IsAtWar(_players[j]))
 				                   .ToArray(),
@@ -490,6 +491,7 @@ namespace CivOne
 			{
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
 				_players[i].SetMilestoneScore(cos.Players[i].MilestoneScore ?? 0);
+				_players[i].SetCulture(cos.Players[i].Culture ?? 0);
 			}
 
 			MapRevealedNotified   = g.MapRevealedNotified;

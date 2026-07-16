@@ -171,7 +171,7 @@ namespace CivOne.Screens.Reports
 			{
 				int  pIdx = (byte)p;
 				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
-				this.DrawText($"{p.TribeNamePlural}: {p.Score}", 0, col, lx, ly, TextAlign.Right);
+				this.DrawText($"{p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Right);
 				ly += fh + 1;
 			}
 

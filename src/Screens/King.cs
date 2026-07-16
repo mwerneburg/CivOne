@@ -353,6 +353,9 @@ namespace CivOne.Screens
 			           : agg == AggressionLevel.Aggressive ? basePct - 25
 			           : basePct;
 			if (_enemy.HasAttitudeBonus(Human)) chance += 20;
+			// Culture admiration: nations defer to a civilization whose accumulated
+			// culture dwarfs their own.
+			if (Human.Culture >= 100 && Human.Culture >= _enemy.Culture * 2) chance += 10;
 			return Common.Random.Next(100) < Math.Max(0, Math.Min(100, chance));
 		}
 
