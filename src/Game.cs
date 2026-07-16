@@ -115,6 +115,19 @@ namespace CivOne
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
 		internal byte GoziraState;
 
+		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
+		// Infested cities pay a trade skim and hold one permanently unhappy citizen
+		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
+		internal readonly HashSet<(int x, int y)> GreyCities = new();
+
+		// Grey goo (Nanobot Factory curse): consumed tile → turn it was consumed.
+		// Goo tiles yield nothing (City yield guards), eat units that end a turn
+		// on them, and the front doubles every 5 turns (ProcessGreyGoo). Settlers
+		// scrub it via the pollution-clean order; a nuke sterilizes a whole region.
+		internal readonly Dictionary<(int x, int y), uint> GooTiles = new();
+		internal uint GooNextDoubleTurn;
+		internal bool NanobotCursed; // cursed factory never grants upgrades
+
 		// Dome path: which player (owner byte) is assigned to which dome wonder component(s).
 		// Populated when the Tau Ceti approach warning fires.
 		internal readonly Dictionary<byte, List<Enums.Wonder>> DomeAssignments = new();
@@ -642,6 +655,12 @@ namespace CivOne
 					foreach (Player lp in _players.Where(p => p != null && !p.IsDestroyed() && p.HasWonder<LeonardosWorkshop>()))
 						ApplyLeonardoUpgrade(lp);
 
+				// Nanobot Factory (blessed roll): the late-game workshop — three free
+				// upgrades per owner per turn. A cursed factory never grants any.
+				if (!NanobotCursed)
+					foreach (Player np in _players.Where(p => p != null && !p.IsDestroyed() && p.HasWonder<Wonders.NanobotFactory>()))
+						ApplyNanobotUpgrades(np);
+
 				// Fire the satellite-anomaly intelligence report once Apollo is built
 				if (!MapRevealedNotified && WonderBuilt<ApolloProgram>())
 				{
@@ -1149,6 +1168,12 @@ namespace CivOne
 					GameTask.Enqueue(Message.Newspaper(null!, "Gozira falls!",
 						"The long watch of the", "coastal cities is over."));
 				}
+
+				// The Greys: spread and eviction (The Portal's cursed outcome).
+				ProcessGreys();
+
+				// Grey goo: consume units, advance the doubling front (Nanobot Factory curse).
+				ProcessGreyGoo();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -1920,6 +1945,221 @@ namespace CivOne
 			foreach (Player payer in p.TributePayers)
 				output += payer.TributeAmountTo(p);
 			return output;
+		}
+
+		// ── The Portal (cursed wonder #3) ────────────────────────────────────
+
+		// Contact with the extra-planar. Three times in four: luminous beings
+		// whose counsel ends every war on Earth. One in four: the Greys move
+		// into the wonder city. Returns true when the Greys came through.
+		internal bool OpenPortal(Player builder, City site)
+		{
+			if (Common.Random.Next(4) != 0)
+			{
+				// Peace among everyone capable of it (story factions are not).
+				Player[] nations = _players.Where(p => p is not null && !p.IsDestroyed()
+					&& PlayerNumber(p) != 0
+					&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
+				foreach (Player a in nations)
+					foreach (Player b in nations.Where(x => x != a))
+					{
+						a.MakePeace(b);
+						a.SetPeaceTreaty(b, 50);
+						a.SetAttitudeBonus(b, 50);
+					}
+				Log($"Portal opened by {builder.TribeName}: luminous counsel, global peace");
+				return false;
+			}
+
+			GreyCities.Add((site.X, site.Y));
+			InvalidateCitiesAt(site.X, site.Y);
+			Log($"Portal opened by {builder.TribeName}: the Greys settle in {site.Name}");
+			return true;
+		}
+
+		// The Greys: every 10th turn the houseguests discover a new city — the
+		// nearest to any infested one. A city that goes hungry for a turn is
+		// beneath their standards: they leave. They never fight; they just cost.
+		private void ProcessGreys()
+		{
+			if (GreyCities.Count == 0) return;
+
+			// Eviction first: austerity works.
+			foreach (var key in GreyCities.ToArray())
+			{
+				City? host = GetCity(key.x, key.y);
+				if (host is null || host.Size == 0)
+				{
+					GreyCities.Remove(key);
+					continue;
+				}
+				if (host.FoodIncome < 0)
+				{
+					GreyCities.Remove(key);
+					InvalidateCitiesAt(key.x, key.y);
+					if (host.Owner == PlayerNumber(HumanPlayer))
+						GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+							$"The visitors have left {host.Name}.",
+							"They said the food",
+							"was better elsewhere."));
+				}
+			}
+
+			if (GreyCities.Count == 0 || _gameTurn % 10 != 0) return;
+
+			City? next = _cities
+				.Where(c => c.Size > 0 && c.Owner != 0 && !GreyCities.Contains((c.X, c.Y)))
+				.OrderBy(c => GreyCities.Min(g => TileDistance(c.X, c.Y, g.x, g.y)))
+				.FirstOrDefault();
+			if (next is null) return;
+			GreyCities.Add((next.X, next.Y));
+			InvalidateCitiesAt(next.X, next.Y);
+			if (next.Owner == PlayerNumber(HumanPlayer))
+				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+					$"Visitors have settled in {next.Name}.",
+					"They are very interested in",
+					"our television broadcasts."));
+		}
+
+		// ── Grey goo (Nanobot Factory curse) ─────────────────────────────────
+
+		// One tile joins the tide: yields die, improvements are stripped, the
+		// pollution flag marks it visually, and any city standing here is now
+		// on a ten-turn clock (two doublings) before the walls go under.
+		private void GooTile(int x, int y)
+		{
+			GooTiles[(x, y)] = (uint)_gameTurn;
+			ITile tile = Map[x, y];
+			tile.Pollution  = true;
+			tile.Irrigation = false;
+			tile.Mine       = false;
+			tile.Road       = false;
+			tile.RailRoad   = false;
+			OlvirImprovements.Remove((x, y));
+			InvalidateCitiesAt(x, y);
+			if (tile.City is City c && c.Size > 0)
+				GameTask.Enqueue(Message.Newspaper(null!, $"{c.Name}:",
+					"the grey tide has reached", "the walls."));
+		}
+
+		// The cursed roll at wonder completion: the tile under the factory goes first.
+		internal void SeedGreyGoo(City site)
+		{
+			NanobotCursed = true;
+			GooNextDoubleTurn = (uint)(_gameTurn + 5);
+			GooTile(site.X, site.Y);
+			Log($"Grey goo seeded at {site.Name} ({site.X},{site.Y})");
+		}
+
+		// Every 5 turns the front doubles: N tiles claim N adjacent land tiles.
+		// The goo cannot cross ocean. Units ending a turn on goo are consumed —
+		// except Settlers, whose counter-nanite gear is the one thing that
+		// scrubs it (the pollution-clean order, 2 turns a tile).
+		private void ProcessGreyGoo()
+		{
+			if (GooTiles.Count == 0) return;
+
+			bool humanLoss = false;
+			byte hnum = PlayerNumber(HumanPlayer);
+			foreach (var key in GooTiles.Keys.ToArray())
+				foreach (IUnit victim in Map[key.x, key.y].Units.Where(u => u is not Settlers).ToArray())
+				{
+					if (victim.Owner == hnum) humanLoss = true;
+					DisbandUnit(victim);
+				}
+			if (humanLoss)
+				GameTask.Enqueue(Message.Advisor(Advisor.Defense, false,
+					"Units lost to the grey tide.",
+					"Nothing that stands on it",
+					"stands for long."));
+
+			if (_gameTurn < GooNextDoubleTurn) return;
+			GooNextDoubleTurn = (uint)(_gameTurn + 5);
+
+			// Cities that have stood in the goo for two clock periods go under.
+			foreach (var kv in GooTiles.ToArray())
+			{
+				City? c = GetCity(kv.Key.x, kv.Key.y);
+				if (c is not null && c.Size > 0 && _gameTurn - kv.Value >= 10)
+				{
+					string name = c.Name;
+					DestroyCity(c);
+					GameTask.Enqueue(Message.Newspaper(null!, $"{name} is gone.",
+						"The grey tide rolled", "over the walls."));
+				}
+			}
+
+			// The doubling: claim as many new frontier tiles as the tide already holds.
+			int quota = GooTiles.Count;
+			var frontier = new List<(int x, int y)>();
+			var seen = new HashSet<(int x, int y)>();
+			foreach (var k in GooTiles.Keys.ToArray())
+				foreach (ITile t in Map[k.x, k.y].GetBorderTiles())
+				{
+					if (t.IsOcean) continue;
+					var key = (t.X, t.Y);
+					if (GooTiles.ContainsKey(key) || !seen.Add(key)) continue;
+					frontier.Add(key);
+				}
+			foreach (var key in frontier.OrderBy(_ => Common.Random.Next(10000)).Take(quota))
+				GooTile(key.x, key.y);
+		}
+
+		// A nuclear strike sterilizes the entire connected goo region it touches —
+		// the one time the game rewards nuking your own land. The fallout stays.
+		internal void SterilizeGoo(int cx, int cy)
+		{
+			var queue = new Queue<(int x, int y)>(
+				GooTiles.Keys.Where(k => TileDistance(k.x, k.y, cx, cy) <= 1));
+			if (queue.Count == 0) return;
+
+			int removed = 0;
+			while (queue.Count > 0)
+			{
+				var k = queue.Dequeue();
+				if (!GooTiles.Remove(k)) continue;
+				removed++;
+				InvalidateCitiesAt(k.x, k.y);
+				foreach (var n in GooTiles.Keys.Where(n => TileDistance(n.x, n.y, k.x, k.y) <= 1).ToArray())
+					queue.Enqueue(n);
+			}
+			if (removed > 0)
+				GameTask.Enqueue(Message.Newspaper(null!, "The grey tide is glass!",
+					$"{removed} leagues of goo", "sterilized by atomic fire."));
+		}
+
+		// The blessed factory: a late-game Leonardo's Workshop — up to three free
+		// upgrades per turn along the full chain, ancient stragglers included.
+		private void ApplyNanobotUpgrades(Player owner)
+		{
+			(UnitType from, UnitType to, IAdvance req)[] chain =
+			{
+				(UnitType.Militia,    UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Phalanx,    UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Legion,     UnitType.Musketeers, new Gunpowder()),
+				(UnitType.Musketeers, UnitType.Riflemen,   new Conscription()),
+				(UnitType.Riflemen,   UnitType.MechInf,    new LaborUnion()),
+				(UnitType.Chariot,    UnitType.Knights,    new Chivalry()),
+				(UnitType.Knights,    UnitType.Cavalry,    new HorsebackRiding()),
+				(UnitType.Cavalry,    UnitType.Armor,      new Automobile()),
+				(UnitType.Catapult,   UnitType.Cannon,     new Metallurgy()),
+				(UnitType.Cannon,     UnitType.Artillery,  new Robotics()),
+				(UnitType.Frigate,    UnitType.Ironclad,   new SteamEngine()),
+				(UnitType.Ironclad,   UnitType.Cruiser,    new Combustion()),
+			};
+			byte ownerNum = PlayerNumber(owner);
+			int budget = 3;
+			foreach (var (from, to, req) in chain)
+			{
+				while (budget > 0 && owner.HasAdvance(req))
+				{
+					IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from);
+					if (target is null) break;
+					UpgradeUnit(target, to, 0);
+					budget--;
+				}
+				if (budget == 0) return;
+			}
 		}
 
 		// ── Gozira (Manhattan Project curse) ─────────────────────────────────

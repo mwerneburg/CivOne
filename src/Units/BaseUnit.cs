@@ -415,6 +415,8 @@ namespace CivOne.Units
 							Game.DisbandUnit(victim);
 						}
 					}
+					// A strike touching grey goo sterilizes the whole connected region.
+					Game.SterilizeGoo(X + relX, Y + relY);
 					// The Manhattan Project planted the egg; the first detonation wakes it.
 					Game.AwakenGozira(Game.GetPlayer(detonator));
 				};

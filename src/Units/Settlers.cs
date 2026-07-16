@@ -608,7 +608,14 @@ namespace CivOne.Units
 			{
 				BuildingCleanPollution--;
 				if (BuildingCleanPollution > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].Pollution = false; Game.InvalidateCitiesAt(X, Y); }
+				else
+				{
+					Map[X, Y].Pollution = false;
+					// Scrubbing a grey-goo tile burns out the assemblers with it —
+					// the settlers' counter-nanite gear is the only cure short of a nuke.
+					Game.GooTiles.Remove((X, Y));
+					Game.InvalidateCitiesAt(X, Y);
+				}
 			}
 			else if (BuildingCanopyArray > 0)
 			{

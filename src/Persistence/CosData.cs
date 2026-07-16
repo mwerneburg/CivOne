@@ -70,6 +70,13 @@ namespace CivOne.Persistence
 		public int[] HumanStartedWars { get; set; } = null!;
 		// Gozira: 0 = egg sleeps, 1 = rampaging, 2 = slain.
 		public int GoziraState { get; set; }
+		// Grey-infested city tiles: list of [x, y] pairs (The Portal's curse).
+		public List<int[]> GreyCities { get; set; } = null!;
+		// Grey goo tiles: [x, y, turnConsumed] triples, plus the doubling clock
+		// and whether the Nanobot Factory rolled cursed (no upgrades ever).
+		public List<int[]> GooTiles { get; set; } = null!;
+		public uint GooNextDoubleTurn { get; set; }
+		public bool NanobotCursed { get; set; }
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }

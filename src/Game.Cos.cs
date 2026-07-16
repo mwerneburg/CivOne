@@ -298,6 +298,14 @@ namespace CivOne
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
 					GoziraState             = GoziraState,
+					GreyCities              = GreyCities.Count > 0
+					                          ? GreyCities.Select(g => new[] { g.x, g.y }).ToList()
+					                          : null!,
+					GooTiles                = GooTiles.Count > 0
+					                          ? GooTiles.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
+					                          : null!,
+					GooNextDoubleTurn       = GooNextDoubleTurn,
+					NanobotCursed           = NanobotCursed,
 					DomeAssignments         = DomeAssignments
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
@@ -523,6 +531,16 @@ namespace CivOne
 					if (n > 0 && n < _players.Count)
 						HumanStartedWars.Add((byte)n);
 			GoziraState = (byte)g.GoziraState;
+			if (g.GreyCities is not null)
+				foreach (var pair in g.GreyCities)
+					if (pair.Length == 2)
+						GreyCities.Add((pair[0], pair[1]));
+			if (g.GooTiles is not null)
+				foreach (var triple in g.GooTiles)
+					if (triple.Length == 3)
+						GooTiles[(triple[0], triple[1])] = (uint)triple[2];
+			GooNextDoubleTurn = g.GooNextDoubleTurn;
+			NanobotCursed     = g.NanobotCursed;
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

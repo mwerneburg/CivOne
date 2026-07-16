@@ -48,5 +48,7 @@ namespace CivOne.Enums
 		HagiaSofia               = 35,
 		AuditAuthority           = 36,
 		FusionCore               = 37,
+		ThePortal                = 38,
+		NanobotFactory           = 39,
 	}
 }

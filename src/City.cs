@@ -276,6 +276,8 @@ namespace CivOne
 
 		internal int FoodValue(ITile tile)
 		{
+			// Grey goo is dead ground: nothing grows, nothing is mined, nothing moves.
+			if (Game.Instance.GooTiles.ContainsKey((tile.X, tile.Y))) return 0;
 			int output = tile.Food;
 			switch (tile.Type)
 			{
@@ -300,6 +302,7 @@ namespace CivOne
 
 		internal int ShieldValue(ITile tile)
 		{
+			if (Game.Instance.GooTiles.ContainsKey((tile.X, tile.Y))) return 0;
 			int output = tile.Shield;
 			bool isCenter = (tile.X == X && tile.Y == Y);
 
@@ -339,6 +342,7 @@ namespace CivOne
 
 		internal int TradeValue(ITile tile)
 		{
+			if (Game.Instance.GooTiles.ContainsKey((tile.X, tile.Y))) return 0;
 			int output = tile.Trade;
 
 			// City-center floor: the tile under the city always produces at least 1 trade
@@ -420,7 +424,19 @@ namespace CivOne
 			get
 			{
 				if (_cachedCorruption.HasValue) return _cachedCorruption.Value;
+				int corruption = CorruptionBase;
+				// The Greys skim a fifth of the city's trade: they don't work here,
+				// but they do eat here (The Portal's cursed outcome, Game.GreyCities).
+				if (Game.Instance.GreyCities.Contains((X, Y)))
+					corruption += RawTrade / 5;
+				return (_cachedCorruption = corruption).Value;
+			}
+		}
 
+		private int CorruptionBase
+		{
+			get
+			{
 				IGovernment government = Game.GetPlayer(_owner).Government;
 				// "Democracy still leaks": utopian governments (CorruptionMultiplier == 0,
 				// i.e. Democracy) used to be perfectly clean. Now graft creeps in as a
@@ -429,13 +445,13 @@ namespace CivOne
 				// Future hook: a Police Station building should zero the leak entirely.
 				if (government.CorruptionMultiplier == 0)
 				{
-					if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
-					if (HasWonder<Wonders.AuditAuthority>()) return (_cachedCorruption = 0).Value;
-					if (HasBuilding<PoliceStation>()) return (_cachedCorruption = 0).Value;
+					if (HasBuilding<Palace>()) return 0;
+					if (HasWonder<Wonders.AuditAuthority>()) return 0;
+					if (HasBuilding<PoliceStation>()) return 0;
 					int leakPct = Math.Max(0, Size - 4);
 					int leak = RawTrade * leakPct / 100;
 					if (HasBuilding<Courthouse>()) leak /= 2;
-					return (_cachedCorruption = leak).Value;
+					return leak;
 				}
 
 				int distance;
@@ -445,9 +461,9 @@ namespace CivOne
 						distance = 10;
 						break;
 					default:
-						if (HasBuilding<Palace>()) return (_cachedCorruption = 0).Value;
+						if (HasBuilding<Palace>()) return 0;
 						// Audit Authority host city is a second capital: corruption-free.
-						if (HasWonder<Wonders.AuditAuthority>()) return (_cachedCorruption = 0).Value;
+						if (HasWonder<Wonders.AuditAuthority>()) return 0;
 						var owner = Game.GetPlayer(Owner);
 						City capital2 = owner.Cities.FirstOrDefault(x => x.HasBuilding<Palace>());
 						City audit = owner.Cities.FirstOrDefault(x => x.HasWonder<Wonders.AuditAuthority>());
@@ -462,7 +478,7 @@ namespace CivOne
 
 				if (HasBuilding<Courthouse>() || (HasBuilding<Palace>() && government is Governments.Communism)) corruption /= 2;
 
-				return (_cachedCorruption = corruption).Value;
+				return corruption;
 			}
 		}
 
@@ -902,6 +918,8 @@ namespace CivOne
 			// Shakespeare's Theatre below still zeroes everything, so a single global
 			// "happiness wonder" remains the full counter for an industrial powerhouse.
 			unhappyCount += SmokeStacks / 10;
+			// The Greys: one permanently unhappy citizen — nobody likes the houseguests.
+			if (Game.Instance.GreyCities.Contains((X, Y))) unhappyCount++;
 			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
 			{
 				unhappyCount = 0;
@@ -1489,6 +1507,58 @@ namespace CivOne
 										GameTask.Enqueue(Show.Screen(new EventArtScreen(thingArt, $"QUARANTINE — {infectedName.ToUpper()} HAS GONE DARK")));
 									GameTask.Enqueue(Show.Screen(new Screens.ThingOutbreakTransmission(gameYear, infectedName)));
 								};
+							}
+						}
+						if (wonder is Wonders.ThePortal)
+						{
+							// Contact resolves immediately for any builder; the reveal plays
+							// for the human either way — global peace or new houseguests are
+							// both world news.
+							bool greys = Game.Instance.OpenPortal(Player, this);
+							string portalCity = Name;
+							impTask.Done += (s, a) =>
+							{
+								if (greys)
+								{
+									string? greysArt = EventArtScreen.FindPath("TheGreys");
+									if (greysArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(greysArt,
+											$"CONTACT — THEY LIKE IT IN {portalCity.ToUpper()}")));
+									GameTask.Enqueue(Message.Newspaper(null!, "Contact made!",
+										"Visitors arrive in numbers.", "They do not appear to work."));
+								}
+								else
+								{
+									GameTask.Enqueue(Message.Newspaper(null!, "Contact made!",
+										"Luminous beings counsel peace.", "Every war on Earth has ended."));
+								}
+							};
+						}
+						if (wonder is Wonders.NanobotFactory)
+						{
+							// 1/4: the replication bound does not hold. The goo seeds under
+							// the factory; the doubling clock starts (Game.ProcessGreyGoo).
+							bool goo = Common.Random.Next(4) == 0;
+							if (goo)
+							{
+								Game.Instance.SeedGreyGoo(this);
+								string gooCity = Name;
+								impTask.Done += (s, a) =>
+								{
+									string? gooArt = EventArtScreen.FindPath("GreyGoo");
+									if (gooArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(gooArt,
+											$"CONTAINMENT FAILURE — {gooCity.ToUpper()}")));
+									GameTask.Enqueue(Message.Newspaper(null!, "Containment failure!",
+										$"A grey tide spreads from {gooCity}.", "It is eating the ground."));
+								};
+							}
+							else if (Player == Human)
+							{
+								impTask.Done += (s, a) => GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+									"The assemblers are online.",
+									"Field refits will proceed",
+									"automatically, free of charge."));
 							}
 						}
 						if (wonder is Wonders.DarwinsVoyage)

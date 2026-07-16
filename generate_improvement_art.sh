@@ -91,6 +91,8 @@ resize_and_install "$SRC/SouthPoleExpedition.png"     "south_pole_expedition.png
 resize_and_install "$SRC/UnitedNations.png"           "united_nations.png"
 resize_and_install "$SRC/WomensSuffrage.png"          "women's_suffrage.png"
 resize_and_install "$SRC/InterstellarProbe.png"       "interstellar_probe.png"
+resize_and_install "$SRC/ThePortal.png"               "the_portal.png"
+resize_and_install "$SRC/NanobotFactory.png"          "nanobot_factory.png"
 resize_and_install "$SRC/Colossus.png"          "colossus.png"
 resize_and_install "$SRC/SETIProgram.png"       "seti_program.png"
 resize_and_install "$SRC/MarcoPoloVoyage.png"   "marco_polo's_voyage.png"
@@ -158,5 +160,7 @@ resize_and_install_event "$SRC/TheThing.png"              "TheThing.png"
 resize_and_install_event "$SRC/PaxMercatoria.png"         "PaxMercatoria.png"
 # Cursed wonders (docs/cursed_wonders.md)
 resize_and_install_event "$SRC/Gozira.png"                "Gozira.png"
+resize_and_install_event "$SRC/TheGreys.png"              "TheGreys.png"
+resize_and_install_event "$SRC/GreyGoo.png"               "GreyGoo.png"
 
 echo "Done."
