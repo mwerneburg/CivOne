@@ -487,8 +487,8 @@ namespace CivOne
 			if ((unit is HoverTank || unit is FusionInf) && !HasWonder<FusionCore>())
 				return false;
 
-			// The kaiju is not yours. It is nobody's.
-			if (unit is Units.Gozira)
+			// The kaiju is not yours. It is nobody's. Neither is the thing in the sea.
+			if (unit is Units.Gozira || unit is Units.Leviathan)
 				return false;
 			
 			// Determine if the unit requires a tech

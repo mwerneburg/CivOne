@@ -115,6 +115,9 @@ namespace CivOne
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
 		internal byte GoziraState;
 
+		// Leviathan (Lighthouse curse): 0 = the deep is quiet, 1 = hunting, 2 = slain.
+		internal byte LeviathanState;
+
 		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
 		// Infested cities pay a trade skim and hold one permanently unhappy citizen
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
@@ -1184,6 +1187,16 @@ namespace CivOne
 						"The long watch of the", "coastal cities is over."));
 				}
 
+				// The Leviathan is slain: a newspaper worth framing, and glory for
+				// the hunters (milestone bonus).
+				if (LeviathanState == 1 && !_units.Any(u => u is Units.Leviathan))
+				{
+					LeviathanState = 2;
+					HumanPlayer.AwardMilestone(50);
+					GameTask.Enqueue(Message.Newspaper(null!, "The Leviathan is slain!",
+						"Every port on Earth", "toasts the hunters."));
+				}
+
 				// The Greys: spread and eviction (The Portal's cursed outcome).
 				ProcessGreys();
 
@@ -1505,6 +1518,7 @@ namespace CivOne
 				case UnitType.HoverTank: unit = new HoverTank(); break;
 				case UnitType.FusionInf: unit = new FusionInf(); break;
 				case UnitType.Gozira: unit = new Gozira(); break;
+				case UnitType.Leviathan: unit = new Leviathan(); break;
 				default: return null;
 			}
 			unit.X = x;
@@ -2407,6 +2421,27 @@ namespace CivOne
 				}
 				if (budget == 0) return;
 			}
+		}
+
+		// ── Leviathan (Lighthouse curse) ─────────────────────────────────────
+		// The light carries farther than intended, and something answers. Spawns
+		// veteran in the wonder city's waters and hunts ships (AI.LeviathanMove)
+		// until somebody ends it. No spawn water → the deep stays quiet.
+		internal void UnleashLeviathan(City lighthouse)
+		{
+			if (LeviathanState != 0) return;
+
+			ITile? deep = Map[lighthouse.X, lighthouse.Y].GetBorderTiles()
+				.Where(t => t.IsOcean && !(t is Tiles.Arctic))
+				.OrderBy(_ => Common.Random.Next(100))
+				.FirstOrDefault();
+			if (deep is null) return;
+
+			IUnit? beast = CreateUnit(UnitType.Leviathan, deep.X, deep.Y, 0);
+			if (beast is null) return;
+			beast.Veteran = true;
+			LeviathanState = 1;
+			Log($"Leviathan unleashed off {lighthouse.Name} at ({deep.X},{deep.Y})");
 		}
 
 		// ── Gozira (Manhattan Project curse) ─────────────────────────────────

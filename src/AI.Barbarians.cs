@@ -23,6 +23,14 @@ namespace CivOne
 
 		private void BarbarianMove(IUnit unit)
 		{
+			// The Leviathan hunts on its own instincts — the generic water AI
+			// would disband an empty barbarian hull, and this one never quits.
+			if (unit is Leviathan)
+			{
+				LeviathanMove(unit);
+				return;
+			}
+
 			switch (unit.Class)
 			{
 				case UnitClass.Water:
@@ -35,6 +43,55 @@ namespace CivOne
 					Game.DisbandUnit(unit);
 					return;
 			}
+		}
+
+		// The Leviathan (Lighthouse curse): it does not raid, it hunts. Attack
+		// any adjacent ship on open water; otherwise stalk the nearest civilized
+		// coastal city and circle its waters until prey sails past. Ships docked
+		// in harbor are safe — it wants them at sea.
+		private void LeviathanMove(IUnit unit)
+		{
+			ITile[] prey = unit.Tile.GetBorderTiles()
+				.Where(t => t.IsOcean && t.City is null && t.Units.Any(u => u.Owner != 0))
+				.ToArray();
+			if (prey.Length > 0)
+			{
+				ITile target = prey[Common.Random.Next(prey.Length)];
+				if (!unit.MoveTo(target.X - unit.X, target.Y - unit.Y))
+					unit.SkipTurn();
+				return;
+			}
+
+			if (unit.Goto.IsEmpty)
+			{
+				City nearestCoastal = Game.GetCities()
+					.Where(c => c.Owner != 0 && c.Size > 0
+					         && c.Tile.GetBorderTiles().Any(t => t.IsOcean && !IsPolarTile(t)))
+					.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y))
+					.FirstOrDefault();
+				if (nearestCoastal is not null)
+				{
+					ITile[] waters = nearestCoastal.Tile.GetBorderTiles()
+						.Where(t => t.IsOcean && !IsPolarTile(t))
+						.ToArray();
+					ITile lurk = waters[Common.Random.Next(waters.Length)];
+					if (lurk.X != unit.X || lurk.Y != unit.Y)
+						unit.Goto = new Point(lurk.X, lurk.Y);
+				}
+			}
+
+			if (!unit.Goto.IsEmpty)
+			{
+				ITile? next = Common.GotoStep(unit);
+				if (next is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+				if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
+				{
+					unit.Goto = Point.Empty;
+					unit.SkipTurn();
+				}
+				return;
+			}
+			unit.SkipTurn();
 		}
 
 		private void BarbarianMoveWater(IUnit unit)

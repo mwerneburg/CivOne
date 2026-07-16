@@ -51,5 +51,8 @@ namespace CivOne.Enums
 		// Barbarian kaiju — never producible; woken by the first nuclear
 		// detonation once the Manhattan Project egg is planted (Game.AwakenGozira).
 		Gozira = 33,
+		// Barbarian sea monster — never producible; drawn in by the Lighthouse's
+		// cursed roll (Game.UnleashLeviathan). Hunts ships until slain.
+		Leviathan = 34,
 	}
 }

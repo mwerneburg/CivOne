@@ -1571,6 +1571,26 @@ namespace CivOne
 									"automatically, free of charge."));
 							}
 						}
+						if (wonder is Wonders.Lighthouse && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the light carries farther than intended (docs/cursed_wonders.md
+							// #8). Something in the deep answers; it hunts until slain.
+							Game.Instance.UnleashLeviathan(this);
+							if (Game.Instance.LeviathanState == 1)
+							{
+								string beacon = Name;
+								impTask.Done += (s, a) =>
+								{
+									string? levArt = EventArtScreen.FindPath("Leviathan");
+									if (levArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(levArt,
+											$"THE LIGHT CARRIES — SOMETHING ANSWERS")));
+									GameTask.Enqueue(Message.Newspaper(null!, "Ships vanish!",
+										$"Sailors off {beacon} speak",
+										"of a shape below the light."));
+								};
+							}
+						}
 						if (wonder is Wonders.GreatWall && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the wall was not built to keep them out (docs/cursed_wonders.md
