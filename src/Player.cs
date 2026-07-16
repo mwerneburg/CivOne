@@ -37,6 +37,7 @@ namespace CivOne
 		private readonly HashSet<byte> _warWith = new();
 		private readonly Dictionary<byte, int> _peaceTreaty  = new(); // AI won't declare war for N turns
 		private readonly Dictionary<byte, int> _attitudeBonus = new(); // AI acceptance boosted for N turns
+		private readonly Dictionary<byte, int> _defensePact  = new(); // mutual defense pact for N turns (kept symmetric)
 		// Tribute relationships. _tributeTo: I pay N gold/turn to this player (my protector).
 		// _tributeFrom: this player pays me N gold/turn (I'm their protector). The two maps
 		// are always kept in sync between the paired players via EstablishTribute and
@@ -263,18 +264,22 @@ namespace CivOne
 		internal bool HasPeaceTreaty(Player other)             => _peaceTreaty.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
+		internal void SetDefensePact(Player other, int turns)  => _defensePact[(byte)Game.PlayerNumber(other)]  = turns;
+		internal bool HasDefensePact(Player other)             => _defensePact.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 
 		// Byte-keyed overloads for the COS load path, which runs inside the Game
 		// constructor — Game.Instance does not exist yet there, so the Player-typed
 		// setters above (which resolve numbers via Game.PlayerNumber) would NRE.
 		internal void SetPeaceTreaty(byte playerNumber, int turns)   => _peaceTreaty[playerNumber]   = turns;
 		internal void SetAttitudeBonus(byte playerNumber, int turns) => _attitudeBonus[playerNumber] = turns;
+		internal void SetDefensePact(byte playerNumber, int turns)   => _defensePact[playerNumber]   = turns;
 
 		// Enumeration accessors for the COS save layer. The dictionaries are private
 		// state; the save loop in Game.Cos.cs uses these to write a snapshot, and
 		// reloads them by replaying SetPeaceTreaty/SetAttitudeBonus per entry.
 		internal IEnumerable<KeyValuePair<byte, int>> PeaceTreatyEntries  => _peaceTreaty;
 		internal IEnumerable<KeyValuePair<byte, int>> AttitudeBonusEntries => _attitudeBonus;
+		internal IEnumerable<KeyValuePair<byte, int>> DefensePactEntries  => _defensePact;
 
 		// ── tribute ─────────────────────────────────────────────────────────────────
 		// A tribute pact is established when a militarily outclassed civ sues for survival
@@ -366,7 +371,41 @@ namespace CivOne
 				GameTask.Insert(Message.Advisor(Advisor.Foreign, true, $"You have declared", $"war on the {enemy.TribeNamePlural}!"));
 			else if (enemy == Human)
 				GameTask.Insert(Message.Advisor(Advisor.Foreign, true, $"The {TribeNamePlural}", "have declared war on us!"));
+
+			// Mutual defense pacts: everyone bound to the victim joins against the
+			// aggressor — automatically, the human included; the treaty was signed.
+			// One hop only: declarations made while honoring pacts don't trigger
+			// further pacts, so blocs can't cascade into an accidental world war.
+			// An ally's peace treaty with the aggressor wins (DeclareWar's early
+			// return) — treaty-bound partners sit the war out.
+			if (!_honoringPacts)
+			{
+				_honoringPacts = true;
+				try
+				{
+					foreach (Player ally in Game.Players.Where(p => p is not null && p != this && p != enemy
+						&& !p.IsDestroyed() && p.HasDefensePact(enemy) && !p.IsAtWar(this)))
+					{
+						ally.DeclareWar(this);
+						if (!ally.IsAtWar(this)) continue; // blocked (peace treaty, Olvir, …)
+						if (ally == Human)
+							GameTask.Insert(Message.Advisor(Advisor.Foreign, true,
+								$"We honor our pact with",
+								$"the {enemy.TribeNamePlural}!"));
+						else if (this == Human)
+							GameTask.Insert(Message.Advisor(Advisor.Foreign, true,
+								$"The {ally.TribeNamePlural} honor their",
+								$"pact with the {enemy.TribeNamePlural}!"));
+					}
+				}
+				finally { _honoringPacts = false; }
+			}
 		}
+
+		// Reentrancy guard for pact honoring (single-threaded game loop): while an
+		// ally is being pulled into a war by a pact, its own declaration must not
+		// recursively pull in further pacts.
+		private static bool _honoringPacts;
 
 		public void MakePeace(Player enemy)
 		{
@@ -723,6 +762,8 @@ namespace CivOne
 				if (--_peaceTreaty[k] <= 0) _peaceTreaty.Remove(k);
 			foreach (byte k in _attitudeBonus.Keys.ToArray())
 				if (--_attitudeBonus[k] <= 0) _attitudeBonus.Remove(k);
+			foreach (byte k in _defensePact.Keys.ToArray())
+				if (--_defensePact[k] <= 0) _defensePact.Remove(k);
 
 			// Tribute settlement. For each protector this player owes, transfer gold (if
 			// solvent) and re-up the peace-treaty + attitude-bonus timers so the pact stays

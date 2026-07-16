@@ -205,6 +205,10 @@ namespace CivOne
 				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
 				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
 				                   .ToList(),
+					DefensePact      = _players[p].DefensePactEntries
+				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
+				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
+				                   .ToList(),
 					CityNamesSkipped = player.CityNamesSkipped,
 					Anarchy          = player.AnarchyTurnsLeft != 0 ? (int?)player.AnarchyTurnsLeft : null,
 					Visibility       = PackVisibility(vis),
@@ -463,6 +467,16 @@ namespace CivOne
 						int j = entry.Player;
 						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
 						_players[i].SetAttitudeBonus((byte)j, entry.Turns);
+					}
+				}
+				var pactList = cos.Players[i].DefensePact;
+				if (pactList is not null)
+				{
+					foreach (var entry in pactList)
+					{
+						int j = entry.Player;
+						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
+						_players[i].SetDefensePact((byte)j, entry.Turns);
 					}
 				}
 			}

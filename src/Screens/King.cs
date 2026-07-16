@@ -58,9 +58,10 @@ namespace CivOne.Screens
 			this.DrawText(_enemy.LeaderName.ToUpper(),
 			              FONT_ID, CassetteTheme.PHOS, 10, 4 + fh + 2);
 
-			bool atWar = Human.IsAtWar(_enemy);
+			bool atWar  = Human.IsAtWar(_enemy);
+			bool allied = !atWar && Human.HasDefensePact(_enemy);
 			byte moodColor = atWar ? CassetteTheme.ALERT : CassetteTheme.OK;
-			this.DrawText(atWar ? "◇ AT WAR ◇" : "▤ PEACE ▤",
+			this.DrawText(atWar ? "◇ AT WAR ◇" : allied ? "▣ ALLIED ▣" : "▤ PEACE ▤",
 			              FONT_ID, moodColor, Width - PAD, 4 + fh / 2, TextAlign.Right);
 
 			// Left panel — portrait + status fields
@@ -89,7 +90,7 @@ namespace CivOne.Screens
 			              : agg == AggressionLevel.Friendly   ? "CORDIAL" : "NEUTRAL";
 
 			this.DrawCassetteField("ATTITUDE", attStr, fieldX, fieldY, fieldW, FONT_ID, attColor);
-			this.DrawCassetteField("STATUS", atWar ? "AT WAR" : "PEACE",
+			this.DrawCassetteField("STATUS", atWar ? "AT WAR" : allied ? "ALLIED" : "PEACE",
 			                       fieldX, fieldY + fh + PAD, fieldW, FONT_ID, moodColor);
 			this.DrawCassetteField("GOV", _enemy.Government.Name.ToUpper(),
 			                       fieldX, fieldY + (fh + PAD) * 2, fieldW);
@@ -524,6 +525,36 @@ namespace CivOne.Screens
 			AddMenu(menu);
 		}
 
+		// Mutual defense pact: an attack on either signatory pulls the other in
+		// automatically (Player.DeclareWar honors pacts one hop deep). 50 turns,
+		// renewable by proposing again — a standing pact renews without a roll.
+		private const int PactDuration = 50;
+
+		private void ProposePact(object sender, EventArgs args)
+		{
+			CloseMenus();
+			if (Human.HasDefensePact(_enemy))
+			{
+				Human.SetDefensePact(_enemy, PactDuration);
+				_enemy.SetDefensePact(Human, PactDuration);
+				SetResponse(FaceState.Smiling,
+					"Our pact stands renewed.",
+					$"({PactDuration} turns)");
+				return;
+			}
+			if (!AIAccepts(25))
+			{
+				SetResponse(FaceState.Neutral,
+					"We prefer to keep", "our options open.");
+				return;
+			}
+			Human.SetDefensePact(_enemy, PactDuration);
+			_enemy.SetDefensePact(Human, PactDuration);
+			SetResponse(FaceState.Smiling,
+				"Agreed. An attack on one",
+				$"is an attack on both. ({PactDuration} turns)");
+		}
+
 		private void SeekTribute(object sender, EventArgs args)
 		{
 			CloseMenus();
@@ -651,6 +682,7 @@ namespace CivOne.Screens
 				menu.Items.Add("Trade maps").OnSelect(TradeMaps);
 				menu.Items.Add("Offer a city").OnSelect(OfferCity);
 				menu.Items.Add("Offer technology").OnSelect(OfferTechnology);
+				menu.Items.Add(Human.HasDefensePact(_enemy) ? "Renew defense pact" : "Propose defense pact").OnSelect(ProposePact);
 				menu.Items.Add("Demand tribute").OnSelect(SeekTribute);
 				if (!(Human.Government is Gov.Democracy))
 					menu.Items.Add("Declare war!").OnSelect(DeclareWarOnThem);

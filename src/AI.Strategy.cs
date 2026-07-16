@@ -635,6 +635,40 @@ namespace CivOne
 				}
 			}
 
+			// ── Defense pacts (AI ↔ AI) ──────────────────────────────────────────
+			// Blocs form against the local hegemon: a civ at peace that sees a
+			// neighbour at least twice its strength seeks a pact with another
+			// AI neighbour who shares the threat. The human hegemon is the classic
+			// trigger — dominate the continent and watch the alliances form. The
+			// human is never auto-signed as a partner; they consent via the console.
+			if (!atWar && Common.Random.Next(100) < 5)
+			{
+				int myPower = MilitaryScore(Player);
+				Player? hegemon = Game.Players
+					.Where(p => p != Player && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
+					         && IsNeighbor(p) && MilitaryScore(p) > myPower * 2)
+					.OrderByDescending(MilitaryScore)
+					.FirstOrDefault();
+				if (hegemon is not null)
+				{
+					int threat = MilitaryScore(hegemon);
+					Player? partner = Game.Players
+						.Where(p => p != Player && p != hegemon && !p.IsDestroyed() && !p.IsHuman
+						         && Game.PlayerNumber(p) != 0
+						         && !(p.Civilization is Olvir or TheOthers or TheThing)
+						         && !Player.IsAtWar(p) && Player.HasEmbassy(p)
+						         && !Player.HasDefensePact(p)
+						         && MilitaryScore(p) * 2 < threat)
+						.OrderByDescending(MilitaryScore)
+						.FirstOrDefault();
+					if (partner is not null)
+					{
+						Player.SetDefensePact(partner, 50);
+						partner.SetDefensePact(Player, 50);
+					}
+				}
+			}
+
 			// ── Normal war logic below ───────────────────────────────────────────
 
 			// Republics and Democracies are blocked by their Senate from starting wars

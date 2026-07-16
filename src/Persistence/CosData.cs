@@ -153,6 +153,9 @@ namespace CivOne.Persistence
 		// acceptance for diplomacy with the named player for turnsRemaining
 		// turns. Decremented per turn.
 		public List<CosCountdown> AttitudeBonus { get; set; } = null!;
+		// Mutual-defense-pact countdowns: same shape. Kept symmetric between the
+		// two signatories. Absent or empty on saves predating defense pacts.
+		public List<CosCountdown> DefensePact { get; set; } = null!;
 	}
 
 	public class CosTribute
