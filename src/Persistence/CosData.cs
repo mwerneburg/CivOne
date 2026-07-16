@@ -68,6 +68,8 @@ namespace CivOne.Persistence
 		// numbers of wars the human started (defensive wars don't break the streak).
 		public uint EconStreak { get; set; }
 		public int[] HumanStartedWars { get; set; } = null!;
+		// Gozira: 0 = egg sleeps, 1 = rampaging, 2 = slain.
+		public int GoziraState { get; set; }
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }

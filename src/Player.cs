@@ -486,6 +486,10 @@ namespace CivOne
 			// The fusion war machine is unlocked by the builder's OWN Fusion Core wonder.
 			if ((unit is HoverTank || unit is FusionInf) && !HasWonder<FusionCore>())
 				return false;
+
+			// The kaiju is not yours. It is nobody's.
+			if (unit is Units.Gozira)
+				return false;
 			
 			// Determine if the unit requires a tech
 			if (unit.RequiredTech is null)

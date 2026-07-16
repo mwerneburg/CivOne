@@ -297,6 +297,7 @@ namespace CivOne
 					HumanStartedWars        = HumanStartedWars.Count > 0
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
+					GoziraState             = GoziraState,
 					DomeAssignments         = DomeAssignments
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
@@ -521,6 +522,7 @@ namespace CivOne
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)
 						HumanStartedWars.Add((byte)n);
+			GoziraState = (byte)g.GoziraState;
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

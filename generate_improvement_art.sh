@@ -156,5 +156,7 @@ resize_and_install_event "$SRC/Repossession.png"          "Repossession.png"
 resize_and_install_event "$SRC/TheThing.png"              "TheThing.png"
 # Economic dominance victory
 resize_and_install_event "$SRC/PaxMercatoria.png"         "PaxMercatoria.png"
+# Cursed wonders (docs/cursed_wonders.md)
+resize_and_install_event "$SRC/Gozira.png"                "Gozira.png"
 
 echo "Done."

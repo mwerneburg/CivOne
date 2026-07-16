@@ -48,5 +48,8 @@ namespace CivOne.Enums
 		SeaCaravan = 30,
 		HoverTank = 31,
 		FusionInf = 32,
+		// Barbarian kaiju — never producible; woken by the first nuclear
+		// detonation once the Manhattan Project egg is planted (Game.AwakenGozira).
+		Gozira = 33,
 	}
 }

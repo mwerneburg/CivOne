@@ -404,15 +404,19 @@ namespace CivOne.Units
 				}
 
 				Show nukeShow = Show.EventArt("nuclearbombdetonation", "Nuclear bomb detonated!");
+				byte detonator = Owner;
 				nukeShow.Done += (s, a) =>
 				{
 					foreach (ITile tile in Map.QueryMapPart(X + relX - 1, Y + relY - 1, 3, 3))
 					{
-						while (tile.Units.Length > 0)
+						// Gozira is immune — radiation is a meal, not a weapon.
+						foreach (IUnit victim in tile.Units.Where(u => u is not Gozira).ToArray())
 						{
-							Game.DisbandUnit(tile.Units[0]);
+							Game.DisbandUnit(victim);
 						}
 					}
+					// The Manhattan Project planted the egg; the first detonation wakes it.
+					Game.AwakenGozira(Game.GetPlayer(detonator));
 				};
 				GameTask.Enqueue(nukeShow);
 			}

@@ -112,6 +112,9 @@ namespace CivOne
 		internal uint EconStreak;
 		internal readonly HashSet<byte> HumanStartedWars = new();
 
+		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
+		internal byte GoziraState;
+
 		// Dome path: which player (owner byte) is assigned to which dome wonder component(s).
 		// Populated when the Tau Ceti approach warning fires.
 		internal readonly Dictionary<byte, List<Enums.Wonder>> DomeAssignments = new();
@@ -1139,6 +1142,14 @@ namespace CivOne
 				// admired civilization's flag.
 				ProcessCultureDefections();
 
+				// Gozira falls: the rampage ends when the kaiju is destroyed.
+				if (GoziraState == 1 && !_units.Any(u => u is Units.Gozira))
+				{
+					GoziraState = 2;
+					GameTask.Enqueue(Message.Newspaper(null!, "Gozira falls!",
+						"The long watch of the", "coastal cities is over."));
+				}
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -1428,6 +1439,7 @@ namespace CivOne
 				case UnitType.SeaCaravan: unit = new SeaCaravan(); break;
 				case UnitType.HoverTank: unit = new HoverTank(); break;
 				case UnitType.FusionInf: unit = new FusionInf(); break;
+				case UnitType.Gozira: unit = new Gozira(); break;
 				default: return null;
 			}
 			unit.X = x;
@@ -1908,6 +1920,43 @@ namespace CivOne
 			foreach (Player payer in p.TributePayers)
 				output += payer.TributeAmountTo(p);
 			return output;
+		}
+
+		// ── Gozira (Manhattan Project curse) ─────────────────────────────────
+		// The wonder plants the egg; the first nuclear detonation — by anyone —
+		// wakes it. The kaiju surfaces veteran beside the detonator's largest
+		// port city and walks inland on ordinary barbarian AI, immune to nukes.
+		// Conventional arms only. If no spawn tile exists the egg keeps sleeping;
+		// the next detonation tries again.
+		internal void AwakenGozira(Player detonator)
+		{
+			if (GoziraState != 0 || detonator is null) return;
+
+			byte dnum = PlayerNumber(detonator);
+			City? port = _cities.Where(c => c.Owner == dnum && c.Size > 0)
+				.OrderByDescending(c => Map[c.X, c.Y].GetBorderTiles().Any(t => t.IsOcean) ? 1 : 0)
+				.ThenByDescending(c => c.Size)
+				.FirstOrDefault();
+			if (port is null) return;
+
+			ITile? shore = Map[port.X, port.Y].GetBorderTiles()
+				.Where(t => !t.IsOcean && t.City is null && !(t is Tiles.Arctic))
+				.OrderBy(_ => Common.Random.Next(100))
+				.FirstOrDefault();
+			if (shore is null) return;
+
+			IUnit? kaiju = CreateUnit(UnitType.Gozira, shore.X, shore.Y, 0);
+			if (kaiju is null) return;
+			kaiju.Veteran = true;
+			GoziraState = 1;
+
+			string? art = Screens.EventArtScreen.FindPath("Gozira");
+			if (art is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art,
+					$"AWAKENED — COURSE: {port.Name.ToUpper()}")));
+			GameTask.Enqueue(Message.Newspaper(null!, "It rises from the sea!",
+				$"{port.Name} reports a shape", "taller than the lighthouse."));
+			Log($"Gozira awakened at ({shore.X},{shore.Y}) — course: {port.Name} (detonator {detonator.TribeName})");
 		}
 
 		// ── Cultural defection ───────────────────────────────────────────────
