@@ -201,6 +201,13 @@ Implementation molds already in the codebase:
 
 ---
 
+## Status
+
+**All twelve implemented** (July 2026). Outstanding: event art for several
+(see generate_improvement_art.sh — missing sources are skipped harmlessly),
+and bespoke unit sprites for Gozira / Leviathan / Henge Guardian (all three
+wear placeholder sprites).
+
 ## Suggested build order
 
 1. **Gozira** — self-contained, maximum spectacle, detonation trigger is the

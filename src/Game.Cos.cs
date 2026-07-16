@@ -302,6 +302,7 @@ namespace CivOne
 					DoorState               = DoorState,
 					DoorX                   = DoorX,
 					DoorY                   = DoorY,
+					OracleVoiceActive       = OracleVoiceActive,
 					GreyCities              = GreyCities.Count > 0
 					                          ? GreyCities.Select(g => new[] { g.x, g.y }).ToList()
 					                          : null!,
@@ -550,6 +551,7 @@ namespace CivOne
 			DoorState = (byte)g.DoorState;
 			DoorX = g.DoorX;
 			DoorY = g.DoorY;
+			OracleVoiceActive = g.OracleVoiceActive;
 			if (g.GreyCities is not null)
 				foreach (var pair in g.GreyCities)
 					if (pair.Length == 2)

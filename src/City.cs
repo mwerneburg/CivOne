@@ -923,6 +923,10 @@ namespace CivOne
 			unhappyCount += SmokeStacks / 10;
 			// The Greys: one permanently unhappy citizen — nobody likes the houseguests.
 			if (Game.Instance.GreyCities.Contains((X, Y))) unhappyCount++;
+			// The Other Voice: the dread of true prophecy sits on the Oracle
+			// keeper's whole empire while the voice speaks.
+			if (Game.Instance.OracleVoiceActive && Player.HasWonder<Oracle>() && !Game.WonderObsolete<Oracle>())
+				unhappyCount++;
 			// The King in Yellow: an afflicted stage loses the Theatre's charm entirely.
 			bool maskUponUs = Game.Instance.YellowCities.Contains((X, Y));
 			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>() && !maskUponUs)
@@ -1573,6 +1577,23 @@ namespace CivOne
 									"Field refits will proceed",
 									"automatically, free of charge."));
 							}
+						}
+						if (wonder is Wonders.Oracle && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the Oracle answers, and it is not Apollo (docs/cursed_wonders.md
+							// #11). True prophecies for the keeper, dread for the empire, until
+							// Religion silences it (Game.ProcessOracleVoice).
+							Game.Instance.OracleVoiceActive = true;
+							impTask.Done += (s, a) =>
+							{
+								string? voiceArt = EventArtScreen.FindPath("OtherVoice");
+								if (voiceArt is not null)
+									GameTask.Enqueue(Show.Screen(new EventArtScreen(voiceArt,
+										"THE ORACLE ANSWERS — IT IS NOT APOLLO")));
+								GameTask.Enqueue(Message.Newspaper(null!, "The Oracle speaks!",
+									"The priests will not repeat",
+									"what it said first."));
+							};
 						}
 						if (wonder is Wonders.Stonehenge && Common.Random.Next(4) == 0)
 						{

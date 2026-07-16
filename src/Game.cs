@@ -123,6 +123,12 @@ namespace CivOne
 		internal byte DoorState;
 		internal int DoorX, DoorY;
 
+		// Oracle curse: the Other Voice. While true, whoever owns the Oracle hears
+		// real hidden intelligence (ProcessOracleVoice) and their empire carries
+		// one extra unhappy citizen per city — the dread of prophecy. Silenced
+		// only when Religion obsoletes the Oracle.
+		internal bool OracleVoiceActive;
+
 		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
 		// Infested cities pay a trade skim and hold one permanently unhappy citizen
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
@@ -1225,6 +1231,9 @@ namespace CivOne
 
 				// The stone door: the tithe while the Guardian stands; shut when it falls.
 				ProcessStoneDoor();
+
+				// The Other Voice: true prophecies for the Oracle's keeper.
+				ProcessOracleVoice();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -2498,6 +2507,73 @@ namespace CivOne
 				}
 				if (budget == 0) return;
 			}
+		}
+
+		// ── Oracle curse: the Other Voice ────────────────────────────────────
+		// The Oracle answers, and it is not Apollo. Every tenth turn the human
+		// owner receives one TRUE prophecy composed from hidden game state —
+		// dark tributes, secret pacts, what approaches from Tau Ceti, what
+		// sleeps under the sea. The empire pays in dread (+1 unhappy per city,
+		// see the citizen pass). The only silence is Religion: when the Oracle
+		// obsoletes, the voice — and the blessing — end together.
+		private void ProcessOracleVoice()
+		{
+			if (!OracleVoiceActive) return;
+
+			if (WonderObsolete<Oracle>())
+			{
+				OracleVoiceActive = false;
+				GameTask.Enqueue(Message.Newspaper(null!, "The Oracle falls silent.",
+					"The new faith does not", "take questions."));
+				return;
+			}
+
+			Player? keeper = _players.FirstOrDefault(p => p is not null && !p.IsDestroyed() && p.HasWonder<Oracle>());
+			if (keeper is null || !keeper.IsHuman) return; // an AI keeper only pays the dread
+			if (_gameTurn % 10 != 5) return;
+
+			// Compose the pool of true prophecies available right now.
+			var prophecies = new List<string[]>();
+
+			foreach (Player p in _players.Where(p => p is not null && !p.IsDestroyed() && p != keeper))
+				foreach (Player protector in p.TributeProtectors)
+					if (!keeper.HasEmbassy(p) && !keeper.HasEmbassy(protector))
+						prophecies.Add(new[] { $"{p.TribeName} kneels to {protector.TribeName}.", "Gold moves in the dark." });
+
+			foreach (Player p in _players.Where(p => p is not null && !p.IsDestroyed() && p != keeper && !p.IsHuman))
+				foreach (var pact in p.DefensePactEntries.Where(e => e.Value > 0))
+				{
+					Player? ally = GetPlayer(pact.Key);
+					if (ally is null || ally.IsHuman || ally.IsDestroyed()) continue;
+					if (keeper.HasEmbassy(p) || keeper.HasEmbassy(ally)) continue;
+					prophecies.Add(new[] { $"{p.TribeName} and {ally.TribeName}", "have sworn to one blade." });
+				}
+
+			Player? looming = _players
+				.Where(p => p is not null && !p.IsDestroyed() && p != keeper && PlayerNumber(p) != 0
+				         && !keeper.IsAtWar(p) && !(p.Civilization is Civilizations.Olvir))
+				.OrderByDescending(p => _units.Count(u => u.Owner == PlayerNumber(p)))
+				.FirstOrDefault();
+			if (looming is not null)
+				prophecies.Add(new[] { $"The {looming.TribeNamePlural} count your", "cities in their sleep." });
+
+			if (SETISignalReceived && !VisitorsArrived && VisitorType != Enums.VisitorArchetype.None)
+				prophecies.Add(VisitorType == Enums.VisitorArchetype.Refugees
+					? new[] { "What comes seeks harbor.", "Prepare a welcome." }
+					: new[] { "What comes holds the deed.", "Prepare." });
+
+			if (OlvirArrivalTurn > 0)
+				prophecies.Add(new[] { $"The sky opens in {Common.YearString((ushort)OlvirArrivalTurn)}.", "It will not knock." });
+
+			if (GoziraState == 0 && WonderBuilt<ManhattanProject>())
+				prophecies.Add(new[] { "Under the sea, something", "listens for thunder." });
+
+			// The voice always has something to say.
+			prophecies.Add(new[] { "A stranger's face in the crowd.", "It was watching you." });
+
+			string[] told = prophecies[Common.Random.Next(prophecies.Count)];
+			GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+				"The Oracle speaks:", told[0], told[1]));
 		}
 
 		// ── Stonehenge curse: the Door ───────────────────────────────────────

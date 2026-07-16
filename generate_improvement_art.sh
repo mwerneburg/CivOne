@@ -170,5 +170,6 @@ resize_and_install_event "$SRC/Anomaly.png"               "Anomaly.png"
 resize_and_install_event "$SRC/Leviathan.png"             "Leviathan.png"
 resize_and_install_event "$SRC/Visitations.png"           "Visitations.png"
 resize_and_install_event "$SRC/TheDoor.png"               "TheDoor.png"
+resize_and_install_event "$SRC/OtherVoice.png"            "OtherVoice.png"
 
 echo "Done."

@@ -76,6 +76,8 @@ namespace CivOne.Persistence
 		public int DoorState { get; set; }
 		public int DoorX { get; set; }
 		public int DoorY { get; set; }
+		// Oracle: the Other Voice speaks until Religion silences it.
+		public bool OracleVoiceActive { get; set; }
 		// Grey-infested city tiles: list of [x, y] pairs (The Portal's curse).
 		public List<int[]> GreyCities { get; set; } = null!;
 		// King in Yellow afflicted city tiles: [x, y] pairs.
