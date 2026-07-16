@@ -304,6 +304,11 @@ namespace CivOne
 					YellowCities            = YellowCities.Count > 0
 					                          ? YellowCities.Select(y => new[] { y.x, y.y }).ToList()
 					                          : null!,
+					WallCurseEndTurn        = WallCurseEndTurn,
+					WallCurseContinent      = WallCurseContinent,
+					AnomalyX                = AnomalyX,
+					AnomalyY                = AnomalyY,
+					AnomalyEndTurn          = AnomalyEndTurn,
 					GooTiles                = GooTiles.Count > 0
 					                          ? GooTiles.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -542,6 +547,11 @@ namespace CivOne
 				foreach (var pair in g.YellowCities)
 					if (pair.Length == 2)
 						YellowCities.Add((pair[0], pair[1]));
+			WallCurseEndTurn   = g.WallCurseEndTurn;
+			WallCurseContinent = (byte)g.WallCurseContinent;
+			AnomalyX           = g.AnomalyX;
+			AnomalyY           = g.AnomalyY;
+			AnomalyEndTurn     = g.AnomalyEndTurn;
 			if (g.GooTiles is not null)
 				foreach (var triple in g.GooTiles)
 					if (triple.Length == 3)

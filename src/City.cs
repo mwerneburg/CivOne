@@ -1571,6 +1571,51 @@ namespace CivOne
 									"automatically, free of charge."));
 							}
 						}
+						if (wonder is Wonders.GreatWall && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the wall was not built to keep them out (docs/cursed_wonders.md
+							// #9) — raids double on the builder's continent for sixty turns.
+							Game.Instance.WallCurseEndTurn = (uint)(Game.GameTurn + 60);
+							Game.Instance.WallCurseContinent = Tile.ContinentId;
+							impTask.Done += (s, a) => GameTask.Enqueue(Message.Newspaper(null!,
+								"The wall is finished!",
+								"Beyond it, the herdsmen report",
+								"fires moving closer."));
+						}
+						if (wonder is Wonders.CureForCancer && Common.Random.Next(4) == 0)
+						{
+							// 1/4: it cures slightly more than cancer (docs #10) — every city
+							// +2 population at once, the granaries emptied by celebration.
+							// A windfall for a fed empire, a famine for a hollow one.
+							foreach (City boom in Player.Cities.Where(c => c.Size > 0).ToArray())
+							{
+								boom.Size += 2;
+								boom.Food = 0;
+							}
+							impTask.Done += (s, a) => GameTask.Enqueue(Message.Newspaper(null!,
+								"It cures more than cancer!",
+								"Population soars overnight.",
+								"The granaries stand empty."));
+						}
+						if (wonder is Wonders.IsaacNewtonsCollege && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the *other* research succeeds (docs #7) — a temporal anomaly
+							// settles on the College city for fifty turns (Game.ProcessAnomaly).
+							Game.Instance.AnomalyX = X;
+							Game.Instance.AnomalyY = Y;
+							Game.Instance.AnomalyEndTurn = (uint)(Game.GameTurn + 50);
+							string anomalyCity = Name;
+							impTask.Done += (s, a) =>
+							{
+								string? anomalyArt = EventArtScreen.FindPath("Anomaly");
+								if (anomalyArt is not null)
+									GameTask.Enqueue(Show.Screen(new EventArtScreen(anomalyArt,
+										$"THE OTHER WORK — {anomalyCity.ToUpper()}")));
+								GameTask.Enqueue(Message.Newspaper(null!, "Alchemy!",
+									"Time runs strangely",
+									$"in {anomalyCity}."));
+							};
+						}
 						if (wonder is Wonders.ShakespearesTheatre && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the debut play is the wrong play (docs/cursed_wonders.md #6).

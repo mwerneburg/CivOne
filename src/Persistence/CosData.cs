@@ -74,6 +74,13 @@ namespace CivOne.Persistence
 		public List<int[]> GreyCities { get; set; } = null!;
 		// King in Yellow afflicted city tiles: [x, y] pairs.
 		public List<int[]> YellowCities { get; set; } = null!;
+		// Great Wall curse window and target continent (0 end turn = inactive).
+		public uint WallCurseEndTurn { get; set; }
+		public int WallCurseContinent { get; set; }
+		// Newton's anomaly: afflicted city tile and end turn (0 = inactive).
+		public int AnomalyX { get; set; }
+		public int AnomalyY { get; set; }
+		public uint AnomalyEndTurn { get; set; }
 		// Grey goo tiles: [x, y, turnConsumed] triples, plus the doubling clock
 		// and whether the Nanobot Factory rolled cursed (no upgrades ever).
 		public List<int[]> GooTiles { get; set; } = null!;

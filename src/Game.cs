@@ -125,6 +125,16 @@ namespace CivOne
 		// spreads along trade routes, cured by a Cathedral (ProcessKingInYellow).
 		internal readonly HashSet<(int x, int y)> YellowCities = new();
 
+		// Great Wall curse: while the window is open, each raid season lands a
+		// second barbarian horde on the wall-builder's continent (turn loop).
+		internal uint WallCurseEndTurn;
+		internal byte WallCurseContinent;
+
+		// Newton's College curse: a temporal anomaly on one city — random gifts
+		// and thefts from other whens until the equations balance (ProcessAnomaly).
+		internal int AnomalyX, AnomalyY;
+		internal uint AnomalyEndTurn;
+
 		// Grey goo (Nanobot Factory curse): consumed tile → turn it was consumed.
 		// Goo tiles yield nothing (City yield guards), eat units that end a turn
 		// on them, and the front doubles every 5 turns (ProcessGreyGoo). Settlers
@@ -1183,6 +1193,9 @@ namespace CivOne
 				// The King in Yellow: cures, contagion, abandoned routes.
 				ProcessKingInYellow();
 
+				// Newton's anomaly: gifts and thefts from other whens.
+				ProcessAnomaly();
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -1219,6 +1232,25 @@ namespace CivOne
 					{
 						foreach (UnitType unitType in Barbarian.LandSpawnUnits)
 							CreateUnit(unitType, tile.X, tile.Y, 0, false);
+					}
+				}
+
+				// Great Wall curse: the old builders knew what the wall was for.
+				// While the beacon burns, each raid season lands a second horde
+				// on the builder's continent (docs/cursed_wonders.md #9).
+				if (WallCurseEndTurn > 0 && _gameTurn <= WallCurseEndTurn
+				    && Barbarian.IsLandSpawnTurn && barbarianUnits < barbarianCap)
+				{
+					ITile? beacon = Map.ContinentTiles(WallCurseContinent)
+						.Where(t => !t.IsOcean && t.City is null && !(t is Tiles.Arctic)
+						         && !t.Units.Any()
+						         && !_cities.Any(c => c.Size > 0 && TileDistance(c.X, c.Y, t.X, t.Y) < 3))
+						.OrderBy(_ => Common.Random.Next(10000))
+						.FirstOrDefault();
+					if (beacon is not null)
+					{
+						foreach (UnitType unitType in Barbarian.LandSpawnUnits)
+							CreateUnit(unitType, beacon.X, beacon.Y, 0, false);
 					}
 				}
 			}
@@ -2164,6 +2196,76 @@ namespace CivOne
 						home.RemoveTradeRoutesTo(partner);
 					}
 				}
+		}
+
+		// ── Newton's College curse: the temporal anomaly ─────────────────────
+		// Newton's *other* research succeeds. For fifty turns the College city
+		// leaks between whens: one turn in five something arrives or departs —
+		// an advance already annotated, blank research notes, armored riders
+		// asking the year, an engine nobody built. Symmetric chaos, one city.
+		private void ProcessAnomaly()
+		{
+			if (AnomalyEndTurn == 0) return;
+			if (_gameTurn > AnomalyEndTurn)
+			{
+				AnomalyEndTurn = 0;
+				City? college = GetCity(AnomalyX, AnomalyY);
+				if (college is not null && GetPlayer(college.Owner).IsHuman)
+					GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+						"The anomaly has closed.",
+						"The equations balance.",
+						"Nobody will say at what."));
+				return;
+			}
+
+			City? c = GetCity(AnomalyX, AnomalyY);
+			if (c is null || c.Size == 0) { AnomalyEndTurn = 0; return; }
+			if (Common.Random.Next(100) >= 20) return;
+
+			Player owner = GetPlayer(c.Owner);
+			switch (Common.Random.Next(4))
+			{
+				case 0: // an insight from elsewhen
+					IAdvance gift = owner.AvailableResearch
+						.Where(a => !(a is FutureTech))
+						.OrderBy(_ => Common.Random.Next(100))
+						.FirstOrDefault();
+					if (gift is null) break;
+					owner.AddAdvance(gift, false);
+					if (owner.IsHuman)
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							$"{gift.Name} was found in the",
+							"College archives —",
+							"already annotated."));
+					break;
+
+				case 1: // the equations unravel
+					owner.Science = 0;
+					if (owner.IsHuman)
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"The research notes are blank.",
+							"The scholars insist they",
+							"were always blank."));
+					break;
+
+				case 2: // visitors from the past
+					CreateUnit(UnitType.Knights, AnomalyX, AnomalyY, c.Owner, endTurn: true);
+					if (owner.IsHuman)
+						GameTask.Enqueue(Message.Advisor(Advisor.Defense, false,
+							"Armored riders emerge from",
+							"the College courtyard,",
+							"asking what year it is."));
+					break;
+
+				case 3: // an engine from the future
+					CreateUnit(UnitType.HoverTank, AnomalyX, AnomalyY, c.Owner, endTurn: true);
+					if (owner.IsHuman)
+						GameTask.Enqueue(Message.Advisor(Advisor.Defense, false,
+							"An engine idles by the College.",
+							"Nobody built it.",
+							"It knows us."));
+					break;
+			}
 		}
 
 		// ── Grey goo (Nanobot Factory curse) ─────────────────────────────────
