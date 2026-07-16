@@ -51,5 +51,6 @@ namespace CivOne.Enums
 		ThePortal                = 38,
 		NanobotFactory           = 39,
 		TheInternet              = 40,
+		Stonehenge               = 41,
 	}
 }

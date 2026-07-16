@@ -54,5 +54,8 @@ namespace CivOne.Enums
 		// Barbarian sea monster — never producible; drawn in by the Lighthouse's
 		// cursed roll (Game.UnleashLeviathan). Hunts ships until slain.
 		Leviathan = 34,
+		// Barbarian guardian — never producible; steps through Stonehenge's
+		// cursed roll (Game.OpenStoneDoor) and stands in the stones until slain.
+		HengeGuardian = 35,
 	}
 }

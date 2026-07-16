@@ -118,6 +118,11 @@ namespace CivOne
 		// Leviathan (Lighthouse curse): 0 = the deep is quiet, 1 = hunting, 2 = slain.
 		internal byte LeviathanState;
 
+		// Stonehenge curse: 0 = the stones are shut, 1 = the door is open (guardian
+		// stands, tithe runs), 2 = closed for good. DoorX/Y = the wonder city tile.
+		internal byte DoorState;
+		internal int DoorX, DoorY;
+
 		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
 		// Infested cities pay a trade skim and hold one permanently unhappy citizen
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
@@ -1218,6 +1223,9 @@ namespace CivOne
 				// The Visitations: the beacon over the Pyramids, four thousand years.
 				ProcessVisitations();
 
+				// The stone door: the tithe while the Guardian stands; shut when it falls.
+				ProcessStoneDoor();
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -1528,6 +1536,7 @@ namespace CivOne
 				case UnitType.FusionInf: unit = new FusionInf(); break;
 				case UnitType.Gozira: unit = new Gozira(); break;
 				case UnitType.Leviathan: unit = new Leviathan(); break;
+				case UnitType.HengeGuardian: unit = new HengeGuardian(); break;
 				default: return null;
 			}
 			unit.X = x;
@@ -2489,6 +2498,68 @@ namespace CivOne
 				}
 				if (budget == 0) return;
 			}
+		}
+
+		// ── Stonehenge curse: the Door ───────────────────────────────────────
+		// The circle is a door. Something steps through: the wonder city loses
+		// half its people and up to two buildings on the spot, and a Guardian
+		// stands fortified beside the stones. While it stands, the door is open —
+		// a citizen is tithed every eight turns (ProcessStoneDoor). Kill it and
+		// the door closes. The free temples still arrive; the druids got that
+		// part right.
+		internal void OpenStoneDoor(City henge)
+		{
+			if (DoorState != 0) return;
+
+			ITile? stones = Map[henge.X, henge.Y].GetBorderTiles()
+				.Where(t => !t.IsOcean && t.City is null && !(t is Tiles.Arctic))
+				.OrderBy(_ => Common.Random.Next(100))
+				.FirstOrDefault();
+			if (stones is null) return;
+
+			IUnit? guardian = CreateUnit(UnitType.HengeGuardian, stones.X, stones.Y, 0);
+			if (guardian is null) return;
+			guardian.Veteran = true;
+			guardian.Fortify = true;
+
+			DoorState = 1;
+			DoorX = henge.X;
+			DoorY = henge.Y;
+
+			henge.Size = (byte)Math.Max(1, henge.Size / 2);
+			foreach (IBuilding doomed in henge.Buildings
+				.Where(b => !(b is Palace))
+				.OrderBy(_ => Common.Random.Next(100))
+				.Take(2)
+				.ToArray())
+				henge.RemoveBuilding(doomed);
+
+			Log($"The stone door opens at {henge.Name}: guardian at ({stones.X},{stones.Y})");
+		}
+
+		private void ProcessStoneDoor()
+		{
+			if (DoorState != 1) return;
+
+			// The guardian falls: the door closes, the tithe ends.
+			if (!_units.Any(u => u is Units.HengeGuardian))
+			{
+				DoorState = 2;
+				GameTask.Enqueue(Message.Newspaper(null!, "The stones are shut!",
+					"The guardian has fallen.", "The circle is only stone."));
+				return;
+			}
+
+			// The tithe: every eighth turn, the open door takes a citizen.
+			if (_gameTurn % 8 != 0) return;
+			City? henge = GetCity(DoorX, DoorY);
+			if (henge is null || henge.Size <= 1) return;
+			henge.Size--;
+			if (GetPlayer(henge.Owner).IsHuman)
+				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+					$"Another procession left {henge.Name}",
+					"for the circle last night.",
+					"None came back."));
 		}
 
 		// ── Leviathan (Lighthouse curse) ─────────────────────────────────────

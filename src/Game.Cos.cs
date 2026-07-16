@@ -299,6 +299,9 @@ namespace CivOne
 					                          : null!,
 					GoziraState             = GoziraState,
 					LeviathanState          = LeviathanState,
+					DoorState               = DoorState,
+					DoorX                   = DoorX,
+					DoorY                   = DoorY,
 					GreyCities              = GreyCities.Count > 0
 					                          ? GreyCities.Select(g => new[] { g.x, g.y }).ToList()
 					                          : null!,
@@ -544,6 +547,9 @@ namespace CivOne
 						HumanStartedWars.Add((byte)n);
 			GoziraState = (byte)g.GoziraState;
 			LeviathanState = (byte)g.LeviathanState;
+			DoorState = (byte)g.DoorState;
+			DoorX = g.DoorX;
+			DoorY = g.DoorY;
 			if (g.GreyCities is not null)
 				foreach (var pair in g.GreyCities)
 					if (pair.Length == 2)

@@ -31,6 +31,14 @@ namespace CivOne
 				return;
 			}
 
+			// The Henge Guardian does not march, raid, or wander. It stands in
+			// the stones, and it waits for you to come to it.
+			if (unit is HengeGuardian)
+			{
+				unit.Fortify = true;
+				return;
+			}
+
 			switch (unit.Class)
 			{
 				case UnitClass.Water:

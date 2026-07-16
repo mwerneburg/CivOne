@@ -931,7 +931,10 @@ namespace CivOne
 			}
 			else
 			{
-				if (HasBuilding<Temple>())
+				// Stonehenge: every city shares a Temple's peace, present and future
+				// (Michelangelo-style computed effect; expires with Religion).
+				if (HasBuilding<Temple>()
+				    || (Player.HasWonder<Wonders.Stonehenge>() && !Game.WonderObsolete<Wonders.Stonehenge>()))
 				{
 					int templeEffect = 1;
 					if (Player.HasAdvance<Mysticism>()) templeEffect <<= 1;
@@ -1569,6 +1572,28 @@ namespace CivOne
 									"The assemblers are online.",
 									"Field refits will proceed",
 									"automatically, free of charge."));
+							}
+						}
+						if (wonder is Wonders.Stonehenge && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the circle is a door (docs/cursed_wonders.md #5). The city
+							// is halved, a Guardian stands in the stones, and the tithe runs
+							// until it falls (Game.ProcessStoneDoor). The free temples still
+							// arrive — the druids got that part right.
+							Game.Instance.OpenStoneDoor(this);
+							if (Game.Instance.DoorState == 1)
+							{
+								string circle = Name;
+								impTask.Done += (s, a) =>
+								{
+									string? doorArt = EventArtScreen.FindPath("TheDoor");
+									if (doorArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(doorArt,
+											"THE CIRCLE IS A DOOR")));
+									GameTask.Enqueue(Message.Newspaper(null!, "The stones scream!",
+										$"Half of {circle} is gone.",
+										"Something stands in the circle."));
+								};
 							}
 						}
 						if (wonder is Wonders.Pyramids && Common.Random.Next(4) == 0)

@@ -72,6 +72,10 @@ namespace CivOne.Persistence
 		public int GoziraState { get; set; }
 		// Leviathan: 0 = deep is quiet, 1 = hunting, 2 = slain.
 		public int LeviathanState { get; set; }
+		// Stone door: 0 = shut, 1 = open (guardian + tithe), 2 = closed for good.
+		public int DoorState { get; set; }
+		public int DoorX { get; set; }
+		public int DoorY { get; set; }
 		// Grey-infested city tiles: list of [x, y] pairs (The Portal's curse).
 		public List<int[]> GreyCities { get; set; } = null!;
 		// King in Yellow afflicted city tiles: [x, y] pairs.
