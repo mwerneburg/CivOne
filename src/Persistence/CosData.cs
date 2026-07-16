@@ -72,6 +72,8 @@ namespace CivOne.Persistence
 		public int GoziraState { get; set; }
 		// Grey-infested city tiles: list of [x, y] pairs (The Portal's curse).
 		public List<int[]> GreyCities { get; set; } = null!;
+		// King in Yellow afflicted city tiles: [x, y] pairs.
+		public List<int[]> YellowCities { get; set; } = null!;
 		// Grey goo tiles: [x, y, turnConsumed] triples, plus the doubling clock
 		// and whether the Nanobot Factory rolled cursed (no upgrades ever).
 		public List<int[]> GooTiles { get; set; } = null!;

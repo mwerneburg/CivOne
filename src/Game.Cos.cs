@@ -301,6 +301,9 @@ namespace CivOne
 					GreyCities              = GreyCities.Count > 0
 					                          ? GreyCities.Select(g => new[] { g.x, g.y }).ToList()
 					                          : null!,
+					YellowCities            = YellowCities.Count > 0
+					                          ? YellowCities.Select(y => new[] { y.x, y.y }).ToList()
+					                          : null!,
 					GooTiles                = GooTiles.Count > 0
 					                          ? GooTiles.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -535,6 +538,10 @@ namespace CivOne
 				foreach (var pair in g.GreyCities)
 					if (pair.Length == 2)
 						GreyCities.Add((pair[0], pair[1]));
+			if (g.YellowCities is not null)
+				foreach (var pair in g.YellowCities)
+					if (pair.Length == 2)
+						YellowCities.Add((pair[0], pair[1]));
 			if (g.GooTiles is not null)
 				foreach (var triple in g.GooTiles)
 					if (triple.Length == 3)

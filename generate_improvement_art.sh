@@ -164,5 +164,6 @@ resize_and_install_event "$SRC/Gozira.png"                "Gozira.png"
 resize_and_install_event "$SRC/TheGreys.png"              "TheGreys.png"
 resize_and_install_event "$SRC/GreyGoo.png"               "GreyGoo.png"
 resize_and_install_event "$SRC/SplinterRepublic.png"      "SplinterRepublic.png"
+resize_and_install_event "$SRC/KingInYellow.png"          "KingInYellow.png"
 
 echo "Done."

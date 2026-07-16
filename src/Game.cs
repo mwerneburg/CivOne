@@ -120,6 +120,11 @@ namespace CivOne
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
 		internal readonly HashSet<(int x, int y)> GreyCities = new();
 
+		// The King in Yellow (Shakespeare's Theatre curse): city tiles where the
+		// play has been seen. +2 unhappy citizens, the Theatre's charm nullified;
+		// spreads along trade routes, cured by a Cathedral (ProcessKingInYellow).
+		internal readonly HashSet<(int x, int y)> YellowCities = new();
+
 		// Grey goo (Nanobot Factory curse): consumed tile → turn it was consumed.
 		// Goo tiles yield nothing (City yield guards), eat units that end a turn
 		// on them, and the front doubles every 5 turns (ProcessGreyGoo). Settlers
@@ -1175,6 +1180,9 @@ namespace CivOne
 				// Grey goo: consume units, advance the doubling front (Nanobot Factory curse).
 				ProcessGreyGoo();
 
+				// The King in Yellow: cures, contagion, abandoned routes.
+				ProcessKingInYellow();
+
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
 					city.Disaster();
@@ -2095,6 +2103,67 @@ namespace CivOne
 
 			Log($"Social media schism: {seceding.Length} cities secede from {builder.TribeName} as the {splinter.TribeNamePlural}");
 			return splinter;
+		}
+
+		// ── The King in Yellow (Shakespeare's Theatre curse) ─────────────────
+		// The madness travels with the play: along trade routes, city to city.
+		// A Cathedral cures — and immunizes — a city; a stronger faith than
+		// the play. Merchants abandon routes that touch an afflicted city, so
+		// the outbreak slowly strangles the network it rides.
+		private void ProcessKingInYellow()
+		{
+			if (YellowCities.Count == 0) return;
+			byte hnum = PlayerNumber(HumanPlayer);
+			bool Afflicted(City c) => YellowCities.Contains((c.X, c.Y));
+
+			// Cures and prunes first: Cathedral bells drown out the play.
+			foreach (var key in YellowCities.ToArray())
+			{
+				City? c = GetCity(key.x, key.y);
+				if (c is null || c.Size == 0)
+				{
+					YellowCities.Remove(key);
+					continue;
+				}
+				if (c.HasBuilding<Cathedral>())
+				{
+					YellowCities.Remove(key);
+					InvalidateCitiesAt(key.x, key.y);
+					if (c.Owner == hnum)
+						GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+							$"The mask has left {c.Name}.",
+							"The cathedral bells drown",
+							"out the play."));
+				}
+			}
+			if (YellowCities.Count == 0) return;
+
+			// Every route with exactly one afflicted endpoint is a stage door:
+			// 5%/turn the healthy end sees the play (Cathedral-holders never do),
+			// else 10%/turn the merchants refuse the run and the route is lost.
+			foreach (City home in _cities.Where(c => c.Size > 0).ToArray())
+				foreach (var route in home.TradeRoutes.ToArray())
+				{
+					City partner = route.Partner;
+					if (partner.Size == 0 || Afflicted(home) == Afflicted(partner)) continue;
+					City healthy = Afflicted(home) ? partner : home;
+					City carrier = Afflicted(home) ? home : partner;
+
+					if (!healthy.HasBuilding<Cathedral>() && Common.Random.Next(100) < 5)
+					{
+						YellowCities.Add((healthy.X, healthy.Y));
+						InvalidateCitiesAt(healthy.X, healthy.Y);
+						home.RemoveTradeRoutesTo(partner); // both ends know what rode that road
+						if (healthy.Owner == hnum || carrier.Owner == hnum
+						    || HumanPlayer.HasEmbassy(GetPlayer(healthy.Owner)))
+							GameTask.Enqueue(Message.Newspaper(null!, $"{healthy.Name} has seen the play.",
+								"The madness rides", "the caravans."));
+					}
+					else if (Common.Random.Next(100) < 10)
+					{
+						home.RemoveTradeRoutesTo(partner);
+					}
+				}
 		}
 
 		// ── Grey goo (Nanobot Factory curse) ─────────────────────────────────

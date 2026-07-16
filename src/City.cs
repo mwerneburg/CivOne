@@ -923,7 +923,9 @@ namespace CivOne
 			unhappyCount += SmokeStacks / 10;
 			// The Greys: one permanently unhappy citizen — nobody likes the houseguests.
 			if (Game.Instance.GreyCities.Contains((X, Y))) unhappyCount++;
-			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>())
+			// The King in Yellow: an afflicted stage loses the Theatre's charm entirely.
+			bool maskUponUs = Game.Instance.YellowCities.Contains((X, Y));
+			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>() && !maskUponUs)
 			{
 				unhappyCount = 0;
 			}
@@ -953,6 +955,11 @@ namespace CivOne
 				else if (chapelOnContinent)
 					unhappyCount -= 4;
 			}
+
+			// The King in Yellow: two citizens have seen the play and cannot
+			// unsee it. Applied last — the mask outplays the bard; only a
+			// Cathedral cures it (Game.ProcessKingInYellow).
+			if (maskUponUs) unhappyCount += 2;
 
 			int content = 0;
 			int unhappy = 0;
@@ -1563,6 +1570,24 @@ namespace CivOne
 									"Field refits will proceed",
 									"automatically, free of charge."));
 							}
+						}
+						if (wonder is Wonders.ShakespearesTheatre && Common.Random.Next(4) == 0)
+						{
+							// 1/4: the debut play is the wrong play (docs/cursed_wonders.md #6).
+							// The madness starts here and travels the trade routes; a Cathedral
+							// cures it (Game.ProcessKingInYellow).
+							Game.Instance.YellowCities.Add((X, Y));
+							Game.InvalidateCitiesAt(X, Y);
+							string stage = Name;
+							impTask.Done += (s, a) =>
+							{
+								string? maskArt = EventArtScreen.FindPath("KingInYellow");
+								if (maskArt is not null)
+									GameTask.Enqueue(Show.Screen(new EventArtScreen(maskArt,
+										$"OPENING NIGHT — {stage.ToUpper()}")));
+								GameTask.Enqueue(Message.Newspaper(null!, "The debut is a triumph!",
+									"The audience cannot stop", "talking about the play."));
+							};
 						}
 						if (wonder is Wonders.TheInternet)
 						{
