@@ -702,6 +702,10 @@ namespace CivOne
 				    .Sum(r => r.Value);
 				if (tradeValue > 0) chance -= Math.Min(15, tradeValue / 2);
 
+				// Goodwill deters aggression: a gift or aid package buys real safety
+				// for its duration, not just trade acceptance and quiet borders.
+				if (Player.HasAttitudeBonus(enemy)) chance -= 15;
+
 				if (Common.Random.Next(100) < chance)
 				{
 					Player.DeclareWar(enemy);

@@ -423,6 +423,107 @@ namespace CivOne.Screens
 			return menu;
 		}
 
+		// ── gift callbacks ───────────────────────────────────────────────────
+		// Player-initiated goodwill: the mirror of the AI's CedeCity/GiveTech
+		// demands. Gifts are always accepted — the goodwill duration scales with
+		// what the gift is worth to the recipient. The attitude bonus boosts
+		// trade acceptance, pauses AI demand approaches, and deters war
+		// declarations (AI.ConsiderWar).
+
+		private Menu StyledMenu()
+		{
+			int fh           = Resources.GetFontHeight(FONT_ID);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			int menuY        = BodyY + speechPanelH + PAD + fh + PAD / 2;
+
+			return new Menu(Palette)
+			{
+				X              = RightX,
+				Y              = menuY,
+				MenuWidth      = RightW,
+				ActiveColour   = CassetteTheme.PHOS_FAINT,
+				TextColour     = CassetteTheme.INK_HIGH,
+				DisabledColour = CassetteTheme.INK_LOW,
+				FontId         = FONT_ID,
+				Indent         = PAD
+			};
+		}
+
+		private static int CityGiftDuration(City city) => Math.Min(100, 30 + 10 * city.Size);
+
+		private void OfferCity(object sender, EventArgs args)
+		{
+			CloseMenus();
+			City[] giftable = Human.Cities
+				.Where(c => c.Size > 0 && !c.HasBuilding<Buildings.Palace>())
+				.OrderBy(c => c.Name)
+				.ToArray();
+			if (giftable.Length == 0)
+			{
+				SetResponse(FaceState.Neutral,
+					"You have no city to spare,", "and we both know it.");
+				return;
+			}
+
+			SetResponse(FaceState.Neutral, "A city? A generous gesture.", "Which one?");
+			Menu menu = StyledMenu();
+			foreach (City city in giftable)
+			{
+				City captured = city;
+				menu.Items.Add($"{city.Name} ({city.Size}) → {CityGiftDuration(city)} turns of goodwill")
+					.OnSelect((s, e) =>
+				{
+					CloseMenus();
+					int duration = CityGiftDuration(captured);
+					// Units homed here fight on unsupported — the base changes flags.
+					foreach (var unit in captured.Units.ToArray())
+						unit.SetHome(null);
+					captured.Owner = (byte)Game.PlayerNumber(_enemy);
+					captured.ResetResourceTiles();
+					_enemy.SetAttitudeBonus(Human, duration);
+					SetResponse(FaceState.Smiling,
+						$"{captured.Name} joins our realm.",
+						$"{duration} turns of goodwill — agreed.");
+				});
+			}
+			AddMenu(menu);
+		}
+
+		private void OfferTechnology(object sender, EventArgs args)
+		{
+			CloseMenus();
+			IAdvance[] weOffer = Human.Advances.Where(a => !_enemy.HasAdvance(a)).ToArray();
+			if (weOffer.Length == 0)
+			{
+				SetResponse(FaceState.Neutral,
+					"Your scholars know nothing", "that ours do not.");
+				return;
+			}
+
+			// Goodwill scales with how much the recipient's strategy wants the tech.
+			AI ai = AI.Instance(_enemy);
+			int TechGiftDuration(IAdvance a) => Math.Min(75, 25 + 5 * ai.AdvanceDemandValue(a));
+
+			SetResponse(FaceState.Neutral, "Knowledge freely given?", "We are listening.");
+			Menu menu = StyledMenu();
+			foreach (IAdvance adv in weOffer.OrderBy(a => a.Name))
+			{
+				IAdvance captured = adv;
+				menu.Items.Add($"{adv.Name} → {TechGiftDuration(adv)} turns of goodwill")
+					.OnSelect((s, e) =>
+				{
+					CloseMenus();
+					int duration = TechGiftDuration(captured);
+					_enemy.AddAdvance(captured, false);
+					_enemy.SetAttitudeBonus(Human, duration);
+					SetResponse(FaceState.Smiling,
+						$"{captured.Name} — a worthy gift.",
+						$"{duration} turns of goodwill — agreed.");
+				});
+			}
+			AddMenu(menu);
+		}
+
 		private void SeekTribute(object sender, EventArgs args)
 		{
 			CloseMenus();
@@ -548,6 +649,8 @@ namespace CivOne.Screens
 			{
 				menu.Items.Add("Seek exchange of knowledge").OnSelect(SeekKnowledge);
 				menu.Items.Add("Trade maps").OnSelect(TradeMaps);
+				menu.Items.Add("Offer a city").OnSelect(OfferCity);
+				menu.Items.Add("Offer technology").OnSelect(OfferTechnology);
 				menu.Items.Add("Demand tribute").OnSelect(SeekTribute);
 				if (!(Human.Government is Gov.Democracy))
 					menu.Items.Add("Declare war!").OnSelect(DeclareWarOnThem);
