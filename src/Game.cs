@@ -2021,6 +2021,82 @@ namespace CivOne
 					"our television broadcasts."));
 		}
 
+		// ── The Internet (cursed wonder #2) ──────────────────────────────────
+
+		// The outbreak of Social Media: half the builder's cities — capital and
+		// the wonder city exempt, most distant from the capital first — secede
+		// as a new civilization, taking their garrisons, every advance, half
+		// the treasury, and half the accumulated culture (the influencers went
+		// with them). At peace, for now: reconquer them or win them back with
+		// tribute, pacts, and gifts like anyone else. Returns the splinter, or
+		// null when no split was possible (too few cities, no free identity).
+		internal Player? ExecuteSocialMediaSchism(Player builder, City wonderCity)
+		{
+			byte bnum = PlayerNumber(builder);
+
+			City? capital = builder.Cities.FirstOrDefault(c => c.HasBuilding<Palace>());
+			City anchor = capital ?? wonderCity;
+
+			City[] seceding = builder.Cities
+				.Where(c => c.Size > 0 && c != wonderCity && !c.HasBuilding<Palace>())
+				.OrderByDescending(c => TileDistance(c.X, c.Y, anchor.X, anchor.Y))
+				.Take(builder.Cities.Length / 2)
+				.ToArray();
+			if (seceding.Length == 0) return null;
+
+			// An identity for the schism: prefer an unused extended civ, fall back
+			// to any original civ that is neither in this game nor dead in it.
+			var takenIds = new HashSet<int>(_players.Where(p => p is not null).Select(p => p.Civilization.Id));
+			var deadIds  = new HashSet<int>(_replayData.OfType<ReplayData.CivilizationDestroyed>().Select(r => (int)r.DestroyedId));
+			ICivilization? identity = Common.Civilizations
+				.Where(c => c.Id >= 17 && c.Id <= 26 && !takenIds.Contains(c.Id) && !deadIds.Contains(c.Id))
+				.OrderBy(_ => Common.Random.Next(100))
+				.FirstOrDefault()
+				?? Common.Civilizations
+				.Where(c => c.Id >= 1 && c.Id <= 14 && !takenIds.Contains(c.Id) && !deadIds.Contains(c.Id))
+				.OrderBy(_ => Common.Random.Next(100))
+				.FirstOrDefault();
+			if (identity is null) return null;
+
+			var splinter = new Player(identity);
+			AddPlayer(splinter);
+			byte snum = PlayerNumber(splinter);
+
+			foreach (IAdvance adv in builder.Advances.ToArray())
+				if (!splinter.HasAdvance(adv)) splinter.AddAdvance(adv, false);
+			short dowry = (short)(builder.Gold / 2);
+			builder.Gold -= dowry;
+			splinter.Gold = dowry;
+			int cultureShare = builder.Culture / 2;
+			splinter.SetCulture(cultureShare);
+			builder.SetCulture(builder.Culture - cultureShare);
+
+			foreach (City city in seceding)
+			{
+				// Garrisons join the rebellion where they stand; units homed here
+				// elsewhere fight on unsupported.
+				foreach (IUnit unit in city.Units.ToArray())
+					unit.SetHome(null);
+				foreach (IUnit unit in Map[city.X, city.Y].Units.Where(u => u.Owner == bnum).ToArray())
+				{
+					unit.Owner = snum;
+					unit.SetHome(null);
+				}
+				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, snum));
+				city.Owner = snum;
+				city.ResetResourceTiles();
+				city.ClearProductionQueue();
+				city.SetProduction(new Units.Militia());
+			}
+
+			// They know each other far too well.
+			builder.EstablishEmbassy(splinter);
+			splinter.EstablishEmbassy(builder);
+
+			Log($"Social media schism: {seceding.Length} cities secede from {builder.TribeName} as the {splinter.TribeNamePlural}");
+			return splinter;
+		}
+
 		// ── Grey goo (Nanobot Factory curse) ─────────────────────────────────
 
 		// One tile joins the tide: yields die, improvements are stripped, the

@@ -50,5 +50,6 @@ namespace CivOne.Enums
 		FusionCore               = 37,
 		ThePortal                = 38,
 		NanobotFactory           = 39,
+		TheInternet              = 40,
 	}
 }

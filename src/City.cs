@@ -414,6 +414,7 @@ namespace CivOne
 			+ (HasBuilding<Buildings.Cathedral>() ? 2 : 0)
 			+ (HasBuilding<UniversityBuilding>() ? 2 : 0)
 			+ (HasBuilding<Buildings.CivicMonument>() ? 3 : 0)
+			+ (Player.HasWonder<Wonders.TheInternet>() ? 1 : 0)
 			+ Wonders.Sum(w => Game.WonderObsolete(w) ? 1 : 3);
 		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
 		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));
@@ -522,6 +523,8 @@ namespace CivOne
 				if (HasBuilding<Xenolab>()) science += (short)Math.Floor(science * 0.5);
 				if (!Game.WonderObsolete<CopernicusObservatory>() && HasWonder<CopernicusObservatory>()) science += science;
 				if (Player.HasWonder<HumanGenomeProject>()) science += (short)Math.Floor((double)science * 0.5);
+				// The Internet: every mind in the empire, one conversation.
+				if (Player.HasWonder<TheInternet>()) science += (short)Math.Floor((double)science * 0.25);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
 				return (_cachedScience = science).Value;
 			}
@@ -1559,6 +1562,37 @@ namespace CivOne
 									"The assemblers are online.",
 									"Field refits will proceed",
 									"automatically, free of charge."));
+							}
+						}
+						if (wonder is Wonders.TheInternet)
+						{
+							// 1/4: the outbreak of Social Media (docs/cursed_wonders.md #2).
+							// The split resolves immediately for any builder; too-small
+							// empires can't schism and quietly get the blessing.
+							Player? splinter = Common.Random.Next(4) == 0
+								? Game.Instance.ExecuteSocialMediaSchism(Player, this)
+								: null;
+							if (splinter is not null)
+							{
+								string tribe = Player.TribeNamePlural;
+								string splinterTribe = splinter.TribeNamePlural;
+								impTask.Done += (s, a) =>
+								{
+									string? schismArt = EventArtScreen.FindPath("SplinterRepublic");
+									if (schismArt is not null)
+										GameTask.Enqueue(Show.Screen(new EventArtScreen(schismArt,
+											$"SCHISM — THE {splinterTribe.ToUpper()} LOG OFF")));
+									GameTask.Enqueue(Message.Newspaper(null!, "The feed is poison!",
+										$"Half the {tribe} provinces",
+										$"secede as the {splinterTribe}."));
+								};
+							}
+							else if (Player == Human)
+							{
+								impTask.Done += (s, a) => GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+									"The network is online.",
+									"Science and culture flow",
+									"between every city."));
 							}
 						}
 						if (wonder is Wonders.DarwinsVoyage)
