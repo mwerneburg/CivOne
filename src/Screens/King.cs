@@ -151,6 +151,8 @@ namespace CivOne.Screens
 			var agg = _enemy.Civilization.Leader.Aggression;
 			if (_demands.Any(d => d.Kind == AIDemandKind.BegForAid))
 				return [$"Our people starve, {Human.LeaderName}.", "We come not to demand, but to beg."];
+			if (_demands.Any(d => d.Kind == AIDemandKind.OfferTribute))
+				return [$"We cannot win this war, {Human.LeaderName}.", "Let us buy the peace instead."];
 			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))
 				return agg == AggressionLevel.Aggressive
 					? [$"You seized our cities, {Human.LeaderName}.", "We demand reparations."]
@@ -181,6 +183,7 @@ namespace CivOne.Screens
 				AIDemandKind.GiveTech  => $"Transfer {d.Advance!.Name} → {d.Duration} turns of goodwill",
 				AIDemandKind.GiveMoney => $"Pay ${d.Amount} tribute → {d.Duration} turns of goodwill",
 				AIDemandKind.CedeCity  => $"Cede {d.City!.Name} → {d.Duration} turns of goodwill",
+				AIDemandKind.OfferTribute => $"Accept tribute: ${d.Amount}/turn → peace while the gold flows",
 				_                      => "Unknown demand"
 			};
 		}
@@ -251,6 +254,15 @@ namespace CivOne.Screens
 						$"{d.Duration} turns of goodwill — agreed.");
 					break;
 
+				case AIDemandKind.OfferTribute:
+					// EstablishTribute makes peace and installs the self-renewing
+					// treaty; the gold arrives each turn the payer stays solvent.
+					_enemy.EstablishTribute(Human, d.Amount);
+					SetResponse(FaceState.Neutral,
+						$"${d.Amount} will arrive each year.",
+						"Call your armies home.");
+					break;
+
 				case AIDemandKind.GrievancePack:
 					d.City!.Owner = aiNum;
 					if (d.Advance is not null) _enemy.AddAdvance(d.Advance!, false);
@@ -278,6 +290,13 @@ namespace CivOne.Screens
 				SetResponse(FaceState.Neutral,
 					"Then we are truly alone.",
 					"History will remember your silence.");
+				return;
+			}
+			if (_demands.Any(d => d.Kind == AIDemandKind.OfferTribute))
+			{
+				SetResponse(FaceState.Neutral,
+					"So be it. We will die",
+					"with our gold.");
 				return;
 			}
 			if (_demands.Any(d => d.Kind == AIDemandKind.GrievancePack))

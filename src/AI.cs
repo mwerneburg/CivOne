@@ -37,6 +37,7 @@ namespace CivOne
 		// War-state tracking for peace initiatives.
 		private int _turnsAtWar      = 0;
 		private int _peacetimeCities = 0; // city count when we were last at peace
+		private int _lastTributeOfferTurn = -100; // turn of the last tribute offer to the human
 
 		// Grievance-demand cooldown: turn on which the last GrievancePack was issued.
 		internal int LastGrievanceTurn = -50;

@@ -575,23 +575,43 @@ namespace CivOne
 			{
 				int ownPower = MilitaryScore(Player);
 				Player[] tributeCandidates = Game.Players
-				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
+				    .Where(p => p != Player && !p.IsDestroyed()
 				             && Game.PlayerNumber(p) != 0
 				             && !(p.Civilization is TheOthers or TheThing) // the Registry takes cities, not gold; the Thing takes people
 				             && Player.IsAtWar(p)
 				             && Player.HasEmbassy(p)
 				             && ownPower * 2 < MilitaryScore(p))
 				    .ToArray();
-				if (tributeCandidates.Length > 0 && !Player.PaysTributeTo(tributeCandidates[0]))
+				if (tributeCandidates.Length > 0)
 				{
 					Player protector = tributeCandidates.OrderByDescending(MilitaryScore).First();
 					// Annual tribute scales with player gold income, clamped: 5 gold floor,
 					// 25 gold ceiling. The cap matters because a tiny civ shouldn't price
 					// itself out of survival, and a runaway civ shouldn't extract everything.
 					int annual = Math.Max(5, Math.Min(25, Player.Gold / 20 + 5));
-					if (Player.Gold >= annual)
+					if (!Player.PaysTributeTo(protector) && Player.Gold >= annual)
 					{
-						Player.EstablishTribute(protector, annual);
+						if (protector.IsHuman)
+						{
+							// The human decides in person: the offer arrives as an audience,
+							// rate-limited so a refusal isn't repeated every turn.
+							if (Game.GameTurn - _lastTributeOfferTurn >= 20 && Common.Random.Next(100) < 30)
+							{
+								_lastTributeOfferTurn = (int)Game.GameTurn;
+								var offer = new List<AIDemand> { new AIDemand(AIDemandKind.OfferTribute, amount: annual) };
+								GameTask.Enqueue(Show.MeetKing(Player, aiInitiated: true, demands: offer));
+							}
+						}
+						else
+						{
+							Player.EstablishTribute(protector, annual);
+							// World news travels along embassy channels.
+							if (Human.HasEmbassy(Player) || Human.HasEmbassy(protector))
+								GameTask.Enqueue(Message.Newspaper(null!,
+									$"{Player.TribeNamePlural} sue for protection!",
+									$"${annual}/turn tribute flows",
+									$"to the {protector.TribeNamePlural}."));
+						}
 					}
 				}
 			}
