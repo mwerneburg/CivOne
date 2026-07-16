@@ -292,6 +292,10 @@ namespace CivOne
 					ThingOutbreaks          = ThingOutbreaks.Count > 0
 					                          ? ThingOutbreaks.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
+					EconStreak              = EconStreak,
+					HumanStartedWars        = HumanStartedWars.Count > 0
+					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
+					                          : null!,
 					DomeAssignments         = DomeAssignments
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
@@ -510,6 +514,11 @@ namespace CivOne
 				foreach (var triple in g.ThingOutbreaks)
 					if (triple.Length == 3)
 						ThingOutbreaks[(triple[0], triple[1])] = (uint)triple[2];
+			EconStreak = g.EconStreak;
+			if (g.HumanStartedWars is not null)
+				foreach (int n in g.HumanStartedWars)
+					if (n > 0 && n < _players.Count)
+						HumanStartedWars.Add((byte)n);
 			_domeVictoryFired     = g.DomeVictoryFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)

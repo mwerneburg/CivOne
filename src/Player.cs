@@ -360,6 +360,11 @@ namespace CivOne
 			_warWith.Add(enemyNumber);
 			enemy._warWith.Add(ownNumber);
 
+			// Aggressor bookkeeping for the economic-dominance streak: only wars the
+			// human starts break it — being dragged in by a pact doesn't count.
+			if (this == Human && !_honoringPacts)
+				Game.HumanStartedWars.Add(enemyNumber);
+
 			// Break all trade routes between the two civs
 			foreach (City city in Game.GetCities().Where(c => c.Owner == ownNumber))
 				city.RemoveTradeRoutesTo(enemy);
@@ -413,6 +418,10 @@ namespace CivOne
 			byte ownNumber = Game.PlayerNumber(this);
 			_warWith.Remove(enemyNumber);
 			enemy._warWith.Remove(ownNumber);
+
+			// A settled war is no longer held against the human's economic streak.
+			if (this == Human) Game.HumanStartedWars.Remove(enemyNumber);
+			else if (enemy == Human) Game.HumanStartedWars.Remove(ownNumber);
 		}
 
 		public IAdvance? CurrentResearch

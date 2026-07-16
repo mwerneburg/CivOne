@@ -106,6 +106,12 @@ namespace CivOne
 		// and the organism spreads (see ProcessThingOutbreaks).
 		internal readonly Dictionary<(int x, int y), uint> ThingOutbreaks = new();
 
+		// Economic dominance (Pax Mercatoria): consecutive turns the human has held
+		// the winning conditions, and the set of enemies (player numbers) in wars the
+		// human started — only those wars break the streak; defensive wars don't.
+		internal uint EconStreak;
+		internal readonly HashSet<byte> HumanStartedWars = new();
+
 		// Dome path: which player (owner byte) is assigned to which dome wonder component(s).
 		// Populated when the Tau Ceti approach warning fires.
 		internal readonly Dictionary<byte, List<Enums.Wonder>> DomeAssignments = new();
@@ -848,6 +854,85 @@ namespace CivOne
 								? $"Olvir landfall est. {Common.YearString((ushort)OlvirArrivalTurn)}."
 								: "Await the visitors.",
 							"Continue to 2200 AD."));
+					}
+				}
+
+				// ── Economic dominance: Pax Mercatoria ───────────────────────────────
+				// The merchant's finish line: hold more than half the world's gross
+				// economic output for 20 consecutive turns, with Banking known, at
+				// least 3 rivals still standing, no war of the human's own making,
+				// and half the surviving rivals economically bound to the human
+				// (tribute, defense pact, or an active trade route) — the world's
+				// economy runs through you. Defensive wars don't break the streak:
+				// dominance by commerce, not cannon.
+				{
+					Player[] econRivals = _players.Where(p => p is not null && p != HumanPlayer
+						&& !p.IsDestroyed() && PlayerNumber(p) != 0
+						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
+
+					if (HumanPlayer.HasAdvance<Banking>() && econRivals.Length >= 3)
+					{
+						byte hnum = PlayerNumber(HumanPlayer);
+						int humanOut = GrossOutput(HumanPlayer);
+						int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
+							.Sum(GrossOutput);
+						bool share = humanOut > 0 && humanOut * 2 > worldOut;
+
+						bool aggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+							&& HumanPlayer.IsAtWar(p) && HumanStartedWars.Contains(PlayerNumber(p)));
+
+						bool Bound(Player r)
+						{
+							byte rnum = PlayerNumber(r);
+							return r.PaysTributeTo(HumanPlayer) || r.HasDefensePact(HumanPlayer)
+								|| _cities.Any(c => c.Size > 0 &&
+									((c.Owner == hnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
+									|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == hnum))));
+						}
+						bool boundHalf = econRivals.Count(Bound) * 2 >= econRivals.Length;
+
+						if (share && !aggressing && boundHalf)
+						{
+							EconStreak++;
+							if (EconStreak == 1)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"Our merchants dominate",
+									"world trade. Hold the markets",
+									"for 20 years."));
+							else if (EconStreak == 10)
+								GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
+									"The world's markets", "answer to us."));
+
+							if (EconStreak >= 20)
+							{
+								HumanPlayer.AwardMilestone(150);
+								DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn);
+								int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
+								string? econArt = Screens.EventArtScreen.FindPath("PaxMercatoria");
+								if (econArt is not null)
+									GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(econArt,
+										"PAX MERCATORIA — THE WORLD BANKS WITH YOU")));
+								GameTask.Enqueue(Message.Newspaper(null!, "Pax Mercatoria!",
+									"The world's economy", "runs through you."));
+								GameTask econFt;
+								GameTask.Enqueue(econFt = Show.Screen(new Screens.Reports.FinalScore("Economic Dominance")));
+								econFt.Done += (s, a) => EndSequence.ChainAfterFinal(econFame, () => Runtime.Quit());
+								return;
+							}
+						}
+						else if (EconStreak > 0)
+						{
+							string why = !share ? "Our share of world trade slipped."
+								: aggressing ? "Wars of our making unsettle the markets."
+								: "Too few nations bank with us.";
+							EconStreak = 0;
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"The markets waver.", why, "The streak is broken."));
+						}
+					}
+					else if (EconStreak > 0)
+					{
+						EconStreak = 0; // world shrank below the floor mid-streak
 					}
 				}
 
@@ -1796,6 +1881,18 @@ namespace CivOne
 
 			Log($"Owners landing: {seizedList.Count} cities seized (quota {quota} of {world.Length})");
 			return seizedList.Count;
+		}
+
+		// Gross economic output for the Pax Mercatoria check: total trade arrows
+		// across the empire (tax-slider-proof; includes trade-route bonuses) plus
+		// tribute inflow.
+		private int GrossOutput(Player p)
+		{
+			byte num = PlayerNumber(p);
+			int output = _cities.Where(c => c.Owner == num && c.Size > 0).Sum(c => c.TradeTotal);
+			foreach (Player payer in p.TributePayers)
+				output += payer.TributeAmountTo(p);
+			return output;
 		}
 
 		// ── The Thing (South Pole Expedition curse) ─────────────────────────

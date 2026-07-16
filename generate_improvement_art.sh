@@ -154,5 +154,7 @@ resize_and_install_event "$SRC/TheOthersArrive.png"       "TheOthersArrive.png"
 resize_and_install_event "$SRC/Repossession.png"          "Repossession.png"
 # South Pole Expedition curse
 resize_and_install_event "$SRC/TheThing.png"              "TheThing.png"
+# Economic dominance victory
+resize_and_install_event "$SRC/PaxMercatoria.png"         "PaxMercatoria.png"
 
 echo "Done."

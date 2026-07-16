@@ -64,6 +64,10 @@ namespace CivOne.Persistence
 		public List<int[]> OlvirImprovements { get; set; } = null!;
 		// Thing outbreak clocks: list of [x, y, deadlineTurn] triples
 		public List<int[]> ThingOutbreaks { get; set; } = null!;
+		// Economic-dominance streak (consecutive qualifying turns) and the player
+		// numbers of wars the human started (defensive wars don't break the streak).
+		public uint EconStreak { get; set; }
+		public int[] HumanStartedWars { get; set; } = null!;
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }
