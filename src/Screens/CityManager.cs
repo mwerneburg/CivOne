@@ -180,7 +180,7 @@ namespace CivOne.Screens
 			// Shields meter: production progress
 			int shieldIncome = _city.ShieldIncome;
 			string shldLabel = shieldIncome >= 0 ? $"+{shieldIncome} PROD" : $"{shieldIncome} PROD";
-			int prodCost = (int)_city.CurrentProduction.Price * 10;
+			int prodCost = _city.ProductionCost(_city.CurrentProduction);
 			this.DrawCassetteMeter(shldLabel, _city.Shields, Math.Max(1, prodCost), cx, cy, cw);
 			cy += meterH;
 
@@ -364,7 +364,7 @@ namespace CivOne.Screens
 			this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
 
 			// Progress meter
-			int prodCost    = (int)_city.CurrentProduction.Price * 10;
+			int prodCost    = _city.ProductionCost(_city.CurrentProduction);
 			int meterH      = fh0 + 6;
 			this.DrawCassetteMeter($"{_city.Shields}/{prodCost} SHLD", _city.Shields, Math.Max(1, prodCost),
 				px + 4, py + 7 + fh1 + 2, pw - 8);

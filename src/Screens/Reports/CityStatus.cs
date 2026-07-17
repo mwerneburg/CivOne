@@ -57,7 +57,7 @@ namespace CivOne.Screens.Reports
 
 				bool   invalid    = ProductionInvalid(city);
 				string? production = (city.CurrentProduction as ICivilopedia)?.Name;
-				string progress   = $"{city.Shields}/{city.CurrentProduction.Price * 10}";
+				string progress   = $"{city.Shields}/{city.ProductionCost(city.CurrentProduction)}";
 
 				byte prodColor = invalid ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
 				byte progColor = invalid ? CassetteTheme.ALERT : CassetteTheme.INK_LOW;

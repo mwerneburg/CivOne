@@ -137,6 +137,19 @@ namespace CivOne
 			{
 				ITile tile = unit.Tile;
 
+				// Opportunistic resource camp: a settler standing on an unclaimed
+				// Iron/Coal/Oil deposit outside a city claims it before doing
+				// anything else. (Dedicated camp-seeking is deferred — city-worked
+				// deposits already count for possession; see Game.HasResource.)
+				if (Game.ResourceAt(tile) != StrategicResource.None
+				    && tile.City is null && !Game.ResourceCamps.ContainsKey((tile.X, tile.Y))
+				    && (unit as Settlers)!.BuildCamp())
+				{
+					DecisionLogger.LogSettlerAction(unit, "camp");
+					unit.SkipTurn();
+					return;
+				}
+
 				// Any habitable land tile is a valid city site — Desert, Hills, Jungle etc.
 				// are all legal in Civ 1. Restricting to Grassland/Plains was causing settlers
 				// to mill endlessly after the new arid-interior map generation.

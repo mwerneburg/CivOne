@@ -817,6 +817,20 @@ namespace CivOne
 			CurrentProduction = production;
 		}
 
+		// Soft strategic-resource gate: without the required material (Iron/Coal/
+		// Oil — Game.RequiredResource), the works pay ruinous import prices:
+		// +50% shields. Never a wall, always a cost. Used by the completion
+		// check, rush-buy, and the city screens, so the higher target is
+		// visible wherever progress is shown.
+		internal int ProductionCost(IProduction production)
+		{
+			int cost = (int)production.Price * 10;
+			StrategicResource need = Game.RequiredResource(production);
+			if (need != StrategicResource.None && !Game.Instance.HasResource(Player, need))
+				cost += cost / 2;
+			return cost;
+		}
+
 		internal short BuyPrice
 		{
 			get
@@ -826,7 +840,7 @@ namespace CivOne
 				// output toward the price so the player only pays for what the city can't
 				// finish on its own by delivery. ShieldIncome can be negative (units being
 				// disbanded for upkeep), so floor the credit at zero.
-				int target    = (int)CurrentProduction.Price * 10;
+				int target    = ProductionCost(CurrentProduction);
 				int effective  = (Shields > 0)
 					? Math.Min(target, Shields + Math.Max(0, ShieldIncome))
 					: 0;
@@ -858,7 +872,7 @@ namespace CivOne
 			if (Player.Gold < buyPrice) return false;
 
 			Player.Gold -= (short)buyPrice;
-			Shields = (int)CurrentProduction.Price * 10;
+			Shields = ProductionCost(CurrentProduction);
 			return true;
 		}
 
@@ -1397,7 +1411,7 @@ namespace CivOne
 				}
 			}
 
-			if (CurrentProduction is not null && Shields >= (int)CurrentProduction.Price * 10)
+			if (CurrentProduction is not null && Shields >= ProductionCost(CurrentProduction))
 			{
 				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0 && !Settings.Instance.Autopilot)
 				{

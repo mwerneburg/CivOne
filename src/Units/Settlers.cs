@@ -26,7 +26,7 @@ namespace CivOne.Units
 		{
 			get
 			{
-				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0
+				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0 || BuildingCamp > 0
 					|| BuildingLowerTerrain > 0 || BuildingRaiseTerrain > 0 || BuildingPlantForest > 0 || BuildingPlantJungle > 0 || BuildingThawTundra > 0 || BuildingAddRiver > 0);
 			}
 			set
@@ -39,6 +39,7 @@ namespace CivOne.Units
 				BuildingCleanPollution = 0;
 				BuildingCanopyArray = 0;
 				BuildingAquafarm = 0;
+				BuildingCamp = 0;
 				BuildingLowerTerrain = 0;
 				BuildingRaiseTerrain = 0;
 				BuildingPlantForest = 0;
@@ -65,6 +66,7 @@ namespace CivOne.Units
 		public int BuildingPlantJungle { get; internal set; }
 		public int BuildingThawTundra { get; internal set; }
 		public int BuildingAddRiver { get; internal set; }
+		public int BuildingCamp { get; private set; }
 		public bool AutoClean { get; private set; }
 		public bool AutoImprove { get; private set; }
 
@@ -89,7 +91,7 @@ namespace CivOne.Units
 		private bool IsBuildIdle() =>
 			BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 &&
 			BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 &&
-			BuildingAquafarm == 0 && BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 &&
+			BuildingAquafarm == 0 && BuildingCamp == 0 && BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 &&
 			BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 &&
 			BuildingAddRiver == 0;
 
@@ -508,12 +510,26 @@ namespace CivOne.Units
 			return true;
 		}
 
+		// Claim a strategic resource deposit (Iron/Coal/Oil special tiles) with a
+		// camp — works anywhere, including far outside any city's radius. The camp
+		// belongs to whoever's unit last stood on it (Game.ProcessResourceCamps).
+		public bool BuildCamp()
+		{
+			ITile tile = Map[X, Y];
+			if (Game.ResourceAt(tile) == StrategicResource.None) return false;
+			if (tile.City is not null || Game.ResourceCamps.ContainsKey((X, Y))) return false;
+			BuildingCamp = 3;
+			MovesLeft = 0;
+			PartMoves = 0;
+			return true;
+		}
+
 		public override void NewTurn()
 		{
 			base.NewTurn();
 			if (Map[X, Y].IsOcean)
 			{
-				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = 0;
+				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = BuildingCamp = 0;
 				_buildingTube = false;
 				if (BuildingAquafarm == 0) return;
 			}
@@ -623,6 +639,12 @@ namespace CivOne.Units
 				if (BuildingCanopyArray > 0) { MovesLeft = 0; PartMoves = 0; }
 				else { Game.OlvirImprovements[(X, Y)] = OlvirImprovementType.CanopyArray; Game.InvalidateCitiesAt(X, Y); }
 			}
+			else if (BuildingCamp > 0)
+			{
+				BuildingCamp--;
+				if (BuildingCamp > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Game.ResourceCamps[(X, Y)] = Owner; Game.InvalidateCitiesAt(X, Y); }
+			}
 			else if (BuildingAquafarm > 0)
 			{
 				BuildingAquafarm--;
@@ -666,7 +688,7 @@ namespace CivOne.Units
 				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.River); Game.InvalidateCitiesAt(X, Y); }
 			}
 
-			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0
+			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0 && BuildingCamp == 0
 				&& BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 && BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 && BuildingAddRiver == 0)
 			{
 				if (Map[X, Y].Pollution && Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, X, Y) <= 3))
@@ -686,7 +708,7 @@ namespace CivOne.Units
 			if (AutoImprove && IsBuildIdle())
 				StartAutoImproveStep();
 
-			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0
+			if (!RoadTo.IsEmpty && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0 && BuildingCamp == 0
 				&& BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 && BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 && BuildingAddRiver == 0)
 			{
 				if (X == RoadTo.X && Y == RoadTo.Y)
@@ -789,6 +811,11 @@ namespace CivOne.Units
 			.SetShortcut("p")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.CleanPollution(this)));
 
+		private MenuItem<int> MenuBuildCamp() => MenuItem<int>
+			.Create($"Build {Game.ResourceAt(Map[X, Y])} Camp")
+			.SetShortcut("y")
+			.OnSelect((s, a) => BuildCamp());
+
 		private MenuItem<int> MenuAutoImprove() => MenuItem<int>
 			.Create("Auto-Improve")
 			.SetShortcut("e")
@@ -844,6 +871,9 @@ namespace CivOne.Units
 					yield return MenuBuildMines();
 				if (!tile.IsOcean && !tile.Fortress)
 					yield return MenuBuildFortress();
+				if (Game.ResourceAt(tile) != StrategicResource.None && tile.City is null
+				    && !Game.ResourceCamps.ContainsKey((tile.X, tile.Y)))
+					yield return MenuBuildCamp();
 				if (Human.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)))
 					yield return MenuBuildCanopyArray();
 				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean))

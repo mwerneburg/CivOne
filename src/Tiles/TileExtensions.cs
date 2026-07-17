@@ -230,6 +230,15 @@ namespace CivOne.Tiles
 			if (tile.DrawFortress()) output.AddLayer(MapTile.Fortress);
 			if (tile.DrawHut()) output.AddLayer(MapTile.Hut);
 			if (tile.Pollution && !tile.IsOcean) output.AddLayer(MapTile.Pollution);
+			// Strategic resource camps render as a fortified mine — the walls say
+			// "claimed", the shaft says "working" (ownerless visual; flags change
+			// hands via Game.ProcessResourceCamps).
+			if (!tile.IsOcean && Game.Instance is not null
+			    && Game.Instance.ResourceCamps.ContainsKey((tile.X, tile.Y)))
+			{
+				output.AddLayer(MapTile.Mine);
+				output.AddLayer(MapTile.Fortress);
+			}
 
 			if (Game is not null && Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirImp))
 				output.AddLayer(OlvirSprites.Get(olvirImp));

@@ -218,7 +218,7 @@ namespace CivOne.Screens
 
 		private int TurnsFor(IProduction item)
 		{
-			int remaining = (int)item.Price * 10 - _city.Shields;
+			int remaining = _city.ProductionCost(item) - _city.Shields;
 			if (_city.ShieldIncome > 1)
 				remaining = (int)Math.Ceiling((double)remaining / _city.ShieldIncome);
 			return Math.Max(1, remaining);

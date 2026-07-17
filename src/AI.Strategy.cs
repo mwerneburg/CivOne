@@ -196,7 +196,7 @@ namespace CivOne
 				if (city.CurrentProduction is null) continue;
 				if (city.IsInDisorder && city.CurrentProduction is IBuilding) continue;
 
-				int fullCost = city.CurrentProduction.Price * 10;
+				int fullCost = city.ProductionCost(city.CurrentProduction);
 				int gold     = Player.Gold;
 				short buy    = city.BuyPrice;
 				double done  = (double)city.Shields / fullCost;

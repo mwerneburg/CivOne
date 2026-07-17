@@ -751,7 +751,7 @@ namespace CivOne
 				{
 					foreach (City c in recipients)
 					{
-						int cap = (int)c.CurrentProduction.Price * 10;
+						int cap = c.ProductionCost(c.CurrentProduction);
 						int delta = Math.Min(share, Math.Max(0, cap - c.Shields));
 						c.Shields += delta;
 					}

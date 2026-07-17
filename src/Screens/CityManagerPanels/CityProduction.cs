@@ -73,7 +73,7 @@ namespace CivOne.Screens.CityManagerPanels
 			if (_update || ProductionInvalid)
 			{
 				_shieldsPerLine = 10;
-				_shieldPrice = (int)_city.CurrentProduction.Price * 10;
+				_shieldPrice = _city.ProductionCost(_city.CurrentProduction);
 				_totalShields = _shieldPrice;
 				if (_city.Shields > _totalShields) _totalShields = _city.Shields;
 				

@@ -129,6 +129,11 @@ namespace CivOne
 		// only when Religion obsoletes the Oracle.
 		internal bool OracleVoiceActive;
 
+		// Strategic resource camps: resource tile → owner. Camps claim Iron/Coal/
+		// Oil deposits outside any city's working radius; walking a unit onto a
+		// rival's camp captures it (ProcessResourceCamps). Saved in .cos.
+		internal readonly Dictionary<(int x, int y), byte> ResourceCamps = new();
+
 		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
 		// Infested cities pay a trade skim and hold one permanently unhappy citizen
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
@@ -1234,6 +1239,9 @@ namespace CivOne
 
 				// The Other Voice: true prophecies for the Oracle's keeper.
 				ProcessOracleVoice();
+
+				// Strategic resource camps: occupation changes the flag.
+				ProcessResourceCamps();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -2383,6 +2391,7 @@ namespace CivOne
 			tile.Road       = false;
 			tile.RailRoad   = false;
 			OlvirImprovements.Remove((x, y));
+			ResourceCamps.Remove((x, y)); // the goo does not mine; it only takes
 			InvalidateCitiesAt(x, y);
 			if (tile.City is City c && c.Size > 0)
 				GameTask.Enqueue(Message.Newspaper(null!, $"{c.Name}:",
@@ -2506,6 +2515,79 @@ namespace CivOne
 					budget--;
 				}
 				if (budget == 0) return;
+			}
+		}
+
+		// ── Strategic resources (Iron / Coal / Oil) ──────────────────────────
+		// Deposits are derived from the map's existing special tiles — no new
+		// map state. Possession = any of your cities works the tile, or you
+		// hold a camp on it. Missing the material soft-gates industrial
+		// production at +50% shields (City.ProductionCost); nothing is ever
+		// unbuildable. Planned expansion: Copper, luxuries, Salt.
+
+		internal static StrategicResource ResourceAt(ITile? tile)
+		{
+			if (tile is null || !tile.Special) return StrategicResource.None;
+			return tile.Type switch
+			{
+				Terrain.Mountains => StrategicResource.Iron,
+				Terrain.Hills     => StrategicResource.Coal,
+				Terrain.Desert    => StrategicResource.Oil,
+				Terrain.Swamp     => StrategicResource.Oil,
+				_                 => StrategicResource.None,
+			};
+		}
+
+		// The industrial tier that wants materials. Ancient and medieval
+		// production is untouched — nobody's start is ruined at 3000 BC.
+		internal static StrategicResource RequiredResource(IProduction production) => production switch
+		{
+			Units.Cannon or Units.Artillery or Units.Ironclad => StrategicResource.Iron,
+			Buildings.Factory or Buildings.PowerPlant         => StrategicResource.Coal,
+			Units.Armor or Units.Fighter or Units.Bomber
+				or Units.Cruiser or Units.Battleship or Units.Submarine
+				or Units.Carrier or Units.Transport           => StrategicResource.Oil,
+			_                                                 => StrategicResource.None,
+		};
+
+		internal bool HasResource(Player player, StrategicResource resource)
+		{
+			byte num = PlayerNumber(player);
+			if (ResourceCamps.Any(kv => kv.Value == num && ResourceAt(Map[kv.Key.x, kv.Key.y]) == resource))
+				return true;
+			return _cities.Where(c => c.Owner == num && c.Size > 0)
+				.Any(c => c.ResourceTiles.Any(t => ResourceAt(t) == resource));
+		}
+
+		// Camps change hands by occupation: any unit standing on a rival's camp
+		// at turn's end takes it — flags on mines, not ashes. A camp swallowed
+		// by a new city is absorbed (the city works the tile directly).
+		private void ProcessResourceCamps()
+		{
+			foreach (var kv in ResourceCamps.ToArray())
+			{
+				ITile tile = Map[kv.Key.x, kv.Key.y];
+				if (tile.City is not null)
+				{
+					ResourceCamps.Remove(kv.Key);
+					continue;
+				}
+				IUnit occupier = tile.Units.FirstOrDefault(u => u.Owner != kv.Value);
+				if (occupier is null) continue;
+
+				byte oldOwner = kv.Value;
+				ResourceCamps[kv.Key] = occupier.Owner;
+				string what = ResourceAt(tile).ToString();
+				if (occupier.Owner == PlayerNumber(HumanPlayer))
+					GameTask.Enqueue(Message.Advisor(Advisor.Defense, false,
+						$"Our forces seize the {what.ToLower()}",
+						$"camp at ({kv.Key.x},{kv.Key.y}).",
+						"The flag is changed."));
+				else if (oldOwner == PlayerNumber(HumanPlayer))
+					GameTask.Enqueue(Message.Advisor(Advisor.Defense, false,
+						$"Our {what.ToLower()} camp has been",
+						"seized! The mines work",
+						"for another flag now."));
 			}
 		}
 

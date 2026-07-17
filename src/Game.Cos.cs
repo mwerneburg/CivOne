@@ -303,6 +303,9 @@ namespace CivOne
 					DoorX                   = DoorX,
 					DoorY                   = DoorY,
 					OracleVoiceActive       = OracleVoiceActive,
+					ResourceCamps           = ResourceCamps.Count > 0
+					                          ? ResourceCamps.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
+					                          : null!,
 					GreyCities              = GreyCities.Count > 0
 					                          ? GreyCities.Select(g => new[] { g.x, g.y }).ToList()
 					                          : null!,
@@ -552,6 +555,10 @@ namespace CivOne
 			DoorX = g.DoorX;
 			DoorY = g.DoorY;
 			OracleVoiceActive = g.OracleVoiceActive;
+			if (g.ResourceCamps is not null)
+				foreach (var triple in g.ResourceCamps)
+					if (triple.Length == 3)
+						ResourceCamps[(triple[0], triple[1])] = (byte)triple[2];
 			if (g.GreyCities is not null)
 				foreach (var pair in g.GreyCities)
 					if (pair.Length == 2)
