@@ -416,9 +416,14 @@ namespace CivOne
 			// Repossession: breaking the occupation ends the Owners arc. The last
 			// Registry city has fallen — a victory ending regardless of whose armies
 			// finished it; the world was taken back together.
+			// Story endings never fire for the pseudo-player slot: a save from before
+			// the slot-0 selection fix can have the Registry (or the Thing) seated as
+			// the barbarians, and the barbarian ebb must not end the game.
+			bool pseudoPlayer = PlayerNumber(player) == 0;
+
 			// Containment: the last infected city is gone — by force or by fire. The
 			// game continues; the outbreak was a crisis, not an ending.
-			if (destroyed is Civilizations.TheThing)
+			if (destroyed is Civilizations.TheThing && !pseudoPlayer)
 			{
 				ThingOutbreaks.Clear();
 				GameTask.Enqueue(Message.Newspaper(null!, "The outbreak is over.",
@@ -426,7 +431,7 @@ namespace CivOne
 				return;
 			}
 
-			if (destroyed is Civilizations.TheOthers)
+			if (destroyed is Civilizations.TheOthers && !pseudoPlayer)
 			{
 				HumanPlayer.AwardMilestone(200);
 				DecisionLogger.EndGame(HumanPlayer.Score, "Repossession", humanWon: true, turns: _gameTurn);

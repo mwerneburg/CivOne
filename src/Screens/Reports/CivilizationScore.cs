@@ -105,6 +105,8 @@ namespace CivOne.Screens.Reports
 
 			// ── score traces ─────────────────────────────────────────────────
 
+			var lineTips = new System.Collections.Generic.List<(int score, int y, byte col)>();
+
 			for (int pi = 0; pi < players.Length; pi++)
 			{
 				int  pIdx = (byte)players[pi];
@@ -144,7 +146,10 @@ namespace CivOne.Screens.Reports
 
 				// Terminal dot (3×3) at the most recent visible data point
 				if (lastX != int.MinValue)
+				{
 					this.FillRectangle(lastX - 1, lastY - 1, 3, 3, col);
+					lineTips.Add((players[pi].Score, lastY, col));
+				}
 			}
 
 			// ── X-axis year labels ───────────────────────────────────────────
@@ -165,14 +170,31 @@ namespace CivOne.Screens.Reports
 
 			// ── legend ───────────────────────────────────────────────────────
 
+			// Ranked by SCORE; the (Nc) is the culture ledger, which is independent
+			// and deliberately unsorted. The rank number and the score tags at the
+			// line tips (below) are the reliable way to match a line to its row —
+			// the palette repeats across this many civs, so colour alone can't.
 			int lx = GraphRight - 2;
 			int ly = GraphTop + 4;
+			int rank = 1;
 			foreach (var p in players.OrderByDescending(p => p.Score))
 			{
 				int  pIdx = (byte)p;
 				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
-				this.DrawText($"{p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Right);
+				this.DrawText($"{rank++}. {p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Right);
 				ly += fh + 1;
+			}
+
+			// Score tags at each line's tip, greedily spaced so clustered tips
+			// stay readable. Same number as the legend row: match by value.
+			int prevBottom = int.MinValue;
+			foreach (var (score, tipY, tipCol) in lineTips.OrderBy(t => t.y))
+			{
+				int ty = Math.Max(GraphTop, tipY - fh / 2);
+				if (ty < prevBottom) ty = prevBottom;
+				if (ty > GraphBottom - fh) ty = GraphBottom - fh;
+				this.DrawText(score.ToString(), 0, tipCol, GraphRight - 4, ty, TextAlign.Right);
+				prevBottom = ty + fh;
 			}
 
 			// ── scroll hint ──────────────────────────────────────────────────
