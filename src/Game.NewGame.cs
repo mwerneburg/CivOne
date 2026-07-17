@@ -387,7 +387,12 @@ namespace CivOne
 					continue;
 				}
 				
-				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i && !(civ is Civilizations.Olvir)).ToArray();
+				// Story-arc factions (Olvir, The Others, The Thing) share slot 0 with
+				// the Barbarians but only ever join mid-game via their own arcs — the
+				// barbarian slot must always be the actual Barbarians, or a new game
+				// can start with the Registry raiding huts in 3000 BC.
+				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i
+					&& !(civ is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
 				int r = Common.Random.Next(civs.Length);
 				
 				_players[i] = new Player(civs[r]);
