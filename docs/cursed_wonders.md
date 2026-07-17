@@ -203,10 +203,12 @@ Implementation molds already in the codebase:
 
 ## Status
 
-**All twelve implemented** (July 2026). Outstanding: event art for several
-(see generate_improvement_art.sh — missing sources are skipped harmlessly),
-and bespoke unit sprites for Gozira / Leviathan / Henge Guardian (all three
-wear placeholder sprites).
+**All twelve implemented and all event art painted and installed**
+(July 2026). Notes: TheKinginYellow.png / StonehengePortal.png source
+filenames map to KingInYellow.png / TheDoor.png in the install script;
+Gozira1.png (wireframe tracking-display variant) is held in reserve.
+Only remaining cosmetics: bespoke unit sprites for Gozira / Leviathan /
+Henge Guardian (all three wear placeholder sprites on the map).
 
 ## Suggested build order
 
