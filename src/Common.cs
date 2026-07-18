@@ -276,6 +276,18 @@ namespace CivOne
 			// Land units can use railroad (cost=1); sea/air minimum is one ocean step (cost=9).
 			int minStepCost = (unit.Class == UnitClass.Land) ? 1 : 9;
 
+			// One of the mover's own cities is a hub on its transport network: it
+			// always carries a road, and carries rail once its side has the RailRoad
+			// advance. Without this the rail bonus breaks at every city (the City tile
+			// has no RailRoad flag set), so A* costs a through-city step as bare
+			// terrain and detours around the player's own cities to stay on open rail.
+			// Foreign cities grant no bonus — you can't run your trains through them.
+			bool OwnCity(ITile t) => t.City is not null && t.City.Owner == unit.Owner;
+			bool moverHasRail = Game.Instance.GetPlayer(unit.Owner).HasAdvance<RailRoad>();
+			bool RailAt(ITile t) => t.RailRoad || t.TransportTube
+				|| (OwnCity(t) && moverHasRail);
+			bool RoadAt(ITile t) => t.Road || t.RailRoad || t.TransportTube || OwnCity(t);
+
 			int Encode(int x, int y) => y * w + x;
 			int EuclidSq(int x1, int y1, int x2, int y2)
 			{
@@ -333,14 +345,20 @@ namespace CivOne
 					else
 						passable = true;
 
+					// Tiles occupied by another civilization's units are blocked — you
+					// cannot pass through them, however good the road. Only the goal
+					// tile is exempt (combat/city entry resolves there via Confront).
+					bool blocked = tile.City is null
+						&& tile.Units.Any(u => u.Owner != unit.Owner);
+
 					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
-					if (!passable && !(nx == gx && ny == gy)) continue;
+					if ((!passable || blocked) && !(nx == gx && ny == gy)) continue;
 
 					ITile fromTile = map[cx, cy];
 					int cost;
-					if (fromTile.RailRoad && tile.RailRoad)
+					if (RailAt(fromTile) && RailAt(tile))
 						cost = 1;
-					else if ((fromTile.Road || fromTile.RailRoad) && (tile.Road || tile.RailRoad))
+					else if (RoadAt(fromTile) && RoadAt(tile))
 						cost = 3;
 					else
 						cost = tile.Movement * 9;
