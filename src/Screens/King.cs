@@ -519,7 +519,7 @@ namespace CivOne.Screens
 						unit.SetHome(null);
 					captured.Owner = (byte)Game.PlayerNumber(_enemy);
 					captured.ResetResourceTiles();
-					_enemy.SetAttitudeBonus(Human, duration);
+					_enemy.AddAttitudeBonus(Human, duration);
 					SetResponse(FaceState.Smiling,
 						$"{captured.Name} joins our realm.",
 						$"{duration} turns of goodwill — agreed.");
@@ -559,7 +559,7 @@ namespace CivOne.Screens
 					CloseMenus();
 					int duration = TechGiftDuration(captured);
 					_enemy.AddAdvance(captured, false);
-					_enemy.SetAttitudeBonus(Human, duration);
+					_enemy.AddAttitudeBonus(Human, duration);
 					SetResponse(FaceState.Smiling,
 						$"{captured.Name} — a worthy gift.",
 						$"{duration} turns of goodwill — agreed.");

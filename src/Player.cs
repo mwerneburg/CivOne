@@ -273,6 +273,15 @@ namespace CivOne
 		internal bool HasPeaceTreaty(Player other)             => _peaceTreaty.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
+		// Serial generosity accumulates: extend the existing window instead of
+		// overwriting it, capped so a lavish dowry can't buy goodwill forever.
+		// (SetAttitudeBonus still overwrites — tribute/pact renewals rely on that.)
+		internal void AddAttitudeBonus(Player other, int turns)
+		{
+			byte k = (byte)Game.PlayerNumber(other);
+			int existing = _attitudeBonus.TryGetValue(k, out int t) && t > 0 ? t : 0;
+			_attitudeBonus[k] = Math.Min(200, existing + turns);
+		}
 		internal void SetDefensePact(Player other, int turns)  => _defensePact[(byte)Game.PlayerNumber(other)]  = turns;
 		internal bool HasDefensePact(Player other)             => _defensePact.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 
