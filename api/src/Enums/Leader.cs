@@ -44,5 +44,6 @@ namespace CivOne.Enums
 		Hiawatha,
 		TheRegistry,
 		TheOrganism,
+		TheNetwork,
 	}
 }

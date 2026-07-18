@@ -51,5 +51,9 @@ namespace CivOne.Enums
 		// infected cities on a destruction timer; joins mid-game via AddPlayer,
 		// never selected at game setup.
 		TheThing = 28,
+		// Story-arc faction: the machine uprising. Wakes when the world's fifth
+		// Neural Lab is completed and seizes the lab cities. Joins mid-game via
+		// AddPlayer, never selected at game setup.
+		Skynet = 29,
 	}
 }

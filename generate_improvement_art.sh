@@ -158,6 +158,8 @@ resize_and_install_event "$SRC/TheOthersArrive.png"       "TheOthersArrive.png"
 resize_and_install_event "$SRC/Repossession.png"          "Repossession.png"
 # South Pole Expedition curse
 resize_and_install_event "$SRC/TheThing.png"              "TheThing.png"
+# Skynet uprising (5th Neural Lab)
+resize_and_install_event "$SRC/Skynet.png"                "Skynet.png"
 # Economic dominance victory
 resize_and_install_event "$SRC/PaxMercatoria.png"         "PaxMercatoria.png"
 # Cursed wonders (docs/cursed_wonders.md)

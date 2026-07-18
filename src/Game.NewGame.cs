@@ -392,7 +392,7 @@ namespace CivOne
 				// barbarian slot must always be the actual Barbarians, or a new game
 				// can start with the Registry raiding huts in 3000 BC.
 				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i
-					&& !(civ is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
+					&& !(civ is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
 				int r = Common.Random.Next(civs.Length);
 				
 				_players[i] = new Player(civs[r]);

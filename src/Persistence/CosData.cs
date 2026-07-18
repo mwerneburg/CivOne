@@ -80,6 +80,8 @@ namespace CivOne.Persistence
 		public bool OracleVoiceActive { get; set; }
 		// Strategic resource camps: [x, y, ownerPlayerIdx] triples.
 		public List<int[]> ResourceCamps { get; set; } = null!;
+		// Skynet uprising latch (the fifth Neural Lab woke the machines).
+		public bool SkynetRisen { get; set; }
 		// Grey-infested city tiles: list of [x, y] pairs (The Portal's curse).
 		public List<int[]> GreyCities { get; set; } = null!;
 		// King in Yellow afflicted city tiles: [x, y] pairs.

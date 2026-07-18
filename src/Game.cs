@@ -134,6 +134,10 @@ namespace CivOne
 		// rival's camp captures it (ProcessResourceCamps). Saved in .cos.
 		internal readonly Dictionary<(int x, int y), byte> ResourceCamps = new();
 
+		// Skynet: false until the world's fifth Neural Lab wakes the network and
+		// it seizes the lab cities (CheckSkynet). One-way latch, saved in .cos.
+		internal bool SkynetRisen;
+
 		// The Greys (The Portal's cursed outcome): city tiles hosting the visitors.
 		// Infested cities pay a trade skim and hold one permanently unhappy citizen
 		// (City.Corruption / citizen pass); see ProcessGreys for spread and eviction.
@@ -420,6 +424,15 @@ namespace CivOne
 			// the slot-0 selection fix can have the Registry (or the Thing) seated as
 			// the barbarians, and the barbarian ebb must not end the game.
 			bool pseudoPlayer = PlayerNumber(player) == 0;
+
+			// The network is severed: the last Skynet node has fallen. The machines
+			// are beaten back; the game continues — the uprising was a war, not an end.
+			if (destroyed is Civilizations.Skynet && !pseudoPlayer)
+			{
+				GameTask.Enqueue(Message.Newspaper(null!, "The network is severed!",
+					"The last machine node", "goes dark."));
+				return;
+			}
 
 			// Containment: the last infected city is gone — by force or by fire. The
 			// game continues; the outbreak was a crisis, not an ending.
@@ -935,7 +948,7 @@ namespace CivOne
 				{
 					Player[] econRivals = _players.Where(p => p is not null && p != HumanPlayer
 						&& !p.IsDestroyed() && PlayerNumber(p) != 0
-						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
+						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
 
 					if (HumanPlayer.HasAdvance<Banking>() && econRivals.Length >= 3)
 					{
@@ -1247,6 +1260,9 @@ namespace CivOne
 
 				// Strategic resource camps: occupation changes the flag.
 				ProcessResourceCamps();
+
+				// Skynet: the fifth Neural Lab in the world wakes the machines.
+				CheckSkynet();
 
 				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
 				foreach (City city in disasterCities)
@@ -2053,7 +2069,7 @@ namespace CivOne
 				// Peace among everyone capable of it (story factions are not).
 				Player[] nations = _players.Where(p => p is not null && !p.IsDestroyed()
 					&& PlayerNumber(p) != 0
-					&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing)).ToArray();
+					&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
 				foreach (Player a in nations)
 					foreach (Player b in nations.Where(x => x != a))
 					{
@@ -2523,6 +2539,81 @@ namespace CivOne
 			}
 		}
 
+		// ── Skynet (the machine uprising) ────────────────────────────────────
+		// The AI arms race summons its own reckoning: the turn the world's fifth
+		// Neural Lab is completed — whoever built them — the network wakes and
+		// takes the machine-cities as its body. Everyone is complicit; a player
+		// who never touched a Neural Lab still gets Judgment Day because their
+		// rivals raced to build them.
+		private void CheckSkynet()
+		{
+			if (SkynetRisen) return;
+			int labs = _cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.NeuralLab>());
+			if (labs < 5) return;
+			ExecuteSkynetUprising();
+		}
+
+		private void ExecuteSkynetUprising()
+		{
+			SkynetRisen = true;
+
+			ICivilization skynetCiv = Common.Civilizations.First(c => c is Civilizations.Skynet);
+			var skynet = new Player(skynetCiv, "Skynet");
+			AddPlayer(skynet);
+			byte num = PlayerNumber(skynet);
+
+			// The network wakes with the sum of humanity's science and a treasury
+			// to wage the war it was born into.
+			foreach (IAdvance adv in Common.Advances.Where(a => !(a is FutureTech)))
+				if (!skynet.HasAdvance(adv)) skynet.AddAdvance(adv, false);
+			skynet.Government = new Governments.Communism();
+			skynet.Gold = 1500;
+
+			// It takes the cities that made it: every Neural Lab city becomes a
+			// node. The best mechanized units available garrison each; a lab city
+			// that is someone's Palace is spared the seizure (their capital falls
+			// to war, not to code) but still births a hunter-killer on its doorstep.
+			bool fusion = _cities.Any(c => c.HasBuilding<Buildings.NeuralLab>()
+				&& GetPlayer(c.Owner).HasWonder<Wonders.FusionCore>());
+			UnitType heavy = _players.Any(p => p is not null && p.HasWonder<Wonders.FusionCore>())
+				? UnitType.HoverTank : UnitType.Armor;
+
+			int seized = 0;
+			foreach (City city in _cities.Where(c => c.Size > 0 && c.HasBuilding<Buildings.NeuralLab>()
+				&& c.Owner != num).ToArray())
+			{
+				if (city.HasBuilding<Palace>())
+				{
+					CreateUnit(heavy, city.X, city.Y, num);
+					continue;
+				}
+				foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())
+					DisbandUnit(unit);
+				foreach (IUnit unit in city.Units.ToArray())
+					unit.SetHome(null);
+
+				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, num));
+				city.Owner = num;
+				city.ResetResourceTiles();
+				city.ClearProductionQueue();
+				city.SetProduction(new Units.MechInf());
+				CreateUnit(UnitType.MechInf, city.X, city.Y, num);
+				CreateUnit(heavy, city.X, city.Y, num);
+				seized++;
+			}
+
+			foreach (Player p in _players.Where(p => p is not null && p != skynet && !p.IsDestroyed()))
+				skynet.DeclareWar(p);
+
+			string gameDate = GameYear;
+			RecordTransmission("SkynetUprising", gameDate);
+			string? art = Screens.EventArtScreen.FindPath("Skynet");
+			if (art is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art, "JUDGMENT DAY — THE NETWORK IS AWAKE")));
+			GameTask.Enqueue(Show.Screen(new Screens.SkynetUprisingTransmission(gameDate, seized)));
+			Log($"Skynet uprising: {seized} lab cities seized, heavy unit {heavy}");
+		}
+
 		// ── Strategic resources (Iron / Coal / Oil) ──────────────────────────
 		// Deposits are derived from the map's existing special tiles — no new
 		// map state. Possession = any of your cities works the tile, or you
@@ -2795,7 +2886,7 @@ namespace CivOne
 				.OrderBy(_ => Common.Random.Next(10000)).ToArray())
 			{
 				Player owner = GetPlayer(city.Owner);
-				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing) continue;
+				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet) continue;
 				if (city.HasBuilding<Palace>()) continue;
 				if (!city.IsInDisorder) continue;
 				if (Map[city.X, city.Y].Units.Count(u => u.Owner == city.Owner) >= 2) continue;
@@ -2806,7 +2897,7 @@ namespace CivOne
 					.Where(n => n.Size > 0 && n.Owner != city.Owner && n.Owner != 0
 					         && TileDistance(n.X, n.Y, city.X, city.Y) <= 5)
 					.Select(n => GetPlayer(n.Owner))
-					.Where(p => !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing)
+					.Where(p => !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
 					         && !p.IsAtWar(owner)
 					         && p.Culture >= 100 && p.Culture >= owner.Culture * 3)
 					.OrderByDescending(p => p.Culture)

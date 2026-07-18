@@ -334,7 +334,7 @@ namespace CivOne
 		internal void ConsiderGovernment()
 		{
 			if (Player.Government is Gov.Anarchy) return;
-			if (Player.Civilization is TheOthers or TheThing) return; // administrations and organisms do not revolt
+			if (Player.Civilization is TheOthers or TheThing or Skynet) return; // administrations, organisms, and networks do not revolt
 
 			// Research lock-in escape. This must live here, on the every-turn path —
 			// ChooseResearch only runs when the research slot is empty or a target just
@@ -459,7 +459,7 @@ namespace CivOne
 		{
 			if (Game.PlayerNumber(Player) == 0) return;
 			if (Player.Civilization is Olvir) return; // refugees seek coexistence, not negotiation
-			if (Player.Civilization is TheOthers or TheThing) return; // the Registry does not take meetings; the Thing has nothing to say
+			if (Player.Civilization is TheOthers or TheThing or Skynet) return; // the Registry does not take meetings; the Thing has nothing to say; the network does not answer
 			if (Player.Government is Governments.Anarchy) return;
 
 			if (Player.IsDestroyed()) return;
@@ -550,7 +550,7 @@ namespace CivOne
 			if (Player.Civilization is Olvir) return; // refugees do not declare war
 			// The Others and the Thing arrive at war with everyone and stay there:
 			// no tribute, no peace initiatives, no fresh declarations needed.
-			if (Player.Civilization is TheOthers or TheThing) return;
+			if (Player.Civilization is TheOthers or TheThing or Skynet) return;
 			if (Player.Government is Governments.Anarchy) return;
 
 			// ── Track war duration and peacetime city baseline ───────────────────
@@ -577,7 +577,7 @@ namespace CivOne
 				Player[] tributeCandidates = Game.Players
 				    .Where(p => p != Player && !p.IsDestroyed()
 				             && Game.PlayerNumber(p) != 0
-				             && !(p.Civilization is TheOthers or TheThing) // the Registry takes cities, not gold; the Thing takes people
+				             && !(p.Civilization is TheOthers or TheThing or Skynet) // the Registry takes cities, not gold; the Thing takes people; the network takes all
 				             && Player.IsAtWar(p)
 				             && Player.HasEmbassy(p)
 				             && ownPower * 2 < MilitaryScore(p))
@@ -622,7 +622,7 @@ namespace CivOne
 				Player[] aiEnemies = Game.Players
 				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
 				             && Game.PlayerNumber(p) != 0 && Player.IsAtWar(p)
-				             && !(p.Civilization is TheOthers or TheThing)) // no peace with the manifest's author, or with the ice
+				             && !(p.Civilization is TheOthers or TheThing or Skynet)) // no peace with the manifest's author, the ice, or the network
 				    .ToArray();
 
 				if (aiEnemies.Length > 0)
