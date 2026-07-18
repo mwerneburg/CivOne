@@ -288,6 +288,30 @@ namespace CivOne
 				|| (OwnCity(t) && moverHasRail);
 			bool RoadAt(ITile t) => t.Road || t.RailRoad || t.TransportTube || OwnCity(t);
 
+			// Zone of control: a tile is under enemy ZOC if any of its eight
+			// neighbours holds a foreign unit. Memoised — each tile's status is
+			// computed once per search rather than per visiting edge.
+			var zocCache = new Dictionary<int, bool>();
+			bool InZoc(int x, int y)
+			{
+				int key = Encode(x, y);
+				if (zocCache.TryGetValue(key, out bool cached)) return cached;
+				bool result = false;
+				for (int ddy = -1; ddy <= 1 && !result; ddy++)
+				for (int ddx = -1; ddx <= 1 && !result; ddx++)
+				{
+					if (ddx == 0 && ddy == 0) continue;
+					int ax = (x + ddx + w) % w, ay = y + ddy;
+					if (ay < 0 || ay >= h) continue;
+					ITile at = map[ax, ay];
+					// A garrisoned city projects no ZOC — only units in the open do.
+					if (at is not null && at.City is null && at.Units.Any(u => u.Owner != unit.Owner))
+						result = true;
+				}
+				zocCache[key] = result;
+				return result;
+			}
+
 			int Encode(int x, int y) => y * w + x;
 			int EuclidSq(int x1, int y1, int x2, int y2)
 			{
@@ -345,16 +369,27 @@ namespace CivOne
 					else
 						passable = true;
 
+					ITile fromTile = map[cx, cy];
+
 					// Tiles occupied by another civilization's units are blocked — you
 					// cannot pass through them, however good the road. Only the goal
 					// tile is exempt (combat/city entry resolves there via Confront).
 					bool blocked = tile.City is null
 						&& tile.Units.Any(u => u.Owner != unit.Owner);
 
-					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
-					if ((!passable || blocked) && !(nx == gx && ny == gy)) continue;
+					// Zone of control (Civ 1): may not move directly from one tile under
+					// enemy ZOC to another tile under enemy ZOC. Exempt: air units, leaving
+					// or entering one of the mover's own cities, and stepping onto a tile
+					// that already holds a friendly unit. The goal tile is always allowed.
+					bool zocBlocked = unit.Class != UnitClass.Air
+						&& !(fromTile.City is not null && fromTile.City.Owner == unit.Owner)
+						&& !(tile.City is not null && tile.City.Owner == unit.Owner)
+						&& !tile.Units.Any(u => u.Owner == unit.Owner)
+						&& InZoc(cx, cy) && InZoc(nx, ny);
 
-					ITile fromTile = map[cx, cy];
+					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
+					if ((!passable || blocked || zocBlocked) && !(nx == gx && ny == gy)) continue;
+
 					int cost;
 					if (RailAt(fromTile) && RailAt(tile))
 						cost = 1;
