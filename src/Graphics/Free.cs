@@ -487,15 +487,20 @@ namespace CivOne.Graphics
 		private static readonly string LakeShoresFilePath =
 			Path.Combine(Environment.CurrentDirectory, "lake_shores.txt");
 
+		private static readonly string RiverOverlaysFilePath =
+			Path.Combine(Environment.CurrentDirectory, "river_overlays.txt");
+
 		private Dictionary<string, byte[]> _tileOverrides = null!;
 		private Dictionary<string, byte[]> _shoreOverrides = null!;
 		private Dictionary<string, byte[]> _lakeShoreOverrides = null!;
+		private Dictionary<string, byte[]> _riverOverrides = null!;
 
 		public void ReloadTiles()
 		{
 			_tileOverrides    = null!;
 			_shoreOverrides   = null!;
 			_lakeShoreOverrides = null!;
+			_riverOverrides   = null!;
 		}
 
 		private byte[]? TryLoadTile(string name)
@@ -877,6 +882,58 @@ namespace CivOne.Graphics
 			if (land.And(North) && land.And(East)  && land.And(NorthEast)) { output[14, 1] = sand; }
 			if (land.And(South) && land.And(West)  && land.And(SouthWest)) { output[1, 14] = sand; }
 			if (land.And(South) && land.And(East)  && land.And(SouthEast)) { output[14, 14] = sand; }
+
+			return output;
+		}
+
+		// ── River overlays (river_overlays.txt) ────────────────────────────────
+		// Named 16×16 sections in the free_tiles.txt format replace the legacy
+		// 1991 river sprites. The connection piece is picked by the cardinal
+		// river mask (letters in N,E,S,W order; empty mask = river_isolated);
+		// straights and bends ship two cuts (_a/_b) chosen by the caller's
+		// stable coordinate hash; rivermouth_<dir> deltas composite on top
+		// wherever a cardinal neighbour is sea. Indices 96–99 sit on the wave-
+		// cycling palette range, so rivers shimmer on the shore-surf cycle.
+
+		private Dictionary<string, byte[]> RiverOverrides =>
+			_riverOverrides ??= ParseTilesFile(RiverOverlaysFilePath);
+
+		// When false (file absent/empty), callers fall back to the legacy
+		// sprite-sheet rivers and the TER257 sea-side mouths.
+		public bool HasRiverOverlays => RiverOverrides.Count > 0;
+
+		public Bytemap? RiverOverlay(Direction rivers, Direction seaMouths, int variant)
+		{
+			if (!HasRiverOverlays) return null;
+
+			string name = "river_";
+			if (rivers.And(North)) name += "N";
+			if (rivers.And(East))  name += "E";
+			if (rivers.And(South)) name += "S";
+			if (rivers.And(West))  name += "W";
+			if (name == "river_") name = "river_isolated";
+
+			var candidates = new List<string>(3);
+			if (RiverOverrides.ContainsKey(name)) candidates.Add(name);
+			if (RiverOverrides.ContainsKey(name + "_a")) candidates.Add(name + "_a");
+			if (RiverOverrides.ContainsKey(name + "_b")) candidates.Add(name + "_b");
+			if (candidates.Count == 0) return null; // section missing — legacy fallback
+
+			Bytemap output = new Bytemap(16, 16)
+				.FromByteArray(RiverOverrides[candidates[variant % candidates.Count]]);
+
+			foreach (var (dir, mouth) in ((Direction, string)[])
+			[
+				(North, "rivermouth_N"),
+				(East,  "rivermouth_E"),
+				(South, "rivermouth_S"),
+				(West,  "rivermouth_W"),
+			])
+			{
+				if (!seaMouths.And(dir)) continue;
+				if (!RiverOverrides.TryGetValue(mouth, out byte[] delta)) continue;
+				output.AddLayer(new Bytemap(16, 16).FromByteArray(delta));
+			}
 
 			return output;
 		}

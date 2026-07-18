@@ -78,6 +78,10 @@ namespace CivOne.Screens.Reports
 				p.MergePalette(cassette, 1, 17);
 			Palette = p;
 
+			// Top 10 where the window allows; rows are 32px, so smaller windows
+			// gracefully show as many ranks as fit (never fewer than five).
+			int slots = System.Math.Max(5, System.Math.Min(10, (Height - 40) / 32));
+
 			_cities = Game.GetCities()
 							.Where(c => c.Size > 0)
 							.OrderByDescending(c => c.Wonders.Length)
@@ -85,13 +89,13 @@ namespace CivOne.Screens.Reports
 							.ThenByDescending(c => c.Citizens.Count(x => x == Citizen.HappyMale || x == Citizen.HappyFemale))
 							.ThenByDescending(c => c.Citizens.Count(x => x == Citizen.ContentMale || x == Citizen.ContentFemale))
 							.ThenBy(c => c.Citizens.Count(x => x == Citizen.UnhappyMale || x == Citizen.UnhappyFemale))
-							.Take(5)
+							.Take(slots)
 							.ToArray();
 
 			this.Clear(CassetteTheme.BG0)
 				.FillRectangle(0, 0, Width, 27, CassetteTheme.BG3)
 				.FillRectangle(0, 27, Width, 1, CassetteTheme.BORDER)
-				.DrawText("The Top Five Cities in the World", 0, CassetteTheme.PHOS_GLOW, Width / 2, 9, TextAlign.Center);
+				.DrawText($"The Top {_cities.Length} Cities in the World", 0, CassetteTheme.PHOS_GLOW, Width / 2, 9, TextAlign.Center);
 		}
 	}
 }

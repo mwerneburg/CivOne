@@ -19,9 +19,22 @@ namespace CivOne.Screens.Reports
 	internal class IntelligenceReport : BaseReport
 	{
 		private readonly Dictionary<Player, Rectangle> _infoButtons = new();
+		private readonly Dictionary<Player, Rectangle> _talkButtons = new();
 
 		private void MouseDown(object sender, ScreenEventArgs args)
 		{
+			// TALK: an embassy is a standing diplomatic channel — request an
+			// audience directly, no Diplomat required. Opens the same console
+			// a Diplomat visit would.
+			foreach (KeyValuePair<Player, Rectangle> talkButton in _talkButtons)
+			{
+				if (!talkButton.Value.Contains(args.X, args.Y)) continue;
+				args.Handled = true;
+				Destroy();
+				GameTask.Enqueue(Tasks.Show.MeetKing(talkButton.Key));
+				return;
+			}
+
 			if (_infoButtons.Count == 0) return;
 
 			foreach (KeyValuePair<Player, Rectangle> infoButton in _infoButtons)
@@ -74,7 +87,7 @@ namespace CivOne.Screens.Reports
 				SetUpdate();
 			}
 
-			if (args.Handled) _infoButtons.Clear();
+			if (args.Handled) { _infoButtons.Clear(); _talkButtons.Clear(); }
 		}
 
 		public IntelligenceReport() : base("INTELLIGENCE REPORT", 1, MouseCursor.Pointer)
@@ -111,6 +124,15 @@ namespace CivOne.Screens.Reports
 					{
 						this.DrawButton($"INFO{id}", 0, colour, Common.ColourDark[id], OX + 281, yy + 14, 38, Resources.GetFontHeight(0) + 2);
 						_infoButtons.Add(player, new Rectangle(OX + 281, yy + 14, 38, Resources.GetFontHeight(0) + 2));
+
+						// Story factions do not take meetings; everyone else answers
+						// the embassy line.
+						if (!(player.Civilization is Civilizations.Olvir
+							or Civilizations.TheOthers or Civilizations.TheThing))
+						{
+							this.DrawButton("TALK", 0, colour, Common.ColourDark[id], OX + 239, yy + 14, 38, Resources.GetFontHeight(0) + 2);
+							_talkButtons.Add(player, new Rectangle(OX + 239, yy + 14, 38, Resources.GetFontHeight(0) + 2));
+						}
 					}
 				}
 				else

@@ -116,6 +116,9 @@ namespace CivOne.Graphics.Sprites
 
 		private static void DrawRiverMouths(ref Bytemap output, Direction rivers)
 		{
+			// The river_overlays.txt deltas draw on the RIVER tile; the legacy
+			// TER257 mouths on the sea tile would double them.
+			if (Free.HasRiverOverlays) return;
 			if (!Resources.Exists("TER257")) return;
 
 			Bytemap pic = Resources["TER257"].Bitmap;
@@ -400,6 +403,11 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISpriteCollection<(Direction, Direction)> Ocean = new CachedSpriteCollection<(Direction, Direction)>(GetOceanLayer);
 		public static readonly ISpriteCollection<Direction> Plains = new CachedSpriteCollection<Direction>(GetTileLayer<Plains>);
 		public static readonly ISpriteCollection<Direction> River = new CachedSpriteCollection<Direction>(GetRiverLayer);
+		// v2 rivers: keyed by (river mask, sea-mouth mask, variant cut). The creator
+		// falls back to the legacy layer if the needed section is missing mid-file.
+		public static readonly ISpriteCollection<(Direction Rivers, Direction Mouths, int Variant)> RiverOverlay =
+			new CachedSpriteCollection<(Direction, Direction, int)>(key =>
+				Free.RiverOverlay(key.Item1, key.Item2, key.Item3) ?? GetRiverLayer(key.Item1));
 		public static readonly ISpriteCollection<Direction> Swamp = new CachedSpriteCollection<Direction>(GetTileLayer<Swamp>);
 		public static readonly ISpriteCollection<Direction> Tundra = new CachedSpriteCollection<Direction>(GetTileLayer<Tundra>);
 		public static readonly ISpriteCollection<Direction> Fog = new CachedSpriteCollection<Direction>(GetFog);
@@ -486,6 +494,9 @@ namespace CivOne.Graphics.Sprites
 					switch (tile)
 					{
 						case River _:
+							// Track which sea edges get a delta (riverDirections doubles
+							// as the mouth mask for land river tiles).
+							if (borderTile is Ocean) riverDirections |= direction;
 							if (borderTile is River || borderTile is Ocean) break;
 							continue;
 						default:
@@ -516,7 +527,15 @@ namespace CivOne.Graphics.Sprites
 						return LakeShore[directions];
 					return Ocean[(directions, riverDirections)];
 				case Plains _: return Plains[directions];
-				case River _: return River[directions];
+				case River _:
+					if (Free.HasRiverOverlays)
+					{
+						// Stable coordinate hash picks the _a/_b cut for straights and
+						// bends — deterministic across frames and reloads, never RNG.
+						int variant = ((tile.X * 7 + tile.Y * 13) & 0x7fffffff) % 2;
+						return RiverOverlay[(directions, riverDirections, variant)];
+					}
+					return River[directions];
 				case Swamp _: return Swamp[directions];
 				case Tundra _: return Tundra[directions];
 			}
