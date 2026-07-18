@@ -428,7 +428,7 @@ namespace CivOne.Screens
 				Indent         = PAD
 			};
 
-			foreach (IAdvance adv in advances.OrderBy(a => a.Name))
+			foreach (IAdvance adv in advances.OrderBy(a => a.Name).Take(MenuRowsAvailable()))
 			{
 				IAdvance captured = adv;
 				menu.Items.Add(adv.Name).OnSelect((s, e) =>
@@ -474,12 +474,28 @@ namespace CivOne.Screens
 
 		private static int CityGiftDuration(City city) => Math.Min(100, 30 + 10 * city.Size);
 
+		// The menu widget does not scroll: cap pickers to the rows that fit
+		// between the transcript panel and the bottom of the screen.
+		private int MenuRowsAvailable()
+		{
+			int fh = Resources.GetFontHeight(FONT_ID);
+			int speechPanelH = _speechLines.Length * fh + fh + 2 * PAD + 4;
+			int menuY = BodyY + speechPanelH + PAD + fh + PAD / 2;
+			return Math.Max(3, (Height - menuY - PAD) / fh);
+		}
+
 		private void OfferCity(object sender, EventArgs args)
 		{
 			CloseMenus();
+			// Anchored on the recipient: nearest to their capital first, so the
+			// cities that would knit their realm together top the list.
+			City? anchor = _enemy.Cities.FirstOrDefault(c => c.HasBuilding<Buildings.Palace>())
+				?? _enemy.Cities.FirstOrDefault();
 			City[] giftable = Human.Cities
 				.Where(c => c.Size > 0 && !c.HasBuilding<Buildings.Palace>())
-				.OrderBy(c => c.Name)
+				.OrderBy(c => anchor is null ? 0 : Common.DistanceToTile(c.X, c.Y, anchor.X, anchor.Y))
+				.ThenBy(c => c.Name)
+				.Take(MenuRowsAvailable())
 				.ToArray();
 			if (giftable.Length == 0)
 			{
@@ -524,12 +540,17 @@ namespace CivOne.Screens
 			}
 
 			// Goodwill scales with how much the recipient's strategy wants the tech.
+			// Most-wanted first — the gifts worth the most goodwill top the list —
+			// capped to the rows that fit (the menu does not scroll).
 			AI ai = AI.Instance(_enemy);
 			int TechGiftDuration(IAdvance a) => Math.Min(75, 25 + 5 * ai.AdvanceDemandValue(a));
 
 			SetResponse(FaceState.Neutral, "Knowledge freely given?", "We are listening.");
 			Menu menu = StyledMenu();
-			foreach (IAdvance adv in weOffer.OrderBy(a => a.Name))
+			foreach (IAdvance adv in weOffer
+				.OrderByDescending(a => ai.AdvanceDemandValue(a))
+				.ThenBy(a => a.Name)
+				.Take(MenuRowsAvailable()))
 			{
 				IAdvance captured = adv;
 				menu.Items.Add($"{adv.Name} → {TechGiftDuration(adv)} turns of goodwill")
