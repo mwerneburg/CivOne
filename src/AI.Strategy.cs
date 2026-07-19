@@ -184,6 +184,14 @@ namespace CivOne
 			int rioting = Player.Cities.Count(c => c.IsInDisorder);
 			if (rioting > 0)
 			{
+				// Deadlock break: a rioting city earns no gold, so the gold overlay's
+				// habit of pinning taxes high when broke only perpetuates the disorder
+				// (broke -> high tax -> luxury capped at 10-tax -> still rioting -> still
+				// broke). If luxuries are already maxed against the current tax rate and
+				// cities STILL riot, sacrifice tax (to a floor of 2) to raise the luxury
+				// ceiling — quelling the riots restarts production and the gold flow.
+				if (Player.LuxuriesRate >= 10 - Player.TaxesRate && Player.TaxesRate > 2)
+					Player.TaxesRate--;
 				int maxLux = 10 - Player.TaxesRate;   // keep science >= 0
 				if (Player.LuxuriesRate < maxLux)
 					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
