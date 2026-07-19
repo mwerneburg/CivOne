@@ -1157,8 +1157,14 @@ namespace CivOne
 
 				Player human = Human;
 				City target =
+					// Espionage priority: the human's cities — but NEVER our own. When the
+					// human is on Autopilot the acting Player IS the human, so without the
+					// `c.Player != Player` guard a diplomat targets its own cities and shuffles
+					// between them forever (you cannot spy on yourself). This clause then yields
+					// nothing for an autopiloted human and the search falls through to foreign
+					// cities below, which is the correct target.
 					Game.GetCities()
-					    .Where(c => c.Player == human && Player.Visible(c.X, c.Y) && sameContinent(c))
+					    .Where(c => c.Player == human && c.Player != Player && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 					    .FirstOrDefault(FirstStepReachable)
 					??
