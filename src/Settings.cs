@@ -41,6 +41,7 @@ namespace CivOne
 		private bool _debugMenu = false;
 		private bool _cursorCoords = false;
 		private bool _quietBuilds = false;
+		private bool _cursedWonders = true;
 		private bool _powerSaving = false;
 		private bool _autopilot = false;
 		private bool _deityEnabled = false;
@@ -209,6 +210,21 @@ namespace CivOne
 			{
 				_quietBuilds = value;
 				SetSetting("QuietBuilds", _quietBuilds ? "1" : "0");
+				Common.ReloadSettings = true;
+			}
+		}
+
+		// When off, wonders never roll their cursed outcome (Gozira, Skynet, the
+		// Portal's Greys, Grey Goo, the Internet split, the Thing, …) — a fully
+		// vanilla-wonder game. Default on; turn off for clean balance autoplay or a
+		// gentler game.
+		internal bool CursedWonders
+		{
+			get => _cursedWonders;
+			set
+			{
+				_cursedWonders = value;
+				SetSetting("CursedWonders", _cursedWonders ? "1" : "0");
 				Common.ReloadSettings = true;
 			}
 		}
@@ -467,6 +483,7 @@ namespace CivOne
 			GetSetting("DebugMenu", ref _debugMenu);
 			GetSetting("CursorCoords", ref _cursorCoords);
 			GetSetting("QuietBuilds", ref _quietBuilds);
+			GetSetting("CursedWonders", ref _cursedWonders);
 			GetSetting("PowerSaving", ref _powerSaving);
 			// Autopilot intentionally NOT loaded from the profile — always starts off.
 			GetSetting("DeityEnabled", ref _deityEnabled);

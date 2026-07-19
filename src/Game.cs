@@ -2064,7 +2064,9 @@ namespace CivOne
 		// into the wonder city. Returns true when the Greys came through.
 		internal bool OpenPortal(Player builder, City site)
 		{
-			if (Common.Random.Next(4) != 0)
+			// Curses off: the Portal always finds the benign visitors (global peace),
+			// never the Greys.
+			if (!Settings.Instance.CursedWonders || Common.Random.Next(4) != 0)
 			{
 				// Peace among everyone capable of it (story factions are not).
 				Player[] nations = _players.Where(p => p is not null && !p.IsDestroyed()
@@ -2547,6 +2549,7 @@ namespace CivOne
 		// rivals raced to build them.
 		private void CheckSkynet()
 		{
+			if (!Settings.Instance.CursedWonders) return;
 			if (SkynetRisen) return;
 			int labs = _cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.NeuralLab>());
 			if (labs < 5) return;
@@ -2845,6 +2848,7 @@ namespace CivOne
 		// the next detonation tries again.
 		internal void AwakenGozira(Player detonator)
 		{
+			if (!Settings.Instance.CursedWonders) return;
 			if (GoziraState != 0 || detonator is null) return;
 
 			byte dnum = PlayerNumber(detonator);
@@ -2938,6 +2942,7 @@ namespace CivOne
 		// Test/dev override: CIVONE_THING=1 forces the curse.
 		internal City? TrySouthPoleCurse(Player builder, City wonderCity)
 		{
+			if (!Settings.Instance.CursedWonders) return null;
 			int score = 0;
 			if (builder.Government is CivOne.Governments.Democracy)      score += 3;
 			else if (builder.Government is CivOne.Governments.Republic)  score += 2;

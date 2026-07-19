@@ -1599,7 +1599,7 @@ namespace CivOne
 						{
 							// 1/4: the replication bound does not hold. The goo seeds under
 							// the factory; the doubling clock starts (Game.ProcessGreyGoo).
-							bool goo = Common.Random.Next(4) == 0;
+							bool goo = Settings.Instance.CursedWonders && Common.Random.Next(4) == 0;
 							if (goo)
 							{
 								Game.Instance.SeedGreyGoo(this);
@@ -1622,7 +1622,7 @@ namespace CivOne
 									"automatically, free of charge."));
 							}
 						}
-						if (wonder is Wonders.Oracle && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.Oracle && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the Oracle answers, and it is not Apollo (docs/cursed_wonders.md
 							// #11). True prophecies for the keeper, dread for the empire, until
@@ -1639,7 +1639,7 @@ namespace CivOne
 									"what it said first."));
 							};
 						}
-						if (wonder is Wonders.Stonehenge && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.Stonehenge && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the circle is a door (docs/cursed_wonders.md #5). The city
 							// is halved, a Guardian stands in the stones, and the tithe runs
@@ -1661,7 +1661,7 @@ namespace CivOne
 								};
 							}
 						}
-						if (wonder is Wonders.Pyramids && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.Pyramids && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the alignment is a beacon (docs/cursed_wonders.md #4).
 							// The wonder city is visited for the next four thousand years
@@ -1681,7 +1681,7 @@ namespace CivOne
 									"by night. They do not move."));
 							};
 						}
-						if (wonder is Wonders.Lighthouse && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.Lighthouse && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the light carries farther than intended (docs/cursed_wonders.md
 							// #8). Something in the deep answers; it hunts until slain.
@@ -1701,7 +1701,7 @@ namespace CivOne
 								};
 							}
 						}
-						if (wonder is Wonders.GreatWall && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.GreatWall && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the wall was not built to keep them out (docs/cursed_wonders.md
 							// #9) — raids double on the builder's continent for sixty turns.
@@ -1712,7 +1712,7 @@ namespace CivOne
 								"Beyond it, the herdsmen report",
 								"fires moving closer."));
 						}
-						if (wonder is Wonders.CureForCancer && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.CureForCancer && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: it cures slightly more than cancer (docs #10) — every city
 							// +2 population at once, the granaries emptied by celebration.
@@ -1727,7 +1727,7 @@ namespace CivOne
 								"Population soars overnight.",
 								"The granaries stand empty."));
 						}
-						if (wonder is Wonders.IsaacNewtonsCollege && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.IsaacNewtonsCollege && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the *other* research succeeds (docs #7) — a temporal anomaly
 							// settles on the College city for fifty turns (Game.ProcessAnomaly).
@@ -1746,7 +1746,7 @@ namespace CivOne
 									$"in {anomalyCity}."));
 							};
 						}
-						if (wonder is Wonders.ShakespearesTheatre && Common.Random.Next(4) == 0)
+						if (wonder is Wonders.ShakespearesTheatre && Settings.Instance.CursedWonders && Common.Random.Next(4) == 0)
 						{
 							// 1/4: the debut play is the wrong play (docs/cursed_wonders.md #6).
 							// The madness starts here and travels the trade routes; a Cathedral
@@ -1769,7 +1769,7 @@ namespace CivOne
 							// 1/4: the outbreak of Social Media (docs/cursed_wonders.md #2).
 							// The split resolves immediately for any builder; too-small
 							// empires can't schism and quietly get the blessing.
-							Player? splinter = Common.Random.Next(4) == 0
+							Player? splinter = Settings.Instance.CursedWonders && Common.Random.Next(4) == 0
 								? Game.Instance.ExecuteSocialMediaSchism(Player, this)
 								: null;
 							if (splinter is not null)
