@@ -197,9 +197,16 @@ namespace CivOne
 					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
 				return;
 			}
+			// Wind luxuries back down only when EVERY city has a real happiness margin
+			// (strictly more happy than unhappy). If any city is at the brink (unhappy
+			// >= happy but not yet rioting), hold the sliders steady — lowering luxury
+			// there instantly re-triggers the disorder we just quelled, producing the
+			// clear→riot→clear oscillation. Holding lets the city sit stable at the edge
+			// until happiness buildings (Consolidate stance) let luxury fall for real.
 			if (Player.LuxuriesRate > 0)
 			{
-				Player.LuxuriesRate--;
+				bool brink = Player.Cities.Any(c => c.Size > 0 && c.UnhappyCitizens >= c.HappyCitizens);
+				if (!brink) Player.LuxuriesRate--;
 				return;
 			}
 
