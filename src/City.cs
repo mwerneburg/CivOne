@@ -919,7 +919,27 @@ namespace CivOne
 			if (Player.HasWonder<CureForCancer>()) happyCount++;
 			if (Player.HasWonder<TajMahal>()) happyCount++;
 
-			int unhappyCount = Size - (6 - Game.Difficulty) - happyCount;
+			// Empire-size unhappiness (Civ 1's "number of cities" penalty): the larger
+			// the empire, the fewer citizens are naturally content, and past a second
+			// threshold extra malcontents ("red shirts") appear in every city. This is
+			// the balance counterweight to unlimited expansion — without it a runaway
+			// empire keeps its 70th city as easy to please as its 3rd. Difficulty brings
+			// it on sooner. Tunable: raise EmpireFree/RedShirtFree or the steps to soften.
+			int empireCities = Player.Cities.Length;
+			int contentFloor = 6 - Game.Difficulty;
+			const int EmpireStep = 6;                    // -1 content per this many cities…
+			int empireFree = Math.Max(4, 10 - Game.Difficulty); // …beyond this many
+			if (empireCities > empireFree)
+				contentFloor -= (empireCities - empireFree) / EmpireStep;
+			if (contentFloor < 0) contentFloor = 0;
+
+			int unhappyCount = Size - contentFloor - happyCount;
+
+			// Red shirts: a truly sprawling empire piles extra unhappy onto every city.
+			const int RedShirtFree = 32;                 // no extra unhappy up to here
+			const int RedShirtStep = 12;                 // +1 unhappy per this many beyond
+			if (empireCities > RedShirtFree)
+				unhappyCount += (empireCities - RedShirtFree) / RedShirtStep;
 			if (Player.RepublicDemocratic)
 			{
 				int penalty = Player.Government is Governments.Democracy ? 2 : 1;
