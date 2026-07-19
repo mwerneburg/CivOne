@@ -511,7 +511,12 @@ namespace CivOne.Graphics
 			_shoreOverrides   = null!;
 			_lakeShoreOverrides = null!;
 			_riverOverrides   = null!;
-			_landBase = null!; // re-read a [land] override on reload
+			// Drop the cached base fields so they regenerate. MapTile.ReloadTileCaches
+			// disposes the sprites wrapping these very Bytemaps, so both must be nulled
+			// here or Free would hand back freed (disposed) memory — an AccessViolation
+			// the next time an ocean/land tile is drawn.
+			_landBase = null!;
+			_seaBase  = null!;
 		}
 
 		private byte[]? TryLoadTile(string name)
