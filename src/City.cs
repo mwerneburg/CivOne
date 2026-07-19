@@ -927,8 +927,8 @@ namespace CivOne
 			// it on sooner. Tunable: raise EmpireFree/RedShirtFree or the steps to soften.
 			int empireCities = Player.Cities.Length;
 			int contentFloor = 6 - Game.Difficulty;
-			const int EmpireStep = 6;                    // -1 content per this many cities…
-			int empireFree = Math.Max(4, 10 - Game.Difficulty); // …beyond this many
+			const int EmpireStep = 8;                    // -1 content per this many cities…
+			int empireFree = Math.Max(6, 12 - Game.Difficulty); // …beyond this many
 			if (empireCities > empireFree)
 				contentFloor -= (empireCities - empireFree) / EmpireStep;
 			if (contentFloor < 0) contentFloor = 0;
@@ -936,7 +936,7 @@ namespace CivOne
 			int unhappyCount = Size - contentFloor - happyCount;
 
 			// Red shirts: a truly sprawling empire piles extra unhappy onto every city.
-			const int RedShirtFree = 32;                 // no extra unhappy up to here
+			const int RedShirtFree = 38;                 // no extra unhappy up to here
 			const int RedShirtStep = 12;                 // +1 unhappy per this many beyond
 			if (empireCities > RedShirtFree)
 				unhappyCount += (empireCities - RedShirtFree) / RedShirtStep;
