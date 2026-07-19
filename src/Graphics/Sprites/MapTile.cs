@@ -544,11 +544,27 @@ namespace CivOne.Graphics.Sprites
 		}
 		private static readonly Dictionary<(Terrain, byte), CachedSprite> _faunaSprites = new();
 
-		public static void ReloadSpecials()
+		// Drop every cached tile bitmap so the next redraw recomposites from the
+		// (freshly re-read) free_tiles.txt / shore / lake / river files. Covers the
+		// base fields, all baseline terrain, rivers and lakes, improvement overlays,
+		// and the special-resource sprites — the whole map repaints from the files.
+		public static void ReloadTileCaches()
 		{
 			_faunaSprites.Clear();
-			foreach (ISprite s in new[] { Seals, Oasis, Game, Shield, Coal, Gems, Gold, Fish, Horses, Oil, TundraGame })
-				(s as ICached)?.Clear();
+			foreach (object o in new object[]
+			{
+				// base fields under every tile
+				LandBase, OceanBase, LakeBase,
+				// baseline terrain
+				Arctic, Desert, Forest, Grassland, Hills, Jungle, Mountains, Ocean, Plains, Swamp, Tundra,
+				// rivers and lake shores
+				River, RiverOverlay, LakeShore,
+				// improvement overlays sourced from the tile files
+				Irrigation, Mine, Fortress, Hut, Pollution,
+				// special-resource sprites
+				Seals, Oasis, Game, Shield, Coal, Gems, Gold, Fish, Horses, Oil, TundraGame,
+			})
+				(o as ICached)?.Clear();
 		}
 
 		private static ISprite FaunaSprite(Terrain terrain, byte continentId)
