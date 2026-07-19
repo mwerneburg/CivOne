@@ -911,7 +911,7 @@ namespace CivOne
 					HumanPlayer.AwardMilestone(150);
 					string gameDate = GameYear;
 					RecordTransmission("DomeComplete", gameDate);
-					var doneScreen = new Screens.DomeCompleteTransmission(gameDate, VisitorType);
+					var doneScreen = new Screens.DomeCompleteTransmission(gameDate, VisitorType, VisitorsArrived, SETISignalReceived);
 					GameTask.Enqueue(Show.Screen(doneScreen));
 
 					if (!SETISignalReceived)

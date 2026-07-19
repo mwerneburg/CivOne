@@ -78,7 +78,39 @@ namespace CivOne.Screens
 			},
 		};
 
-		private static string[] BuildLines(string gameDate, VisitorArchetype arch)
+		// Built ahead of contact: the nations rushed the shield to completion
+		// before anyone arrived. `signalKnown` = the Tau Ceti signal has been
+		// received, so Earth knows *something* approaches; without it, the Dome
+		// is humanity's crowning achievement in a sky it now simply holds.
+		private static string[] PreContactOutcome(bool signalKnown) => signalKnown
+			? new[]
+			{
+				"DOME COMPLETION — AHEAD OF ARRIVAL:",
+				"",
+				">> ALL FIVE COMPONENTS ONLINE. SHIELD NOMINAL.",
+				">> DEEP-SPACE TRACK: ONE APPROACH, STILL DISTANT.",
+				">> DOME STATUS: STANDING WATCH.",
+				"",
+				"ASSESSMENT: THE NATIONS FINISHED THE SHIELD FIRST.",
+				"ASSESSMENT: WHATEVER COMES WILL FIND EARTH READY.",
+				"ASSESSMENT: WE DO NOT YET KNOW THEIR FACE.",
+				"WE WILL MEET THEM STANDING.",
+			}
+			: new[]
+			{
+				"DOME COMPLETION — THE SKY IS OURS:",
+				"",
+				">> ALL FIVE COMPONENTS ONLINE. SHIELD NOMINAL.",
+				">> GLOBAL AEROSPACE COMMAND: UNIFIED.",
+				">> DOME STATUS: STANDING WATCH.",
+				"",
+				"ASSESSMENT: NO POWER ON EARTH OR ABOVE IT",
+				"ASSESSMENT: CAN STRIKE THIS WORLD UNANSWERED NOW.",
+				"ASSESSMENT: THE CIVILIZATIONS BUILT IT TOGETHER.",
+				"THE HEAVENS ARE OURS TO HOLD.",
+			};
+
+		private static string[] BuildLines(string gameDate, VisitorArchetype arch, bool contactMade, bool signalKnown)
 		{
 			var lines = new List<string>
 			{
@@ -90,7 +122,9 @@ namespace CivOne.Screens
 				"",
 			};
 
-			lines.AddRange(ArchetypeOutcome(arch));
+			// The archetype engagement log only makes sense once the visitors are
+			// here; before that, the shield stands watch over an empty sky.
+			lines.AddRange(contactMade ? ArchetypeOutcome(arch) : PreContactOutcome(signalKnown));
 
 			lines.AddRange(new[]
 			{
@@ -118,9 +152,9 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal DomeCompleteTransmission(string gameDate, VisitorArchetype arch)
+		internal DomeCompleteTransmission(string gameDate, VisitorArchetype arch, bool contactMade, bool signalKnown)
 		{
-			_lines = BuildLines(gameDate, arch);
+			_lines = BuildLines(gameDate, arch, contactMade, signalKnown);
 			InitTypewriter();
 		}
 	}
