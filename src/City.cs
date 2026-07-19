@@ -2099,10 +2099,20 @@ namespace CivOne
 
 					if (HasBuilding<Palace>())
 						return;
-					
+
 					if (Player.Cities.Length < 4)
 						return;
-					
+
+					// Hostile occupiers hold their cities by force, not consent: a
+					// barbarian- or story-faction-held city (the Registry, the Thing,
+					// Skynet, the Olvir) does not defect to a prosperous neighbour.
+					// Otherwise a player could reclaim seized cities for free and
+					// defang the invasion arcs — matches the culture-defection guard.
+					if (Owner == 0
+						|| Player.Civilization is Civilizations.Olvir
+							or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
+						return;
+
 					City? admired = null;
 					int mostAppeal = 0;
 
@@ -2123,7 +2133,7 @@ namespace CivOne
 					{
 						message.Clear();
 						message.Add($"Residents of {Name} admire the prosperity of {admired.Name}");
-						message.Add($"{admired.Name} capture {Name}");
+						message.Add($"and defect to their rule!");
 
 						Player previousOwner = Game.GetPlayer(this.Owner);
 
