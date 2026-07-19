@@ -514,10 +514,19 @@ namespace CivOne.Screens
 				{
 					CloseMenus();
 					int duration = CityGiftDuration(captured);
-					// Units homed here fight on unsupported — the base changes flags.
+					byte newOwner = (byte)Game.PlayerNumber(_enemy);
+					// Units homed here but posted elsewhere lose their home (fight on
+					// unsupported). The garrison standing in the city changes flags WITH
+					// it — otherwise the gift arrives undefended (your units stay yours,
+					// stranded in a foreign city) and the first raider razes it.
 					foreach (var unit in captured.Units.ToArray())
 						unit.SetHome(null);
-					captured.Owner = (byte)Game.PlayerNumber(_enemy);
+					foreach (var unit in captured.Tile.Units.ToArray())
+					{
+						unit.Owner = newOwner;
+						unit.SetHome(null);
+					}
+					captured.Owner = newOwner;
 					captured.ResetResourceTiles();
 					_enemy.AddAttitudeBonus(Human, duration);
 					SetResponse(FaceState.Smiling,

@@ -174,14 +174,18 @@ namespace CivOne.Screens.Reports
 			// and deliberately unsorted. The rank number and the score tags at the
 			// line tips (below) are the reliable way to match a line to its row —
 			// the palette repeats across this many civs, so colour alone can't.
-			int lx = GraphRight - 2;
+			// Left-aligned at the top-left: the traces converge on their current
+			// scores at the RIGHT edge (where the line tips and their score tags
+			// live), so the legend sits on the left where the early-turn traces
+			// are sparse and it interferes least.
+			int lx = GraphLeft + 4;
 			int ly = GraphTop + 4;
 			int rank = 1;
 			foreach (var p in players.OrderByDescending(p => p.Score))
 			{
 				int  pIdx = (byte)p;
 				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
-				this.DrawText($"{rank++}. {p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Right);
+				this.DrawText($"{rank++}. {p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Left);
 				ly += fh + 1;
 			}
 

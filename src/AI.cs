@@ -602,7 +602,7 @@ namespace CivOne
 			var stance = GetStance();
 			var plan = PlanProduction(city, stance);
 			city.SetProduction(plan[0]);
-			DecisionLogger.LogCityProduction(city, plan[0], stance.ToString());
+			DecisionLogger.LogCityProduction(city, plan[0], stance.ToString(), hasRoom: HasExpansionRoom());
 			for (int i = 1; i < plan.Count; i++)
 				city.EnqueueProduction(plan[i]);
 		}

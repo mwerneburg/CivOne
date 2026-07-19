@@ -83,7 +83,50 @@ namespace CivOne
 			           :                                         (4 * mapScale) + Game.Difficulty;
 			if (cities.Length < target) return StrategyStance.Expand;
 
+			// Past the fixed target, keep expanding as long as good unclaimed land is
+			// still reachable by land. Without this a civ freezes colonisation at the
+			// cap while whole continents sit empty — the "everyone stalls at a modest
+			// size with open land next door" failure. The room check is land-only, so
+			// isolated overseas continents don't count (naval colonisation is separate).
+			if (HasExpansionRoom()) return StrategyStance.Expand;
+
 			return StrategyStance.Develop;
+		}
+
+		// Cheap, per-turn-cached test: is there a foundable unclaimed tile reachable by
+		// land near any of our cities? Land only (same continent), habitable, and at
+		// least 3 tiles clear of every existing city. Early-exits on the first hit; tiles
+		// near cities or on the wrong continent reject fast, so both "has room" and
+		// "boxed in" cases stay cheap.
+		private int _roomTurn = -1;
+		private bool _roomCached;
+		private bool HasExpansionRoom()
+		{
+			if (_roomTurn == (int)Game.GameTurn) return _roomCached;
+			_roomTurn = (int)Game.GameTurn;
+			_roomCached = false;
+
+			foreach (City c in Player.Cities)
+			{
+				byte cont = Map[c.X, c.Y].ContinentId;
+				for (int dy = -8; dy <= 8; dy++)
+				for (int dx = -8; dx <= 8; dx++)
+				{
+					if (Math.Max(Math.Abs(dx), Math.Abs(dy)) < 3) continue; // too close to be a new site
+					int tx = (c.X + dx + Map.WIDTH) % Map.WIDTH;
+					int ty = c.Y + dy;
+					if (ty < 0 || ty >= Map.HEIGHT) continue;
+					ITile t = Map[tx, ty];
+					if (t is null || t.IsOcean) continue;
+					if (t.Type == Terrain.Mountains || t.Type == Terrain.Arctic) continue;
+					if (t.ContinentId != cont) continue;        // land-reachable only
+					if (t.City is not null) continue;
+					if (Game.GetCities().Any(cc => cc.Size > 0 && Common.DistanceToTile(cc.X, cc.Y, tx, ty) < 3)) continue;
+					_roomCached = true;
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private bool IsNeighbor(Player enemy)
@@ -1672,7 +1715,10 @@ namespace CivOne
 				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
 				int minSize = Leader.Development == Expansionistic ? 3
 				            : Leader.Development == Normal          ? 4 : 4;
-				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				// Past the fixed cap, keep founding while reachable land remains — GetStance
+				// only holds us in Expand here because HasExpansionRoom() is already true.
+				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers)
+				    && (ownCities < maxCities || HasExpansionRoom()))
 					Consider(new Settlers());
 			}
 

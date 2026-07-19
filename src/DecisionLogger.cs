@@ -181,7 +181,7 @@ namespace CivOne
 			}));
 		}
 
-		internal static void LogCityProduction(City city, IProduction choice, string stance, bool isHuman = false)
+		internal static void LogCityProduction(City city, IProduction choice, string stance, bool isHuman = false, bool hasRoom = false)
 		{
 			if (!_active) return;
 			if (city is null || choice is null) return;
@@ -233,6 +233,7 @@ namespace CivOne
 				KV("own_gold",      player?.Gold ?? 0),
 				KV("own_cities",    ownCities.Length),
 				KV("stance",        stance),
+				KV("has_room",      hasRoom),
 				KV("action",        productionName),
 			}));
 		}
