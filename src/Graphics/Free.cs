@@ -90,13 +90,21 @@ namespace CivOne.Graphics
 			}
 		}
 
+		// The base field drawn UNDER every land tile. The terrain textures
+		// ([desert], [plains], [grassland], …) layer on top, so this is the
+		// colour that shows through their transparent (0) pixels. Override the
+		// whole land base with a [land] section; a terrain that wants a fully
+		// distinct field (e.g. deserts) should instead paint an OPAQUE section
+		// of its own so no LandBase shows through.
 		public Bytemap LandBase
 		{
 			get
 			{
 				if (_landBase is null)
 				{
-					_landBase = new Bytemap(16, 16).FromByteArray(GenerateNoise(37, 38, 39).Take(16 * 16).ToArray());
+					byte[]? loaded = TryLoadTile("land");
+					_landBase = new Bytemap(16, 16).FromByteArray(
+						loaded ?? GenerateNoise(37, 38, 39).Take(16 * 16).ToArray());
 				}
 				return _landBase;
 			}
@@ -126,9 +134,11 @@ namespace CivOne.Graphics
 
 		public Bytemap Plains => new Bytemap(16, 16).FromByteArray(GenerateNoise(0, 0, 0, 47, 0, 0, 0, 7, 0, 0, 0, 0).Take(16 * 16).ToArray());
 
-		public Bytemap Arctic => new Bytemap(16, 16).FromByteArray(GenerateNoise(16, 7, 17, 18, 7, 15, 20, 19, 15).Skip(380).Take(16 * 16).ToArray());
+		public Bytemap Arctic => new Bytemap(16, 16).FromByteArray(
+			TryLoadTile("arctic") ?? GenerateNoise(16, 7, 17, 18, 7, 15, 20, 19, 15).Skip(380).Take(16 * 16).ToArray());
 
-		public Bytemap Tundra => new Bytemap(16, 16).FromByteArray(GenerateNoise(7, 0, 0, 0, 0, 0, 7, 0, 15).Skip(590).Take(16 * 16).ToArray());
+		public Bytemap Tundra => new Bytemap(16, 16).FromByteArray(
+			TryLoadTile("tundra") ?? GenerateNoise(7, 0, 0, 0, 0, 0, 7, 0, 15).Skip(590).Take(16 * 16).ToArray());
 
 		public Bytemap Desert
 		{
@@ -501,6 +511,7 @@ namespace CivOne.Graphics
 			_shoreOverrides   = null!;
 			_lakeShoreOverrides = null!;
 			_riverOverrides   = null!;
+			_landBase = null!; // re-read a [land] override on reload
 		}
 
 		private byte[]? TryLoadTile(string name)
@@ -735,9 +746,15 @@ namespace CivOne.Graphics
 			);
 		}
 
-		// Plains: sparse light speckles (INK_HIGH/8) over transparent — LandBase shows through as warm base
+		// Plains: sparse light speckles (INK_HIGH/8) over transparent — LandBase shows through as warm base.
+		// Override with a [plains] section (make it opaque to fully replace the field, or keep 0s to speckle
+		// over LandBase like the default below).
 		public Bytemap PlainsTexture()
 		{
+			byte[]? loaded = TryLoadTile("plains");
+			if (loaded is not null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
 			return new Bytemap(16, 16).FromByteArray(
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 				 0,  0,  8,  0,  0,  0,  0,  0,  0,  0,  0,  8,  0,  0,  0,  0,
@@ -758,9 +775,14 @@ namespace CivOne.Graphics
 			);
 		}
 
-		// Grassland: transparent (LandBase shows through) with scattered dark speckles (INK_LOW/6)
+		// Grassland: transparent (LandBase shows through) with scattered dark speckles (INK_LOW/6).
+		// Override with a [grassland] section (opaque to fully replace the field, or keep 0s to speckle).
 		public Bytemap GrasslandTexture()
 		{
+			byte[]? loaded = TryLoadTile("grassland");
+			if (loaded is not null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
 			return new Bytemap(16, 16).FromByteArray(
 				 0,  0,  6,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,  6,  0,  0,
 				 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,
