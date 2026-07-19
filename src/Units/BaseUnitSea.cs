@@ -55,7 +55,11 @@ namespace CivOne.Units
 			}
 
 			// Auto-wake land units when arriving at a coastal tile, matching original Civ I behaviour.
-			if (this is IBoardable)
+			// Only on ARRIVAL, though: a ship still travelling under GoTo (Goto not yet cleared —
+			// MoveEnd empties it before this runs, but only at the final destination) must keep its
+			// cargo aboard as it transits coastal tiles and canal cities like Panama, or the passengers
+			// wake, lose their Sentry flag, and get left behind on the next step out of the city.
+			if (this is IBoardable && Goto.IsEmpty)
 			{
 				ITile tile = Map[X, Y];
 				if (tile.GetBorderTiles().Any(t => !t.IsOcean))
