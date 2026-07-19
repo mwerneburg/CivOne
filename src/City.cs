@@ -927,6 +927,16 @@ namespace CivOne
 				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
 				unhappyCount += militaryAway * penalty;
 			}
+			else
+			{
+				// Martial law (Civ 1): under authoritarian rule (Anarchy/Despotism/
+				// Monarchy/Communism) each garrisoned military unit keeps one citizen
+				// content, up to three — the classic tool for holding a large despotic
+				// city together with a garrison. Its absence let big low-trade cities
+				// riot indefinitely even at maximum luxury, with no reachable escape.
+				int garrison = Tile.Units.Count(u => !(u is Settlers) && !(u is Diplomat) && !(u is ICaravan));
+				unhappyCount -= Math.Min(3, garrison);
+			}
 			// Pollution unhappiness: each city pays for its own smog. SmokeStacks is
 			// already post-tolerance (City.cs:1009 subtracts 20 free units), so a city
 			// only feels social cost after it's industrialized past the absorbable level.
