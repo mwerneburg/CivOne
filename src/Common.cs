@@ -276,6 +276,15 @@ namespace CivOne
 			// Land units can use railroad (cost=1); sea/air minimum is one ocean step (cost=9).
 			int minStepCost = (unit.Class == UnitClass.Land) ? 1 : 9;
 
+			// The mover's player, for the war-aware occupancy check below.
+			Player moverPlayer = Game.Instance.GetPlayer(unit.Owner);
+			// A foreign unit blocks the tile only when we're at PEACE with its owner —
+			// a peaceful neighbour's stack you cannot trespass through. At war (and
+			// against barbarians, always hostile) an enemy unit's tile is a target to
+			// attack into, not a wall to route around, so it does not block.
+			bool Blocks(byte owner) => owner != unit.Owner && owner != 0
+				&& !moverPlayer.IsAtWar(Game.Instance.GetPlayer(owner));
+
 			// One of the mover's own cities is a hub on its transport network: it
 			// always carries a road, and carries rail once its side has the RailRoad
 			// advance. Without this the rail bonus breaks at every city (the City tile
@@ -371,11 +380,12 @@ namespace CivOne
 
 					ITile fromTile = map[cx, cy];
 
-					// Tiles occupied by another civilization's units are blocked — you
-					// cannot pass through them, however good the road. Only the goal
-					// tile is exempt (combat/city entry resolves there via Confront).
+					// Tiles held by a PEACEFUL neighbour's units are blocked — you cannot
+					// trespass through them. Enemy (at-war) or barbarian tiles are NOT
+					// blocked: at war their units are targets to advance on and attack,
+					// which is the whole point of a war. The goal tile is exempt either way.
 					bool blocked = tile.City is null
-						&& tile.Units.Any(u => u.Owner != unit.Owner);
+						&& tile.Units.Any(u => Blocks(u.Owner));
 
 					// Zone of control (Civ 1): may not move directly from one tile under
 					// enemy ZOC to another tile under enemy ZOC. Exempt: air units, leaving

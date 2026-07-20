@@ -118,10 +118,16 @@ namespace CivOne.Screens.Dialogs
 			using Palette palette = Common.DefaultPalette;
 			using (Palette cass = CassetteTheme.CreatePalette())
 				palette.MergePalette(cass, 1, 17);
+			// Copy only the palette entries the portrait actually uses (not a blanket
+			// 144-255 copy), so custom high-index terrain colours behind the popup
+			// aren't clobbered — see SpyMessage.cs for the full explanation.
+			var bmp = spyPortrait.Bitmap;
+			bool[] used = new bool[256];
+			for (int yy = 0; yy < bmp.Height; yy++)
+			for (int xx = 0; xx < bmp.Width; xx++)
+				used[bmp[xx, yy]] = true;
 			for (int i = 144; i < 256; i++)
-			{
-				palette[i] = spyPortrait.Palette[i];
-			}
+				if (used[i]) palette[i] = spyPortrait.Palette[i];
 			this.SetPalette(palette);
 
 			DialogBox.AddLayer(spyPortrait, 2, 2);

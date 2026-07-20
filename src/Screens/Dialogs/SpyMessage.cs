@@ -12,6 +12,7 @@ using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Graphics;
+using CivOne.IO;
 
 namespace CivOne.Screens.Dialogs
 {
@@ -39,10 +40,18 @@ namespace CivOne.Screens.Dialogs
 			using Palette palette = Common.DefaultPalette;
 			using (Palette cass = CassetteTheme.CreatePalette())
 				palette.MergePalette(cass, 1, 17);
+			// Bring in ONLY the palette entries the spy portrait's pixels actually use,
+			// not a blanket 144-255 copy. The wholesale copy clobbered the map's colours
+			// in that range — which now include custom high-index terrain entries (the
+			// desert ramp at 233/236/238/250/251, etc.) — blowing out the map behind the
+			// popup. Copying just the used indices leaves the rest of the palette intact.
+			Bytemap bmp = spyPortrait.Bitmap;
+			bool[] used = new bool[256];
+			for (int yy = 0; yy < bmp.Height; yy++)
+			for (int xx = 0; xx < bmp.Width; xx++)
+				used[bmp[xx, yy]] = true;
 			for (int i = 144; i < 256; i++)
-			{
-				palette[i] = spyPortrait.Palette[i];
-			}
+				if (used[i]) palette[i] = spyPortrait.Palette[i];
 			this.SetPalette(palette);
 			
 			_textLines = TextBitmaps(message);
