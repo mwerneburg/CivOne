@@ -1151,19 +1151,20 @@ namespace CivOne
 			// Relocate any worked tile that has gone invalid (a foreign unit stepped on
 			// it, or a neighbour claimed it). Materialise the list first — RelocateResourceTile
 			// mutates _resourceTiles, which would corrupt a lazy enumeration mid-loop.
+			// RelocateResourceTile swaps each invalid tile for the best available valid one,
+			// preserving the worked-tile COUNT. That alone cures the original zero-tile
+			// starvation bug: a city no longer bleeds worked tiles down to nothing when
+			// several are blocked at once — each is individually swapped while free land
+			// exists. Do NOT force a refill-to-Size here: a city legitimately sitting at
+			// zero worked tiles has had its citizens made specialists BY THE PLAYER (all
+			// musicians for happiness under Republic/Democracy); those tiles were never in
+			// _resourceTiles for the loop to relocate, so refilling would just overwrite the
+			// player's choice every turn. Involuntary gaps self-heal on the next size change
+			// (growth/starvation both call SetResourceTiles) or when the player visits.
 			foreach (ITile tile in ResourceTiles.Where(t => InvalidTile(t)).ToList())
 			{
 				RelocateResourceTile(tile);
 			}
-			// Zero-tile recovery ONLY. A city stripped to no worked tiles (several tiles
-			// blocked at once) would otherwise never re-acquire any and starve — the
-			// original bug. But refilling to Size unconditionally wipes the player's manual
-			// specialist (musician) allocations every turn, breaking happiness management
-			// under Republic/Democracy. So only recover the pathological zero case; the
-			// swap-in-place RelocateResourceTile above preserves the worked-tile count
-			// (and thus the player's specialists) for every other case.
-			if (_resourceTiles.Count == 0 && Size > 0)
-				SetResourceTiles();
 		}
 
 		// Industrial + population pollution, reduced by clean-power buildings.
