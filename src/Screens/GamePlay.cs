@@ -69,7 +69,6 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("Find City").OnSelect((s, a) => GameTask.Enqueue(Show.Search));
 			_gameMenu.Items.Add("Options").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<GameOptions>()));
 			_gameMenu.Items.Add("Save Game").SetEnabled(Game.GameTurn > 0 && Common.AllowSaveGame).OnSelect((s, a) => GameTask.Enqueue(Show.Screen<SaveGame>()));
-			_gameMenu.Items.Add("REVOLUTION!").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<Revolution>()));
 			_gameMenu.Items.Add(null);
 			if (Settings.DebugMenu)
 			{
@@ -77,7 +76,7 @@ namespace CivOne.Screens
 				_gameMenu.Items.Add(null);
 			}
 			_gameMenu.Items.Add("Retire").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<ConfirmRetire>()));
-			_gameMenu.Items.Add("QUIT to DOS").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<ConfirmQuit>()));
+			_gameMenu.Items.Add("Exit Game").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<ConfirmQuit>()));
 			
 			_menuX = 16;
 			_menuY = 8;
@@ -109,7 +108,9 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("Science Advisor (F6)").OnSelect((s, a) => Common.AddScreen(new ScienceReport()));
 			_gameMenu.Items.Add("Communications").OnSelect((s, a) => Common.AddScreen(new CommunicationsAdvisor()));
 			_gameMenu.Items.Add("Dome Status").OnSelect((s, a) => Common.AddScreen(new DomeStatusReport()));
-			
+			_gameMenu.Items.Add(null);
+			_gameMenu.Items.Add("Revolution!").OnSelect((s, a) => GameTask.Enqueue(Show.Screen<Revolution>()));
+
 			_menuX = 112;
 			_menuY = 8;
 			
