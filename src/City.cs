@@ -1136,10 +1136,21 @@ namespace CivOne
 
 		public void UpdateResources()
 		{
-			foreach (ITile tile in ResourceTiles.Where(t => InvalidTile(t)))
+			// Relocate any worked tile that has gone invalid (a foreign unit stepped on
+			// it, or a neighbour claimed it). Materialise the list first — RelocateResourceTile
+			// mutates _resourceTiles, which would corrupt a lazy enumeration mid-loop.
+			foreach (ITile tile in ResourceTiles.Where(t => InvalidTile(t)).ToList())
 			{
 				RelocateResourceTile(tile);
 			}
+			// Refill to full size from whatever tiles are now free. WITHOUT this, a city
+			// stripped to zero worked tiles (a bad moment during a reset — e.g. several of
+			// its tiles blocked at once by units crossing them in the crowded late game)
+			// could never recover: UpdateResources only ever RELOCATED existing tiles, never
+			// ADDED, so a zero-tile city stayed at zero, worked only its centre, forced all
+			// citizens into specialists, and starved. That stripped ~75% of late-game cities
+			// and crashed every civ's score.
+			SetResourceTiles();
 		}
 
 		// Industrial + population pollution, reduced by clean-power buildings.
