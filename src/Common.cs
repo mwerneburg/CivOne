@@ -62,7 +62,9 @@ namespace CivOne
 		// ColourDark is left as the original dark shades — the Intelligence Report uses it as a
 		// button background with ColourLight text on top, which needs the dark contrast.
 		public static byte[] ColourLight     = [16, 11, 13, 14, 17, 15, 16, 11, 13, 14, 17, 15, 16, 11, 13, 14, 17, 15, 12,  7];
-		public static byte[] BannerSecondary = [15, 17, 14, 13, 16, 11, 17, 15, 16, 15, 13, 14, 13, 14, 17, 16, 15, 16, 17, 16];
+		// Slot 0 (Barbarians) is deliberately red/red: it's a fixed, single slot with no other
+		// civ to disambiguate it from, so it stays solid red (classic Civ) rather than red/white.
+		public static byte[] BannerSecondary = [16, 17, 14, 13, 16, 11, 17, 15, 16, 15, 13, 14, 13, 14, 17, 16, 15, 16, 17, 16];
 		public static byte[] ColourDark      = [ 4,  7,  2,  1, 10,  3,  4,  8,  5,  4,  3,  4,  4,  3,  5,  3,  1, 10,  3,  4];
 		
 		internal static IEnumerable<string> AllCityNames => Civilizations.Select(x => x.CityNames).SelectMany(x => x);
