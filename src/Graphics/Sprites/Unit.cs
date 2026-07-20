@@ -24,7 +24,6 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetUnit((UnitType Type, byte PlayerNumber) unit)
 		{
-			byte colourDark = Common.ColourDark[unit.PlayerNumber];
 			byte colourLight = Common.ColourLight[unit.PlayerNumber];
 			// The Sea Caravan borrows the Sail's artwork.
 			UnitType artType = unit.Type == UnitType.SeaCaravan ? UnitType.Sail : unit.Type;
@@ -70,8 +69,13 @@ namespace CivOne.Graphics.Sprites
 			output.FillRectangle(0,  0, 16,  1, CassetteTheme.PHOS);  // top
 			output.FillRectangle(0,  1,  1, 12, CassetteTheme.PHOS);  // left (rows 1–12)
 			output.FillRectangle(15, 1,  1, 12, CassetteTheme.PHOS);  // right (rows 1–12)
-			output.FillRectangle(0, 13, 16,  2, colourLight);          // bar
-			output.FillRectangle(0, 15, 16,  1, colourDark);           // bar underline
+			// Quartered owner banner, matching the city icon (Icons.City): primary +
+			// accent on opposite diagonals, so the two-colour PAIR identifies the civ.
+			byte sec = Common.BannerSecondary[unit.PlayerNumber];
+			output.FillRectangle(0, 13, 8, 2, colourLight);  // top-left
+			output.FillRectangle(8, 13, 8, 2, sec);          // top-right
+			output.FillRectangle(0, 15, 8, 1, sec);          // bottom-left
+			output.FillRectangle(8, 15, 8, 1, colourLight);  // bottom-right
 			
 			return output;
 		}
