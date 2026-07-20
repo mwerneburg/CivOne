@@ -706,8 +706,20 @@ namespace CivOne
 		public void RelocateResourceTile(ITile tile)
 		{
 			if (tile.X == X && tile.Y == Y) return;
-			SetResourceTile(tile);
-			SetResourceTiles();
+			// Swap the now-invalid worked tile for the best available valid one, preserving
+			// the worked-tile COUNT (and thus any citizens the player has assigned as
+			// specialists). A full ResetResourceTiles here would re-pick up to Size on every
+			// relocation, wiping the player's manual musician/specialist allocations.
+			_resourceTiles.Remove(tile);
+			ITile replacement = CityTiles
+				.Where(t => !(t.X == X && t.Y == Y) && !OccupiedTile(t) && !_resourceTiles.Contains(t))
+				.OrderByDescending(t => FoodValue(t))
+				.ThenByDescending(t => ShieldValue(t))
+				.ThenByDescending(t => TradeValue(t))
+				.FirstOrDefault();
+			if (replacement is not null) _resourceTiles.Add(replacement);
+			UpdateSpecialists();
+			InvalidateCache();
 		}
 
 		public void SetResourceTile(ITile tile)
@@ -1143,14 +1155,15 @@ namespace CivOne
 			{
 				RelocateResourceTile(tile);
 			}
-			// Refill to full size from whatever tiles are now free. WITHOUT this, a city
-			// stripped to zero worked tiles (a bad moment during a reset — e.g. several of
-			// its tiles blocked at once by units crossing them in the crowded late game)
-			// could never recover: UpdateResources only ever RELOCATED existing tiles, never
-			// ADDED, so a zero-tile city stayed at zero, worked only its centre, forced all
-			// citizens into specialists, and starved. That stripped ~75% of late-game cities
-			// and crashed every civ's score.
-			SetResourceTiles();
+			// Zero-tile recovery ONLY. A city stripped to no worked tiles (several tiles
+			// blocked at once) would otherwise never re-acquire any and starve — the
+			// original bug. But refilling to Size unconditionally wipes the player's manual
+			// specialist (musician) allocations every turn, breaking happiness management
+			// under Republic/Democracy. So only recover the pathological zero case; the
+			// swap-in-place RelocateResourceTile above preserves the worked-tile count
+			// (and thus the player's specialists) for every other case.
+			if (_resourceTiles.Count == 0 && Size > 0)
+				SetResourceTiles();
 		}
 
 		// Industrial + population pollution, reduced by clean-power buildings.
