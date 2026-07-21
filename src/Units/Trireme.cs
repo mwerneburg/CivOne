@@ -30,8 +30,12 @@ namespace CivOne.Units
 			// The Trireme unit is surrounded by oceans, there's a 50% chance it will be lost at sea
 			if (Common.Random.Next(0, 100) < 50) return;
 
+			// Notify only the owner: an AI civ's Trireme lost in open sea is not the human's
+			// business (the message read as if it were the player's own loss).
+			bool notify = Human == Owner;
 			Game.DisbandUnit(this);
-			GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText("ERROR/TRIREME")));
+			if (notify)
+				GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText("ERROR/TRIREME")));
 		}
 
 		public int Cargo

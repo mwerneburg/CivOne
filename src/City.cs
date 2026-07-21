@@ -2271,7 +2271,7 @@ namespace CivOne
 
 			// 3. Strike probability, intensified by warming (Game.WarmingIndicator,
 			// computed once per global tick by the caller — it scans the whole map).
-			int strikePct = coastal ? (2 + warming) : (1 + warming / 2);
+			int strikePct = coastal ? (1 + warming) : (1 + warming / 2);
 			if (Common.Random.Next(0, 100) >= strikePct) return;
 
 			// 4. Severity. 0 = Minor, 1 = Major, 2 = Catastrophic.
@@ -2280,9 +2280,12 @@ namespace CivOne
 			int sev;
 			if (coastal)
 			{
-				// Warming widens both Major and Catastrophic, taken from Minor.
-				int catThresh = 90 - warming * 5;   // 90 → 70
-				int majThresh = catThresh - 30;     // 60 → 40
+				// Warming widens both Major and Catastrophic, taken from Minor. Catastrophic
+				// is gated behind actual warming: at warming 0 catThresh is 100, and sevRoll
+				// (0–99) can never reach it, so a clean world sees no super-typhoons — they
+				// are the price of a polluted planet, rising to ~28% when fully warmed.
+				int catThresh = 100 - warming * 7;  // 100 → 72
+				int majThresh = catThresh - 30;     // 70 → 42
 				if (sevRoll >= catThresh)      sev = 2;
 				else if (sevRoll >= majThresh) sev = 1;
 				else                            sev = 0;
