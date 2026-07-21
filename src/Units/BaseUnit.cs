@@ -515,12 +515,17 @@ namespace CivOne.Units
 				}
 				return Confront(relX, relY);
 			}
-			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan || this is Explorer) && !((ITile[])[Map[X, Y], moveTarget]).Any(t => t.IsOcean || t.City is not null) && moveTarget.GetBorderTiles().SelectMany(t => t.Units).Any(u => u.Owner != Owner))
+			// Zone of control blocks a step between two tiles that both border an enemy unit
+			// IN THE OPEN. A garrisoned city projects no ZOC — only field units do — so exclude
+			// city tiles from the border scans (matches the pathfinder's InZoc in Common.cs).
+			// Without this a foreign city's garrison ZOC-blocked every adjacent approach, so a
+			// unit at war couldn't move up to attack a city that had no field units near it.
+			if (Class == UnitClass.Land && !(this is Diplomat || this is Caravan || this is Explorer) && !((ITile[])[Map[X, Y], moveTarget]).Any(t => t.IsOcean || t.City is not null) && moveTarget.GetBorderTiles().Where(t => t.City is null).SelectMany(t => t.Units).Any(u => u.Owner != Owner))
 			{
 				if (!moveTarget.Units.Any(x => x.Owner == Owner))
 				{
-					IUnit[] targetUnits = moveTarget.GetBorderTiles().SelectMany(t => t.Units).Where(u => u.Owner != Owner).ToArray();
-					IUnit[] borderUnits = Map[X, Y].GetBorderTiles().SelectMany(t => t.Units).Where(u => u.Owner != Owner).ToArray();
+					IUnit[] targetUnits = moveTarget.GetBorderTiles().Where(t => t.City is null).SelectMany(t => t.Units).Where(u => u.Owner != Owner).ToArray();
+					IUnit[] borderUnits = Map[X, Y].GetBorderTiles().Where(t => t.City is null).SelectMany(t => t.Units).Where(u => u.Owner != Owner).ToArray();
 
 					if (borderUnits.Any() && targetUnits.Any())
 					{
