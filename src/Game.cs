@@ -1633,6 +1633,11 @@ namespace CivOne
 
 		public City[] GetCities() => _cities.ToArray();
 
+		// Non-allocating read-only view for hot paths (City.InvalidTile runs this thousands
+		// of times per turn — GetCities().ToArray() there was a major late-game allocation
+		// source). Callers must not mutate the city list while enumerating.
+		internal IReadOnlyList<City> CitiesList => _cities;
+
 		// True when the tile is currently worked by a city belonging to a different owner.
 		public bool IsWorkedByOther(int x, int y, byte owner) =>
 			_cities.Any(c => c.Owner != owner &&
@@ -2892,7 +2897,13 @@ namespace CivOne
 				Player owner = GetPlayer(city.Owner);
 				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet) continue;
 				if (city.HasBuilding<Palace>()) continue;
-				if (!city.IsInDisorder) continue;
+				// Use the disorder flag recorded during the city's NewTurn, NOT live
+				// IsInDisorder: the latter recomputes ComputeCitizens (a 5x5 CityRadius
+				// allocation + wonder/empire-size scans) for EVERY small city here, and in
+				// Phase B the citizen cache is cold, so it was ~700ms/round — this whole
+				// processor. WasInDisorder is a cheap field reflecting the same just-computed
+				// state (defection should follow the disorder the player actually saw).
+				if (!city.WasInDisorder) continue;
 				if (Map[city.X, city.Y].Units.Count(u => u.Owner == city.Owner) >= 2) continue;
 
 				// The pull: the strongest nearby foreign culture, at peace with the

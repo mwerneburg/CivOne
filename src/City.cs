@@ -563,7 +563,31 @@ namespace CivOne
 
 		internal bool InvalidTile(ITile tile)
 		{
-			return (Game.GetCities().Where(c => c != this).Any(c => c.ResourceTiles.Any(t => t.X == tile.X && t.Y == tile.Y)) || tile.Units.Any(u => u.Owner != Owner));
+			// A foreign unit standing on the tile blocks it — cheap, check first.
+			if (tile.Units.Any(u => u.Owner != Owner)) return true;
+
+			// Otherwise the tile is invalid only if ANOTHER city already works it. The old
+			// form scanned every city and materialised each one's ResourceTiles (a fresh 5x5
+			// CityRadius array + LINQ) for every tile checked — O(cities) allocation-heavy
+			// work per tile, the dominant late-game per-turn cost (UpdateResources and
+			// SetResourceTiles both hammer this). But a tile can only be worked by a city
+			// whose CENTRE lies within the 5x5 radius (Chebyshev <= 2, X wrapping), so
+			// pre-filter on cheap integer distance and then test the city's fields directly
+			// (centre or _resourceTiles) instead of building ResourceTiles. Only 0-4 cities
+			// are ever in range, so this is effectively O(cities) of int math, no allocation.
+			IReadOnlyList<City> cities = Game.Instance.CitiesList;
+			for (int i = 0; i < cities.Count; i++)
+			{
+				City c = cities[i];
+				if (c == this) continue;
+				int dx = Math.Abs(c.X - tile.X);
+				if (dx > Map.WIDTH - dx) dx = Map.WIDTH - dx;   // horizontal map wrap
+				if (dx > 2 || Math.Abs(c.Y - tile.Y) > 2) continue;
+				if ((c.X == tile.X && c.Y == tile.Y) ||
+				    c._resourceTiles.Any(t => t.X == tile.X && t.Y == tile.Y))
+					return true;
+			}
+			return false;
 		}
 
 		private void UpdateSpecialists()

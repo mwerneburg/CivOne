@@ -269,10 +269,46 @@ namespace CivOne
 
 			var gScore = new Dictionary<int, int>();
 			var cameFrom = new Dictionary<int, int>();
-			// open set: (f, euclidSq to goal, encoded position)
-			// Primary sort: lowest f. Tiebreaker: lowest squared Euclidean distance to goal,
-			// which breaks equal-cost ties in favour of the geometrically straight path.
-			var open = new List<(int f, int euclid, int pos)>();
+			// open set as a binary min-heap keyed on (f, euclidSq-to-goal). Primary: lowest
+			// f; tiebreak: lowest squared Euclidean distance to goal (favours the straight
+			// path) — same ordering the old linear min-scan used. netstandard2.0 has no
+			// System.Collections.Generic.PriorityQueue, so this is a compact array-backed
+			// heap (HeapPush/HeapPop). Each entry carries the g it was queued with, for O(1)
+			// lazy staleness detection — replacing the O(n) scan-for-min that made this A*
+			// O(n²) on large searches (the ~5s late-game unit-move spike).
+			var open = new List<(int f, int euclid, int pos, int g)>();
+			bool HeapLess((int f, int euclid, int pos, int g) a, (int f, int euclid, int pos, int g) b)
+				=> a.f < b.f || (a.f == b.f && a.euclid < b.euclid);
+			void HeapPush((int f, int euclid, int pos, int g) item)
+			{
+				open.Add(item);
+				int i = open.Count - 1;
+				while (i > 0)
+				{
+					int parent = (i - 1) / 2;
+					if (!HeapLess(open[i], open[parent])) break;
+					(open[i], open[parent]) = (open[parent], open[i]);
+					i = parent;
+				}
+			}
+			(int f, int euclid, int pos, int g) HeapPop()
+			{
+				var top = open[0];
+				int last = open.Count - 1;
+				open[0] = open[last];
+				open.RemoveAt(last);
+				int n = open.Count, i = 0;
+				while (true)
+				{
+					int l = 2 * i + 1, r = 2 * i + 2, best = i;
+					if (l < n && HeapLess(open[l], open[best])) best = l;
+					if (r < n && HeapLess(open[r], open[best])) best = r;
+					if (best == i) break;
+					(open[i], open[best]) = (open[best], open[i]);
+					i = best;
+				}
+				return top;
+			}
 
 			// Scale the heuristic to match actual step costs so A* stays directed.
 			// Land units can use railroad (cost=1); sea/air minimum is one ocean step (cost=9).
@@ -333,19 +369,15 @@ namespace CivOne
 
 			int startPos = Encode(sx, sy);
 			gScore[startPos] = 0;
-			open.Add((DistanceToTile(sx, sy, gx, gy) * minStepCost, EuclidSq(sx, sy, gx, gy), startPos));
+			HeapPush((DistanceToTile(sx, sy, gx, gy) * minStepCost, EuclidSq(sx, sy, gx, gy), startPos, 0));
 
 			while (open.Count > 0)
 			{
-				// Pop node with lowest f; break ties with lowest squared Euclidean distance to goal
-				int minIdx = 0;
-				for (int i = 1; i < open.Count; i++)
-				{
-					if (open[i].f < open[minIdx].f) minIdx = i;
-					else if (open[i].f == open[minIdx].f && open[i].euclid < open[minIdx].euclid) minIdx = i;
-				}
-				int curPos = open[minIdx].pos;
-				open.RemoveAt(minIdx);
+				var node = HeapPop();
+				int curPos = node.pos;
+				// Lazy staleness: a shorter path to curPos was found after this entry was
+				// queued, so a better copy is (or was) also in the heap. Skip this one.
+				if (node.g > gScore[curPos]) continue;
 
 				int cx = curPos % w, cy = curPos / w;
 				if (cx == gx && cy == gy)
@@ -410,13 +442,13 @@ namespace CivOne
 					else
 						cost = tile.Movement * 9;
 
-					int tentativeG = gScore[curPos] + cost;
+					int tentativeG = node.g + cost;
 					int nextPos = Encode(nx, ny);
 					if (!gScore.TryGetValue(nextPos, out int existing) || tentativeG < existing)
 					{
 						gScore[nextPos] = tentativeG;
 						cameFrom[nextPos] = curPos;
-						open.Add((tentativeG + DistanceToTile(nx, ny, gx, gy) * minStepCost, EuclidSq(nx, ny, gx, gy), nextPos));
+						HeapPush((tentativeG + DistanceToTile(nx, ny, gx, gy) * minStepCost, EuclidSq(nx, ny, gx, gy), nextPos, tentativeG));
 					}
 				}
 			}

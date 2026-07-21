@@ -154,6 +154,18 @@ namespace CivOne
 			catch (Exception ex) { Runtime?.Log($"[Autopilot] dismiss failed on {top.GetType().Name}: {ex.Message}"); }
 		}
 
+		// True when the queue is grinding through work that has no animation worth pacing
+		// to 60 Hz: an AI player's turn, or a human turn under autopilot. Gating on
+		// GameTask.Fast means the moment a non-Fast task fronts the queue — an advisor
+		// message, a story screen, the human's own interactive turn — fast-forward stops
+		// and normal 60 Hz pacing resumes, so nothing that needs the player's eyes gets
+		// blurred past.
+		private bool FastForwarding =>
+			GameTask.Any() && GameTask.Fast && Game.Started &&
+			(Settings.Autopilot || !Game.Instance.CurrentPlayer.IsHuman);
+
+		private const long FAST_BUDGET_MS = 8;
+
 		private void OnUpdate(object sender, UpdateEventArgs args)
 		{
 			while (_gameTick < TickWatch)
@@ -162,6 +174,22 @@ namespace CivOne
 				AutopilotTick();
 				if (!Update()) continue;
 				args.HasUpdate = true;
+			}
+
+			// Fast-forward AI / autopilot turns. The TickWatch loop above caps task-queue
+			// drain at 60 steps/sec to keep animations smooth — but an AI turn has no
+			// animation to keep smooth (enemy moves are skipped or unwatched), so that cap
+			// is pure waiting. Drain extra Fast tasks under a strict ~8 ms budget: the
+			// between-turns pause shrinks by roughly an order of magnitude while we still
+			// return to the SDL loop every frame, so the OS event queue never starves (no
+			// spinning wheel). A SINGLE task step that itself blocks for seconds (e.g. the
+			// once-per-round global tick) is not helped by this — the instrumentation in
+			// Game.EndTurn is there to find that case.
+			if (FastForwarding)
+			{
+				Stopwatch budget = Stopwatch.StartNew();
+				while (FastForwarding && budget.ElapsedMilliseconds < FAST_BUDGET_MS)
+					if (Update()) args.HasUpdate = true;
 			}
 		}
 

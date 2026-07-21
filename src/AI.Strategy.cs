@@ -1156,6 +1156,14 @@ namespace CivOne
 				}
 
 				Player human = Human;
+				// FirstStepReachable runs a full A* per candidate, and a same-continent target
+				// with no real path (imperfect ContinentId, a chokepoint held by a peaceful
+				// neighbour) makes that A* explore the whole landmass before failing. Probing
+				// EVERY foreign city this way was the ~5s late-game diplomat spike (a boxed-in
+				// diplomat pathfound to all of them, finding none reachable). Cap the probes at
+				// the nearest few — a diplomat only wants a near target, and if the closest
+				// handful are all unreachable, farther ones on the same blocked landmass are too.
+				const int MaxProbes = 4;
 				City target =
 					// Espionage priority: the human's cities — but NEVER our own. When the
 					// human is on Autopilot the acting Player IS the human, so without the
@@ -1166,11 +1174,13 @@ namespace CivOne
 					Game.GetCities()
 					    .Where(c => c.Player == human && c.Player != Player && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+					    .Take(MaxProbes)
 					    .FirstOrDefault(FirstStepReachable)
 					??
 					Game.GetCities()
 					    .Where(c => c.Player != Player && Player.Visible(c.X, c.Y) && sameContinent(c))
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+					    .Take(MaxProbes)
 					    .FirstOrDefault(FirstStepReachable);
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				else unit.SkipTurn();

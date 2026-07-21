@@ -54,7 +54,7 @@ namespace CivOne
 				BarbarianMove(unit);
 				return;
 			}
-			
+
 			if (unit is Settlers && Player.Civilization is Olvir)
 			{
 				ITile tile = unit.Tile;

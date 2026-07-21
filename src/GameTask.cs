@@ -27,25 +27,28 @@ namespace CivOne
 
 		private static void NextTask()
 		{
-			_currentTask = _tasks[0];
+			// Snapshot the task: Run()/Step() can end the task synchronously (EndTask →
+			// Finish nulls _currentTask), so referencing _currentTask afterwards in the
+			// catch block would throw a second, masking NullReferenceException.
+			GameTask task = _currentTask = _tasks[0];
 			TaskEventArgs eventArgs = new TaskEventArgs();
-			Started?.Invoke(_currentTask, eventArgs);
+			Started?.Invoke(task, eventArgs);
 			if (eventArgs.Aborted)
 			{
-				_currentTask.EndTask();
+				task.EndTask();
 				return;
 			}
 			try
 			{
-				_currentTask.Run();
+				task.Run();
 			}
 			catch (Exception ex)
 			{
-				Log($"[GameTask] Unhandled exception in {_currentTask.GetType().Name}.Run(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+				Log($"[GameTask] Unhandled exception in {task.GetType().Name}.Run(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
 				// Don't call EndTask() here — it would re-fire Done and could throw again, escaping the catch.
 				// Just drop the task; Update() will call NextTask() on the next tick.
-				_tasks.Remove(_currentTask);
-				_currentTask = null;
+				_tasks.Remove(task);
+				if (_currentTask == task) _currentTask = null;
 			}
 		}
 
@@ -53,17 +56,20 @@ namespace CivOne
 		{
 			if (_currentTask is not null)
 			{
+				// Snapshot: Step() can end the task synchronously (EndTask → Finish nulls
+				// _currentTask), so the catch below must not re-read _currentTask.
+				GameTask task = _currentTask;
 				try
 				{
-					return _currentTask.Step();
+					return task.Step();
 				}
 				catch (Exception ex)
 				{
-					Log($"[GameTask] Unhandled exception in {_currentTask.GetType().Name}.Step(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+					Log($"[GameTask] Unhandled exception in {task.GetType().Name}.Step(): {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
 					// Don't call EndTask() here — it would re-fire Done and could throw again, escaping the catch.
 					// Just drop the task; the next Update() call will advance to the next queued task.
-					_tasks.Remove(_currentTask);
-					_currentTask = null;
+					_tasks.Remove(task);
+					if (_currentTask == task) _currentTask = null;
 					return true;
 				}
 			}
