@@ -1472,12 +1472,15 @@ namespace CivOne
 			{
 				// A city founded on Forest/Jungle/Swamp sits on a 1-food centre tile (the
 				// city-centre floor only guarantees 1 food, and AddCity's irrigation below
-				// skips these terrains). A human clears the forest first; the AI doesn't know
-				// to, so its towns starve. Clear it for non-human civs — same Forest/Jungle/
-				// Swamp → Grassland conversion the Settler's "change to plains" action performs.
+				// skips these terrains), so its town starves. Convert the wet terrains —
+				// Jungle and Swamp — to Grassland for EVERY founder (player and AI): nobody
+				// wants a city on a swamp, and this saves the human the manual clear too.
+				// Forest is still converted for the AI only (it doesn't know to clear first),
+				// but left as-is for a human who may found on forest deliberately.
 				// Olvir excluded: refugees have their own jungle-tolerant placement (SpawnOlvir).
-				if (!player.IsHuman && !(player.Civilization is Civilizations.Olvir)
-				    && (Map[x, y] is Forest || Map[x, y] is Jungle || Map[x, y] is Swamp))
+				bool wetTerrain = Map[x, y] is Jungle || Map[x, y] is Swamp;
+				if (!(player.Civilization is Civilizations.Olvir)
+				    && (wetTerrain || (!player.IsHuman && Map[x, y] is Forest)))
 				{
 					Map[x, y].Irrigation = false;
 					Map[x, y].Mine = false;
