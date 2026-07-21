@@ -86,6 +86,22 @@ namespace CivOne.Units
 		public bool Moving => (Movement is not null);
 		public MoveUnit? Movement { get; protected set; }
 
+		// Whether this unit's move should be animated (slid over 16 ticks) rather than
+		// completed instantly. Mirror of the GameMap draw gate: only spend animation time
+		// on a sprite that will actually be drawn. Skipping undrawn AI moves is the single
+		// biggest cut to the late-game between-turns pause.
+		private bool MoveIsVisible
+		{
+			get
+			{
+				if (Human is null) return false;
+				if (Human == Owner) return true;
+				if (!Game.EnemyMoves) return false;
+				if (!Settings.RevealWorld && !Human.Visible(X, Y)) return false;
+				return true;
+			}
+		}
+
 		private int AttackStrength(IUnit defendUnit)
 		{
 			// Step 1: Determine the nominal attack value of the attacking unit and multiply it by 8.
@@ -260,7 +276,7 @@ namespace CivOne.Units
 				return false;
 			}
 
-			Movement = new MoveUnit(relX, relY);
+			Movement = new MoveUnit(relX, relY, MoveIsVisible);
 
 			ITile moveTarget = Map[X, Y][relX, relY];
 			if (moveTarget is null) return false;
@@ -590,7 +606,7 @@ namespace CivOne.Units
 		protected void MovementTo(int relX, int relY)
 		{
 			MovementStart(Tile);
-			Movement = new MoveUnit(relX, relY);
+			Movement = new MoveUnit(relX, relY, MoveIsVisible);
 			Movement!.Done += MoveEnd;
 			GameTask.Insert(Movement!);
 		}
