@@ -34,7 +34,7 @@ namespace CivOne.Wonders
 		public TheInternet() : base(40)
 		{
 			Name = "The Internet";
-			RequiredTech = new Computers();
+			RequiredTech = new MemeticProtocols();
 			ObsoleteTech = null;
 			SetSmallIcon(1, 5);
 			Type = Wonder.TheInternet;
