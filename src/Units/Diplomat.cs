@@ -124,7 +124,10 @@ namespace CivOne.Units
 							if (artPath is not null)
 								GameTask.Insert(Show.Screen(new CivOne.Screens.ImprovementArtScreen(artPath, "Incite Rebellion", target.Name)));
 						}
-						if (target.Player == Human || Player == Human)
+						// Use oldOwnerPlayer, NOT target.Player: target.Owner was reassigned to the
+						// inciter above, so target.Player == Human is always false for the victim and
+						// the human never heard their own city was incited away.
+						if (oldOwnerPlayer == Human || Player == Human)
 							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} incite", $"revolt in {target.Name}!"));
 						return true;
 					}
