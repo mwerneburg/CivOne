@@ -532,13 +532,52 @@ namespace CivOne
 		}
 
 		private static Palette _palette256 = null!;
+
+		// Drop the cached Free-mode palette so the next access re-reads palette.txt.
+		public static void ReloadPalette256() => _palette256 = null!;
+
+		// Free-mode 256-colour palette: prefer palette.txt in the working directory
+		// (editable, matches asset-mode rendering), else the built-in procedural ramp.
 		public static Palette GetPalette256
 		{
 			get
 			{
 				if (_palette256 is null)
-				{
-					_palette256 = new Palette(256);
+					_palette256 = LoadPaletteFile() ?? BuildDefaultPalette256();
+				return _palette256;
+			}
+		}
+
+		private static readonly string PaletteFilePath =
+			Path.Combine(Environment.CurrentDirectory, "palette.txt");
+
+		private static Palette? LoadPaletteFile()
+		{
+			if (!File.Exists(PaletteFilePath)) return null;
+
+			Palette p = new Palette(256);
+			bool any = false;
+			foreach (string raw in File.ReadAllLines(PaletteFilePath))
+			{
+				string line = raw.Trim();
+				int hash = line.IndexOf('#');
+				if (hash >= 0) line = line.Substring(0, hash).Trim();
+				if (line.Length == 0) continue;
+
+				string[] tok = line.Split((char[])[' ', '\t', ','], StringSplitOptions.RemoveEmptyEntries);
+				if (tok.Length < 4) continue;
+				if (!int.TryParse(tok[0], out int i) || i < 0 || i > 255) continue;
+				if (!int.TryParse(tok[1], out int r) || !int.TryParse(tok[2], out int g) || !int.TryParse(tok[3], out int b)) continue;
+				p[i] = new Colour(r, g, b);
+				any = true;
+			}
+			return any ? p : null;
+		}
+
+		private static Palette BuildDefaultPalette256()
+		{
+			Palette _palette256 = new Palette(256);
+			{
 					for (int i = 0; i < 256; i++)
 					{
 						if (i >= 16 && i < 32)
@@ -587,7 +626,6 @@ namespace CivOne
 					}
 				}
 				return _palette256;
-			}
 		}
 
 		public static bool AllowSaveGame => Map.Instance.Ready;

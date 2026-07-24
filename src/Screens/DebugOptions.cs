@@ -30,6 +30,7 @@ namespace CivOne.Screens
 		private void MenuReloadFreeTiles(object sender, EventArgs args)
 		{
 			Free.Instance.ReloadTiles();
+			Common.ReloadPalette256();
 			MapTile.ReloadTileCaches();
 			Destroy();
 		}
