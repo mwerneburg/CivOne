@@ -1336,6 +1336,67 @@ namespace CivOne.Graphics
 			);
 		}
 
+		// Procedural nuclear blast frame (44×44) for Free mode — an expanding
+		// fireball: glow core, amber body, alert-red rim. frame 0→27 grows the radius.
+		public Bytemap NukeBlast(int frame)
+		{
+			Bytemap o = new Bytemap(44, 44);
+			int cx = 22, cy = 22;
+			int r = System.Math.Min(22, 4 + frame);
+			for (int y = 0; y < 44; y++)
+			for (int x = 0; x < 44; x++)
+			{
+				double d = System.Math.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+				if (d > r) continue;
+				o[x, y] = d < r * 0.4 ? (byte)13 : d < r * 0.7 ? (byte)12 : (byte)16;
+			}
+			return o;
+		}
+
+		// Full-screen themed backdrop for Free mode — a dark cassette panel with a
+		// border, standing in for the original set-piece art (Conquest/GameOver/…).
+		public Bytemap Backdrop(int width, int height)
+		{
+			const byte fill = 2, edge = 5;   // BG1 panel fill / BORDER
+			Bytemap o = new Bytemap(width, height);
+			o.FillRectangle(0, 0, width, height, fill);
+			o.FillRectangle(0, 0, width, 2, edge)
+				.FillRectangle(0, height - 2, width, 2, edge)
+				.FillRectangle(0, 0, 2, height, edge)
+				.FillRectangle(width - 2, 0, 2, height, edge);
+			return o;
+		}
+
+		// Civilopedia terrain illustration for Free mode: the terrain's own Free
+		// texture tiled across a width×height panel (base field + overlay).
+		public Bytemap TerrainThumbnail(Terrain type, int width, int height)
+		{
+			Bytemap baseField = (type == Terrain.Ocean) ? OceanBase : LandBase;
+			Bytemap? overlay = type switch
+			{
+				Terrain.Arctic => Arctic,
+				Terrain.Tundra => Tundra,
+				Terrain.Desert => Desert,
+				Terrain.Forest => Forest,
+				Terrain.Mountains => Mountains,
+				Terrain.Jungle => Jungle,
+				Terrain.Swamp => Swamp,
+				Terrain.Grassland1 or Terrain.Grassland2 => GrasslandTexture(),
+				Terrain.Plains => PlainsTexture(),
+				Terrain.Hills => HillTexture(Direction.None),
+				_ => null,   // Ocean / River: base field only
+			};
+
+			Bytemap o = new Bytemap(width, height);
+			for (int y = 0; y < height; y += 16)
+			for (int x = 0; x < width; x += 16)
+			{
+				o.AddLayer(baseField, x, y);
+				if (overlay is not null) o.AddLayer(overlay, x, y);
+			}
+			return o;
+		}
+
 		// Generic building icon placeholder (50×50) for Free mode — a stylised
 		// structure with a peaked roof, door and lit windows. One glyph for every
 		// improvement; the building name accompanies it in the UI.

@@ -28,6 +28,9 @@ namespace CivOne.Tiles
 				if (terrainId == 12) terrainId = 2;
 				if (_icons[terrainId] is null)
 				{
+					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("ICONPGT1") || !Resources.Exists("ICONPGT2"))
+						_icons[terrainId] = new Picture(Free.Instance.TerrainThumbnail(Type, 108, 86), Common.GetPalette256);
+					else
 					switch (Type)
 					{
 						case Terrain.Arctic:

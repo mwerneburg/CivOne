@@ -159,8 +159,10 @@ namespace CivOne.Screens
 		
 		public Conquest()
 		{
-			_background = Resources["SLAM1"];
-			
+			_background = (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SLAM1"))
+				? new Picture(Free.Instance.Backdrop(320, 200), Common.GetPalette256)
+				: Resources["SLAM1"];
+
 			Palette = _background.Palette;
 			
 			this.AddLayer(_background);

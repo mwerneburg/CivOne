@@ -38,8 +38,11 @@ namespace CivOne.Screens
 		
 		public Demo() : base(MouseCursor.Pointer)
 		{
-			Picture background = Resources["BIRTH1"];
-			Picture logo = Resources["LOGO"];
+			bool free = RuntimeHandler.Runtime.Settings.Free;
+			Picture background = (free || !Resources.Exists("BIRTH1"))
+				? new Picture(Free.Instance.Backdrop(320, 200), Common.GetPalette256)
+				: Resources["BIRTH1"];
+			Picture? logo = (free || !Resources.Exists("LOGO")) ? null : Resources["LOGO"];
 			switch (Settings.GraphicsMode)
 			{
 				case GraphicsMode.Graphics256:
@@ -50,10 +53,10 @@ namespace CivOne.Screens
 					break;
 			}
 			
-			Palette = logo.Palette;
-			this.AddLayer(background, 0, 0)
-				.AddLayer(logo, 0, 0)
-				.DrawText("One more turn...", 3, _textColours[0], 160, 160, TextAlign.Center)
+			Palette = (logo ?? background).Palette;
+			this.AddLayer(background, 0, 0);
+			if (logo is not null) this.AddLayer(logo, 0, 0);
+			this.DrawText("One more turn...", 3, _textColours[0], 160, 160, TextAlign.Center)
 				.DrawText("One more turn...", 3, _textColours[2], 160, 162, TextAlign.Center)
 				.DrawText("One more turn...", 3, _textColours[1], 160, 161, TextAlign.Center);
 		}
