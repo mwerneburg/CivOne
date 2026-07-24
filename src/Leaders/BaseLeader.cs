@@ -93,7 +93,8 @@ namespace CivOne.Leaders
 				}
 			}
 
-			if (_picFile is null) return new Picture(139, 133, Common.GetPalette256);
+			if (_picFile is null || RuntimeHandler.Runtime.Settings.Free || !Resources.Exists(_picFile))
+				return new Picture(Free.Instance.Portrait(139, 133), Common.GetPalette256);
 
 			if (_picture is null)
 			{
@@ -214,6 +215,11 @@ namespace CivOne.Leaders
 				int id;
 				if (int.TryParse(picFile.Substring(4), out id) && id >= 0 && id <= 13)
 				{
+					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SLAM2"))
+					{
+						_portraitSmall = new Picture(Free.Instance.Portrait(27, 33), Common.GetPalette256);
+						return;
+					}
 					int col = (id % 7);
 					int row = (id - col) / 7;
 					_portraitSmall = Resources["SLAM2"][(28 * col) + 1, 34 * row, 27, 33];

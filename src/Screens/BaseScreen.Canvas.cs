@@ -77,6 +77,17 @@ namespace CivOne.Screens
 
 		protected void DrawBorder(int border)
 		{
+			if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP299"))
+			{
+				// Procedural cassette frame: bright top/left edge, dark bottom/right.
+				const byte hi = 7, lo = 5;   // INK_MID / BORDER
+				this.FillRectangle(0, 0, Width, 1, hi)
+					.FillRectangle(0, 0, 1, Height, hi)
+					.FillRectangle(0, Height - 1, Width, 1, lo)
+					.FillRectangle(Width - 1, 0, 1, Height, lo);
+				return;
+			}
+
 			border = (border % 2);
 			Picture[] borders = new Picture[8];
 			int index = 0;

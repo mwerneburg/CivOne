@@ -82,14 +82,21 @@ namespace CivOne.Buildings
 		{
 			if ((grassTile && _iconsCacheGrass[col, row] is null) || (!grassTile && _iconsCache[col, row] is null))
 			{
-				Icon = new Picture(50, 50, Resources["CITYPIX2"].Palette);
-				
-				if (grassTile)
-					Icon.AddLayer(GrassIcon);
-				
-				Icon.AddLayer(Resources["CITYPIX2"][col * 50, row * 50, 50, 50]
-								.ColourReplace(1, 0));
-				
+				if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("CITYPIX2"))
+				{
+					Icon = new Picture(Free.Instance.BuildingIcon(), Common.GetPalette256);
+				}
+				else
+				{
+					Icon = new Picture(50, 50, Resources["CITYPIX2"].Palette);
+
+					if (grassTile)
+						Icon.AddLayer(GrassIcon);
+
+					Icon.AddLayer(Resources["CITYPIX2"][col * 50, row * 50, 50, 50]
+									.ColourReplace(1, 0));
+				}
+
 				if (grassTile) _iconsCacheGrass[col, row] = Icon;
 				else _iconsCache[col, row] = Icon;
 			}
@@ -98,7 +105,13 @@ namespace CivOne.Buildings
 		
 		protected void SetSmallIcon(int col, int row)
 		{
-			SmallIcon = Resources[GFX256 ? "SP299" : "SPRITES"][160 + (19 * col), 50 + (10 * row), 20, 10]
+			string picFile = GFX256 ? "SP299" : "SPRITES";
+			if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists(picFile))
+			{
+				SmallIcon = new Picture(Free.Instance.BuildingIconSmall(), Common.GetPalette256);
+				return;
+			}
+			SmallIcon = Resources[picFile][160 + (19 * col), 50 + (10 * row), 20, 10]
 				.ColourReplace(0, 5)
 				.FillRectangle(0, 0, 1, 10, 0)
 				.FillRectangle(19, 0, 1, 10, 0);

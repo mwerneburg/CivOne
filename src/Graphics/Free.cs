@@ -1275,6 +1275,114 @@ namespace CivOne.Graphics
 			}
 		}
 
+		// Unhappy citizen mood icon — red frowning face (ALERT/16 on a dark outline).
+		public Bytemap Unhappy
+		{
+			get
+			{
+				return new Bytemap(8, 8).FromByteArray(
+					0,  5,  5,  5,  5,  5,  5,  0,
+					5, 16, 16, 16, 16, 16, 16,  5,
+					5, 16,  1, 16, 16,  1, 16,  5,
+					5, 16, 16, 16, 16, 16, 16,  5,
+					5, 16, 16,  1,  1, 16, 16,  5,
+					5, 16,  1, 16, 16,  1, 16,  5,
+					0,  5, 16, 16, 16, 16,  5,  0,
+					0,  0,  5,  5,  5,  5,  0,  0
+				);
+			}
+		}
+
+		// City-population citizen — a plain figure (8×16). The body pixels are index
+		// 15 so Icons can recolour them per citizen type via ColourReplace.
+		public Bytemap Citizen
+		{
+			get
+			{
+				return new Bytemap(8, 16).FromByteArray(
+					0,  0,  0,  5,  5,  0,  0,  0,
+					0,  0,  5,  7,  7,  5,  0,  0,
+					0,  0,  5,  7,  7,  5,  0,  0,
+					0,  0,  0,  5,  5,  0,  0,  0,
+					0,  0,  5, 15, 15,  5,  0,  0,
+					0,  5, 15, 15, 15, 15,  5,  0,
+					5, 15, 15, 15, 15, 15, 15,  5,
+					5, 15, 15, 15, 15, 15, 15,  5,
+					5, 15, 15, 15, 15, 15, 15,  5,
+					0,  5, 15, 15, 15, 15,  5,  0,
+					0,  0,  5, 15, 15,  5,  0,  0,
+					0,  0,  5, 15, 15,  5,  0,  0,
+					0,  0,  5, 15, 15,  5,  0,  0,
+					0,  0,  5,  5,  5,  5,  0,  0,
+					0,  0,  5,  0,  0,  5,  0,  0,
+					0,  0,  5,  0,  0,  5,  0,  0
+				);
+			}
+		}
+
+		// Research "lamp" fill indicator; brightness climbs with stage 0→3.
+		public Bytemap Lamp(int stage)
+		{
+			byte glow = stage switch { 0 => (byte)9, 1 => (byte)11, 2 => (byte)12, _ => (byte)13 };
+			return new Bytemap(8, 8).FromByteArray(
+				0,  0,  5,  5,  5,  0,  0,  0,
+				0,  5, glow, glow, glow,  5,  0,  0,
+				5, glow, glow, glow, glow, glow,  5,  0,
+				5, glow, glow, glow, glow, glow,  5,  0,
+				0,  5, glow, glow, glow,  5,  0,  0,
+				0,  0,  5, glow,  5,  0,  0,  0,
+				0,  0,  5,  5,  5,  0,  0,  0,
+				0,  0,  0,  5,  0,  0,  0,  0
+			);
+		}
+
+		// Generic building icon placeholder (50×50) for Free mode — a stylised
+		// structure with a peaked roof, door and lit windows. One glyph for every
+		// improvement; the building name accompanies it in the UI.
+		public Bytemap BuildingIcon()
+		{
+			const byte wall = 7, roof = 5, door = 1, lit = 12, ground = 6;
+			Bytemap o = new Bytemap(50, 50);
+			o.FillRectangle(4, 44, 42, 3, ground);   // ground line
+			o.FillRectangle(10, 18, 30, 26, wall);   // walls
+			o.FillRectangle(8, 13, 34, 5, roof);     // eaves
+			o.FillRectangle(15, 8, 20, 5, roof);     // roof peak
+			o.FillRectangle(21, 33, 8, 11, door);    // doorway
+			foreach (int wx in (int[])[13, 31])
+			foreach (int wy in (int[])[22, 33])
+				o.FillRectangle(wx, wy, 6, 6, lit);   // lit windows
+			return o;
+		}
+
+		// Small building icon placeholder (20×10) — a two-tone rooflet.
+		public Bytemap BuildingIconSmall()
+		{
+			const byte wall = 7, roof = 5;
+			Bytemap o = new Bytemap(20, 10);
+			o.FillRectangle(2, 4, 16, 5, wall);
+			o.FillRectangle(1, 2, 18, 2, roof);
+			o.FillRectangle(6, 0, 8, 2, roof);
+			return o;
+		}
+
+		// Leader portrait placeholder — a bust silhouette on a panel, sized to fit.
+		public Bytemap Portrait(int width, int height)
+		{
+			const byte panel = 3, edge = 5, body = 7, head = 8;
+			Bytemap o = new Bytemap(width, height);
+			o.FillRectangle(0, 0, width, height, panel);
+			o.FillRectangle(0, 0, width, 1, edge)
+				.FillRectangle(0, height - 1, width, 1, edge)
+				.FillRectangle(0, 0, 1, height, edge)
+				.FillRectangle(width - 1, 0, 1, height, edge);
+			int cx = width / 2;
+			int hr = System.Math.Max(3, width / 5);          // head radius-ish
+			o.FillRectangle(cx - hr, height / 6, hr * 2, hr * 2, head);          // head
+			int sw = (int)(width * 0.7);                       // shoulders
+			o.FillRectangle(cx - sw / 2, height / 6 + hr * 2 + 2, sw, height, body);
+			return o;
+		}
+
 		public Bytemap Difficulties
 		{
 			get
