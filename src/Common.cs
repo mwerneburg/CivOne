@@ -571,6 +571,9 @@ namespace CivOne
 				p[i] = new Colour(r, g, b);
 				any = true;
 			}
+			// Index 0 is always the transparency key (matches PicFile). Without this
+			// the cursor and other index-0 backgrounds render as opaque black boxes.
+			p[0] = Colour.Transparent;
 			return any ? p : null;
 		}
 

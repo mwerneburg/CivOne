@@ -19,7 +19,6 @@ namespace CivOne
 
 		public bool Demo { get; set; }
 		public bool Setup { get; set; }
-		public bool DataCheck { get; set; }
 		public bool Free
 		{
 			get
@@ -30,7 +29,6 @@ namespace CivOne
 			{
 				if (_free = value)
 				{
-					DataCheck = false;
 					ShowCredits = false;
 					ShowIntro = false;
 				}
@@ -72,7 +70,6 @@ namespace CivOne
 
 		public RuntimeSettings()
 		{
-			DataCheck = true;
 			ShowCredits = false;
 			ShowIntro = true;
 			Free = false;
