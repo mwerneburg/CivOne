@@ -120,13 +120,9 @@ namespace CivOne
 		
 		internal static IEnumerable<ICivilopedia> GetCivilopediaAdvances() => GetTypes<IAdvance>();
 		
-		internal static IEnumerable<ICivilopedia> GetCivilopediaCityImprovements()
-		{
-			foreach (ICivilopedia civilopedia in GetTypes<IBuilding>())
-				yield return civilopedia;
-			foreach (ICivilopedia civilopedia in GetTypes<IWonder>())
-				yield return civilopedia;
-		}
+		internal static IEnumerable<ICivilopedia> GetCivilopediaCityImprovements() => GetTypes<IBuilding>();
+
+		internal static IEnumerable<ICivilopedia> GetCivilopediaWonders() => GetTypes<IWonder>();
 		
 		internal static IEnumerable<ICivilopedia> GetCivilopediaUnits() => GetTypes<IUnit>();
 		

@@ -147,6 +147,7 @@ namespace CivOne.Screens
 			_gameMenu.Items.Add("Complete").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Complete)));
 			_gameMenu.Items.Add("Civilization Advances").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Advances)));
 			_gameMenu.Items.Add("City Improvements").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Improvements)));
+			_gameMenu.Items.Add("Wonders of the World").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Wonders)));
 			_gameMenu.Items.Add("Military Units").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Units)));
 			_gameMenu.Items.Add("Terrain Types").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.TerrainType)));
 			_gameMenu.Items.Add("Miscellaneous").OnSelect((s, a) => Common.AddScreen(new Civilopedia(Civilopedia.Misc)));

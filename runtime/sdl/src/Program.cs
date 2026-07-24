@@ -77,7 +77,7 @@ Try 'civone-sdl --help' for more information.
 					case "setup": settings.Setup = true; continue;
 					case "mapgen-preview": settings["mapgen-preview"] = true; continue;
 					case "free": settings.Free = true; continue;
-					case "no-data-check": settings.DataCheck = false; continue;
+					case "no-data-check": continue; // obsolete: data-files check removed; now always the default
 					case "profile":
 						if (args.GetUpperBound(0) == i)
 						{
