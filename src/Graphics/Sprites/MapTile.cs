@@ -18,7 +18,6 @@ namespace CivOne.Graphics.Sprites
 {
 	public static class MapTile
 	{
-		private static Direction[] Clockwise => [North, NorthEast, East, SouthEast, South, SouthWest, West, NorthWest];
 		private static Direction[] Cross => [North, East, South, West];
 		private static Free Free => Free.Instance;
 		private static Resources Resources => Resources.Instance;
@@ -26,15 +25,7 @@ namespace CivOne.Graphics.Sprites
 
 		private static bool GFX256 => (Settings.GraphicsMode == GraphicsMode.Graphics256);
 
-		private static Bytemap GetLandBase()
-		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return Free.LandBase;
-			if (!GFX256)
-				return Resources[picFile].Bitmap[0, 80, 16, 16];
-			return Resources[picFile].Bitmap[0, 64, 16, 16];
-		}
+		private static Bytemap GetLandBase() => Free.LandBase;
 
 		// Always uses the free ocean tile. The original resource lookup was
 		// Resources["TER257"/"SPRITES"].Bitmap[0, 160, 16, 16].
@@ -141,13 +132,7 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 		
-		private static Bytemap? GetRiverLayer(Direction directions)
-		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return Free.River(directions);
-			return Resources[picFile].Bitmap[(int)directions * 16, 80, 16, 16];
-		}
+		private static Bytemap? GetRiverLayer(Direction directions) => Free.River(directions);
 
 		private static Bytemap? GetTileLayer<T>(Direction directions) where T : ITile, new()
 		{
@@ -167,6 +152,10 @@ namespace CivOne.Graphics.Sprites
 				return Free.Jungle;
 			if (typeof(T) == typeof(Desert))
 				return Free.Desert;
+			if (typeof(T) == typeof(Arctic))
+				return Free.Arctic;
+			if (typeof(T) == typeof(Tundra))
+				return Free.Tundra;
 			int terrainId = (int)new T().Type;
 			string picFile = (GFX256 ? "TER257" : "SPRITES");
 			if (!Resources.Exists(picFile))
@@ -216,11 +205,7 @@ namespace CivOne.Graphics.Sprites
 				return Free.Special(Terrain.Tundra);
 			if (typeof(T) == typeof(Grassland))
 				return Free.HayBale();
-			int terrainId = (int)new T().Type;
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return Free.Special(new T().Type);
-			return Resources[picFile].Bitmap[terrainId * 16, 112, 16, 16].ColourReplace(3, 0);
+			return Free.Special(new T().Type);
 		}
 
 		private static Bytemap GetFog(Direction directions)
@@ -228,21 +213,10 @@ namespace CivOne.Graphics.Sprites
 			Bytemap output = new Bytemap(16, 16);
 			if (directions == None) return output;
 
-			if (!Resources.Exists("SP257"))
+			foreach (Direction direction in Cross)
 			{
-				foreach (Direction direction in Cross)
-				{
-					if (((int)directions & (int)direction) == 0) continue;
-					output.AddLayer(Free.Instance.Fog(direction));
-				}
-			}
-			else
-			{
-				for (int i = 0; i < Cross.Length; i++)
-				{
-					if (((int)directions & (int)(Cross[i])) == 0) continue;
-					output.AddLayer(Resources["SP257"].Bitmap[80 + (i * 16), 128, 16, 16]);
-				}
+				if (((int)directions & (int)direction) == 0) continue;
+				output.AddLayer(Free.Instance.Fog(direction));
 			}
 
 			return output;
@@ -250,36 +224,83 @@ namespace CivOne.Graphics.Sprites
 
 		private static Bytemap GetRoad(Direction directions)
 		{
-			if (directions == Direction.None)
-			{
-				return new Bytemap(16, 16).FillRectangle(7, 7, 2, 2, 6);
-			}
-
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
+			// Dirt road: brown spokes toward each connected neighbour, hub at centre.
+			const byte ROAD = 6;  // INK_LOW brown
 			Bytemap output = new Bytemap(16, 16);
-			for (int i = 0; i < Clockwise.Length; i++)
-			{
-				if (((int)directions & (int)Clockwise[i]) == 0) continue;
-				output.AddLayer(Resources[picFile].Bitmap[(i * 16), 48, 16, 16]);
-			}
+
+			if (directions == Direction.None)
+				return output.FillRectangle(7, 7, 2, 2, ROAD);
+
+			DrawSpokes(output, directions, ROAD, 0, "road");
+			output.FillRectangle(7, 7, 2, 2, ROAD);
 			return output;
 		}
 
 		private static Bytemap GetRailRoad(Direction directions)
 		{
+			// Railroad: steel-grey spokes with dark crossties, hub at centre.
+			const byte RAIL = 20;  // light steel grey (greyscale ramp 16-31)
+			const byte TIE  = 5;   // BORDER — dark ties
+			Bytemap output = new Bytemap(16, 16);
+
 			if (directions == Direction.None)
+				return output.FillRectangle(7, 7, 2, 2, RAIL);
+
+			DrawSpokes(output, directions, RAIL, TIE, "rail");
+			output.FillRectangle(7, 7, 2, 2, RAIL);
+			return output;
+		}
+
+		private static readonly (Direction Dir, string Suffix)[] Spokes =
+		[
+			(North, "n"), (South, "s"), (East, "e"), (West, "w"),
+			(NorthEast, "ne"), (NorthWest, "nw"), (SouthEast, "se"), (SouthWest, "sw"),
+		];
+
+		// Draw one spoke per connected neighbour toward the tile edge. Each direction
+		// first looks for a "<prefix>_<suffix>" override in improvement_tiles.txt; absent
+		// that, it draws the procedural spoke (plus crossties for cardinal rail segments
+		// when tie != 0). Transport tubes keep their own glow variant.
+		private static void DrawSpokes(Bytemap output, Direction directions, byte colour, byte tie, string overridePrefix)
+		{
+			foreach (var (dir, suffix) in Spokes)
 			{
-				return new Bytemap(16, 16).FillRectangle(7, 7, 2, 2, 5);
+				if ((directions & dir) == 0) continue;
+
+				byte[]? over = Free.Improvement($"{overridePrefix}_{suffix}");
+				if (over is not null)
+				{
+					output.AddLayer(new Bytemap(16, 16).FromByteArray(over));
+					continue;
+				}
+
+				DrawSpoke(output, dir, colour, tie);
+			}
+		}
+
+		// Procedural single-direction spoke; ties (tie != 0) apply only to cardinals.
+		private static void DrawSpoke(Bytemap output, Direction dir, byte colour, byte tie)
+		{
+			switch (dir)
+			{
+				case North: output.FillRectangle(7, 0, 2, 7, colour); break;
+				case South: output.FillRectangle(7, 9, 2, 7, colour); break;
+				case East:  output.FillRectangle(9, 7, 7, 2, colour); break;
+				case West:  output.FillRectangle(0, 7, 7, 2, colour); break;
+				case NorthEast: DrawDiagonalLine(output, 15, 0, 9, 6, colour); return;
+				case NorthWest: DrawDiagonalLine(output, 0, 0, 6, 6, colour); return;
+				case SouthEast: DrawDiagonalLine(output, 15, 15, 9, 9, colour); return;
+				case SouthWest: DrawDiagonalLine(output, 0, 15, 6, 9, colour); return;
 			}
 
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			Bytemap output = new Bytemap(16, 16);
-			for (int i = 0; i < Clockwise.Length; i++)
+			if (tie == 0) return;
+			foreach (int t in (int[])[2, 4])
 			{
-				if (((int)directions & (int)Clockwise[i]) == 0) continue;
-				output.AddLayer(Resources[picFile].Bitmap[128 + (i * 16), 96, 16, 16]);
+				if (dir == North) output.FillRectangle(6, t, 4, 1, tie);
+				if (dir == South) output.FillRectangle(6, 15 - t, 4, 1, tie);
+				if (dir == West)  output.FillRectangle(t, 6, 1, 4, tie);
+				if (dir == East)  output.FillRectangle(15 - t, 6, 1, 4, tie);
 			}
-			return output;
 		}
 
 		// Procedurally generated transport-tube sprite (glowing conduit).
@@ -337,30 +358,55 @@ namespace CivOne.Graphics.Sprites
 			return Free.Irrigation();
 		}
 
-		private static Bytemap? GetMine()
+		// Mine: [mine] override from improvement_tiles.txt, else a procedural dark
+		// shaft cut into the rock with amber ore glints.
+		private static Bytemap GetMine()
 		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return null;
-			return Resources[picFile].Bitmap[80, 32, 16, 16];
+			byte[]? over = Free.Improvement("mine");
+			if (over is not null) return new Bytemap(16, 16).FromByteArray(over);
+
+			const byte rock = 5;   // BORDER dark rock
+			const byte shaft = 1;  // BG0 near-black opening
+			const byte ore = 12;   // PHOS amber glint
+			Bytemap output = new Bytemap(16, 16);
+			output.FillRectangle(5, 6, 7, 7, rock);
+			output.FillRectangle(6, 8, 5, 4, shaft);
+			output[7, 9] = ore; output[9, 10] = ore; output[10, 7] = ore;
+			return output;
 		}
 
-		private static Bytemap? GetFortress()
+		// Fortress: [fortress] override, else a procedural crenellated stone wall.
+		private static Bytemap GetFortress()
 		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return null;
-			return Resources[picFile].Bitmap[224, 112, 16, 16]
-				.ColourReplace(3, 0);
+			byte[]? over = Free.Improvement("fortress");
+			if (over is not null) return new Bytemap(16, 16).FromByteArray(over);
+
+			const byte wall = 7;  // INK_MID stone
+			Bytemap output = new Bytemap(16, 16);
+			// Crenellations along the top
+			foreach (int x in (int[])[2, 5, 8, 11]) output.FillRectangle(x, 1, 2, 2, wall);
+			output.FillRectangle(2, 3, 12, 2, wall);   // top band
+			output.FillRectangle(2, 3, 2, 11, wall);   // left
+			output.FillRectangle(12, 3, 2, 11, wall);  // right
+			output.FillRectangle(2, 12, 12, 2, wall);  // bottom
+			return output;
 		}
 
-		private static Bytemap? GetHut()
+		// Goody hut: [hut] override, else a procedural brown hut with peaked roof.
+		private static Bytemap GetHut()
 		{
-			string picFile = (GFX256 ? "SP257" : "SPRITES");
-			if (!Resources.Exists(picFile))
-				return null;
-			return Resources[picFile].Bitmap[240, 112, 16, 16]
-				.ColourReplace(3, 0);
+			byte[]? over = Free.Improvement("hut");
+			if (over is not null) return new Bytemap(16, 16).FromByteArray(over);
+
+			const byte wall = 6;  // INK_LOW brown
+			const byte roof = 5;  // BORDER darker brown
+			const byte door = 1;  // BG0 dark doorway
+			Bytemap output = new Bytemap(16, 16);
+			output.FillRectangle(4, 8, 8, 5, wall);   // body
+			output.FillRectangle(6, 5, 4, 2, roof);   // roof peak
+			output.FillRectangle(3, 7, 10, 1, roof);  // eaves
+			output.FillRectangle(7, 10, 2, 3, door);  // doorway
+			return output;
 		}
 
 		private static Bytemap GetPollution()
@@ -560,7 +606,7 @@ namespace CivOne.Graphics.Sprites
 				// rivers and lake shores
 				River, RiverOverlay, LakeShore,
 				// improvement overlays sourced from the tile files
-				Irrigation, Mine, Fortress, Hut, Pollution,
+				Irrigation, Mine, Fortress, Hut, Road, RailRoad, Pollution,
 				// special-resource sprites
 				Seals, Oasis, Game, Shield, Coal, Gems, Gold, Fish, Horses, Oil, TundraGame,
 			})

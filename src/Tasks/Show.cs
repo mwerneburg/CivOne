@@ -183,7 +183,9 @@ namespace CivOne.Tasks
 		public static Show DiplomatIncite(City enemyCity, Diplomat diplomat) => new Show(new DiplomatIncite(enemyCity, diplomat));
 
 		public static Show DiplomatSabotage(City enemyCity, Diplomat diplomat) => new Show(new DiplomatSabotage(enemyCity, diplomat));
-		
+
+		public static Show IncitedCityResponse(City city, Player inciter) => new Show(new IncitedCityResponse(city, inciter));
+
 		public static Show SelectAdvanceAfterCityCapture(Player player, IList<IAdvance> advances) => new Show(new SelectAdvanceAfterCityCapture(player, advances));
 
 		public static Show MeetKing(Player player, bool aiInitiated = false, List<AIDemand>? demands = null) => new Show(new King(player, aiInitiated, demands));

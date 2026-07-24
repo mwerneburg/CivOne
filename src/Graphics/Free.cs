@@ -500,10 +500,14 @@ namespace CivOne.Graphics
 		private static readonly string RiverOverlaysFilePath =
 			Path.Combine(Environment.CurrentDirectory, "river_overlays.txt");
 
+		private static readonly string ImprovementsFilePath =
+			Path.Combine(Environment.CurrentDirectory, "improvement_tiles.txt");
+
 		private Dictionary<string, byte[]> _tileOverrides = null!;
 		private Dictionary<string, byte[]> _shoreOverrides = null!;
 		private Dictionary<string, byte[]> _lakeShoreOverrides = null!;
 		private Dictionary<string, byte[]> _riverOverrides = null!;
+		private Dictionary<string, byte[]> _improvementOverrides = null!;
 
 		public void ReloadTiles()
 		{
@@ -511,6 +515,7 @@ namespace CivOne.Graphics
 			_shoreOverrides   = null!;
 			_lakeShoreOverrides = null!;
 			_riverOverrides   = null!;
+			_improvementOverrides = null!;
 			// Drop the cached base fields so they regenerate. MapTile.ReloadTileCaches
 			// disposes the sprites wrapping these very Bytemaps, so both must be nulled
 			// here or Free would hand back freed (disposed) memory — an AccessViolation
@@ -524,6 +529,16 @@ namespace CivOne.Graphics
 			if (_tileOverrides is null)
 				_tileOverrides = ParseTilesFile(TilesFilePath);
 			return _tileOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		// Per-name 16×16 override for map improvements (mine/fortress/hut and the
+		// directional road_*/rail_* spokes) from improvement_tiles.txt. Null when the
+		// file or section is absent, so MapTile falls back to its procedural draw.
+		public byte[]? Improvement(string name)
+		{
+			if (_improvementOverrides is null)
+				_improvementOverrides = ParseTilesFile(ImprovementsFilePath);
+			return _improvementOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
 
 		private byte[]? TryLoadShore(string name)

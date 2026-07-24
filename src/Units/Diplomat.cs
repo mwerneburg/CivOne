@@ -117,18 +117,30 @@ namespace CivOne.Units
 						Player.Gold       -= (short)inciteCost;
 						Game.DisbandUnit(this);
 						oldOwnerPlayer?.IsDestroyed();
+						bool humanVictim = oldOwnerPlayer == Human;
+
+						// Use oldOwnerPlayer / humanVictim, NOT target.Player: target.Owner was
+						// reassigned to the inciter above, so target.Player == Human is always
+						// false for the victim and the human never heard of the loss.
+						//
+						// Under an elected government (Republic/Democracy) the affronted Senate
+						// convenes an interactive response — recommend war, with the player free
+						// to do nothing, declare war, or (with an embassy) strong-arm the city
+						// back. Under authoritarian rule there is no Senate: just the spy report.
+						// Inserted FIRST so the rebellion art (inserted next, thus on top of the
+						// LIFO queue) plays before it.
+						if (humanVictim && Human.RepublicDemocratic && System.Linq.Enumerable.Contains(Game.GetCities(), target))
+							GameTask.Insert(Show.IncitedCityResponse(target, Player));
+						else if (humanVictim || Player == Human)
+							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} incite", $"revolt in {target.Name}!"));
+
 						// Human's city was incited away — show the rebellion art.
-						if (Game.Animations && Human == oldOwnerPlayer)
+						if (Game.Animations && humanVictim)
 						{
 							string? artPath = CivOne.Screens.ImprovementArtScreen.FindArtPath("Incite Rebellion", "event_art");
 							if (artPath is not null)
 								GameTask.Insert(Show.Screen(new CivOne.Screens.ImprovementArtScreen(artPath, "Incite Rebellion", target.Name)));
 						}
-						// Use oldOwnerPlayer, NOT target.Player: target.Owner was reassigned to the
-						// inciter above, so target.Player == Human is always false for the victim and
-						// the human never heard their own city was incited away.
-						if (oldOwnerPlayer == Human || Player == Human)
-							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} incite", $"revolt in {target.Name}!"));
 						return true;
 					}
 

@@ -209,8 +209,10 @@ namespace CivOne.Tiles
 			IBitmap output = new Picture(16, 16, Palette);
 
 			output.AddLayer(MapTile.TileBase(tile));
-			if (GFX256 && settings.Improvements && tile.DrawIrrigation()) output.AddLayer(MapTile.Irrigation);
 			output.AddLayer(MapTile.TileLayer(tile));
+			// Irrigation goes on top of the terrain texture: the desert texture is fully
+			// opaque, so drawing under it (the old order) hid the channels entirely.
+			if (GFX256 && settings.Improvements && tile.DrawIrrigation()) output.AddLayer(MapTile.Irrigation);
 			output.AddLayer(MapTile.TileSpecial(tile));
 			Bytemap? erosion = MapTile.LandCoastErosion(tile);
 			if (erosion is not null) output.AddLayer(erosion, dispose: true);
