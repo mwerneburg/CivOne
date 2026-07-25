@@ -11,6 +11,33 @@ namespace CivOne.Concepts
 {
 	internal class Pollution : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"POLLUTION appears on tiles worked",
+			"by crowded, smoky cities and from",
+			"heavy production.",
+			"",
+			"A polluted tile yields far less",
+			"food, shields, and trade until it",
+			"is cleaned.",
+			"",
+			"SETTLERS remove pollution.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Left unchecked, pollution raises",
+			"the risk of GLOBAL WARMING, which",
+			"turns lush terrain to desert and",
+			"swamp across the world.",
+			"",
+			"Cut it at the source with",
+			"RECYCLING CENTERS, MASS TRANSIT,",
+			"and clean power.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Pollution()
 		{
 			Name = "Pollution";

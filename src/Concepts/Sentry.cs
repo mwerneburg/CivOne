@@ -11,6 +11,34 @@ namespace CivOne.Concepts
 {
 	internal class Sentry : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"SENTRY sets a unit to watch and",
+			"wait.",
+			"",
+			"It skips its turns quietly until",
+			"an enemy comes into view, then",
+			"wakes for your orders.",
+			"",
+			"It saves you clicking through",
+			"idle scouts and pickets.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Use SENTRY for lookouts on hills,",
+			"ships patrolling a coast, or units",
+			"resting in a city.",
+			"",
+			"A sentry unit still defends",
+			"normally if attacked.",
+			"",
+			"To hold ground and gain a defence",
+			"bonus, use FORTIFY instead.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Sentry()
 		{
 			Name = "Sentry";

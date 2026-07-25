@@ -41,7 +41,7 @@ namespace CivOne.Screens.GamePlayPanels
 					.DrawText("ORDERS", 64, 1)
 					.DrawText("ADVISORS", 128, 1)
 					.DrawText("WORLD", 192, 1)
-					.DrawText("CIVILOPEDIA", 240, 1);
+					.DrawText("CIVIPEDIA", 240, 1);
 
 				_update = false;
 				return true;

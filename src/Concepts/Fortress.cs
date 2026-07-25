@@ -11,6 +11,35 @@ namespace CivOne.Concepts
 {
 	internal class Fortress : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"With CONSTRUCTION, SETTLERS can",
+			"build a FORTRESS on open land.",
+			"",
+			"Units defending in a fortress gain",
+			"a strong bonus against land",
+			"attack.",
+			"",
+			"A fortress guards borders, passes,",
+			"and river crossings.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Unlike open field, a fortress",
+			"spreads its defenders' losses: a",
+			"stack is not wiped out by a single",
+			"defeat.",
+			"",
+			"Place fortresses on hills or by",
+			"rivers to stack the bonuses.",
+			"",
+			"Enemies can PILLAGE an undefended",
+			"fortress away.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Fortress()
 		{
 			Name = "Fortress";

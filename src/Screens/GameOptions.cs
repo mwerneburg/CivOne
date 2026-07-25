@@ -137,7 +137,7 @@ namespace CivOne.Screens
 				("End of Turn",       () => Game.EndOfTurn,       () => { Game.EndOfTurn       = !Game.EndOfTurn;       }),
 				("Animations",        () => Game.Animations,      () => { Game.Animations      = !Game.Animations;      }),
 				("Enemy Moves",       () => Game.EnemyMoves,      () => { Game.EnemyMoves      = !Game.EnemyMoves;      }),
-				("Civilopedia Text",  () => Game.CivilopediaText, () => { Game.CivilopediaText = !Game.CivilopediaText; }),
+				("Civipedia Text",  () => Game.CivilopediaText, () => { Game.CivilopediaText = !Game.CivilopediaText; }),
 				("Circuses",          () => Game.Circuses,        () => { Game.Circuses        = !Game.Circuses;        }),
 				("Barricades",        () => Game.Barricades,      () => { Game.Barricades      = !Game.Barricades;      }),
 				("Cursor Coords",     () => Settings.CursorCoords, () => { Settings.CursorCoords = !Settings.CursorCoords; }),

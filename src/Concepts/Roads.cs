@@ -11,6 +11,34 @@ namespace CivOne.Concepts
 {
 	internal class Roads : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"SETTLERS build ROADS on land.",
+			"They cost nothing to maintain.",
+			"",
+			"Roads speed movement — a unit",
+			"spends only a third of a move to",
+			"enter a road tile.",
+			"",
+			"On grassland, plains and desert,",
+			"a road also adds +1 TRADE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Roads let your empire move troops",
+			"quickly to threatened borders and",
+			"carry commerce between cities.",
+			"",
+			"Build them along your frontiers",
+			"and between neighbouring cities",
+			"first.",
+			"",
+			"With RAILROAD, roads become rails.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Roads()
 		{
 			Name = "Roads";

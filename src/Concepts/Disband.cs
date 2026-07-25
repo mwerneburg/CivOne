@@ -11,6 +11,32 @@ namespace CivOne.Concepts
 {
 	internal class Disband : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"DISBAND removes a unit from the",
+			"game for good.",
+			"",
+			"Disband inside a city and part of",
+			"its build cost returns as shields",
+			"toward the city's production.",
+			"",
+			"Disband in the field and it is",
+			"simply gone.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Use DISBAND to cut the upkeep of",
+			"obsolete or surplus units, or to",
+			"pour an old unit's shields into a",
+			"new project.",
+			"",
+			"Retiring outdated defenders keeps",
+			"your treasury and production lean.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Disband()
 		{
 			Name = "Disband";

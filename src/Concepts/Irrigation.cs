@@ -11,6 +11,36 @@ namespace CivOne.Concepts
 {
 	internal class Irrigation : BaseConcept
 	{
+		private static readonly string[] _page1 =
+		{
+			"SETTLERS build IRRIGATION on land",
+			"beside fresh water — a RIVER,",
+			"LAKE, or an irrigated tile.",
+			"",
+			"Irrigation adds +1 FOOD to the",
+			"tile, feeding a larger city.",
+			"",
+			"Not on forest, mountains, or the",
+			"open ocean.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Food is a city's lifeblood: more",
+			"food means faster growth and more",
+			"citizens to work tiles.",
+			"",
+			"Chain irrigation inland from a",
+			"river or lake to green whole",
+			"provinces.",
+			"",
+			"DESPOTISM docks tiles giving over",
+			"2 food; change government to lift",
+			"the penalty.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Irrigation()
 		{
 			Name = "Irrigation";
