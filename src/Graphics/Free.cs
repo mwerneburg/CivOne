@@ -59,7 +59,11 @@ namespace CivOne.Graphics
 
 		private void DiffPanel(ref Bytemap bytemap, int left, int top, int width, int height)
 		{
-			byte[] colours = [42, 41, 47, 15];
+			// Cassette chrome: dark outline, amber trim, dark line, cream face.
+			// Was [42, 41, 47, 15] — indices that meant something in the original
+			// asset palette but land on terrain green/garnet in the Free palette,
+			// framing the difficulty screen in colours nothing else on screen uses.
+			byte[] colours = [CassetteTheme.BORDER, CassetteTheme.PHOS_DIM, CassetteTheme.BORDER, CassetteTheme.WHITE];
 			for (int i = 0; i < colours.Length; i++)
 			{
 				bytemap.FillRectangle(left + i, top + i, width - (i * 2), height - (i * 2), colours[i]);
@@ -503,11 +507,19 @@ namespace CivOne.Graphics
 		private static readonly string ImprovementsFilePath =
 			Path.Combine(Environment.CurrentDirectory, "improvement_tiles.txt");
 
+		private static readonly string DifficultiesFilePath =
+			Path.Combine(Environment.CurrentDirectory, "difficulty_tiles.txt");
+
+		// The five New Game difficulty panels are 47x41, not 16x16 like the map tiles.
+		public const int DifficultyWidth = 47;
+		public const int DifficultyHeight = 41;
+
 		private Dictionary<string, byte[]> _tileOverrides = null!;
 		private Dictionary<string, byte[]> _shoreOverrides = null!;
 		private Dictionary<string, byte[]> _lakeShoreOverrides = null!;
 		private Dictionary<string, byte[]> _riverOverrides = null!;
 		private Dictionary<string, byte[]> _improvementOverrides = null!;
+		private Dictionary<string, byte[]> _difficultyOverrides = null!;
 
 		public void ReloadTiles()
 		{
@@ -516,6 +528,7 @@ namespace CivOne.Graphics
 			_lakeShoreOverrides = null!;
 			_riverOverrides   = null!;
 			_improvementOverrides = null!;
+			_difficultyOverrides = null!;
 			// Drop the cached base fields so they regenerate. MapTile.ReloadTileCaches
 			// disposes the sprites wrapping these very Bytemaps, so both must be nulled
 			// here or Free would hand back freed (disposed) memory — an AccessViolation
@@ -539,6 +552,16 @@ namespace CivOne.Graphics
 			if (_improvementOverrides is null)
 				_improvementOverrides = ParseTilesFile(ImprovementsFilePath);
 			return _improvementOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		// Per-level 47x41 emblem for the New Game difficulty screen, from
+		// difficulty_tiles.txt. Null when the file or section is absent, so
+		// Difficulties falls back to the noise placeholder for that panel alone.
+		public byte[]? DifficultyEmblem(string name)
+		{
+			if (_difficultyOverrides is null)
+				_difficultyOverrides = ParseTilesFile(DifficultiesFilePath, DifficultyWidth * DifficultyHeight);
+			return _difficultyOverrides.TryGetValue(name, out byte[] data) ? data : null;
 		}
 
 		private byte[]? TryLoadShore(string name)
@@ -676,7 +699,7 @@ namespace CivOne.Graphics
 			return any ? output : null;
 		}
 
-		private Dictionary<string, byte[]> ParseTilesFile(string path)
+		private Dictionary<string, byte[]> ParseTilesFile(string path, int expected = 256)
 		{
 			var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 			if (!File.Exists(path))
@@ -692,7 +715,7 @@ namespace CivOne.Graphics
 
 				if (line.StartsWith("[") && line.EndsWith("]"))
 				{
-					if (currentSection is not null && pixels.Count == 256)
+					if (currentSection is not null && pixels.Count == expected)
 						result[currentSection] = pixels.ToArray();
 					currentSection = line.Substring(1, line.Length - 2);
 					pixels = new List<byte>();
@@ -707,7 +730,7 @@ namespace CivOne.Graphics
 					}
 				}
 			}
-			if (currentSection is not null && pixels.Count == 256)
+			if (currentSection is not null && pixels.Count == expected)
 				result[currentSection] = pixels.ToArray();
 
 			return result;
@@ -1460,12 +1483,17 @@ namespace CivOne.Graphics
 					(6750, [26, 27, 28, 29, 30, 6]),
 					(8412, [27, 28, 29, 30, 31, 4])
 				];
+				string[] levels = ["chieftain", "warlord", "prince", "king", "emperor"];
 				for (int i = 0; i < 5; i++)
 				{
 					int xx = (i % 2) == 0 ? 21 : 80;
 					int yy = 6 + (35 * i);
 					DiffPanel(ref output, xx, yy, 53, 47);
-					output.AddLayer(new Bytemap(47, 41).FromByteArray(GenerateNoise(backgrounds[i].Colours).Skip(backgrounds[i].Skip).Take(47 * 41).ToArray()), xx + 3, yy + 3);
+					byte[]? emblem = DifficultyEmblem(levels[i]);
+					Bytemap panel = emblem is not null
+						? new Bytemap(DifficultyWidth, DifficultyHeight).FromByteArray(emblem)
+						: new Bytemap(47, 41).FromByteArray(GenerateNoise(backgrounds[i].Colours).Skip(backgrounds[i].Skip).Take(47 * 41).ToArray());
+					output.AddLayer(panel, xx + 3, yy + 3);
 				}
 
 				return output;

@@ -192,6 +192,26 @@ namespace CivOne
 			Log("Map: Ready");
 		}
 		
+		// Row -> latitude edges for a loaded Earth map (see LoadEarthBin). Null when
+		// the map was generated, or loaded from a file without the table.
+		public static float[]? LatitudeEdges { get; private set; }
+
+		// Tile row containing this latitude. Uses the loaded edge table when there
+		// is one, otherwise the flat -90..90 projection that generated maps assume.
+		public static int RowForLatitude(double lat, int height)
+		{
+			float[]? edges = LatitudeEdges;
+			if (edges is null || edges.Length != height + 1)
+			{
+				int flat = (int)(((90.0 - lat) / 180.0) * height);
+				return flat < 0 ? 0 : (flat >= height ? height - 1 : flat);
+			}
+			if (lat >= edges[0]) return 0;
+			for (int y = 0; y < height; y++)
+				if (lat >= edges[y + 1]) return y;
+			return height - 1;
+		}
+
 		// Load a procedurally-built Earth from a simple binary file. Format:
 		//   bytes  0..3   ASCII magic "CIVE"
 		//   byte   4      version (currently 1)
@@ -202,6 +222,10 @@ namespace CivOne
 		//                 6=Plains, 7=Tundra, 9=River, 10=Grassland, 11=Jungle,
 		//                 12=Hills, 13=Mountains, 14=Desert, 15=Arctic — same
 		//                 byte values as MAP.PIC for consistency with LoadMap).
+		//   then          (optional) height+1 float32 latitude edges, north to
+		//                 south — the row/latitude mapping, since the generated
+		//                 Earth clips Antarctica and gives the mid-latitudes extra
+		//                 rows. Read into LatitudeEdges; absent on older files.
 		// Path defaults to ~/Library/Application Support/CivOne/earth_epic.bin so
 		// the offline build_earth_map.py script can land its output where the
 		// MapPreview screen looks for it. Sets _width/_height *before* tile
@@ -233,6 +257,27 @@ namespace CivOne
 			_width = w;
 			_height = h;
 			_tiles = new ITile[w, h];
+
+			// Optional trailing table: h+1 float32 latitude edges, north to south,
+			// written by design/build_earth_map.py. The generated Earth no longer
+			// maps rows linearly onto latitude (Antarctica is clipped and the
+			// mid-latitudes are given extra rows), so anything converting a real
+			// lat/lon to a tile — civ start positions above all — must go through
+			// this table. Absent on older files, in which case LatitudeEdges stays
+			// null and callers fall back to the flat projection.
+			LatitudeEdges = null;
+			int edgeBytes = 4 * (h + 1);
+			if (data.Length >= 16 + w * h + edgeBytes)
+			{
+				float[] edges = new float[h + 1];
+				System.Buffer.BlockCopy(data, 16 + w * h, edges, 0, edgeBytes);
+				// Sanity: must descend from north to south and stay in range.
+				bool sane = edges[0] <= 90.1f && edges[h] >= -90.1f;
+				for (int i = 0; sane && i < h; i++)
+					if (edges[i] <= edges[i + 1]) sane = false;
+				if (sane) LatitudeEdges = edges;
+				else Log("LoadEarthBin: latitude table present but not monotonic; ignoring");
+			}
 
 			for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++)
@@ -284,16 +329,20 @@ namespace CivOne
 		//      up to the repo root, then into resources/).
 		// If nothing exists, returns the user-dir path so the missing-file error message
 		// points the user at the location they can write to.
-		public static string EarthEpicPath
+		public static string EarthEpicPath => ResolveEarthBin("earth_epic.bin");
+
+		// Same search, for the 80x50 board that replaces the original MAP.PIC.
+		public static string EarthStandardPath => ResolveEarthBin("earth_standard.bin");
+
+		private static string ResolveEarthBin(string fileName)
 		{
-			get
 			{
-				string userPath = Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+				string userPath = Path.Combine(Settings.Instance.DataDirectory, fileName);
 				if (File.Exists(userPath)) return userPath;
 				string execDir = System.AppContext.BaseDirectory;
 				string[] candidates = {
-					Path.Combine(execDir, "resources", "earth_epic.bin"),
-					Path.GetFullPath(Path.Combine(execDir, "..", "..", "..", "..", "..", "resources", "earth_epic.bin")),
+					Path.Combine(execDir, "resources", fileName),
+					Path.GetFullPath(Path.Combine(execDir, "..", "..", "..", "..", "..", "resources", fileName)),
 				};
 				foreach (string c in candidates)
 					if (File.Exists(c)) return c;
@@ -343,6 +392,18 @@ namespace CivOne
 			_climate = -1;
 			_age = -1;
 			FixedStartPositions = true;
+
+			// Prefer the generated 80x50 Earth (design/build_earth_map.py) over the
+			// original MAP.PIC, so "Play on Earth" works with no DOS assets present.
+			// Same dimensions and terrain codes, so the per-civ StartX/StartY records
+			// still land in roughly the right places. Falls back to MAP.PIC when the
+			// binary is absent.
+			string standard = EarthStandardPath;
+			if (File.Exists(standard))
+			{
+				LoadEarthBin(standard);
+				return;
+			}
 
 			Task.Run(() => LoadMapThread());
 		}

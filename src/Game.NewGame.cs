@@ -51,7 +51,11 @@ namespace CivOne
 			{ Civilization.Japanese,    ( 36.0,  138.0) },
 			{ Civilization.Persians,    ( 32.0,   53.0) },
 			{ Civilization.Lakota,      ( 44.0, -100.0) },
-			{ Civilization.Arabs,       ( 24.0,   45.0) },
+			// Medina rather than the centre of the Nejd: the geometric middle of
+			// Arabia is unbroken sand, and the engine treats Desert as habitable, so
+			// the spiral search never rescued a civ dropped there. Medina is the
+			// Arabs' own first city name and sits on the Hejaz oasis chain.
+			{ Civilization.Arabs,       ( 24.5,   39.6) },
 			{ Civilization.Khmer,       ( 12.0,  105.0) },
 			{ Civilization.Malians,     ( 17.0,   -4.0) },
 			{ Civilization.Inca,        (-13.0,  -72.0) },
@@ -91,11 +95,16 @@ namespace CivOne
 				             && civStartX != 255 && civStartY != 255;
 				if (useCentroid)
 				{
-					// Equirectangular projection — same one used by build_earth_map.py
-					// and EnsureFreshwaterReachability, so coordinates match the map.
+					// Longitude is still linear, but rows are not: the generated Earth
+					// clips Antarctica and spends extra rows on the mid-latitudes, so
+					// the row comes from the latitude table the map shipped with
+					// (Map.RowForLatitude). Using the flat (90-lat)/180 formula here
+					// put ten of the twenty-four civs in open ocean — the Arabs in
+					// Somalia, the English mid-Atlantic — and left the spiral search
+					// below to drop them wherever it first found dry land.
 					var (lat, lon) = EarthCentroids[civKey];
 					x = (int)(((lon + 180.0) / 360.0) * Map.WIDTH);
-					y = (int)(((90.0 - lat)  / 180.0) * Map.HEIGHT);
+					y = Map.RowForLatitude(lat, Map.HEIGHT);
 					if (x < 0) x = 0; if (x >= Map.WIDTH)  x = Map.WIDTH  - 1;
 					if (y < 2) y = 2; if (y >= Map.HEIGHT - 2) y = Map.HEIGHT - 3;
 

@@ -44,10 +44,24 @@ Output bytes match the byte values used by MAP.PIC and Map.LoadEarthBin:
   0=Ocean 2=Forest 3=Swamp 6=Plains 7=Tundra 9=River
   10=Grassland 11=Jungle 12=Hills 13=Mountains 14=Desert 15=Arctic
 
+Latitude window and warp (see LAT_WEIGHTS below):
+  --lat-north/--lat-south  clip the sampled band. The default south edge of -60
+                 drops Antarctica, which is unplayable and crowds Patagonia and
+                 New Zealand against the engine's polar ice ring.
+  --no-warp      sample latitude flat, as a plain equirectangular image. By
+                 default rows are re-spent by LAT_WEIGHTS: fewer in the tropics,
+                 half again as many across 30-60 deg, so the Mediterranean is a
+                 sea rather than a puddle and the Congo stops dwarfing Europe.
+  --edge-rows N  clearance between real land and the ice ring (scales with height).
+  --max-rivers N how many of MAJOR_RIVERS to draw (scales with board area).
+
 Usage examples:
-  ./build_earth_map.py --elev ~/Downloads/topography.png
-  ./build_earth_map.py --elev topo.png --width 160 --height 100  # Huge size
-  ./build_earth_map.py --elev topo.png --sea-level 100           # less land
+  ./build_earth_map.py --elev ~/Downloads/topography.png          # 320x200 Epic
+  ./build_earth_map.py --elev topo.png --width 80 --height 50 \
+      --output ../resources/earth_standard.bin     # replaces the old MAP.PIC
+  ./build_earth_map.py --elev topo.png --width 160 --height 100   # Huge size
+  ./build_earth_map.py --elev topo.png --sea-level 100            # less land
+  ./build_earth_map.py --elev topo.png --lat-south -90 --no-warp  # old behaviour
 """
 
 import argparse
@@ -103,8 +117,10 @@ MOIST_OVERRIDES = [
     (-50, -38, -75, -65, PLAINS),
     # Atacama (chilean coastal desert)
     (-30, -18, -72, -68, DESERT),
-    # Mongolia + Gobi
-    (40, 50,  90, 115, DESERT),
+    # Gobi. Was 40-50N, which pushed sand right over Mongolia proper and left
+    # the Mongols' start (47N 105E) in desert; the real Gobi stops around 46N and
+    # the steppe above it is grassland.
+    (41, 46,  92, 112, DESERT),
     # Central Asia steppe
     (40, 50,  55,  90, PLAINS),
     # Australia outback (huge dry interior)
@@ -123,6 +139,15 @@ MOIST_OVERRIDES = [
     # Boreal forests of Canada + Siberia (taiga)
     ( 50, 65, -160,  -60, FOREST),
     ( 50, 65,   60,  170, FOREST),
+    # Arabian fertile pockets. The Sahara/Arabia belt above paints the whole
+    # peninsula desert, which left the Arabs' start (centroid 24N 45E) in
+    # unbroken sand with nothing to farm. These are the places Arabia is
+    # genuinely arable, so the civ has somewhere to grow without the peninsula
+    # ceasing to be a desert.
+    ( 12, 18,   42,  46, GRASS),   # Yemen/Asir highlands — monsoon-fed terraces
+    ( 23, 26, 38.5,  41, PLAINS),  # Medina/Khaybar oasis chain in the Hejaz
+    ( 25, 27, 48.5,50.5, PLAINS),  # Al-Hasa/Qatif — the largest oasis on earth
+    ( 17, 23,   53,  59, PLAINS),  # Dhofar and the Omani monsoon coast
     # Wetland patches — eastern Europe and the Middle East are otherwise an
     # uninterrupted carpet of Forest/Plains/Desert with no swamp variation, so
     # the lower-Dnieper steppe and the Tigris-Euphrates basin play like astroturf.
@@ -145,6 +170,9 @@ MOIST_OVERRIDES = [
 # 10m vector dataset (https://www.naturalearthdata.com/downloads/10m-physical-vectors/
 # 10m-rivers-lake-centerlines/, CC0). To add more rivers cheaply, open that
 # dataset in QGIS, sample 5-10 waypoints per river, paste tuples here.
+# Listed most-significant first: the river budget on small boards takes the
+# first N of this list (see default_max_rivers), because 26 polylines that read
+# as a delicate tracery at 320x200 swallow an eighth of all land at 80x50.
 MAJOR_RIVERS = [
     ("Amazon",       [( -4.3, -71.0), ( -3.5, -64.0), ( -2.5, -55.0), ( -1.5, -50.0), ( -0.5, -48.0)]),
     ("Nile",         [(  1.5, 32.0), (  9.5, 31.0), ( 18.5, 31.5), ( 26.0, 31.0), ( 31.5, 30.5)]),
@@ -233,8 +261,10 @@ MAJOR_LAKES = [
     # their distinctive orientations read better than five rectangles.
     ( 60.5, 63.0,-117.0,-108.0, "GreatSlave"),
     ( 65.0, 67.0,-125.0,-119.0, "GreatBear"),
-    # Eurasia — Aral, Balkhash and Baikal are now polygons (see below).
-    ( 60.0, 63.0,  31.5,  35.5, "Ladoga"),
+    # Eurasia — Aral, Balkhash, Baikal and the Baltic lowland lakes (Ladoga,
+    # Onega, Peipus, Saimaa) are all polygons now; see below. The old "Ladoga"
+    # box (60-63N, 31.5-35.5E) was both square and ~1.5 deg too far north, and
+    # it swallowed the gap where Lake Onega belongs.
     # "Tana" box (lat -15..-12.5, lon 33.5-36) removed: it was not Lake Tana
     # (that is in Ethiopia, +12°N) — it sat on the southern end of Lake Malawi and
     # gave it an unrealistic rectangular bulge. Malawi's polygon now runs the lake's
@@ -326,6 +356,24 @@ MAJOR_LAKE_POLYGONS = [
         ( 55.6, 110.4), ( 53.4, 107.8), ( 51.4, 104.8),
         ( 51.6, 103.6), ( 53.6, 106.5), ( 55.8, 109.2),
     ]),
+    # ── Baltic lowlands ─────────────────────────────────────────────────────
+    # Northern Europe's lake belt: glacial basins with long, irregular
+    # shorelines. Traced to their real extents so the region reads as scoured
+    # lowland rather than a row of rectangles.
+    ("Ladoga", [
+        ( 61.6, 31.0), ( 61.3, 32.4), ( 60.5, 32.9),
+        ( 59.95, 31.6), ( 60.3, 30.1), ( 61.0, 29.9),
+    ]),
+    ("Onega", [
+        ( 62.9, 34.8), ( 62.4, 35.9), ( 61.7, 36.5),
+        ( 60.95, 35.2), ( 61.5, 34.3), ( 62.3, 34.4),
+    ]),
+    ("Peipus", [
+        ( 59.0, 27.5), ( 58.6, 28.2), ( 57.9, 27.9), ( 58.2, 27.0), ( 58.7, 27.1),
+    ]),
+    ("Saimaa", [
+        ( 62.0, 28.0), ( 61.7, 29.3), ( 61.1, 29.0), ( 61.0, 27.8), ( 61.5, 27.5),
+    ]),
     # ── East Africa ─────────────────────────────────────────────────────────
     # Lake Tana (Ethiopia, source of the Blue Nile) — the REAL one at +12°N, not
     # the mislabelled box that used to sit on Lake Malawi's southern end.
@@ -358,10 +406,8 @@ def draw_river_polyline(grid: np.ndarray, waypoints, sea_level: int = 1) -> int:
 
     pts = []
     for lat, lon in waypoints:
-        y = int(((90.0 - lat) / 180.0) * h)
-        x = int(((lon + 180.0) / 360.0) * w)
-        y = max(0, min(h - 1, y))
-        x = max(0, min(w - 1, x))
+        y = row_for_lat(lat, h)
+        x = max(0, min(w - 1, int(((lon + 180.0) / 360.0) * w)))
         pts.append((x, y))
     for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
         dx = abs(x1 - x0); dy = -abs(y1 - y0)
@@ -396,7 +442,7 @@ def carve_strait(grid: np.ndarray, lat: float, lon: float) -> bool:
     Used to reopen narrow sea passages (Gibraltar, Bosporus, Suez) that the
     elevation pipeline's coarse resolution always closes off."""
     h, w = grid.shape
-    cy = int(((90.0 - lat) / 180.0) * h)
+    cy = row_for_lat(lat, h)
     cx = int(((lon + 180.0) / 360.0) * w)
     for dy in (0, -1, 1):
         for dx in (0, -1, 1):
@@ -428,7 +474,7 @@ def carve_sea_channel(grid: np.ndarray, waypoints) -> int:
 
     pts = []
     for lat, lon in waypoints:
-        y = max(0, min(h - 1, int(((90.0 - lat) / 180.0) * h)))
+        y = row_for_lat(lat, h)
         x = max(0, min(w - 1, int(((lon + 180.0) / 360.0) * w)))
         pts.append((x, y))
     for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
@@ -456,8 +502,8 @@ def carve_sea_channel(grid: np.ndarray, waypoints) -> int:
 def carve_lake_box(grid: np.ndarray, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> int:
     """Force all tiles inside the lat/lon box to Ocean. Returns count carved."""
     h, w = grid.shape
-    y0 = int(((90.0 - lat_max) / 180.0) * h)
-    y1 = int(((90.0 - lat_min) / 180.0) * h)
+    y0 = row_for_lat(lat_max, h)
+    y1 = row_for_lat(lat_min, h)
     x0 = int(((lon_min + 180.0) / 360.0) * w)
     x1 = int(((lon_max + 180.0) / 360.0) * w)
     y0, y1 = max(0, y0), min(h, y1 + 1)
@@ -478,7 +524,7 @@ def force_land_polygon(grid: np.ndarray, polygon, biome: int) -> int:
     pixels = []
     for lat, lon in polygon:
         x = ((lon + 180.0) / 360.0) * w
-        y = ((90.0 - lat) / 180.0) * h
+        y = row_for_lat_f(lat, h)
         pixels.append((x, y))
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).polygon(pixels, fill=1)
@@ -500,7 +546,7 @@ def carve_lake_polygon(grid: np.ndarray, polygon) -> int:
     pixels = []
     for lat, lon in polygon:
         x = ((lon + 180.0) / 360.0) * w
-        y = ((90.0 - lat) / 180.0) * h
+        y = row_for_lat_f(lat, h)
         pixels.append((x, y))
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).polygon(pixels, fill=1)
@@ -516,6 +562,78 @@ def carve_lake_polygon(grid: np.ndarray, polygon) -> int:
 DEFAULT_SEA_LEVEL  = 1
 DEFAULT_HILL_PIXEL = 60
 DEFAULT_MTN_PIXEL  = 115
+
+# ── latitude window + warp ───────────────────────────────────────────────────
+# The source image is equirectangular: every degree of latitude gets the same
+# number of rows. That is a poor fit for a playable board.
+#
+#   1. Antarctica. The bottom ~17% of a full-globe map is a continent nobody
+#      can use, and it crowds Patagonia/New Zealand/Tasmania against the
+#      engine's polar ice ring (Map.Generate.cs:CreatePoles forces row 0 and
+#      row HEIGHT-1 to Arctic). Clipping the window at DEFAULT_LAT_SOUTH drops
+#      Antarctica entirely and leaves those southern lands well clear of it.
+#
+#   2. Tile density. Under equirectangular sampling a tropical tile covers far
+#      more ground east-west than a temperate one (a degree of longitude is
+#      111 km at the equator, 71 km at 50°N), so the Congo sprawls while the
+#      Mediterranean is squeezed into a puddle. LAT_WEIGHTS re-spends the rows:
+#      relative rows-per-degree by |latitude|, integrated and normalised over
+#      the window. Above 1.0 means "give this band more rows than a flat map
+#      would"; below means fewer. Tune freely — the whole pipeline (biomes,
+#      rivers, lakes, straits, polygons) reads latitude through the same
+#      lat_for_row/row_for_lat pair, so nothing drifts out of register.
+#
+# Pass --no-warp for the old flat mapping, or --lat-south -90 to keep the ice.
+DEFAULT_LAT_NORTH  =  90.0
+DEFAULT_LAT_SOUTH  = -60.0   # ~4°/7 rows south of Cape Horn (-55.9)
+# Rows of clearance between real land and the ice ring, scaled to the board so
+# a small map does not lose a whole peninsula to a margin sized for the Epic
+# one: ~3 rows at 320x200, 2 at 160x100, 1 at 80x50. Override with --edge-rows.
+def default_edge_rows(height: int) -> int:
+    return max(1, round(height / 64.0))
+
+
+def default_max_rivers(width: int, height: int) -> int:
+    """River polylines to draw, scaled by board area against the 320x200 Epic
+    reference. Keeps rivers at roughly a constant share of land: all 26 on Epic,
+    ~8 on the 80x50 standard board."""
+    share = (width * height) / 64000.0
+    return max(8, min(len(MAJOR_RIVERS), round(len(MAJOR_RIVERS) * share ** 0.5)))
+
+LAT_WEIGHTS = [
+    ( 0, 10, 0.55),   # deep tropics — the worst of the sprawl
+    (10, 23, 0.70),
+    (23, 35, 1.15),
+    (35, 50, 1.50),   # Mediterranean, China, the American midwest, the Levant
+    (50, 62, 1.30),   # northern Europe, Great Lakes, southern Siberia
+    (62, 72, 0.85),
+    (72, 90, 0.50),   # ice and empty ocean; also the buffer above Greenland
+]
+
+# Row edges in degrees, north-to-south, length height+1. Populated by
+# build_lat_edges() before any lat/lon conversion happens.
+LAT_EDGES: "np.ndarray | None" = None
+
+
+def weight_for_lat(abs_lat: float) -> float:
+    for lo, hi, weight in LAT_WEIGHTS:
+        if lo <= abs_lat < hi:
+            return weight
+    return LAT_WEIGHTS[-1][2]
+
+
+def build_lat_edges(height: int, north: float, south: float, warp: bool) -> np.ndarray:
+    """Return height+1 latitude edges, descending from `north` to `south`.
+
+    Integrates the LAT_WEIGHTS density over the window and inverts it, so each
+    output row covers an equal share of *weighted* latitude rather than an equal
+    number of degrees. With warp=False this degenerates to the flat mapping."""
+    lats = np.linspace(north, south, 40001)
+    w = np.ones_like(lats) if not warp else np.array([weight_for_lat(abs(l)) for l in lats])
+    step = abs(lats[1] - lats[0])
+    cum = np.concatenate(([0.0], np.cumsum(w[1:] * step)))
+    cum *= height / cum[-1]
+    return np.interp(np.arange(height + 1), cum, lats)
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -533,8 +651,26 @@ def default_output_path() -> Path:
     return base / "data" / "earth_epic.bin"
 
 def lat_for_row(y: int, height: int) -> float:
-    """y=0 is north pole (+90°), y=height-1 is south pole (-90°)."""
-    return 90.0 - (180.0 * (y + 0.5) / height)
+    """Centre latitude of output row y. Row 0 is the northern edge of the
+    window. Reads LAT_EDGES, so it honours both the clip and the warp."""
+    e = LAT_EDGES
+    y = max(0, min(height - 1, y))
+    return float((e[y] + e[y + 1]) / 2.0)
+
+def row_for_lat(lat: float, height: int) -> int:
+    """Inverse of lat_for_row: the output row containing this latitude.
+    Latitudes outside the window clamp to the first/last row — callers that
+    care (the river/lake/polygon passes) are all no-ops on ocean anyway."""
+    e = LAT_EDGES
+    # e descends, so negate to give np.interp an increasing x-axis.
+    y = int(np.interp(-lat, -e, np.arange(height + 1)))
+    return max(0, min(height - 1, y))
+
+def row_for_lat_f(lat: float, height: int) -> float:
+    """Fractional row, for polygon rasterisation where sub-tile precision
+    keeps small lakes from collapsing."""
+    e = LAT_EDGES
+    return float(np.interp(-lat, -e, np.arange(height + 1)))
 
 def lon_for_col(x: int, width: int) -> float:
     """x=0 is 180°W (left edge), wrapping. Most equirectangular images
@@ -562,6 +698,44 @@ def moisture_override(lat: float, lon: float) -> int | None:
         if lat_min <= lat <= lat_max and in_lon_range(lon, lon_min, lon_max):
             out = biome
     return out
+
+def build_jitter(width: int, height: int, tiles: float, seed: int = 20260725):
+    """Per-tile lat/lon offsets used only when looking up the biome.
+
+    MOIST_OVERRIDES and LAT_BANDS are rectangles and horizontal strips, so their
+    edges land as dead-straight lines: the Gobi and the Australian outback read
+    as painted boxes rather than deserts. Offsetting the *lookup* coordinate by a
+    coherent random field breaks those edges into a ragged fringe a tile or two
+    deep, without moving any of the boxes or touching a single elevation value.
+
+    The field is generated coarse and scaled up, so neighbouring tiles wander
+    together into lobes instead of dissolving into salt-and-pepper. Deterministic
+    (fixed seed): the same board every run. `tiles` is the amplitude in tiles;
+    latitude uses each row's own height, so the fringe stays a constant number of
+    tiles deep whether the row is a compressed tropical one or a stretched
+    temperate one."""
+    if tiles <= 0:
+        return np.zeros((height, width)), np.zeros((height, width))
+    rng = np.random.default_rng(seed)
+    def octave(divisor: int) -> np.ndarray:
+        cw, ch = max(2, width // divisor), max(2, height // divisor)
+        coarse = rng.uniform(-1.0, 1.0, (ch, cw)).astype(np.float32)
+        img = Image.fromarray(coarse, mode="F").resize((width, height), Image.BILINEAR)
+        return np.array(img, dtype=np.float32)
+    def field() -> np.ndarray:
+        # Two octaves: broad lobes that bow a whole coastline of desert in or
+        # out, plus a fine one that frays it tile by tile. One octave alone
+        # either shifts the straight edge without bending it, or dissolves into
+        # noise that reads as static.
+        f = octave(6) * 0.7 + octave(2) * 0.5
+        # Smoothing an upsampled random field crushes its variance, so a raw sum
+        # only wanders a fraction of a tile. Rescale to the full range first.
+        scale = np.percentile(np.abs(f), 98)
+        return np.clip(f / scale, -1.0, 1.0) if scale > 0 else f
+    row_deg = np.abs(np.diff(LAT_EDGES)).reshape(height, 1)
+    col_deg = 360.0 / width
+    return field() * tiles * row_deg, field() * tiles * col_deg
+
 
 def blend_biomes(grid: np.ndarray, seed: int = 20260621) -> int:
     """Break up the big single-biome swaths so temperate grassland, forest, and
@@ -591,6 +765,43 @@ def blend_biomes(grid: np.ndarray, seed: int = 20260621) -> int:
 
     return int(np.sum(grid != before))
 
+def resample_rows(img: "Image.Image", width: int, height: int) -> np.ndarray:
+    """Rescale the elevation image onto the warped row grid.
+
+    Width is a plain resize (longitude is still linear). Height cannot be, since
+    each output row now covers a different span of latitude — so each row
+    averages the source rows its own span covers. Averaging rather than point-
+    sampling matters in the compressed tropics, where one output row can stand
+    for three or four source rows and nearest-neighbour would drop coastlines."""
+    src_h = img.size[1]
+    flat = np.array(img.resize((width, src_h), Image.BILINEAR), dtype=np.float32)
+    out = np.zeros((height, width), dtype=np.uint8)
+    for y in range(height):
+        r0 = (90.0 - LAT_EDGES[y])     / 180.0 * src_h
+        r1 = (90.0 - LAT_EDGES[y + 1]) / 180.0 * src_h
+        a = max(0, min(src_h - 1, int(np.floor(r0))))
+        b = max(a + 1, min(src_h, int(np.ceil(r1))))
+        out[y] = np.rint(flat[a:b].mean(axis=0)).astype(np.uint8)
+    return out
+
+
+def clear_edge_land(grid: np.ndarray, rows: int) -> int:
+    """Drown any land within `rows` of the top or bottom edge.
+
+    The engine stamps an Arctic ice ring over row 0 and row HEIGHT-1 and salts
+    tundra into rows 0/1 and HEIGHT-2/HEIGHT-1 (Map.Generate.cs:CreatePoles), so
+    real coastline that close to the edge ends up fused to the frame and
+    unplayable. With the default window nothing should be caught here — this is
+    a guard rail that reports when a latitude change has pushed land too far."""
+    if rows <= 0: return 0
+    h = grid.shape[0]
+    edge = np.concatenate((grid[:rows], grid[h - rows:]))
+    n = int(np.sum(edge != OCEAN))
+    grid[:rows] = OCEAN
+    grid[h - rows:] = OCEAN
+    return n
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -603,7 +814,24 @@ def main() -> int:
     ap.add_argument("--sea-level",  type=int, default=DEFAULT_SEA_LEVEL)
     ap.add_argument("--hill-level", type=int, default=DEFAULT_HILL_PIXEL)
     ap.add_argument("--mtn-level",  type=int, default=DEFAULT_MTN_PIXEL)
+    ap.add_argument("--lat-north", type=float, default=DEFAULT_LAT_NORTH,
+                    help="northern edge of the sampled window (default 90)")
+    ap.add_argument("--lat-south", type=float, default=DEFAULT_LAT_SOUTH,
+                    help="southern edge; the default -60 clips Antarctica")
+    ap.add_argument("--edge-rows", type=int, default=None,
+                    help="drown any land within N rows of the top/bottom ice ring "
+                         "(default scales with height: 3 at 200 rows, 1 at 50)")
+    ap.add_argument("--edge-jitter", type=float, default=1.6,
+                    help="tiles of raggedness on biome-box edges (0 = hard rectangles)")
+    ap.add_argument("--max-rivers", type=int, default=None,
+                    help="how many of MAJOR_RIVERS to draw (default scales with board area)")
+    ap.add_argument("--no-warp", action="store_true",
+                    help="flat equirectangular rows instead of the LAT_WEIGHTS warp")
     args = ap.parse_args()
+    if args.edge_rows is None:
+        args.edge_rows = default_edge_rows(args.height)
+    if args.max_rivers is None:
+        args.max_rivers = default_max_rivers(args.width, args.height)
 
     src = Path(args.elev).expanduser()
     if not src.exists():
@@ -611,10 +839,14 @@ def main() -> int:
     out = Path(args.output).expanduser()
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    global LAT_EDGES
+    LAT_EDGES = build_lat_edges(args.height, args.lat_north, args.lat_south, not args.no_warp)
+
     img = Image.open(src).convert("L")
     print(f"input  {src} ({img.size[0]}x{img.size[1]})")
-    img = img.resize((args.width, args.height), Image.BILINEAR)
-    arr = np.array(img, dtype=np.uint8)
+    arr = resample_rows(img, args.width, args.height)
+
+    jitter_lat, jitter_lon = build_jitter(args.width, args.height, args.edge_jitter)
 
     grid = np.full((args.height, args.width), OCEAN, dtype=np.uint8)
     counts = {}
@@ -630,8 +862,11 @@ def main() -> int:
             elif elev >= args.hill_level:
                 code = HILLS
             else:
-                lon = lon_for_col(x, args.width)
-                code = moisture_override(lat, lon) or biome_for_lat(lat)
+                # Jittered lookup only — the tile keeps its true latitude for the
+                # polar test below, so the fringe never drags jungle into the ice.
+                jlat = lat + jitter_lat[y, x]
+                jlon = lon_for_col(x, args.width) + jitter_lon[y, x]
+                code = moisture_override(jlat, jlon) or biome_for_lat(jlat)
                 # Polar override: nothing tropical at the poles regardless of moisture
                 if is_polar:
                     code = ARCTIC if abs(lat) >= 80 else TUNDRA
@@ -668,19 +903,34 @@ def main() -> int:
     # Sea channels: cut continuous lanes where a single strait shave isn't enough.
     channel_tiles = carve_sea_channel(grid, MED_CHANNEL)
     river_tiles = 0
-    for name, waypoints in MAJOR_RIVERS:
+    for name, waypoints in MAJOR_RIVERS[:args.max_rivers]:
         river_tiles += draw_river_polyline(grid, waypoints, args.sea_level)
+
+    # Last, so nothing downstream can put land back against the ice ring.
+    edge_tiles = clear_edge_land(grid, args.edge_rows)
 
     # Recount after overlays for an accurate breakdown.
     counts = {}
     for code in grid.flat:
         counts[int(code)] = counts.get(int(code), 0) + 1
 
-    # Write binary: 4-byte magic, version, 3 reserved, uint32 W, uint32 H, tiles.
+    # Write binary: 4-byte magic, version, 3 reserved, uint32 W, uint32 H, tiles,
+    # then height+1 little-endian float32 latitude edges (north to south).
+    #
+    # The edge table is what lets the engine place civilizations correctly. It
+    # projects each civ's real-world centroid onto the board, and since the rows
+    # are no longer a linear slice of the globe it cannot recompute that itself.
+    # Shipping the table beats duplicating LAT_WEIGHTS in C#, where the two could
+    # silently drift apart the first time these weights are retuned.
+    #
+    # Appended after the tiles rather than in the header, so the format stays
+    # version 1: Map.LoadEarthBin length-checks with >=, so older builds ignore
+    # the trailing bytes and newer builds treat their absence as "linear".
     header = b"CIVE" + bytes([1, 0, 0, 0]) + struct.pack("<II", args.width, args.height)
     with open(out, "wb") as f:
         f.write(header)
         f.write(grid.tobytes())
+        f.write(struct.pack(f"<{args.height + 1}f", *[float(v) for v in LAT_EDGES]))
 
     # Report
     name = {OCEAN:"Ocean", FOREST:"Forest", SWAMP:"Swamp", PLAINS:"Plains",
@@ -690,10 +940,17 @@ def main() -> int:
     land = total - counts.get(OCEAN, 0)
     print(f"wrote {out} ({len(header) + grid.size} bytes)")
     print(f"  dimensions: {args.width}x{args.height} = {total} tiles")
+    print(f"  latitude:   {args.lat_north:+.0f}° to {args.lat_south:+.0f}°"
+          f" ({'flat' if args.no_warp else 'warped'})")
+    for lo, hi in ((0, 15), (15, 30), (30, 45), (45, 60), (60, 90)):
+        n_rows = row_for_lat(lo, args.height) - row_for_lat(hi, args.height)
+        flat_rows = (hi - lo) / (args.lat_north - args.lat_south) * args.height
+        print(f"    {lo:2d}-{hi:2d}°N: {n_rows:3d} rows ({n_rows/flat_rows:.2f}x flat)")
+    print(f"  edge guard: {edge_tiles} land tiles drowned within {args.edge_rows} rows of the ice ring")
     print(f"  land:   {land} ({100*land/total:.1f}%)")
     print(f"  ocean:  {counts.get(OCEAN, 0)} ({100*counts.get(OCEAN, 0)/total:.1f}%)")
     print(f"  blend:   {blend_tiles} tiles re-mixed across grassland/forest/desert")
-    print(f"  rivers:  {river_tiles} tiles drawn across {len(MAJOR_RIVERS)} polylines (4-connected)")
+    print(f"  rivers:  {river_tiles} tiles drawn across {args.max_rivers} of {len(MAJOR_RIVERS)} polylines (4-connected)")
     print(f"  lakes:   {lake_tiles} land tiles carved across {len(MAJOR_LAKES)} boxes + {len(MAJOR_LAKE_POLYGONS)} polygons (engine flags as freshwater)")
     print(f"  land-force: {land_force_tiles} ocean tiles reclaimed across {len(LAND_FORCES)} polygons")
     print(f"  straits: {strait_tiles} tiles opened of {len(STRAITS)} configured")
