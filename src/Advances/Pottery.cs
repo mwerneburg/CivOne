@@ -13,6 +13,29 @@ namespace CivOne.Advances
 {
 	internal class Pottery : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"POTTERY gives vessels that hold",
+			"grain against the lean season.",
+			"",
+			"Allows the GRANARY and THE HANGING",
+			"GARDENS.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A granary keeps a city's food",
+			"store half full after each growth,",
+			"which roughly doubles the speed at",
+			"which the city grows.",
+			"",
+			"Nothing else in the tree depends",
+			"on Pottery, but early expansion",
+			"wins games.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Pottery() : base(7, 0, 2)
 		{
 			Name = "Pottery";

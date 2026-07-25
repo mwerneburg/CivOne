@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Masonry : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MASONRY teaches the cutting and",
+			"fitting of stone.",
+			"",
+			"Allows CITY WALLS, the PALACE,",
+			"THE GREAT WALL and THE PYRAMIDS.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"City walls multiply a defender's",
+			"strength twelvefold. No other",
+			"early advance protects so much",
+			"for so little.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Masonry() : base(2, 1, 2)
 		{
 			Name = "Masonry";

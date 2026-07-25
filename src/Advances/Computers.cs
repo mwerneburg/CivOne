@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Computers : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"COMPUTERS calculate faster than",
+			"any number of clerks, and never",
+			"tire of it.",
+			"",
+			"Allows the OBSERVATORY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"When enough observatories watch",
+			"the sky across the world, together",
+			"they may catch a signal that is",
+			"not natural.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Computers() : base(3, 0, 2, Advance.Mathematics, Advance.Electronics)
 		{
 			Name = "Computers";

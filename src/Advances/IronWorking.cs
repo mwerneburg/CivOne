@@ -13,6 +13,23 @@ namespace CivOne.Advances
 {
 	internal class IronWorking : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"IRON WORKING gives a metal common",
+			"enough to arm a whole people.",
+			"",
+			"Allows the LEGION.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Legions are the first units cheap",
+			"enough to lose in numbers, which",
+			"is how ancient wars are won.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public IronWorking() : base(5, 1, 1, Advance.BronzeWorking)
 		{
 			Name = "Iron Working";

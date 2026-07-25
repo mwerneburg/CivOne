@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class SpaceFlight : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"SPACE FLIGHT leaves the atmosphere",
+			"altogether.",
+			"",
+			"Allows the SS STRUCTURAL, THE",
+			"APOLLO PROGRAM and the SOUTH POLE",
+			"EXPEDITION.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The Apollo Program lets every",
+			"civilization begin building a",
+			"SPACESHIP. Reaching ALPHA CENTAURI",
+			"first wins the SPACE RACE.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SpaceFlight() : base(4, 2, 2, Advance.Computers, Advance.Rocketry)
 		{
 			Name = "Space Flight";

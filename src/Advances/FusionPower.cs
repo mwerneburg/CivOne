@@ -13,6 +13,29 @@ namespace CivOne.Advances
 {
 	internal class FusionPower : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"FUSION POWER binds light atoms",
+			"together and takes the energy of",
+			"a star.",
+			"",
+			"Allows FUSION INFANTRY, the HOVER",
+			"TANK and the FUSION CORE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It also ends the risk of a NUCLEAR",
+			"PLANT melting down anywhere in",
+			"your empire.",
+			"",
+			"Beyond it the tree stops being",
+			"history and starts being a",
+			"question.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public FusionPower() : base(7, 1, 0, Advance.NuclearPower, Advance.SuperConductor)
 		{
 			Name = "Fusion Power";

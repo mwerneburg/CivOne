@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class TheCorporation : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE CORPORATION lets enterprise",
+			"outlive the people who founded it.",
+			"",
+			"Allows ADAM SMITH'S TRADING HOUSE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Adam Smith's pays the upkeep of",
+			"your cheap buildings, which is",
+			"worth more the wider your empire",
+			"spreads.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public TheCorporation() : base(7, 2, 2, Advance.Banking, Advance.Industrialization)
 		{
 			Name = "The Corporation";

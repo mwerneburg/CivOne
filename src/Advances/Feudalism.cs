@@ -13,6 +13,23 @@ namespace CivOne.Advances
 {
 	internal class Feudalism : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"FEUDALISM binds land to service",
+			"and service to land.",
+			"",
+			"Allows SUN TZU'S WAR ACADEMY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The lord holds the land, the",
+			"vassal holds the sword, and the",
+			"next advance puts armour on both.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Feudalism() : base(1, 1, 0, Advance.Masonry, Advance.Monarchy)
 		{
 			Name = "Feudalism";

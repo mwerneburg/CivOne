@@ -13,6 +13,23 @@ namespace CivOne.Advances
 {
 	internal class Explosives : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"EXPLOSIVES place enormous force",
+			"wherever it is wanted, in war and",
+			"in earthworks alike.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It grants no unit directly, but",
+			"the two advances beyond it give",
+			"you modern infantry and the",
+			"internal combustion engine.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Explosives() : base(5, 1, 2, Advance.Gunpowder, Advance.Chemistry)
 		{
 			Name = "Explosives";

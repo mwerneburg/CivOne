@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class Conscription : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"CONSCRIPTION calls up the whole",
+			"citizenry and drills it.",
+			"",
+			"Allows RIFLEMEN.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It retires MUSKETEERS, CAVALRY and",
+			"LEGIONS together — one advance",
+			"sweeps away the old army.",
+			"",
+			"Fortified riflemen behind CITY",
+			"WALLS are very hard to shift",
+			"without ARTILLERY.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Conscription() : base(7, 0, 0, Advance.TheRepublic, Advance.Explosives)
 		{
 			Name = "Conscription";

@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class Automobile : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE AUTOMOBILE puts the engine",
+			"under everything that moves on",
+			"land.",
+			"",
+			"Allows ARMOR.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It retires KNIGHTS: the age of the",
+			"horse ends in a single advance.",
+			"",
+			"Armor attacks heavily and can hold",
+			"what it takes, which makes it the",
+			"decisive land unit of the age.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Automobile() : base(6, 0, 2, Advance.Combustion, Advance.Steel)
 		{
 			Name = "Automobile";

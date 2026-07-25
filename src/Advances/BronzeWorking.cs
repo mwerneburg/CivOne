@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class BronzeWorking : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"BRONZE WORKING gives smiths a",
+			"metal hard enough for armour and",
+			"spear points.",
+			"",
+			"Allows the PHALANX and THE",
+			"COLOSSUS.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The Phalanx is the first unit",
+			"that can hold a city against a",
+			"determined neighbour.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public BronzeWorking() : base(5, 2, 0)
 		{
 			Name = "Bronze Working";

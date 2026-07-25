@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Plastics : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"PLASTICS give materials shaped to",
+			"purpose rather than found in the",
+			"ground.",
+			"",
+			"Allows the SS COMPONENT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Space components provide a ship's",
+			"propulsion and fuel. More of them",
+			"mean a shorter voyage — and the",
+			"race is won by arrival, not by",
+			"launch.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Plastics() : base(4, 0, 0, Advance.Refining, Advance.SpaceFlight)
 		{
 			Name = "Plastics";

@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class TheWheel : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE WHEEL turns and everything",
+			"that must be carried moves faster.",
+			"",
+			"Allows the CHARIOT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The chariot is the strongest",
+			"attacker of the ancient world.",
+			"A civilization with wheels and a",
+			"neighbour without them rarely",
+			"stays the smaller of the two.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public TheWheel() : base(3, 2, 2)
 		{
 			Name = "The Wheel";

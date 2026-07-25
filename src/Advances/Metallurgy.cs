@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class Metallurgy : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"METALLURGY casts barrels strong",
+			"enough for heavy guns.",
+			"",
+			"Allows the CANNON.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The cannon retires the CATAPULT",
+			"and restores the attacker's",
+			"advantage against walls that",
+			"muskets could not shake.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Metallurgy() : base(7, 2, 1, Advance.Gunpowder, Advance.University)
 		{
 			Name = "Metallurgy";

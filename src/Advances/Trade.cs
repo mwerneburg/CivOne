@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Trade : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"TRADE sends goods further than the",
+			"next valley.",
+			"",
+			"Allows the CARAVAN, the SEA",
+			"CARAVAN and the SURPLUS DEPOT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Caravans establish TRADE ROUTES",
+			"between distant cities, or may be",
+			"spent to help build a WONDER —",
+			"often the fastest way to win a",
+			"race for one.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Trade() : base(1, 0, 0, Advance.Currency, Advance.CodeOfLaws)
 		{
 			Name = "Trade";

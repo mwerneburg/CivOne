@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Rocketry : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ROCKETRY builds engines that carry",
+			"their own air and need none.",
+			"",
+			"Allows the SAM BATTERY and, with",
+			"THE MANHATTAN PROJECT, the NUCLEAR",
+			"missile.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The same engine that delivers a",
+			"warhead across the world will",
+			"shortly carry colonists away from",
+			"it.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Rocketry() : base(8, 0, 1, Advance.AdvancedFlight, Advance.Electronics)
 		{
 			Name = "Rocketry";

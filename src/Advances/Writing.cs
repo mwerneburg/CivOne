@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Writing : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"WRITING fixes words where memory",
+			"cannot reach.",
+			"",
+			"Allows the LIBRARY, the DIPLOMAT",
+			"and MARCO POLO'S VOYAGE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The library adds half again to a",
+			"city's science, and the diplomat",
+			"opens every quieter path to power:",
+			"embassies, bribery and theft.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Writing() : base(3, 1, 1, Advance.Alphabet)
 		{
 			Name = "Writing";

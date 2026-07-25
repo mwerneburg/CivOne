@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Electronics : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ELECTRONICS controls current",
+			"finely enough to compute, switch",
+			"and broadcast.",
+			"",
+			"Allows the HYDRO PLANT and THE",
+			"HOOVER DAM.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A hydro plant doubles a factory's",
+			"output and halves its smoke. The",
+			"Hoover Dam does the same for a",
+			"whole continent.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Electronics() : base(4, 2, 1, Advance.Electricity)
 		{
 			Name = "Electronics";

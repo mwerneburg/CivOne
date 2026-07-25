@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class MapMaking : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MAP MAKING records coasts and",
+			"distances, and a ship may sail",
+			"toward something known.",
+			"",
+			"Allows the TRIREME, THE LIGHTHOUSE",
+			"and ZHENG HE'S VOYAGE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The trireme must stay near the",
+			"coast or risk being lost. Until",
+			"NAVIGATION, the open ocean belongs",
+			"to no one.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public MapMaking() : base(7, 1, 2, Advance.Alphabet)
 		{
 			Name = "MapMaking";

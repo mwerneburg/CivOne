@@ -13,6 +13,22 @@ namespace CivOne.Advances
 {
 	internal class Philosophy : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"PHILOSOPHY asks what is true and",
+			"how one might know it.",
+			"",
+			"Allows the CIVIC MONUMENT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"More paths leave Philosophy than",
+			"any other advance in the tree.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Philosophy() : base(8, 1, 0, Advance.Mysticism, Advance.Literacy)
 		{
 			Name = "Philosophy";

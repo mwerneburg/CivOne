@@ -13,6 +13,29 @@ namespace CivOne.Advances
 {
 	internal class Religion : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"RELIGION binds a people to a",
+			"shared faith and a shared calendar.",
+			"",
+			"Allows the CATHEDRAL, HAGIA SOFIA,",
+			"MICHELANGELO'S CHAPEL and J.S.",
+			"BACH'S CATHEDRAL.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The cathedral calms two unhappy",
+			"citizens, the strongest single",
+			"remedy for disorder.",
+			"",
+			"A cathedral also shelters a city",
+			"from certain influences that",
+			"reason cannot argue with.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Religion() : base(3, 2, 0, Advance.Philosophy, Advance.Writing)
 		{
 			Name = "Religion";

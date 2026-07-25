@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Chivalry : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"CHIVALRY makes the mounted knight",
+			"the master of the battlefield.",
+			"",
+			"Allows KNIGHTS and the TAJ MAHAL.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It also retires the CHARIOT.",
+			"",
+			"Knights attack heavily, defend",
+			"well and move twice. For centuries",
+			"no other unit is worth building",
+			"for war.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Chivalry() : base(6, 1, 1, Advance.Feudalism, Advance.HorsebackRiding)
 		{
 			Name = "Chivalry";

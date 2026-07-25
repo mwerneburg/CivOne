@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class CodeOfLaws : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE CODE OF LAWS sets down what is",
+			"owed and what is forbidden, so",
+			"that rule does not rest on the",
+			"will of one man.",
+			"",
+			"Allows the COURTHOUSE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Courthouses halve corruption, which",
+			"matters most in the cities furthest",
+			"from your capital.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public CodeOfLaws() : base(2, 0, 1, Advance.Alphabet)
 		{
 			Name = "Code of Laws";

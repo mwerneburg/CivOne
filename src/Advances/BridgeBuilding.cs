@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class BridgeBuilding : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"BRIDGE BUILDING spans the rivers",
+			"that until now turned every road",
+			"aside.",
+			"",
+			"Your SETTLERS may build ROADS on",
+			"RIVER tiles.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"River tiles are among the best",
+			"land you own. Until bridges, your",
+			"road network simply stops at the",
+			"water.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public BridgeBuilding() : base(4, 1, 0, Advance.IronWorking, Advance.Construction)
 		{
 			Name = "Bridge Building";

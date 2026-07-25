@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class NuclearPower : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"NUCLEAR POWER draws steady",
+			"electricity from the same reaction",
+			"that makes the bomb.",
+			"",
+			"Allows the NUCLEAR PLANT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A nuclear plant doubles factory",
+			"output and halves its smoke, but",
+			"may MELT DOWN. The risk ends only",
+			"with FUSION POWER.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public NuclearPower() : base(2, 2, 2, Advance.NuclearFission, Advance.Electronics)
 		{
 			Name = "Nuclear Power";

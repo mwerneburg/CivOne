@@ -13,6 +13,23 @@ namespace CivOne.Advances
 {
 	internal class Engineering : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ENGINEERING applies the wheel and",
+			"the arch to works of real scale.",
+			"",
+			"Allows the SEWER SYSTEM.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A sewer system lets a city grow",
+			"past size 12, as the aqueduct once",
+			"let it pass 6.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Engineering() : base(4, 1, 1, Advance.TheWheel, Advance.Construction)
 		{
 			Name = "Engineering";

@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class Mathematics : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MATHEMATICS measures angle, weight",
+			"and trajectory.",
+			"",
+			"Allows the CATAPULT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The catapult is the first answer",
+			"to a walled city, and mathematics",
+			"is the road to every science that",
+			"follows.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Mathematics() : base(7, 1, 1, Advance.Alphabet, Advance.Masonry)
 		{
 			Name = "Mathematics";

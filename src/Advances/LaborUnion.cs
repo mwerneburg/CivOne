@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class LaborUnion : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE LABOR UNION gives working",
+			"people a voice their employers",
+			"must answer.",
+			"",
+			"Allows MECHANIZED INFANTRY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Mech. Inf. is the finest defensive",
+			"unit in the game, and fast enough",
+			"that a handful can garrison a",
+			"whole frontier by moving to",
+			"whichever city needs them.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public LaborUnion() : base(1, 0, 1, Advance.MassProduction, Advance.Communism)
 		{
 			Name = "Labor Union";

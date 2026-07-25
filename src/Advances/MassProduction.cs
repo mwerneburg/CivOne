@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class MassProduction : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MASS PRODUCTION makes identical",
+			"goods in enormous numbers.",
+			"",
+			"Allows the SUBMARINE and MASS",
+			"TRANSIT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Mass transit removes the pollution",
+			"your citizens make, which by now",
+			"is as much as your factories'.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public MassProduction() : base(5, 1, 0, Advance.Automobile, Advance.TheCorporation)
 		{
 			Name = "Mass Production";

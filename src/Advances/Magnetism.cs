@@ -13,6 +13,23 @@ namespace CivOne.Advances
 {
 	internal class Magnetism : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MAGNETISM gives the compass, and",
+			"with it a bearing in any weather.",
+			"",
+			"Allows the FRIGATE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The frigate both fights and",
+			"carries troops, which no earlier",
+			"ship managed. It retires the SAIL.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Magnetism() : base(6, 0, 1, Advance.Navigation, Advance.Physics)
 		{
 			Name = "Magnetism";

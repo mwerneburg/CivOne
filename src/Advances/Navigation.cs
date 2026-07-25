@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class Navigation : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"NAVIGATION lets a ship find its",
+			"way out of sight of land.",
+			"",
+			"Allows the SAIL, the SHIPYARD and",
+			"MAGELLAN'S EXPEDITION.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It retires the coast-bound",
+			"TRIREME. From here the ocean is",
+			"a road rather than a wall, and",
+			"other continents come within",
+			"reach.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Navigation() : base(6, 2, 2, Advance.MapMaking, Advance.Astronomy)
 		{
 			Name = "Navigation";

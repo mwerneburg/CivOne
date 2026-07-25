@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Electricity : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ELECTRICITY carries power along a",
+			"wire to wherever it is needed.",
+			"",
+			"It grants no unit or building of",
+			"its own.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The advance itself does little;",
+			"everything that follows it —",
+			"power, computing and flight —",
+			"does a great deal.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Electricity() : base(8, 0, 0, Advance.Magnetism, Advance.Metallurgy)
 		{
 			Name = "Electricity";

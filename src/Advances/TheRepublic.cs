@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class TheRepublic : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE REPUBLIC gives power to",
+			"citizens and their representatives.",
+			"",
+			"Allows the REPUBLIC government:",
+			"far greater TRADE, at the cost of",
+			"citizens who dislike war.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Under a Republic, units abroad",
+			"make citizens unhappy. It is the",
+			"government of a civilization that",
+			"intends to build rather than",
+			"conquer.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public TheRepublic() : base(2, 0, 0, Advance.CodeOfLaws, Advance.Literacy)
 		{
 			Name = "The Republic";

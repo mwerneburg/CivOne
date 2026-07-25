@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class AdvancedFlight : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ADVANCED FLIGHT builds aircraft",
+			"with the range and the load to",
+			"matter strategically.",
+			"",
+			"Allows the BOMBER and the CARRIER.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Bombers empty a city but cannot",
+			"take it; send ARMOR behind them.",
+			"",
+			"Carriers refuel aircraft at sea,",
+			"putting any coast in the world",
+			"within reach.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public AdvancedFlight() : base(2, 1, 0, Advance.Flight, Advance.Electricity)
 		{
 			Name = "Advanced Flight";

@@ -13,6 +13,26 @@ namespace CivOne.Advances
 {
 	internal class GeneticEngineering : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"GENETIC ENGINEERING reads and",
+			"rewrites the instructions of life",
+			"itself.",
+			"",
+			"Allows THE CURE FOR CANCER and THE",
+			"HUMAN GENOME PROJECT.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The Cure for Cancer makes every",
+			"city in your empire happier; the",
+			"Genome Project hastens all your",
+			"research.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public GeneticEngineering() : base(1, 1, 2, Advance.Medicine, Advance.TheCorporation)
 		{
 			Name = "Genetic Engineering";

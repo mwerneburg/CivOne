@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Combustion : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"COMBUSTION burns fuel inside the",
+			"engine itself, small enough to",
+			"carry anywhere.",
+			"",
+			"Allows the CRUISER.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It retires the IRONCLAD. Within",
+			"two advances the same engine will",
+			"put armies on wheels and men in",
+			"the air.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Combustion() : base(4, 2, 0, Advance.Refining, Advance.Explosives)
 		{
 			Name = "Combustion";

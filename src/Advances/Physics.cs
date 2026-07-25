@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class Physics : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"PHYSICS seeks the laws that",
+			"govern motion, force and matter.",
+			"",
+			"It grants no unit or building of",
+			"its own.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"One of the great junctions of the",
+			"tree. Everything mechanical in the",
+			"modern age is downstream of it.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Physics() : base(1, 2, 0, Advance.Mathematics, Advance.Navigation)
 		{
 			Name = "Physics";

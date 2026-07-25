@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class SteamEngine : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"THE STEAM ENGINE turns heat into",
+			"motion, and work is no longer",
+			"limited by muscle or wind.",
+			"",
+			"Allows the IRONCLAD.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The ironclad sinks any wooden",
+			"fleet afloat. For a short age the",
+			"civilization that has them owns",
+			"the sea entirely.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SteamEngine() : base(6, 1, 2, Advance.Physics, Advance.Invention)
 		{
 			Name = "Steam Engine";

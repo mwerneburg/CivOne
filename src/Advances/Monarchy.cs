@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class Monarchy : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"MONARCHY places one crowned ruler",
+			"above the tribes.",
+			"",
+			"Allows the MONARCHY government,",
+			"which supports larger armies and",
+			"frees your cities from the worst",
+			"of DESPOTISM.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Despotism penalizes every tile",
+			"that produces well. Changing to",
+			"Monarchy is usually the largest",
+			"single gain of the early game.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Monarchy() : base(2, 2, 0, Advance.CeremonialBurial, Advance.CodeOfLaws)
 		{
 			Name = "Monarchy";

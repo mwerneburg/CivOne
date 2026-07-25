@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class Invention : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"INVENTION is the habit of",
+			"improving a thing rather than",
+			"inheriting it.",
+			"",
+			"Allows LEONARDO'S WORKSHOP.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Leonardo's Workshop upgrades your",
+			"obsolete units as each advance",
+			"retires them — worth more the",
+			"larger and older your army is.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Invention() : base(6, 2, 1, Advance.Engineering, Advance.Literacy)
 		{
 			Name = "Invention";

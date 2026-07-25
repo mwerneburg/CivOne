@@ -13,6 +13,27 @@ namespace CivOne.Advances
 {
 	internal class Currency : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"CURRENCY replaces barter with",
+			"coin, and trade no longer needs",
+			"two parties who each want what",
+			"the other holds.",
+			"",
+			"Allows the MARKETPLACE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The marketplace is the cheapest",
+			"way to turn trade into gold, and",
+			"it raises luxuries too, easing",
+			"unhappiness as it fills the",
+			"treasury.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Currency() : base(5, 0, 0, Advance.BronzeWorking)
 		{
 			Name = "Currency";

@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class Astronomy : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ASTRONOMY charts the movements of",
+			"the heavens and finds them",
+			"regular.",
+			"",
+			"Allows COPERNICUS' OBSERVATORY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"The stars give sailors their",
+			"position and scholars their first",
+			"proof that the world obeys law.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Astronomy() : base(6, 0, 0, Advance.Mysticism, Advance.Mathematics)
 		{
 			Name = "Astronomy";

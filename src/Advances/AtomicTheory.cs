@@ -13,6 +13,25 @@ namespace CivOne.Advances
 {
 	internal class AtomicTheory : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ATOMIC THEORY holds that matter is",
+			"built from particles too small to",
+			"see.",
+			"",
+			"It grants no unit or building of",
+			"its own.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"For a century it changes nothing",
+			"anyone can point to. Then it",
+			"changes everything.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public AtomicTheory() : base(5, 2, 1, Advance.TheoryOfGravity, Advance.Physics)
 		{
 			Name = "Atomic Theory";

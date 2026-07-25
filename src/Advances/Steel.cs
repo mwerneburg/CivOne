@@ -13,6 +13,24 @@ namespace CivOne.Advances
 {
 	internal class Steel : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"STEEL gives a metal both hard and",
+			"tough, and ships may be built to",
+			"any size.",
+			"",
+			"Allows the BATTLESHIP.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A battleship is a fleet in itself",
+			"and a burden on the treasury.",
+			"Build one, not four.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Steel() : base(3, 0, 0, Advance.Metallurgy, Advance.Industrialization)
 		{
 			Name = "Steel";

@@ -13,6 +13,30 @@ namespace CivOne.Advances
 {
 	internal class Robotics : BaseAdvance
 	{
+		private static readonly string[] _page1 =
+		{
+			"ROBOTICS sets machines to build",
+			"machines.",
+			"",
+			"Allows ARTILLERY, the",
+			"MANUFACTURING PLANT and the SS",
+			"MODULE.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It retires the CANNON.",
+			"",
+			"Artillery outguns every other land",
+			"unit and ignores CITY WALLS.",
+			"",
+			"The manufacturing plant doubles a",
+			"city's shields again — and",
+			"pollutes heavily.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Robotics() : base(7, 2, 0, Advance.Plastics, Advance.Computers)
 		{
 			Name = "Robotics";

@@ -53,6 +53,12 @@ namespace CivOne.Advances
 		public Palette OriginalColours { get; private set; } = null!;
 		
 		public string Name { get; protected set; } = null!;
+
+		// CC0 Civilopedia text, so no original BLURB0 asset is needed. Page 2 carries only
+		// what the screen does not already draw: the Requires/Allows lists are generated
+		// from the tech tree in Civilopedia.DrawStats.
+		public virtual string[] GetPageText(byte pageNumber) => System.Array.Empty<string>();
+
 		public byte PageCount => 2;
 		public Picture DrawPage(byte pageNumber)
 		{

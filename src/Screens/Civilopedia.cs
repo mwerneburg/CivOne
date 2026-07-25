@@ -114,6 +114,11 @@ namespace CivOne.Screens
 					string[] custom = bpca.GetPageText(pageNumber);
 					if (custom.Length > 0) return custom;
 				}
+				if (_singlePage is BaseAdvance ba)
+				{
+					string[] custom = ba.GetPageText(pageNumber);
+					if (custom.Length > 0) return custom;
+				}
 				return Resources.GetCivilopediaText("BLURB0/" + _singlePage.Name.ToUpper() + suffix);
 			}
 			if (_singlePage is IConcept)
