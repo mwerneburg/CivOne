@@ -1473,7 +1473,12 @@ namespace CivOne.Graphics
 			{
 				Bytemap output = new Bytemap(320, 200);
 				
-				DiffPanel(ref output, 155, 29, 131, 137);
+				// Wider than the original DIFFS.PIC panel (155,29,131,137): the tribe
+				// picker needs two columns, and 24 civilizations do not fit one column
+				// on a 200px screen at any row height the 7px glyphs survive. Taller too,
+				// so the 15-entry competition list gets full 8px rows instead of cramped
+				// 7px ones that let each row's glyphs bleed into the row below.
+				DiffPanel(ref output, 143, 29, 150, 156);
 				
 				(int Skip, byte[] Colours)[] backgrounds =
 				[

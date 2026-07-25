@@ -39,21 +39,55 @@ namespace CivOne.Screens
 		private bool _done = false, _showIntroText = false, _gameCreated = false;
 		private int _borderStyle = -1;
 		
+		// The panel these menus sit in starts at y=29 (see Free.Difficulties /
+		// DIFFS.PIC) and the menu starts 10px below that. Anything past the panel
+		// bottom simply draws over its edge and off the screen — which is what the
+		// 15-entry competition list and the 24-entry tribe list were doing.
+		// Free's panel is both wider and taller than DIFFS.PIC's, so it has more
+		// room for the menu; the asset panel keeps its original budget.
+		private int MenuSpaceHeight => WidePanel ? 142 : 122;
+
+		// Free mode's DefaultFont draws 7px glyphs one pixel down, so a row needs a
+		// full 8px or each line bleeds into the next. The original fonts are
+		// smaller and survive 7px rows, which is what asset mode always used.
+		private int MinRowHeight => WidePanel ? 8 : 7;
+
+		// The Free background draws a wider panel than DIFFS.PIC does, so the menus
+		// can be wider too — needed for the two-column tribe list, whose longest
+		// name (Haudenosaunee) is 66px. Keep the narrow geometry in asset mode so
+		// the menu stays inside the original artwork.
+		private bool WidePanel => Runtime.Settings.Free || !Resources.Exists("DIFFS");
+		private int MenuLeft => WidePanel ? 149 : 163;
+		private int MenuSpaceWidth => WidePanel ? 140 : 114;
+
 		private Menu CreateMenu(string title, MenuItemEventHandler<int> setChoice, params string[] menuTexts)
 		{
+			// Fit the list to the panel: use two columns once one column cannot
+			// hold the list, then pick the tallest row height that still fits.
+			// Rows below 7px overlap the 7px glyphs, so that is the floor.
+			// Columns are driven by whether the list actually fits, not by a magic
+			// item count: at 7px a 15-entry competition list fits one column, and
+			// splitting it produced two half-width columns of overlapping text.
+			int columns = ((menuTexts.Length + 1) * MinRowHeight <= MenuSpaceHeight) ? 1 : 2;
+			int rows = ((menuTexts.Length + columns - 1) / columns) + 1;   // +1 for the title
+			int rowHeight = MenuSpaceHeight / rows;
+			if (rowHeight > 8) rowHeight = 8;
+			if (rowHeight < MinRowHeight) rowHeight = MinRowHeight;
+
 			Menu menu = new Menu("NewGameMenu", Palette)
 			{
 				Title = title,
-				X = OffsetX + 163,
+				X = OffsetX + MenuLeft,
 				Y = OffsetY + 39,
-				MenuWidth = 114,
+				MenuWidth = MenuSpaceWidth,
 				TitleColour = 3,
 				ActiveColour = 11,
 				TextColour = 5,
 				DisabledColour = 8,
 				FontId = 6,
 				IndentTitle = 2,
-				RowHeight = 8
+				RowHeight = rowHeight,
+				Columns = columns
 			};
 			
 			for (int i = 0; i < menuTexts.Length; i++)
@@ -76,11 +110,6 @@ namespace CivOne.Screens
 		private void MenuTribe()
 		{
 			Menu menu = CreateMenu("Pick your tribe...", SetTribe, _menuItemsTribes);
-			if (_menuItemsTribes.Length > 14)
-			{
-				menu.FontId = 1;
-				menu.RowHeight -= 2;
-			}
 			menu.Cancel += SetTribe_Cancel;
 			AddMenu(menu);
 		}
@@ -109,7 +138,13 @@ namespace CivOne.Screens
 			CloseMenus();
 			Log("Competition: {0} Civilizations", _competition);
 			
-			_tribesAvailable = Common.Civilizations.Where(c => c.PreferredPlayerNumber > 0 && c.PreferredPlayerNumber <= _competition).ToArray();
+			// Alphabetical: the canonical Civ order is meaningless to a player hunting
+			// for one tribe among two dozen. _tribe indexes _tribesAvailable, so both
+			// are sorted together.
+			_tribesAvailable = Common.Civilizations
+				.Where(c => c.PreferredPlayerNumber > 0 && c.PreferredPlayerNumber <= _competition)
+				.OrderBy(c => c.Name, System.StringComparer.OrdinalIgnoreCase)
+				.ToArray();
 			_menuItemsTribes = _tribesAvailable.Select(c => c.Name).ToArray();
 		}
 		
@@ -248,7 +283,11 @@ namespace CivOne.Screens
 					yy += 8;
 				}
 
-				this.DrawText("[ CLICK OR PRESS ANY KEY TO CONTINUE ]", 0, 8, OffsetX + 160, OffsetY + 192, TextAlign.Center);
+				// Colour 6 (INK_LOW), not 8 (INK_HIGH): this screen's background is
+				// cream, and INK_HIGH is a pale cream too — the prompt was near
+				// invisible. INK_LOW is muted enough to stay secondary to the body
+				// text above it (colour 5) while actually being readable.
+				this.DrawText("[ CLICK OR PRESS ANY KEY TO CONTINUE ]", 0, 6, OffsetX + 160, OffsetY + 192, TextAlign.Center);
 
 				_showIntroText = true;
 				return true;

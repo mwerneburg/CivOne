@@ -41,6 +41,40 @@ namespace CivOne.Screens
 		public byte DisabledColour { get; set; }
 		public int IndentTitle { get; set; }
 		public int RowHeight { get; set; }
+
+		// Number of side-by-side columns, filled top-to-bottom (items 0..n-1 down
+		// the first column, then the next). Long lists — the 24-tribe picker — do
+		// not fit one column on a 200px screen at any legible row height.
+		private int _columns = 1;
+		public int Columns
+		{
+			get => _columns < 1 ? 1 : _columns;
+			set => _columns = value < 1 ? 1 : value;
+		}
+
+		private int RowsPerColumn => (Items.Count + Columns - 1) / Columns;
+
+		private int LayoutRowHeight
+		{
+			get
+			{
+				int fontHeight = Resources.GetFontHeight(FontId);
+				return RowHeight != 0 ? RowHeight : fontHeight;
+			}
+		}
+
+		// Where item i is drawn, and the region that selects it. Single source of
+		// truth for drawing, highlighting and hit-testing, so the three cannot
+		// disagree about where a row is.
+		private Rectangle ItemBounds(int index)
+		{
+			int rowHeight = LayoutRowHeight;
+			int colWidth = MenuWidth / Columns;
+			int col = index / RowsPerColumn;
+			int row = index % RowsPerColumn;
+			int offsetY = Title is null ? 0 : rowHeight;
+			return new Rectangle(X + (col * colWidth), Y + offsetY + (row * rowHeight), colWidth, rowHeight);
+		}
 		
 		private bool _mouseDown = false;
 		private bool _change = true;
@@ -75,34 +109,30 @@ namespace CivOne.Screens
 		
 		protected override bool HasUpdate(uint gameTick)
 		{
-			int fontHeight = Resources.GetFontHeight(FontId);
-			if (RowHeight != 0) fontHeight = RowHeight;
+			int fontHeight = LayoutRowHeight;
 			if (_change)
 			{
-				int yy = Y + (_activeItem * fontHeight);
-				int offsetY = 0;
-				
 				this.Clear();
 				if (Title is not null)
 				{
 					this.DrawText(Title, FontId, TitleColour, X + IndentTitle, Y + 1);
-					offsetY = fontHeight;
 				}
-				if (_activeItem >= 0)
+				if (_activeItem >= 0 && _activeItem < Items.Count)
 				{
+					Rectangle active = ItemBounds(_activeItem);
 					if (_background is null)
 					{
-						this.FillRectangle(X, yy + offsetY, MenuWidth, fontHeight, ActiveColour);
+						this.FillRectangle(active.X, active.Y, active.Width, active.Height, ActiveColour);
 					}
 					else
 					{
-						this.AddLayer(_background[0, (_activeItem * fontHeight) + offsetY, MenuWidth, fontHeight], X, yy + offsetY, dispose: true);
+						this.AddLayer(_background[0, active.Y - Y, active.Width, active.Height], active.X, active.Y, dispose: true);
 					}
 				}
 				for (int i = 0; i < Items.Count; i++)
 				{
-					yy = Y + (i * fontHeight) + offsetY;
-					this.DrawText(Items[i].Text, FontId, (byte)(Items[i].Enabled ? TextColour : DisabledColour), X + Indent, yy + 1);
+					Rectangle bounds = ItemBounds(i);
+					this.DrawText(Items[i].Text, FontId, (byte)(Items[i].Enabled ? TextColour : DisabledColour), bounds.X + Indent, bounds.Y + 1);
 				}
 				_change = false;
 				return true;
@@ -121,6 +151,14 @@ namespace CivOne.Screens
 				case Key.NumPad2:
 				case Key.Down:
 					ActiveItem++;
+					return true;
+				case Key.NumPad4:
+				case Key.Left:
+					if (Columns > 1) ActiveItem -= RowsPerColumn;
+					return true;
+				case Key.NumPad6:
+				case Key.Right:
+					if (Columns > 1) ActiveItem += RowsPerColumn;
 					return true;
 				case Key.Enter:
 					if (!Items[_activeItem].Enabled) return false;
@@ -148,15 +186,9 @@ namespace CivOne.Screens
 		
 		private int MouseOverItem(ScreenEventArgs args)
 		{
-			int fontHeight = Resources.GetFontHeight(FontId);
-			if (RowHeight != 0) fontHeight = RowHeight;
-			int yy = Y;
-			
-			if (Title is not null) yy += fontHeight;
 			for (int i = 0; i < Items.Count; i++)
 			{
-				if (new Rectangle(X, yy, MenuWidth, fontHeight).Contains(args.Location)) return i;
-				yy += fontHeight;
+				if (ItemBounds(i).Contains(args.Location)) return i;
 			}
 			
 			return -1;
