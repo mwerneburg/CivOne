@@ -26,36 +26,54 @@ namespace CivOne.Screens.CityManagerPanels
 
 		public event EventHandler? MapUpdate;
 
-		private void DrawResources(ITile tile, int x, int y)
+		// Lay the yield icons (food/shield/trade) out in a centred, non-overlapping
+		// grid, scaled up to fill the tile — tiles are much larger than the icons'
+		// native 8px, so a fixed 8px block left them cramped and overlapping.
+		private void DrawResources(ITile tile, int tx, int ty)
 		{
 			int food = _city.FoodValue(tile);
 			int shield = _city.ShieldValue(tile);
 			int trade = _city.TradeValue(tile);
 			int count = food + shield + trade;
+			int size = _tileSize;
 
 			if (count == 0)
 			{
-				this.AddLayer(Icons.Unhappy, x + 4, y + 4);
+				int us = IconScale(1, 1, size);
+				DrawIcon(Icons.Unhappy, tx + (size - 8 * us) / 2, ty + (size - 8 * us) / 2, us);
 				return;
 			}
 
-			int iconsPerLine = 2;
-			int iconWidth = 8;
-			if (count > 4) iconsPerLine = (int)Math.Ceiling((double)count / 2);
-			if (iconsPerLine == 3) iconWidth = 4;
-			if (iconsPerLine >= 4) iconWidth = 2;
+			int cols = count <= 3 ? count : (int)Math.Ceiling(Math.Sqrt(count));
+			int rows = (count + cols - 1) / cols;
+			int scale = IconScale(cols, rows, size);
+			int icon = 8 * scale, gap = scale;
+			int gw = cols * icon + (cols - 1) * gap;
+			int gh = rows * icon + (rows - 1) * gap;
+			int ox = tx + (size - gw) / 2;
+			int oy = ty + (size - gh) / 2;
 
 			for (int i = 0; i < count; i++)
 			{
-				IBitmap icon;
-				if (i >= food + shield) icon = Icons.Trade;
-				else if (i >= food) icon = Icons.Shield;
-				else icon = Icons.Food; 
-
-				int xx = (x + ((i % iconsPerLine) * iconWidth));
-				int yy = (y + (((i - (i % iconsPerLine)) / iconsPerLine) * 8));
-				this.AddLayer(icon, xx, yy);
+				IBitmap art = (i >= food + shield) ? Icons.Trade : (i >= food) ? Icons.Shield : Icons.Food;
+				int c = i % cols, r = i / cols;
+				DrawIcon(art, ox + c * (icon + gap), oy + r * (icon + gap), scale);
 			}
+		}
+
+		// Largest integer icon scale (1-4) that fits a cols×rows grid of 8px icons
+		// (plus 1px-per-scale gaps) inside a tile, leaving a small margin.
+		private static int IconScale(int cols, int rows, int size)
+		{
+			int avail = size - 2;
+			return Math.Max(1, Math.Min(4, Math.Min(avail / (cols * 9), avail / (rows * 9))));
+		}
+
+		private void DrawIcon(IBitmap icon, int x, int y, int scale)
+		{
+			if (scale <= 1) { this.AddLayer(icon, x, y); return; }
+			using (Bytemap b = icon.Bitmap.Scale(scale))
+				this.AddLayer(b, x, y);
 		}
 		
 		protected override bool HasUpdate(uint gameTick)
@@ -122,7 +140,7 @@ namespace CivOne.Screens.CityManagerPanels
 				}
 
 				if (resourceSet.Contains(tile))
-					DrawResources(tile, px + (_tileSize - 16) / 2, py + (_tileSize - 16) / 2);
+					DrawResources(tile, px, py);
 			}
 
 			return true;
