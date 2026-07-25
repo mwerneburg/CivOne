@@ -19,6 +19,32 @@ namespace CivOne.Units
 			Explore(2);
 		}
 		
+		private static readonly string[] _page1 =
+		{
+			"The BOMBER strikes ground and sea",
+			"targets with heavy ordnance, far",
+			"beyond your borders.",
+			"",
+			"It carries fuel for TWO turns",
+			"before it must land.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ADVANCED FLIGHT.",
+			"",
+			"Bombers cannot take a city; they",
+			"only empty it. Send ARMOR or",
+			"infantry behind them.",
+			"",
+			"Watch the fuel. A bomber caught",
+			"far from any city or CARRIER at",
+			"the end of its second turn is",
+			"lost with its crew.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Bomber() : base(12, 12, 1, 8)
 		{
 			Type = UnitType.Bomber;

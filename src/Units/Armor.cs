@@ -16,6 +16,30 @@ namespace CivOne.Units
 	{
 		public override UnitType? UpgradesTo => UnitType.HoverTank;
 
+		private static readonly string[] _page1 =
+		{
+			"ARMOR are tanks: heavy attack,",
+			"sound defence and three moves.",
+			"",
+			"The decisive land unit of the",
+			"modern age.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires THE AUTOMOBILE.",
+			"",
+			"Automobile also retires KNIGHTS.",
+			"The change from horse to engine",
+			"happens in a single advance.",
+			"",
+			"Armor can strike, take a city and",
+			"hold it, which no earlier attacker",
+			"managed well.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Armor() : base(8, 10, 5, 3)
 		{
 			Type = UnitType.Armor;

@@ -14,6 +14,28 @@ namespace CivOne.Units
 {
 	internal class Submarine : BaseUnitSea
 	{
+		private static readonly string[] _page1 =
+		{
+			"The SUBMARINE attacks from beneath",
+			"the surface, with the heaviest",
+			"torpedoes at sea.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MASS PRODUCTION.",
+			"",
+			"Deadly to transports and merchant",
+			"shipping, and dangerous even to",
+			"capital ships.",
+			"",
+			"Fragile once found. Keep it away",
+			"from CRUISERS and from coasts",
+			"where aircraft patrol.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Submarine() : base(5, 8, 2, 3, 2)
 		{
 			Type = UnitType.Submarine;

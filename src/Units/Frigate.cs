@@ -22,6 +22,30 @@ namespace CivOne.Units
 			}
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The FRIGATE carries 4 land units",
+			"and can fight, unlike the merchant",
+			"hulls before it.",
+			"",
+			"A warship and a troop ship in one.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MAGNETISM.",
+			"",
+			"It remains useful long after the",
+			"IRONCLAD appears, because the",
+			"ironclad carries nothing.",
+			"",
+			"Escort invasions with it, and",
+			"raid coastal cities where the",
+			"defenders are weak.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Frigate() : base(4, 2, 2, 3)
 		{
 			Type = UnitType.Frigate;

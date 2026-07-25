@@ -29,6 +29,29 @@ namespace CivOne.Units
 				MovesLeft += 2;
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The TRANSPORT carries 8 land units",
+			"across any ocean.",
+			"",
+			"It cannot fight at all.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires INDUSTRIALIZATION.",
+			"",
+			"A whole invasion fits in one hull,",
+			"and one lucky submarine can drown",
+			"it. Escort transports always.",
+			"",
+			"Units aboard cannot defend",
+			"themselves at sea; the ship's",
+			"loss is theirs.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Transport() : base(5, 0, 3, 4)
 		{
 			Type = UnitType.Transport;

@@ -19,6 +19,32 @@ namespace CivOne.Units
 			Explore(2);
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The FIGHTER is a fast aircraft",
+			"that hunts other aircraft and",
+			"strafes ground units.",
+			"",
+			"It must return to a CITY or",
+			"CARRIER before its FUEL runs out.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires FLIGHT.",
+			"",
+			"Nothing else can intercept an",
+			"enemy BOMBER, so a civilization",
+			"without fighters has no defence",
+			"in the air.",
+			"",
+			"Count the moves home before",
+			"attacking. A fighter that runs",
+			"out of fuel is lost.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Fighter() : base(6, 4, 2, 10)
 		{
 			Type = UnitType.Fighter;

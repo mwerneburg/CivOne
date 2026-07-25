@@ -919,6 +919,32 @@ namespace CivOne.Units
 			}
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"SETTLERS found new CITIES and",
+			"improve the land around the ones",
+			"you have.",
+			"",
+			"They build ROADS, IRRIGATION and",
+			"MINES, and clear forest or swamp.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires no advance.",
+			"",
+			"Each costs a point of city",
+			"POPULATION to build, and food",
+			"upkeep thereafter, so a city",
+			"shrinks to make one.",
+			"",
+			"Early expansion decides most",
+			"games. Build settlers before",
+			"armies.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Settlers() : base(4, 0, 1, 1)
 		{
 			Type = UnitType.Settlers;

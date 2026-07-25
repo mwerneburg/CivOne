@@ -16,6 +16,31 @@ namespace CivOne.Units
 	internal class Militia : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.Phalanx;
+		private static readonly string[] _page1 =
+		{
+			"MILITIA are townsfolk with spears",
+			"and whatever else came to hand.",
+			"",
+			"Weak in every respect, but cheap",
+			"enough that a young city can",
+			"afford a garrison at once.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires no advance.",
+			"",
+			"Made obsolete by GUNPOWDER, after",
+			"which cities build MUSKETEERS",
+			"instead.",
+			"",
+			"A city with no unit inside is",
+			"taken by the first enemy to walk",
+			"in. Militia at least prevent that.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Militia() : base(1, 1, 1, 1)
 		{
 			Type = UnitType.Militia;

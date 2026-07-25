@@ -84,6 +84,32 @@ namespace CivOne.Units
 			return true;
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"A CARAVAN can establish a TRADE",
+			"ROUTE with a distant city, giving",
+			"both a lasting increase in TRADE.",
+			"",
+			"It may instead be consumed to HELP",
+			"BUILD a WONDER.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires TRADE.",
+			"",
+			"Routes pay most between large",
+			"cities that are far apart, and",
+			"best of all with a foreign",
+			"civilization.",
+			"",
+			"Feeding caravans into a wonder is",
+			"often the fastest way to win a",
+			"race for one.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Caravan() : base(5, 0, 1, 2)
 		{
 			Type = UnitType.Caravan;

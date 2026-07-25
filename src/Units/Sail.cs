@@ -22,6 +22,29 @@ namespace CivOne.Units
 			}
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The SAIL is a true seagoing ship,",
+			"free of the Trireme's fear of open",
+			"water, carrying 3 land units.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires NAVIGATION.",
+			"Made obsolete by MAGNETISM.",
+			"",
+			"The first vessel that can safely",
+			"cross an ocean, and so the unit",
+			"that opens the rest of the world",
+			"to you.",
+			"",
+			"MAGELLAN'S EXPEDITION adds a move",
+			"to every ship you own.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Sail() : base(4, 1, 1, 3)
 		{
 			Type = UnitType.Sail;

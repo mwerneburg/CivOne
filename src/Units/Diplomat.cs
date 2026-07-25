@@ -187,6 +187,34 @@ namespace CivOne.Units
 
 		internal void KeepMoving(IUnit unit) => MovementTo(unit.X - X, unit.Y - Y);
 		
+		private static readonly string[] _page1 =
+		{
+			"A DIPLOMAT can ESTABLISH an",
+			"EMBASSY, INVESTIGATE a city, STEAL",
+			"an ADVANCE, SABOTAGE production,",
+			"INCITE a revolt or BRIBE a unit.",
+			"",
+			"Most of these consume the",
+			"diplomat.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires WRITING.",
+			"",
+			"Inciting a city costs gold that",
+			"rises with the owner's treasury",
+			"and falls with distance from their",
+			"capital. A city in DISORDER costs",
+			"half. A CAPITAL cannot be bought",
+			"at any price.",
+			"",
+			"A diplomat in a city may block an",
+			"enemy's attempt.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Diplomat() : base(3, 0, 0, 2)
 		{
 			Type = UnitType.Diplomat;

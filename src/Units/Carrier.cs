@@ -34,6 +34,29 @@ namespace CivOne.Units
 			base.MovementDone(previousTile);
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The CARRIER moves AIRCRAFT across",
+			"the ocean and refuels them at sea.",
+			"",
+			"Fighters and bombers based aboard",
+			"reach coasts no airfield could.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ADVANCED FLIGHT.",
+			"",
+			"Almost defenceless for its cost",
+			"when caught alone; the aircraft",
+			"are its weapon and its screen.",
+			"",
+			"It carries no land units. Bring",
+			"TRANSPORTS for an invasion.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Carrier() : base(16, 1, 12, 5, 2)
 		{
 			Type = UnitType.Carrier;

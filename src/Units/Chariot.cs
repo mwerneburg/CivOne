@@ -15,6 +15,31 @@ namespace CivOne.Units
 	internal class Chariot : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.Knights;
+		private static readonly string[] _page1 =
+		{
+			"CHARIOTS are the strongest early",
+			"attackers, and swift with it.",
+			"",
+			"Two moves let them strike and",
+			"withdraw, or reach a threatened",
+			"border in time.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires THE WHEEL.",
+			"Made obsolete by CHIVALRY.",
+			"",
+			"Costly for the age, and poor in",
+			"defence. Keep them in the field",
+			"and let Phalanxes hold the walls.",
+			"",
+			"They cannot cross mountains and",
+			"rough ground quickly.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Chariot() : base(4, 4, 1, 2)
 		{
 			Type = UnitType.Chariot;

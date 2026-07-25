@@ -16,6 +16,31 @@ namespace CivOne.Units
 	internal class Riflemen : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.MechInf;
+		private static readonly string[] _page1 =
+		{
+			"RIFLEMEN are conscripted soldiers",
+			"with rifled arms, the backbone of",
+			"a modern defence.",
+			"",
+			"Stronger in defence than anything",
+			"before the machine age.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires CONSCRIPTION.",
+			"",
+			"Conscription retires MUSKETEERS,",
+			"CAVALRY and LEGIONS together: one",
+			"advance sweeps away the old army.",
+			"",
+			"Behind CITY WALLS, fortified",
+			"Riflemen are very hard to shift",
+			"without ARTILLERY.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Riflemen() : base(3, 3, 5, 1)
 		{
 			Type = UnitType.Riflemen;

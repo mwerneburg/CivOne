@@ -46,6 +46,33 @@ namespace CivOne.Units
 			}
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The TRIREME is the first ship, an",
+			"oared galley that carries 2 land",
+			"units.",
+			"",
+			"It must hug the COAST: alone in",
+			"the open sea at end of turn, it",
+			"may be LOST.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MAP MAKING.",
+			"Made obsolete by NAVIGATION.",
+			"",
+			"The risk is real; end each turn",
+			"within sight of land.",
+			"",
+			"THE LIGHTHOUSE grants an extra",
+			"move to your ships, and quiets",
+			"the danger of the deep. Something",
+			"in that deep may notice.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Trireme() : base(4, 1, 0, 3)
 		{
 			Type = UnitType.Trireme;

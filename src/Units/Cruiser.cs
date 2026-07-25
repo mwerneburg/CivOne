@@ -14,6 +14,28 @@ namespace CivOne.Units
 {
 	internal class Cruiser : BaseUnitSea
 	{
+		private static readonly string[] _page1 =
+		{
+			"The CRUISER is a fast modern",
+			"warship, strong enough to fight",
+			"and quick enough to patrol.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires COMBUSTION.",
+			"",
+			"Cruisers hunt SUBMARINES and",
+			"screen larger ships. They are the",
+			"workhorse of a modern navy.",
+			"",
+			"A BATTLESHIP outguns them, but",
+			"costs three times as much and",
+			"cannot be everywhere.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Cruiser() : base(8, 6, 6, 6, 2)
 		{
 			Type = UnitType.Cruiser;

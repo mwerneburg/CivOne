@@ -15,6 +15,31 @@ namespace CivOne.Units
 	internal class Legion : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.Musketeers;
+		private static readonly string[] _page1 =
+		{
+			"The LEGION is the first unit built",
+			"to ATTACK rather than endure.",
+			"",
+			"Disciplined swordsmen who can take",
+			"a neighbour's city while it is",
+			"still defended by Militia.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires IRON WORKING.",
+			"Made obsolete by CONSCRIPTION.",
+			"",
+			"Legions are cheap enough to lose.",
+			"Send several: one rarely takes a",
+			"defended city alone.",
+			"",
+			"BARRACKS make them VETERANS, worth",
+			"half again in battle.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Legion() : base(2, 3, 1, 1)
 		{
 			Type = UnitType.Legion;

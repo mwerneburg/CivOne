@@ -14,6 +14,30 @@ namespace CivOne.Units
 {
 	internal class Artillery : BaseUnitLand
 	{
+		private static readonly string[] _page1 =
+		{
+			"ARTILLERY is the heaviest gun a",
+			"civilization can field.",
+			"",
+			"Its attack surpasses every other",
+			"land unit, and CITY WALLS do not",
+			"stop it.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ROBOTICS.",
+			"",
+			"Defenceless in the open, so pair",
+			"it with ARMOR or MECH. INF.",
+			"",
+			"Against a walled city held by",
+			"modern infantry, artillery is",
+			"usually the only practical way in.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Artillery() : base(6, 12, 2, 2)
 		{
 			Type = UnitType.Artillery;

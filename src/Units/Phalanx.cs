@@ -15,6 +15,31 @@ namespace CivOne.Units
 	internal class Phalanx : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.Musketeers;
+		private static readonly string[] _page1 =
+		{
+			"A PHALANX is a wall of shields and",
+			"long spears, the first true",
+			"DEFENSIVE unit.",
+			"",
+			"Twice the defence of Militia for",
+			"little more cost.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires BRONZE WORKING.",
+			"Made obsolete by GUNPOWDER.",
+			"",
+			"FORTIFY them in your cities and",
+			"behind CITY WALLS, where their",
+			"defence is multiplied.",
+			"",
+			"They attack poorly; leave that to",
+			"Legions and Chariots.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Phalanx() : base(2, 1, 2, 1)
 		{
 			Type = UnitType.Phalanx;

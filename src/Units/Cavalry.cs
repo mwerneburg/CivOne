@@ -15,6 +15,31 @@ namespace CivOne.Units
 	internal class Cavalry : BaseUnitLand
 	{
 		public override UnitType? UpgradesTo => UnitType.Knights;
+		private static readonly string[] _page1 =
+		{
+			"CAVALRY are mounted scouts and",
+			"raiders, fast but lightly armed.",
+			"",
+			"Useful early for exploring and for",
+			"chasing down BARBARIANS in the",
+			"open.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires HORSEBACK RIDING.",
+			"Made obsolete by CONSCRIPTION.",
+			"",
+			"Do not send them against defended",
+			"cities; their strength is reach,",
+			"not force.",
+			"",
+			"CHIVALRY replaces them with the",
+			"far heavier KNIGHTS.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Cavalry() : base(2, 2, 1, 2)
 		{
 			Type = UnitType.Cavalry;
