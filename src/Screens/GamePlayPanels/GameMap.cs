@@ -507,10 +507,13 @@ namespace CivOne.Screens.GamePlayPanels
 					Game.DisbandUnit(Game.ActiveUnit);
 					return true;
 				case 'H':
-					// 'h' is also the Settler's "Raise to Hills" terraform shortcut. Prefer that
-					// when the active unit offers it on the current tile (the menu item is only
-					// present on raisable terrain); otherwise fall back to Set-Home-city.
-					if (ActivateUnitMenuShortcut("h")) return true;
+					// 'h' is also the Settler's "Raise to Hills" terraform shortcut. Inside a
+					// city it always means Set-Home-city: a city sitting on Plains satisfies
+					// the raise-terrain condition too, so the terraform used to win, zero the
+					// settler's moves and pass focus to the next unit — leaving no way to
+					// re-home it that turn. Outside a city, prefer the terraform.
+					if (Map[Game.ActiveUnit.X, Game.ActiveUnit.Y].City is null
+					    && ActivateUnitMenuShortcut("h")) return true;
 					Game.ActiveUnit.SetHome();
 					return true;
 				case 'I':

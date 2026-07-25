@@ -878,15 +878,19 @@ namespace CivOne.Units
 					yield return MenuBuildCanopyArray();
 				if (Human.HasAdvance<BioplexEngineering>() && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y)) && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean))
 					yield return MenuBuildAquafarm();
-				if (Human.HasAdvance<Geoplasticity>() && tile is Hills)
+				// Terrain-altering orders are not offered on a city tile — reshaping the
+				// ground a city stands on is meaningless, and the same convention already
+				// governs irrigation and mines. It also removed the 'h' ambiguity between
+				// "Raise to Hills" and "Home City", which share a shortcut.
+				if (Human.HasAdvance<Geoplasticity>() && tile.City is null && tile is Hills)
 					yield return MenuLowerTerrain();
-				if (Human.HasAdvance<Geoplasticity>() && tile is Plains)
+				if (Human.HasAdvance<Geoplasticity>() && tile.City is null && tile is Plains)
 					yield return MenuRaiseTerrain();
-				if (Human.HasAdvance<Bioformatting>() && (tile is Plains || tile is Grassland || tile is Desert))
+				if (Human.HasAdvance<Bioformatting>() && tile.City is null && (tile is Plains || tile is Grassland || tile is Desert))
 					yield return MenuPlantForest();
-				if (Human.HasAdvance<Bioformatting>() && tile is Forest)
+				if (Human.HasAdvance<Bioformatting>() && tile.City is null && tile is Forest)
 					yield return MenuPlantJungle();
-				if (Human.HasAdvance<Bioformatting>() && tile is Tundra)
+				if (Human.HasAdvance<Bioformatting>() && tile.City is null && tile is Tundra)
 					yield return MenuThawTundra();
 				if (Human.HasAdvance<Hydroengineering>() && !tile.IsOcean && !(tile is River) && tile.GetBorderTiles().Any(t => t is River || (t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))))
 					yield return MenuAddRiver();
