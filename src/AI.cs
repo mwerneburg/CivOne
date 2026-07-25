@@ -182,10 +182,14 @@ namespace CivOne
 				// that commitment and don't detour to found a city at the current tile.
 				if (unit.Goto.IsEmpty)
 				{
-					// Found new cities only while still expanding (below the stance city target);
-					// a built-out empire (Develop/Consolidate) terraforms its existing cities'
-					// tiles instead of founding ever-smaller towns — see BestImproveSite.
-					bool expanding = GetStance() == StrategyStance.Expand;
+					// Found new cities whenever the map still has room for them — see
+					// MayFoundCities. This used to read GetStance() == Expand, which meant a
+					// single war anywhere (or two cities in disorder) suspended colonisation
+					// entirely; since AI civs are nearly always at one or the other, their
+					// settlers spent whole games irrigating the same few tiles. Tiles within
+					// 3 of an existing city are still improved rather than settled, so the
+					// terraforming workers around a city keep doing their job.
+					bool expanding = MayFoundCities();
 					if (validCity && nearestCity > 3 && expanding)
 					{
 						DecisionLogger.LogSettlerAction(unit, "found");

@@ -77,11 +77,7 @@ namespace CivOne
 			// Expand forever, never flipped research priorities to Trade/Currency/Banking,
 			// never reached Republic, never escaped the Despotism tile penalty. The linear
 			// scale matches the civ-separation knob in Game.NewGame.cs:32 (same source).
-			int mapScale = Math.Max(1, Map.WIDTH / 80);
-			int target = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
-			           : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
-			           :                                         (4 * mapScale) + Game.Difficulty;
-			if (cities.Length < target) return StrategyStance.Expand;
+			if (cities.Length < CityTarget()) return StrategyStance.Expand;
 
 			// Past the fixed target, keep expanding as long as good unclaimed land is
 			// still reachable by land. Without this a civ freezes colonisation at the
@@ -92,6 +88,26 @@ namespace CivOne
 
 			return StrategyStance.Develop;
 		}
+
+		// The leader's preferred city count. Scales with map size and difficulty.
+		private int CityTarget()
+		{
+			int mapScale = Math.Max(1, Map.WIDTH / 80);
+			return Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
+			     : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
+			     :                                         (4 * mapScale) + Game.Difficulty;
+		}
+
+		// May our settlers found cities right now?
+		//
+		// Deliberately NOT "are we in the Expand stance". Expand is the last branch of
+		// GetStance, so being at war with anyone — or having two cities in disorder —
+		// silently forbids colonisation, and AI civs are at war or unhappy almost
+		// permanently. That is why settlers irrigated forever: 989 settlers built over
+		// one 736-turn game founded 294 cities and logged 11,338 irrigation orders,
+		// while whole continents sat empty. Whether there is somewhere worth settling
+		// is a question about the map, not about this turn's mood.
+		internal bool MayFoundCities() => Player.Cities.Length < CityTarget() || HasExpansionRoom();
 
 		// Cheap, per-turn-cached test: is there a foundable unclaimed tile reachable by
 		// land near any of our cities? Land only (same continent), habitable, and at
@@ -1547,6 +1563,24 @@ namespace CivOne
 
 		// ── full production plan for a city ────────────────────────────────────
 
+		// A settler costs one POPULATION when it completes (City.cs:1524) and then 2
+		// food per turn — 1 under Despotism/Anarchy — from its home city for as long
+		// as it lives (City.FoodCosts). Both land AFTER this check, so the old
+		// "FoodIncome >= 0" test cleared cities that go hungry the moment the settler
+		// exists, and the old "Size >= 2" gate shipped settlers out of size-2 towns
+		// that dropped straight back to 1.
+		//
+		// That is the wasting disease: a size-2 city ships a settler, falls to size 1,
+		// regrows to 2, ships another. It never accumulates, and every settler it
+		// produces keeps drawing food from it forever. Requiring size 3 leaves the
+		// city at 2 after the build; requiring FoodIncome >= upkeep means it can still
+		// feed itself afterwards.
+		private bool CanAffordSettler(City city, int minSize)
+		{
+			int upkeep = (Player.Government is Gov.Anarchy || Player.Government is Gov.Despotism) ? 1 : 2;
+			return city.Size >= minSize && city.FoodIncome >= upkeep;
+		}
+
 		private List<IProduction> PlanProduction(City city, StrategyStance stance)
 		{
 			return PlanProductionInto(new List<IProduction>(), city, stance);
@@ -1574,8 +1608,9 @@ namespace CivOne
 				// Granary feeds growth (Pottery always known for Olvir — late-era arrival).
 				if (!city.HasBuilding<Granary>()) Consider(new Granary());
 				// Keep one settler per city when below the expansion cap (30 cities).
-				// Size >= 2 and positive food required to avoid shrinking the city.
-				if (city.Size >= 2 && city.FoodIncome >= 0 && olvSettlers < Math.Max(olvCities, 4)
+				// Size 3 and food to spare: at size 2 the completed settler drops the
+				// city to 1 (see CanAffordSettler).
+				if (CanAffordSettler(city, 3) && olvSettlers < Math.Max(olvCities, 4)
 				    && !city.Units.Any(u => u is Settlers) && olvCities < 30)
 					Consider(new Settlers());
 				// HydroEngineer for ocean/floating-city founding.
@@ -1621,7 +1656,7 @@ namespace CivOne
 				int  chMilitia  = Game.GetUnits().Count(u => u.Owner == chId && u is Militia);
 				int  chSettlers = Game.GetUnits().Count(u => u.Owner == chId && u is Settlers);
 				if (chMilitia < chCities * 4) Consider(new Militia());
-				if (city.Size >= 4 && city.FoodIncome >= 0 && chSettlers < Math.Max(1, chCities / 2)) Consider(new Settlers());
+				if (CanAffordSettler(city, 4) && chSettlers < Math.Max(1, chCities / 2)) Consider(new Settlers());
 				if (!city.HasBuilding<Temple>()) Consider(new Temple());
 			}
 
@@ -1679,10 +1714,7 @@ namespace CivOne
 			// stuck in Expand stance forever (no research weight shift to Trade/Currency/Banking
 			// → never reaches Republic → permanent Despotism tile penalty → cities stay tiny).
 			// Linear map scale — see GetStance (line 71) for why area-based was wrong.
-			int mapScale = Math.Max(1, Map.WIDTH / 80);
-			int maxCities = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
-			              : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
-			              :                                         (4 * mapScale) + Game.Difficulty;
+			int maxCities = CityTarget();
 
 			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers
 			// once the city has actual mass to spend. Requiring size >= 3 (and Granary
@@ -1695,7 +1727,7 @@ namespace CivOne
 			if (ownCities < 3)
 			{
 				bool granaryReady = !Player.HasAdvance<Pottery>() || city.HasBuilding<Granary>();
-				if (city.Size >= 3 && granaryReady && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				if (granaryReady && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
@@ -1704,7 +1736,14 @@ namespace CivOne
 			// Explorer builds just churn shields with nothing useful to scout. Analytics
 			// (2026-06-06) showed 8.8% of late-game builds were Explorers, with civs of
 			// 30+ cities still pumping them out.
-			if (Player.ExploredLandFraction < 0.70)
+			//
+			// The world-wide test was the wrong measure: explorers are LAND units, so a
+			// civ on one continent of an Earth map can never walk to 70% of the world's
+			// land, the gate never closes, and it builds explorers forever. What matters
+			// is whether its own continent still holds fog — which on a small continent
+			// can be answered in the first few dozen turns. AI civs do not chase every
+			// last goody hut, so once home is charted there is nothing left to scout.
+			if (Player.ExploredHomeContinentFraction < 0.95 && Player.ExploredLandFraction < 0.70)
 			{
 				byte ownId = Game.PlayerNumber(Player);
 				int ownExplorers = Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer);
@@ -1730,7 +1769,7 @@ namespace CivOne
 			{
 				if (defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 				byte mzId = Game.PlayerNumber(Player);
-				if (city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(u => u is Settlers)
+				if (CanAffordSettler(city, 3) && !city.Units.Any(u => u is Settlers)
 				    && !Game.GetUnits().Any(u => u.Owner == mzId && u is Settlers))
 					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
@@ -1748,7 +1787,7 @@ namespace CivOne
 				            : Leader.Development == Normal          ? 4 : 4;
 				// Past the fixed cap, keep founding while reachable land remains — GetStance
 				// only holds us in Expand here because HasExpansionRoom() is already true.
-				if (city.Size >= minSize && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers)
+				if (CanAffordSettler(city, minSize) && !city.Units.Any(x => x is Settlers)
 				    && (ownCities < maxCities || HasExpansionRoom()))
 					Consider(new Settlers());
 			}
@@ -1758,10 +1797,11 @@ namespace CivOne
 			// surplus to grow past size 3 instead of stalling. Capped at ~1 per 4 cities so it
 			// doesn't crowd out economy, and only from healthy cities with mass to spend.
 			// AI.Move routes these to BestImproveSite() rather than founding new towns.
-			// Size gate is 2, not 4: size 4 is exactly what the worker exists to reach —
-			// an unirrigated city stuck at 1-3 must still be able to build its way out.
+			// Size gate is 3, not 4: size 4 is exactly what the worker exists to reach,
+			// so an unirrigated city stuck at 3 must still be able to build its way out.
+			// It is not 2 — a size-2 city drops to 1 the moment the settler completes.
 			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
-			    && city.Size >= 2 && city.FoodIncome >= 0 && !city.Units.Any(x => x is Settlers))
+			    && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);

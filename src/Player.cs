@@ -696,6 +696,44 @@ namespace CivOne
 			}
 		}
 
+		// Fraction of our HOME CONTINENTS' land that we have seen. Explorers are land
+		// units, so world-wide exploration is the wrong measure of whether there is
+		// anything left for them to walk to: a civ on one continent of an Earth map
+		// can never reach 70% of the world's land on foot, so a global test never
+		// closes and the civ keeps building explorers for the whole game.
+		//
+		// Cached per turn — this walks the map, and the production planner asks once
+		// per city per turn.
+		private int _continentSeenTurn = -1;
+		private double _continentSeenFraction;
+		internal double ExploredHomeContinentFraction
+		{
+			get
+			{
+				if (_continentSeenTurn == (int)Game.Instance.GameTurn) return _continentSeenFraction;
+				_continentSeenTurn = (int)Game.Instance.GameTurn;
+
+				HashSet<byte> home = new HashSet<byte>();
+				foreach (City c in Cities)
+				{
+					ITile? ct = Map.Instance[c.X, c.Y];
+					if (ct is not null) home.Add(ct.ContinentId);
+				}
+				if (home.Count == 0) return _continentSeenFraction = 1.0;
+
+				int land = 0, seen = 0;
+				for (int y = 0; y < Map.HEIGHT; y++)
+				for (int x = 0; x < Map.WIDTH; x++)
+				{
+					ITile t = Map.Instance[x, y];
+					if (t is null || t.IsOcean || !home.Contains(t.ContinentId)) continue;
+					land++;
+					if (_visible[x, y]) seen++;
+				}
+				return _continentSeenFraction = (land == 0 ? 1.0 : (double)seen / land);
+			}
+		}
+
 		public bool Visible(ITile? tile)
 		{
 			if (tile is null) return false;
