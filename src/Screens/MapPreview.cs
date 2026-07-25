@@ -248,29 +248,6 @@ river_min_length=0      # 0 = engine default (3)
 		// codebase; not the SP257 tile palette (which would require sampling sprites).
 		// Resulting image is a coloured thumbnail — enough to see continents, rivers, huts
 		// at a glance without depending on tile-art changes.
-		private static byte TerrainColour(ITile t)
-		{
-			if (t is null) return CassetteTheme.BG0;
-			if (t.Hut)     return CassetteTheme.ALERT;     // bright red dot
-			switch (t.Type)
-			{
-				case Terrain.Ocean:      return CassetteTheme.OCEAN;
-				case Terrain.River:      return CassetteTheme.CYAN;
-				case Terrain.Forest:     return CassetteTheme.OK;          // green
-				case Terrain.Jungle:     return CassetteTheme.PHOS_DIM;    // dim amber-green compromise
-				case Terrain.Grassland1:
-				case Terrain.Grassland2: return CassetteTheme.OK;
-				case Terrain.Plains:     return CassetteTheme.PHOS_GLOW;   // bright amber
-				case Terrain.Desert:     return CassetteTheme.PHOS;        // amber
-				case Terrain.Hills:      return CassetteTheme.INK_MID;     // tan
-				case Terrain.Mountains:  return CassetteTheme.INK_LOW;     // darker tan
-				case Terrain.Swamp:      return CassetteTheme.PHOS_FAINT;
-				case Terrain.Tundra:     return CassetteTheme.INK_HIGH;    // pale
-				case Terrain.Arctic:     return CassetteTheme.WHITE;
-				default:                 return CassetteTheme.BG3;
-			}
-		}
-
 		private void DrawMap()
 		{
 			this.Clear(CassetteTheme.BG0);
@@ -296,7 +273,7 @@ river_min_length=0      # 0 = engine default (3)
 			for (int x = 0; x < mapW; x++)
 			{
 				ITile t = Map.Instance[x, y];
-				byte c = TerrainColour(t);
+				byte c = MiniMap.TerrainColour(t);
 				this.FillRectangle(ox + x * px, oy + y * px, px, px, c);
 			}
 

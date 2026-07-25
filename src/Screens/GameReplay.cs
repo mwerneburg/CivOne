@@ -76,12 +76,7 @@ namespace CivOne.Screens
 			for (int y = 0; y < Map.HEIGHT; y++)
 			{
 				ITile tile = Map[x, y];
-				Terrain type = tile.Type;
-				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
-				bool altTile = ((x + y) % 2 == 1);
-				int tx = ((int)type) * 4;
-				int ty = altTile ? 4 : 0;
-				byte colour = Resources.WorldMapTiles.Bitmap[tx, ty];
+				byte colour = MiniMap.TerrainColour(tile);
 				_terrain.FillRectangle(ox + x * tw, oy + y * th, tw, th, colour);
 			}
 		}
@@ -373,7 +368,10 @@ namespace CivOne.Screens
 		{
 			Palette = Resources.WorldMapTiles.Palette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
-				Palette.MergePalette(cassette, 1, 17);
+			{
+				Palette.MergePalette(cassette, 1, 18);
+				Palette.MergePalette(cassette, 96, 8);
+			}
 
 			// divide screen: right column is the log panel
 			_panW = Math.Max(130, Math.Min(220, Width / 3));

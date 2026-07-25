@@ -43,12 +43,13 @@ namespace CivOne.Screens
 		public WorldMap()
 		{
 			Palette = Resources.WorldMapTiles.Palette;
-			this.Clear(5);
+			using (Palette cassette = CassetteTheme.CreatePalette())
+				Palette.MergePalette(cassette, 1, 18);
+			this.Clear(CassetteTheme.BG0);
 
-			int tileW = Math.Max(1, Width / Map.WIDTH);
-			int tileH = Math.Max(1, Height / Map.HEIGHT);
-			int ox = (Width - Map.WIDTH * tileW) / 2;
-			int oy = (Height - Map.HEIGHT * tileH) / 2;
+			int px = Math.Max(1, Math.Min(Width / Map.WIDTH, Height / Map.HEIGHT));
+			int ox = (Width - Map.WIDTH * px) / 2;
+			int oy = (Height - Map.HEIGHT * px) / 2;
 
 			for (int x = 0; x < Map.WIDTH; x++)
 			for (int y = 0; y < Map.HEIGHT; y++)
@@ -56,31 +57,23 @@ namespace CivOne.Screens
 				if (!Settings.RevealWorld && !Human.Visible(x, y)) continue;
 
 				ITile tile = Map[x, y];
-				Terrain type = tile.Type;
-				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
-				bool altTile = ((x + y) % 2 == 1);
-				int tx = ((int)type) * 4;
-				int ty = altTile ? 4 : 0;
-				byte colour = Resources.WorldMapTiles.Bitmap[tx, ty];
-
-				int dx = ox + x * tileW;
-				int dy = oy + y * tileH;
-				this.FillRectangle(dx, dy, tileW, tileH, colour);
+				int dx = ox + x * px;
+				int dy = oy + y * px;
+				this.FillRectangle(dx, dy, px, px, MiniMap.TerrainColour(tile));
 
 				City city = tile.City;
 				if (city is not null && city.Size > 0)
 				{
-					this.FillRectangle(dx, dy, tileW, tileH, Common.ColourLight[city.Owner]);
+					this.FillRectangle(dx, dy, px, px, Common.ColourLight[city.Owner]);
 				}
 				else
 				{
 					IUnit[] units = tile.Units;
 					if (units.Length > 0)
 					{
-						int iW = Math.Max(1, tileW - 1);
-						int iH = Math.Max(1, tileH - 1);
-						this.FillRectangle(dx + 1, dy + 1, iW, iH, 5)
-							.FillRectangle(dx, dy, iW, iH, Common.ColourLight[units[0].Owner]);
+						int iS = Math.Max(1, px - 1);
+						this.FillRectangle(dx + 1, dy + 1, iS, iS, CassetteTheme.BORDER)
+							.FillRectangle(dx, dy, iS, iS, Common.ColourLight[units[0].Owner]);
 					}
 				}
 			}

@@ -53,24 +53,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 					if (Settings.RevealWorld)
 					{
-						byte colour = CassetteTheme.BORDER;
-						switch (tile.Type)
-						{
-							case Terrain.Ocean:  colour = CassetteTheme.CYAN;    break;
-							case Terrain.Forest: colour = CassetteTheme.OK;      break;
-							case Terrain.Swamp:  colour = CassetteTheme.INK_LOW; break;
-							case Terrain.Plains: colour = CassetteTheme.OK;      break;
-							case Terrain.Tundra: colour = CassetteTheme.INK_HIGH; break;
-							case Terrain.River:  colour = CassetteTheme.CYAN;    break;
-							case Terrain.Grassland1:
-							case Terrain.Grassland2: colour = CassetteTheme.OK;  break;
-							case Terrain.Jungle:     colour = CassetteTheme.OK;  break;
-							case Terrain.Hills:      colour = CassetteTheme.INK_MID;  break;
-							case Terrain.Mountains:  colour = CassetteTheme.INK_HIGH; break;
-							case Terrain.Desert:     colour = CassetteTheme.PHOS_DIM; break;
-							case Terrain.Arctic:     colour = CassetteTheme.INK_HIGH; break;
-						}
-						_miniMap[xx + 1, yy + 1] = colour;
+						_miniMap[xx + 1, yy + 1] = MiniMap.TerrainColour(tile);
 					}
 					else if (Human.Visible(tile.X, tile.Y))
 					{
