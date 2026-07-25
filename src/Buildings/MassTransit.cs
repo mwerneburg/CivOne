@@ -14,6 +14,32 @@ namespace CivOne.Buildings
 {
 	internal class MassTransit : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"MASS TRANSIT eliminates the",
+			"POLLUTION caused by the city's",
+			"POPULATION entirely.",
+			"",
+			"It also improves the flow of goods",
+			"and labour, adding 20% to food and",
+			"shields.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MASS PRODUCTION.",
+			"",
+			"Population pollution grows with",
+			"size and with advanced technology,",
+			"so the largest modern cities need",
+			"this most.",
+			"",
+			"Industrial smoke is untouched by",
+			"it; that needs a RECYCLING CENTER.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public MassTransit() : base(24, 4)
 		{
 			Name = "Mass Transit";

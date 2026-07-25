@@ -13,6 +13,30 @@ namespace CivOne.Buildings
 {
 	internal class University : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A UNIVERSITY adds a further 50% to",
+			"the SCIENCE output of the city.",
+			"",
+			"Its effect stacks with the",
+			"LIBRARY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires UNIVERSITY.",
+			"",
+			"Expensive to maintain, so build it",
+			"in cities with real trade to",
+			"multiply rather than in every",
+			"settlement you own.",
+			"",
+			"COPERNICUS' OBSERVATORY doubles",
+			"the science of its city outright.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public University() : base(16, 3)
 		{
 			Name = "University";

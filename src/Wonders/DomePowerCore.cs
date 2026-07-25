@@ -14,6 +14,31 @@ namespace CivOne.Wonders
 {
 	internal class DomePowerCore : BaseWonder, IDomeComponent
 	{
+		private static readonly string[] _page1 =
+		{
+			"The first piece of the planetary",
+			"DOME — Earth's shield against what",
+			"answers the signal from the stars.",
+			"",
+			"The POWER CORE feeds the whole",
+			"structure, drawing energy enough",
+			"to hold a shield over a world.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ROBOTICS.",
+			"",
+			"The Dome is built in five pieces:",
+			"Power Core, Sensor Net, Command",
+			"Hub, Kinetic Ring, Emitter Array.",
+			"",
+			"Complete all five to raise the",
+			"Dome and hold the planet.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public DomePowerCore() : base(30)
 		{
 			Name         = "Dome Power Core";

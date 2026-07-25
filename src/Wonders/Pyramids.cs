@@ -14,6 +14,30 @@ namespace CivOne.Wonders
 {
 	internal class Pyramids : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The PYRAMIDS free your people from",
+			"the chaos of changing rulers.",
+			"",
+			"While they stand you may adopt ANY",
+			"government, and switching costs no",
+			"turns of ANARCHY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MASONRY.",
+			"",
+			"Reform your empire the moment a",
+			"new government unlocks — no",
+			"interregnum, no lost production.",
+			"",
+			"An early wonder that pays off all",
+			"game long.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Pyramids() : base(30)
 		{
 			Name = "Pyramids";

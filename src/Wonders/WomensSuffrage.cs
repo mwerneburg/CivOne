@@ -14,6 +14,28 @@ namespace CivOne.Wonders
 {
 	internal class WomensSuffrage : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"WOMEN'S SUFFRAGE reforms your",
+			"society at home.",
+			"",
+			"It eases the unhappiness your",
+			"military units cause when they",
+			"campaign far from home.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires INDUSTRIALIZATION.",
+			"",
+			"Like a POLICE STATION in every",
+			"city — it lets an aggressive",
+			"empire wage war without riots",
+			"behind the lines.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public WomensSuffrage() : base(60)
 		{
 			Name = "Women's Suffrage";

@@ -30,8 +30,12 @@ namespace CivOne.Screens
 		internal static ICivilopedia[] Improvements = Reflect.GetCivilopediaCityImprovements().OrderBy(x => x.Name).ToArray();
 		internal static ICivilopedia[] Wonders = Reflect.GetCivilopediaWonders().OrderBy(x => x.Name).ToArray();
 		internal static ICivilopedia[] Units = Reflect.GetCivilopediaUnits().OrderBy(x => x.Name).ToArray();
-		internal static ICivilopedia[] TerrainType = Reflect.GetCivilopediaTerrainTypes().OrderBy(x => x.Name).ToArray();
-		internal static ICivilopedia[] Misc = Reflect.GetConcepts().OrderBy(x => x.Name).ToArray();
+		// Lakes has no ITile of its own (lakes are freshwater ocean tiles), but it
+		// belongs with the terrain, not the game concepts — list it there.
+		internal static ICivilopedia[] TerrainType = Reflect.GetCivilopediaTerrainTypes()
+			.Concat(Reflect.GetConcepts().Where(x => x is Lakes).Cast<ICivilopedia>())
+			.OrderBy(x => x.Name).ToArray();
+		internal static ICivilopedia[] Misc = Reflect.GetConcepts().Where(x => x is not Lakes).OrderBy(x => x.Name).ToArray();
 		internal static ICivilopedia[] Complete = Reflect.GetCivilopediaAll().OrderBy(x => x.Name).ToArray();
 
 		private readonly ICivilopedia[] _pages = null!;
@@ -66,7 +70,7 @@ namespace CivOne.Screens
 
 		private string GetCategory()
 		{
-			if (_singlePage is ITile) return "Terrain Type";
+			if (_singlePage is ITile || _singlePage is Lakes) return "Terrain Type";
 			if (_singlePage is IWonder) return "Wonder of the World";
 			if (_singlePage is IBuilding) return "City Improvement";
 			if (_singlePage is IUnit) return "Military Unit";

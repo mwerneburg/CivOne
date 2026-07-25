@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class SSComponent : BaseBuilding, ISpaceShip
 	{
+		private static readonly string[] _page1 =
+		{
+			"A SPACE COMPONENT provides",
+			"PROPULSION and FUEL for a",
+			"SPACESHIP.",
+			"",
+			"More components mean a shorter",
+			"voyage to ALPHA CENTAURI.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires PLASTICS.",
+			"",
+			"Components are built in pairs of",
+			"propulsion and fuel; an unmatched",
+			"one adds nothing to your speed.",
+			"",
+			"Arriving first wins the SPACE",
+			"RACE, so travel time matters as",
+			"much as launch date.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SSComponent() : base(16)
 		{
 			Name = "SS Component";

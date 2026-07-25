@@ -14,6 +14,30 @@ namespace CivOne.Wonders
 {
 	internal class Colossus : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The COLOSSUS towers over its",
+			"harbour, drawing merchants from",
+			"every sea.",
+			"",
+			"Each tile worked by its city that",
+			"already earns TRADE earns +1 more.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires BRONZE WORKING.",
+			"",
+			"Raise it in a coastal city rich in",
+			"ocean and river tiles to make a",
+			"great center of commerce.",
+			"",
+			"FLIGHT eventually makes it",
+			"obsolete.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Colossus() : base(20)
 		{
 			Name = "Colossus";

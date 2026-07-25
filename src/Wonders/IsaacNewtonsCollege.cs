@@ -14,6 +14,27 @@ namespace CivOne.Wonders
 {
 	internal class IsaacNewtonsCollege : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"ISAAC NEWTON'S COLLEGE crowns your",
+			"city as a seat of science.",
+			"",
+			"It greatly increases the SCIENCE",
+			"that city produces.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires THEORY OF GRAVITY.",
+			"",
+			"Pair it with COPERNICUS'",
+			"OBSERVATORY in a city full of",
+			"libraries to race through the",
+			"tech tree.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public IsaacNewtonsCollege() : base(40)
 		{
 			Name = "Isaac Newton's College";

@@ -131,6 +131,30 @@ namespace CivOne.Units
 			}
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The EXPLORER roams freely to chart",
+			"the unknown.",
+			"",
+			"It ignores enemy ZONES OF CONTROL,",
+			"slipping past armies that would",
+			"halt other units, and cannot",
+			"attack.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Send Explorers to lift the fog",
+			"from distant lands, find HUTS,",
+			"and scout an enemy before you",
+			"march.",
+			"",
+			"Cheap, fast, and fearless — but",
+			"defenceless if cornered.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Explorer() : base(2, 0, 1, 2)
 		{
 			Type = UnitType.Explorer;

@@ -18,6 +18,29 @@ namespace CivOne.Units
 	// gives up. Ancient navies fear it; ironclads make it a trophy.
 	internal class Leviathan : BaseUnitSea
 	{
+		private static readonly string[] _page1 =
+		{
+			"The LEVIATHAN is a horror of the",
+			"deep, called up from the sea-floor",
+			"dark.",
+			"",
+			"It cannot be built. It surfaces",
+			"when the LIGHTHOUSE shines too",
+			"long over the wrong waters.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"It hunts and wrecks ships that",
+			"cross its ocean, a terror to any",
+			"fleet, until it is hunted down",
+			"in turn.",
+			"",
+			"The sea keeps what it is owed.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Leviathan() : base(20, 8, 6, 2)   // never priced for sale; attack 8, defense 6, move 2
 		{
 			Type = UnitType.Leviathan;

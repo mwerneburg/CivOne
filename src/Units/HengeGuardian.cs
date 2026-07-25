@@ -18,6 +18,28 @@ namespace CivOne.Units
 	// will need most of their strength to manage that.
 	internal class HengeGuardian : BaseUnitLand
 	{
+		private static readonly string[] _page1 =
+		{
+			"The GUARDIAN is an ancient thing",
+			"woken from the old stones.",
+			"",
+			"It cannot be built. It rises when",
+			"STONEHENGE draws the wrong kind",
+			"of attention.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Bound to the henge that woke it,",
+			"the Guardian strikes at those who",
+			"disturb its circle.",
+			"",
+			"The oldest monuments keep the",
+			"oldest debts.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public HengeGuardian() : base(20, 12, 8, 1)   // never priced for sale; attack 12, defense 8, move 1
 		{
 			Type = UnitType.HengeGuardian;

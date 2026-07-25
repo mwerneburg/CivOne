@@ -13,6 +13,28 @@ namespace CivOne.Buildings
 {
 	internal class SamBattery : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A SAM BATTERY rings the city with",
+			"surface-to-air missiles.",
+			"",
+			"It sharply improves the city's",
+			"defence against enemy AIRCRAFT",
+			"and missiles.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ROCKETRY.",
+			"",
+			"Pair a SAM Battery with CITY WALLS",
+			"and SDI DEFENSE to shield a",
+			"capital from land, air, and",
+			"warhead alike.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SamBattery() : base(15, 3)
 		{
 			Name = "SAM Battery";

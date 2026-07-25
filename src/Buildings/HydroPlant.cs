@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class HydroPlant : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A HYDRO PLANT lets a FACTORY add",
+			"100% to shield production instead",
+			"of 50%.",
+			"",
+			"It also HALVES the pollution that",
+			"industry produces.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ELECTRONICS.",
+			"",
+			"Clean and safe, but it may only be",
+			"built by a city beside a river or",
+			"mountains.",
+			"",
+			"The HOOVER DAM acts as a hydro",
+			"plant in every city on its",
+			"continent.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public HydroPlant() : base(24, 4)
 		{
 			Name = "Hydro Plant";

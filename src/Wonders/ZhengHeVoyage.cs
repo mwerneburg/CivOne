@@ -16,6 +16,28 @@ namespace CivOne.Wonders
 	// Requires MapMaking (primary) + Writing (secondary).
 	internal class ZhengHeVoyage : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"ZHENG HE'S VOYAGE sends a great",
+			"treasure fleet across the sea.",
+			"",
+			"It reveals the nearest foreign",
+			"continent and opens an embassy",
+			"with a people living there.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MAP MAKING and WRITING.",
+			"Build only in a COASTAL city.",
+			"",
+			"Where Marco Polo charts home",
+			"waters, Zheng He reaches the far",
+			"shores — first contact by sail.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public ZhengHeVoyage() : base(20)
 		{
 			Name = "Zheng He's Voyage";

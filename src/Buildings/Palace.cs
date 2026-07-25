@@ -19,6 +19,32 @@ namespace CivOne.Buildings
 			Maintenance = 0;
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The PALACE marks your CAPITAL.",
+			"",
+			"The city holding it suffers NO",
+			"CORRUPTION, and corruption in every",
+			"other city grows with its distance",
+			"from here.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MASONRY.",
+			"",
+			"Your first city begins with one.",
+			"Building a palace elsewhere moves",
+			"the capital, and the old one is",
+			"lost.",
+			"",
+			"Under COMMUNISM distance no longer",
+			"matters, and the palace instead",
+			"halves corruption where it stands.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Palace() : base(20, 5)
 		{
 			Name = "Palace";

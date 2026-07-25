@@ -14,6 +14,28 @@ namespace CivOne.Wonders
 {
 	internal class MichelangelosChapel : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"MICHELANGELO'S CHAPEL is a marvel",
+			"of sacred art.",
+			"",
+			"It acts as a CATHEDRAL in every",
+			"city on the SAME CONTINENT,",
+			"calming their citizens.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires RELIGION.",
+			"",
+			"One chapel spares the cost of",
+			"cathedrals across a continent — a",
+			"cornerstone of a happy, sprawling",
+			"empire.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public MichelangelosChapel() : base(30)
 		{
 			Name = "Michelangelo's Chapel";

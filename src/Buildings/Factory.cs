@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class Factory : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A FACTORY adds 50% to the SHIELD",
+			"production of the city.",
+			"",
+			"With a POWER PLANT, HYDRO PLANT or",
+			"NUCLEAR PLANT it adds 100%",
+			"instead.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires INDUSTRIALIZATION.",
+			"",
+			"Industry breeds POLLUTION. Expect",
+			"smoke on your tiles, and plan for",
+			"a MASS TRANSIT or RECYCLING",
+			"CENTER.",
+			"",
+			"The HOOVER DAM powers every",
+			"factory on its continent.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Factory() : base(20, 4)
 		{
 			Name = "Factory";

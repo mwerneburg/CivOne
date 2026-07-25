@@ -14,6 +14,27 @@ namespace CivOne.Wonders
 {
 	internal class HooverDam : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"HOOVER DAM harnesses a continent's",
+			"rivers for power.",
+			"",
+			"Every city on the SAME CONTINENT",
+			"gains the benefit of a POWER",
+			"PLANT, boosting production.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ELECTRONICS.",
+			"",
+			"One wonder electrifies a whole",
+			"continent — and unlike a power",
+			"plant, it makes no pollution.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public HooverDam() : base(60)
 		{
 			Name = "Hoover Dam";

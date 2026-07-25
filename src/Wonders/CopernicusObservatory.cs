@@ -14,6 +14,27 @@ namespace CivOne.Wonders
 {
 	internal class CopernicusObservatory : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"COPERNICUS' OBSERVATORY turns its",
+			"city into a seat of learning.",
+			"",
+			"It greatly increases the SCIENCE",
+			"that city produces.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ASTRONOMY.",
+			"",
+			"Build it in a large city with a",
+			"LIBRARY and UNIVERSITY, then add",
+			"ISAAC NEWTON'S COLLEGE for a",
+			"research powerhouse.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public CopernicusObservatory() : base(30)
 		{
 			Name = "Copernicus' Observatory";

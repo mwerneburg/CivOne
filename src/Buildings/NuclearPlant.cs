@@ -14,6 +14,30 @@ namespace CivOne.Buildings
 {
 	internal class NuclearPlant : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A NUCLEAR PLANT lets a FACTORY add",
+			"100% to shield production instead",
+			"of 50%, and HALVES industrial",
+			"pollution.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires NUCLEAR POWER.",
+			"",
+			"A nuclear plant may MELT DOWN,",
+			"devastating the city. The risk",
+			"ends once FUSION POWER is",
+			"discovered.",
+			"",
+			"A HYDRO PLANT does the same work",
+			"with no such danger, where the",
+			"terrain allows one.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public NuclearPlant() : base(16, 2)
 		{
 			Name = "Nuclear Plant";

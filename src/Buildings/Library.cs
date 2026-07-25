@@ -14,6 +14,29 @@ namespace CivOne.Buildings
 {
 	internal class Library : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A LIBRARY adds 50% to the SCIENCE",
+			"output of the city, hastening every",
+			"advance you research.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires WRITING.",
+			"",
+			"Its effect stacks with the",
+			"UNIVERSITY and the OBSERVATORY.",
+			"",
+			"ISAAC NEWTON'S COLLEGE raises the",
+			"bonus of each to two thirds.",
+			"",
+			"THE GREAT LIBRARY requires five",
+			"of your cities to hold one.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Library() : base(8, 1)
 		{
 			Name = "Library";

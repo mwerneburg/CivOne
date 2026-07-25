@@ -13,30 +13,32 @@ namespace CivOne.Concepts
 	{
 		private static readonly string[] _page1 =
 		{
-			"A game of CIVILIZATION can be won",
-			"in several ways:",
+			"CIVILIZATION can be won several",
+			"ways:",
 			"",
-			"CONQUEST — outlast every rival so",
-			"yours is the last civilization",
-			"standing on Earth.",
-			"",
-			"SPACE RACE — build a spaceship and",
-			"be first to reach Alpha Centauri.",
+			"CONQUEST — be the last civ left.",
+			"SPACE RACE — first to Alpha",
+			"Centauri.",
+			"SCORE — lead the world at 2100 AD.",
+			"PAX MERCATORIA — dominate the",
+			"world's economy.",
 		};
 
 		private static readonly string[] _page2 =
 		{
-			"SCORE — reach the year 2100 AD and",
-			"the highest-scoring civilization",
-			"wins the game.",
+			"CONQUEST outlasts or destroys all",
+			"rival civilizations.",
 			"",
-			"PAX MERCATORIA — command over half",
-			"the world's economy for 20 turns,",
-			"with Banking, no war you started,",
-			"and rivals bound to your trade.",
+			"SPACE RACE: build a spaceship and",
+			"reach Alpha Centauri first.",
 			"",
-			"Lose every city and unit, and you",
-			"are defeated.",
+			"PAX MERCATORIA rewards commerce,",
+			"not cannon: half the world's",
+			"output for 20 turns, with Banking,",
+			"no war you started, and rivals",
+			"bound to your trade.",
+			"",
+			"Lose all cities and units: defeat.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;

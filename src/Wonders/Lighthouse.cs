@@ -14,6 +14,29 @@ namespace CivOne.Wonders
 {
 	internal class Lighthouse : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The LIGHTHOUSE guides your ships",
+			"through dangerous waters.",
+			"",
+			"Your naval units sail the open sea",
+			"safely and put out as VETERANS.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires MAP MAKING.",
+			"",
+			"But a light that burns too long",
+			"over the wrong waters may wake the",
+			"LEVIATHAN from the deep.",
+			"",
+			"Obsolete once MAGNETISM brings the",
+			"compass.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Lighthouse() : base(20)
 		{
 			Name = "Lighthouse";

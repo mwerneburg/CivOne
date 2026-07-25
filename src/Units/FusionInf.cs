@@ -17,6 +17,27 @@ namespace CivOne.Units
 	// it alongside the armour it supports.
 	internal class FusionInf : BaseUnitLand
 	{
+		private static readonly string[] _page1 =
+		{
+			"FUSION INFANTRY are the foot",
+			"soldiers of a fusion-age army.",
+			"",
+			"Powered armour makes them a",
+			"formidable defender, far tougher",
+			"than mechanised infantry.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires FUSION POWER.",
+			"",
+			"Garrison your cities with Fusion",
+			"Infantry to hold them against the",
+			"heaviest late-game assaults.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public FusionInf() : base(6, 6, 10, 4)   // price 60, attack 6, defense 10, move 4
 		{
 			Type = UnitType.FusionInf;

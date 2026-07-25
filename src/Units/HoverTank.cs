@@ -19,6 +19,28 @@ namespace CivOne.Units
 	{
 		public override bool IgnoresTerrainCost => true;
 
+		private static readonly string[] _page1 =
+		{
+			"The HOVER TANK skims above the",
+			"ground on antigravity, striking",
+			"hard and moving fast.",
+			"",
+			"Among the most powerful land",
+			"units, it ignores the terrain",
+			"that slows lesser armour.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"A late-age war machine.",
+			"",
+			"Spearhead your offensives with",
+			"Hover Tanks — they cross rough",
+			"country as easily as open plain.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public HoverTank() : base(9, 14, 8, 4)   // price 90, attack 14, defense 8, move 4
 		{
 			Type = UnitType.HoverTank;

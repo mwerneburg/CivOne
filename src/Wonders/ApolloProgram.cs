@@ -14,6 +14,27 @@ namespace CivOne.Wonders
 {
 	internal class ApolloProgram : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The APOLLO PROGRAM carries your",
+			"people to the Moon.",
+			"",
+			"The whole world map is revealed,",
+			"and every civilization may begin",
+			"building a SPACESHIP.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires SPACE FLIGHT.",
+			"",
+			"It opens the SPACE RACE for all —",
+			"so build it only when your own",
+			"launch pads are ready to answer.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public ApolloProgram() : base(60)
 		{
 			Name = "Apollo Program";

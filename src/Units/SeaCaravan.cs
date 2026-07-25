@@ -79,6 +79,28 @@ namespace CivOne.Units
 			return true;
 		}
 
+		private static readonly string[] _page1 =
+		{
+			"The SEA CARAVAN is a merchant",
+			"ship — a CARAVAN that goes by sea.",
+			"",
+			"Sail it to a distant or foreign",
+			"city to establish a TRADE ROUTE,",
+			"or to help complete a WONDER.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Sea Caravans carry commerce across",
+			"oceans no land caravan could",
+			"cross.",
+			"",
+			"They cannot fight; escort them",
+			"through dangerous waters.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SeaCaravan() : base(5, 0, 1, 3, 1)
 		{
 			Type = UnitType.SeaCaravan;

@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class SSModule : BaseBuilding, ISpaceShip
 	{
+		private static readonly string[] _page1 =
+		{
+			"A SPACE MODULE houses the",
+			"colonists, their life support and",
+			"the solar panels that keep them",
+			"alive.",
+			"",
+			"Modules decide how many settlers",
+			"arrive at ALPHA CENTAURI.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ROBOTICS.",
+			"",
+			"Habitation, life support and solar",
+			"panels must be balanced. Colonists",
+			"without life support do not",
+			"survive the journey.",
+			"",
+			"The costliest spaceship part.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public SSModule() : base(32)
 		{
 			Name = "SS Module";

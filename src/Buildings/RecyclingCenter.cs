@@ -14,6 +14,29 @@ namespace CivOne.Buildings
 {
 	internal class RecyclingCenter : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A RECYCLING CENTER cuts the",
+			"POLLUTION produced by the city's",
+			"INDUSTRY to a THIRD.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires RECYCLING.",
+			"",
+			"The strongest cure for industrial",
+			"smoke, and the right answer for a",
+			"city with a factory and a",
+			"manufacturing plant.",
+			"",
+			"It does nothing about population",
+			"pollution; that needs MASS",
+			"TRANSIT.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public RecyclingCenter() : base(20, 2)
 		{
 			Name = "Recycling Cntr.";

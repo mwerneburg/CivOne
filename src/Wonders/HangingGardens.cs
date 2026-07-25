@@ -14,6 +14,27 @@ namespace CivOne.Wonders
 {
 	internal class HangingGardens : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The HANGING GARDENS are a wonder",
+			"of green amid the city stone.",
+			"",
+			"Every city in your empire gains",
+			"HAPPINESS, easing unrest across",
+			"the realm.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires POTTERY.",
+			"",
+			"An early happiness wonder that",
+			"buys room to grow before Temples",
+			"and Colosseums are built.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public HangingGardens() : base(30)
 		{
 			Name = "Hanging Gardens";

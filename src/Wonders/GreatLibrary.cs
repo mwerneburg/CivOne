@@ -14,6 +14,28 @@ namespace CivOne.Wonders
 {
 	internal class GreatLibrary : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The GREAT LIBRARY gathers the",
+			"world's knowledge under one roof.",
+			"",
+			"It gives you for FREE any advance",
+			"that most other civilizations",
+			"already know.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires LITERACY.",
+			"",
+			"Let rivals do your research: the",
+			"Library hands you their common",
+			"advances, until the world outpaces",
+			"it and it falls obsolete.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public GreatLibrary() : base(30)
 		{
 			Name = "Great Library";

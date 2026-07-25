@@ -14,6 +14,31 @@ namespace CivOne.Buildings
 {
 	internal class MfgPlant : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"A MANUFACTURING PLANT adds a",
+			"further 100% to the SHIELD",
+			"production of the city.",
+			"",
+			"Its effect stacks with the",
+			"FACTORY.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires ROBOTICS.",
+			"",
+			"The most powerful production",
+			"building in the game, and the most",
+			"expensive to build and maintain.",
+			"",
+			"Reserve it for a handful of great",
+			"workshop cities. It pollutes",
+			"heavily.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public MfgPlant() : base(32, 6)
 		{
 			Name = "Mfg. Plant";

@@ -14,6 +14,29 @@ namespace CivOne.Wonders
 {
 	internal class DomeSensorNet : BaseWonder, IDomeComponent
 	{
+		private static readonly string[] _page1 =
+		{
+			"A piece of the planetary DOME.",
+			"",
+			"The SENSOR NET wraps the sky in a",
+			"lattice of detectors, tracking",
+			"every object falling toward Earth",
+			"long before it arrives.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires SUPERCONDUCTORS.",
+			"",
+			"One of the five Dome pieces: Power",
+			"Core, Sensor Net, Command Hub,",
+			"Kinetic Ring, and Emitter Array.",
+			"",
+			"Raise all five to complete it.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public DomeSensorNet() : base(30)
 		{
 			Name         = "Dome Sensor Net";

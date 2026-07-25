@@ -14,26 +14,25 @@ namespace CivOne.Concepts
 		private static readonly string[] _page1 =
 		{
 			"POLLUTION appears on tiles worked",
-			"by crowded, smoky cities and from",
-			"heavy production.",
+			"by crowded, smoky cities and heavy",
+			"production.",
 			"",
 			"A polluted tile yields far less",
-			"food, shields, and trade until it",
-			"is cleaned.",
+			"until SETTLERS clean it.",
 			"",
-			"SETTLERS remove pollution.",
+			"Unchecked, it risks GLOBAL WARMING",
+			"that ruins terrain worldwide.",
 		};
 
 		private static readonly string[] _page2 =
 		{
-			"Left unchecked, pollution raises",
-			"the risk of GLOBAL WARMING, which",
-			"turns lush terrain to desert and",
-			"swamp across the world.",
+			"GLOBAL WARMING turns lush land to",
+			"desert and swamp across the map —",
+			"a slow disaster for everyone.",
 			"",
-			"Cut it at the source with",
+			"Cut pollution at the source with",
 			"RECYCLING CENTERS, MASS TRANSIT,",
-			"and clean power.",
+			"and clean power plants.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;

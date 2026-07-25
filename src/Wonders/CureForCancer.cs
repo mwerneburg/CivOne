@@ -14,6 +14,26 @@ namespace CivOne.Wonders
 {
 	internal class CureForCancer : BaseWonder
 	{
+		private static readonly string[] _page1 =
+		{
+			"The CURE FOR CANCER lifts a great",
+			"fear from all humanity.",
+			"",
+			"Every city in your empire gains",
+			"one more HAPPY citizen.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires GENETIC ENGINEERING.",
+			"",
+			"Empire-wide contentment lets you",
+			"run larger cities and spend less",
+			"trade on LUXURIES.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public CureForCancer() : base(60)
 		{
 			Name = "Cure for Cancer";

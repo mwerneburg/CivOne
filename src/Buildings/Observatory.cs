@@ -13,6 +13,29 @@ namespace CivOne.Buildings
 {
 	internal class Observatory : BaseBuilding
 	{
+		private static readonly string[] _page1 =
+		{
+			"An OBSERVATORY turns a city's eyes",
+			"to the heavens, adding to its",
+			"SCIENCE output.",
+			"",
+			"Astronomers here chart the stars",
+			"and sharpen every advance the",
+			"city funds.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires COMPUTERS.",
+			"",
+			"When enough Observatories watch",
+			"the sky across the world, together",
+			"they may catch a signal that is",
+			"not natural...",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Observatory() : base(16, 3)
 		{
 			Name = "Observatory";

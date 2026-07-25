@@ -14,6 +14,30 @@ namespace CivOne.Wonders
 {
 	internal class DomeEmitterArray : BaseWonder, IDomeComponent
 	{
+		private static readonly string[] _page1 =
+		{
+			"The last piece of the planetary",
+			"DOME.",
+			"",
+			"The EMITTER ARRAY casts the shield",
+			"itself — a canopy of fusion fire",
+			"between Earth and the dark.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires FUSION POWER.",
+			"",
+			"With the Emitter Array the five",
+			"Dome pieces are complete: the Dome",
+			"rises and Earth is held against",
+			"all who would claim it.",
+			"",
+			"A victory that never leaves home.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public DomeEmitterArray() : base(30)
 		{
 			Name         = "Dome Emitter Array";

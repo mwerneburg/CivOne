@@ -17,6 +17,28 @@ namespace CivOne.Buildings
 	{
 		private static Picture? _iconCache = null;
 		
+		private static readonly string[] _page1 =
+		{
+			"A POWER PLANT lets a FACTORY add",
+			"100% to shield production instead",
+			"of 50%.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Requires REFINING.",
+			"",
+			"The dirtiest of the three plants:",
+			"it does nothing to reduce",
+			"pollution, and coal smoke is",
+			"added to the factory's own.",
+			"",
+			"Replace it with a HYDRO or NUCLEAR",
+			"plant when you can.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public PowerPlant() : base(16, 4)
 		{
 			Name = "Power Plant";
