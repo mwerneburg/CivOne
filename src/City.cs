@@ -205,7 +205,7 @@ namespace CivOne
 			get
 			{
 				IGovernment government = Game.GetPlayer(_owner).Government;
-				if (government is Anarchy || government is Despotism)
+				if (government.PrimitiveUnitUpkeep)
 				{
 					int costs = 0;
 					for (int i = 0; i < Units.Count(u => (!(u is Diplomat) && !(u is ICaravan))); i++)
@@ -227,14 +227,7 @@ namespace CivOne
 			{
 				int costs = (_size * 2);
 				IGovernment government = Game.GetPlayer(_owner).Government;
-				if (government is Anarchy || government is Despotism)
-				{
-					costs += Units.Count(u => (u is Settlers));
-				}
-				else
-				{
-					costs += (Units.Count(u => (u is Settlers)) * 2);
-				}
+				costs += Units.Count(u => (u is Settlers)) * government.SettlerFoodCost;
 				return costs;
 			}
 		}
@@ -357,25 +350,20 @@ namespace CivOne
 				case Terrain.Grassland2:
 				case Terrain.Plains:
 					if (!tile.Road) break;
-					if (Player.RepublicDemocratic) output += 1;
+					output += Player.Government.TradeBonus;
 					break;
 				case Terrain.Ocean:
 					if (Player.HasAdvance<Trade>()) output += 1;
-					if (Player.RepublicDemocratic) output += 1;
+					output += Player.Government.TradeBonus;
 					break;
 				case Terrain.River:
 					output += 1; // rivers are natural trade corridors regardless of government
-					if (Player.RepublicDemocratic) output += 1;
+					output += Player.Government.TradeBonus;
 					break;
 				case Terrain.Jungle:
-					if (!tile.Special) break;
-					if (Player.MonarchyCommunist) output += 1;
-					if (Player.RepublicDemocratic) output += 2;
-					break;
 				case Terrain.Mountains:
 					if (!tile.Special) break;
-					if (Player.MonarchyCommunist) output += 1;
-					if (Player.RepublicDemocratic) output += 2;
+					output += Player.Government.SpecialResourceTradeBonus;
 					break;
 			}
 			if (output > 0 && HasWonder<Colossus>() && !Game.WonderObsolete<Colossus>()) output += 1;
@@ -458,8 +446,8 @@ namespace CivOne
 				int distance;
 				switch (government)
 				{
-					case Governments.Communism _:
-						distance = 10;
+					case IGovernment g when g.FixedCorruptionDistance is int fixedDistance:
+						distance = fixedDistance;
 						break;
 					default:
 						if (HasBuilding<Palace>()) return 0;
@@ -477,7 +465,7 @@ namespace CivOne
 				int totalTrade = RawTrade;
 				int corruption = (int)Math.Round((float)(totalTrade * distance * 3) / (10 * government.CorruptionMultiplier));
 
-				if (HasBuilding<Courthouse>() || (HasBuilding<Palace>() && government is Governments.Communism)) corruption /= 2;
+				if (HasBuilding<Courthouse>() || (HasBuilding<Palace>() && government.PalaceHalvesCorruption)) corruption /= 2;
 
 				return corruption;
 			}
@@ -526,6 +514,10 @@ namespace CivOne
 				// The Internet: every mind in the empire, one conversation.
 				if (Player.HasWonder<TheInternet>()) science += (short)Math.Floor((double)science * 0.25);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
+				// Government research bias, applied last so it lifts the whole city's
+				// output — buildings, wonders and scientists alike.
+				int govBonus = Player.Government.ScienceBonus;
+				if (govBonus != 0) science += (short)Math.Floor(science * (govBonus / 100.0));
 				return (_cachedScience = science).Value;
 			}
 		}
@@ -976,14 +968,14 @@ namespace CivOne
 			const int RedShirtStep = 12;                 // +1 unhappy per this many beyond
 			if (empireCities > RedShirtFree)
 				unhappyCount += (empireCities - RedShirtFree) / RedShirtStep;
-			if (Player.RepublicDemocratic)
+			if (Player.Government.WarWeariness > 0)
 			{
-				int penalty = Player.Government is Governments.Democracy ? 2 : 1;
+				int penalty = Player.Government.WarWeariness;
 				if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
 				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
 				unhappyCount += militaryAway * penalty;
 			}
-			else
+			else if (Player.Government.MartialLaw)
 			{
 				// Martial law (Civ 1): under authoritarian rule (Anarchy/Despotism/
 				// Monarchy/Communism) each garrisoned military unit keeps one citizen
@@ -1337,7 +1329,7 @@ namespace CivOne
 							}
 							break;
 						case 3:
-							if (Player.Government is Governments.Republic || Player.Government is Governments.Democracy)
+							if (Player.Government.CollapsesInDisorder)
 							{
 								Player.Revolt();
 								if (Player == Human)
@@ -1364,7 +1356,7 @@ namespace CivOne
 				{
 					WasWeLoveKing = true;
 					// First-time benefit: growth or caravan (only with positive food income)
-					if (Player.Government is Governments.Democracy || Player.Government is Republic)
+					if (Player.Government.CelebrationGrowsCity)
 					{
 						if (foodIncome > 0)
 						{

@@ -52,6 +52,12 @@ namespace CivOne.Governments
 		public Democracy() : base(5, "Democracy", "Democratic", new Advances.Democracy())
 		{
 			CorruptionMultiplier = 0;
+			TradeBonus = 1;
+			WarWeariness = 2;
+			MartialLaw = false;
+			CollapsesInDisorder = true;
+			CelebrationGrowsCity = true;
+			SpecialResourceTradeBonus = 2;
 		}
 	}
 }

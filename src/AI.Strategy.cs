@@ -409,8 +409,12 @@ namespace CivOne
 				return stance == StrategyStance.Develop ? 5 : 2;
 			if (gov is Gov.Republic)
 				return stance == StrategyStance.Develop ? 4 : 3;
+			// Communism now carries a 50% science bonus (see Governments/Communism),
+			// so it is a research government as well as a wartime one — worth as much
+			// to a builder as the Republic, without the war weariness.
 			if (gov is Gov.Communism)
-				return stance == StrategyStance.Militarize ? 4 : 3;
+				return stance == StrategyStance.Militarize ? 5
+				     : stance == StrategyStance.Develop    ? 4 : 3;
 			if (gov is Gov.Monarchy)
 				return stance == StrategyStance.Militarize || stance == StrategyStance.Expand ? 5 : 3;
 			if (gov is Gov.Despotism)

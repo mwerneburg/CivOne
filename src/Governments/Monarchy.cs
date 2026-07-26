@@ -14,6 +14,8 @@ namespace CivOne.Governments
 		public Monarchy() : base(2, "Monarchy", new Advances.Monarchy())
 		{
 			CorruptionMultiplier = 16;
+			MartialLaw = true;
+			SpecialResourceTradeBonus = 1;
 		}
 	}
 }

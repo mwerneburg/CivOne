@@ -14,6 +14,10 @@ namespace CivOne.Governments
 		public Despotism() : base(1, "Despotism")
 		{
 			CorruptionMultiplier = 8;
+			TilePenalty = true;
+			PrimitiveUnitUpkeep = true;
+			SettlerFoodCost = 1;
+			MartialLaw = true;
 		}
 	}
 }

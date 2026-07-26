@@ -14,6 +14,10 @@ namespace CivOne.Governments
 		public Anarchy() : base(0, "Anarchy")
 		{
 			CorruptionMultiplier = 12;
+			TilePenalty = true;
+			PrimitiveUnitUpkeep = true;
+			SettlerFoodCost = 1;
+			MartialLaw = true;
 		}
 	}
 }

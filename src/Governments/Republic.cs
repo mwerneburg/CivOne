@@ -57,6 +57,12 @@ namespace CivOne.Governments
 		public Republic() : base(4, "Republic", new TheRepublic())
 		{
 			CorruptionMultiplier = 24;
+			TradeBonus = 1;
+			WarWeariness = 1;
+			MartialLaw = false;
+			CollapsesInDisorder = true;
+			CelebrationGrowsCity = true;
+			SpecialResourceTradeBonus = 2;
 		}
 	}
 }

@@ -69,11 +69,17 @@ namespace CivOne
 
 		internal short StartX { get; set; }
 		
-		internal bool AnarchyDespotism => Game.Started && (Government is Anarchy || Government is Despotism);
+		// Kept as a helper, but now asks the GOVERNMENT whether it penalises tiles
+		// rather than matching on its type — so a new government declaring
+		// TilePenalty gets the same treatment without editing City.cs.
+		internal bool AnarchyDespotism => Game.Started && Government.TilePenalty;
 
-		internal bool MonarchyCommunist => Game.Started && (Government is Gov.Monarchy || Government is Gov.Communism);
 
-		internal bool RepublicDemocratic => Game.Started && (Government is Republic || Government is Gov.Democracy);
+		// Historical name: the set is still exactly Republic and Democracy, but the
+		// test is now what the callers actually mean — "war is politically costly
+		// for me", which is what WarWeariness encodes. A new government that taxes
+		// its people for foreign wars gets the same AI treatment automatically.
+		internal bool RepublicDemocratic => Game.Started && Government.WarWeariness > 0;
 
 		public ICivilization Civilization => _civilization;
 		
