@@ -16,7 +16,13 @@ using CivOne.Units;
 
 namespace CivOne.Screens
 {
-	[Expand]
+	// Modal: these are full-screen views, but without it RuntimeHandler.OnDraw
+	// composites every screen's bitmap — the GamePlay screen underneath included —
+	// while using a SINGLE palette taken from the top screen. The game map behind
+	// was therefore drawn through this screen's palette, which is the "background
+	// palette goes wrong" symptom. Modal draws this screen alone, matching
+	// Civilopedia ([Modal, OwnPalette, Expand]).
+	[Modal, Expand]
 	internal class WorldMap : BaseScreen
 	{
 		private bool _update = true;
