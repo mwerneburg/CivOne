@@ -138,7 +138,20 @@ namespace CivOne
 		{
 			if (y < 2 || y > (HEIGHT - 3)) return false;
 			//return ModGrid(x, y) == ((x / 4) * 13 + (y / 4) * 11 + _terrainMasterWord + 8) % 32;
-			return ModGrid(x, y) == ((x / 4) * 26 + (y / 4) * 22 + _terrainMasterWord + 8) % 50;
+			//
+			// The modulus IS the hut density: ModGrid returns 0-15, so one tile per
+			// 4x4 block qualifies only when the right-hand side falls in that range,
+			// which works out to 1 hut per `modulus` land tiles. It was the constant
+			// 50, tuned for the original 80x50 board — so hut COUNT grew with map
+			// AREA, and Epic (320x200) got ~395 huts against the classic board's ~30.
+			// At 25% odds of an "advanced tribe" that is a lot of free cities.
+			//
+			// Using HEIGHT makes the count grow with map WIDTH instead: 4x the huts
+			// on Epic, matching the linear mapScale (WIDTH/80) the AI already uses
+			// for city targets and civ separation. On the original 80x50 board HEIGHT
+			// is 50, so this is exactly the old behaviour. Floor of 16 because a
+			// modulus below ModGrid's range would distort the pattern.
+			return ModGrid(x, y) == ((x / 4) * 26 + (y / 4) * 22 + _terrainMasterWord + 8) % Math.Max(16, HEIGHT);
 		}
 
 		private int[,] GenerateLandMass()

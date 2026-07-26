@@ -683,6 +683,12 @@ namespace CivOne
 		{
 			get
 			{
+				// Apollo reveals the whole map to everyone (see Visible), but _visible
+				// still only records tiles this civ actually walked — so without this
+				// the fraction understates by everything Apollo granted, and the AI
+				// keeps building scouts for a map it can already see in full.
+				if (Game.WonderBuilt<ApolloProgram>()) return 1.0;
+
 				int land = 0, seen = 0;
 				for (int y = 0; y < Map.HEIGHT; y++)
 				for (int x = 0; x < Map.WIDTH; x++)
@@ -710,6 +716,7 @@ namespace CivOne
 		{
 			get
 			{
+				if (Game.WonderBuilt<ApolloProgram>()) return 1.0;   // see ExploredLandFraction
 				if (_continentSeenTurn == (int)Game.Instance.GameTurn) return _continentSeenFraction;
 				_continentSeenTurn = (int)Game.Instance.GameTurn;
 

@@ -128,6 +128,11 @@ namespace CivOne.Units
 
 		protected void TribalHut(HutResult result = HutResult.Random)
 		{
+			// Log the resolved outcome only — the Random entry recurses into a concrete
+			// one below, so logging on entry would double-count every hut.
+			if (result != HutResult.Random)
+				DecisionLogger.LogHut(this, result.ToString());
+
 			switch(result)
 			{
 				case HutResult.MetalDeposits:

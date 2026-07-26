@@ -181,6 +181,43 @@ namespace CivOne
 			}));
 		}
 
+		// Goody hut outcomes. "AdvancedTribe" founds a city outright (Orders.NewCity in
+		// BaseUnitLand.TribalHut) without any settler, so it leaves no trace in the
+		// settler log — a civ's city count can climb with no matching "found" action.
+		// Logging the outcome here makes free cities directly countable instead of
+		// inferred from the gap.
+		internal static void LogHut(IUnit? unit, string outcome)
+		{
+			if (!_active) return;
+			if (unit is null) return;
+			ITile? tile = unit.Tile;
+			if (tile is null) return;
+
+			Game game = Game.Instance;
+			Player? ownerPlayer = game?.GetPlayer(unit.Owner);
+			City[] cities = game?.GetCities() ?? Array.Empty<City>();
+			int nearestCity = cities.Length > 0
+				? cities.Min(c => Common.DistanceToTile(c.X, c.Y, tile.X, tile.Y))
+				: 255;
+			int ownCities = cities.Count(c => c.Owner == unit.Owner);
+
+			Enqueue(Fmt(new[] {
+				KV("type",         "hut"),
+				KV("game_id",      _gameId),
+				KV("turn",         game?.GameTurn ?? 0),
+				KV("is_human",     ownerPlayer is not null && ownerPlayer == game?.HumanPlayer),
+				KV("civ",          ownerPlayer?.Civilization?.NamePlural ?? "?"),
+				KV("leader",       ownerPlayer?.LeaderName ?? "?"),
+				KV("x",            tile.X),
+				KV("y",            tile.Y),
+				KV("terrain",      tile.GetType().Name),
+				KV("land_value",   tile.LandValue),
+				KV("nearest_city", nearestCity),
+				KV("own_cities",   ownCities),
+				KV("outcome",      outcome),
+			}));
+		}
+
 		internal static void LogCityProduction(City city, IProduction choice, string stance, bool isHuman = false, bool hasRoom = false)
 		{
 			if (!_active) return;
