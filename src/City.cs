@@ -1152,6 +1152,7 @@ namespace CivOne
 		{
 			_wonders.Add(wonder);
 			InvalidateCache();
+			Game.InvalidateBuiltWondersSafe();
 			if (Game.Started)
 			{
 				if (wonder is Colossus && !Game.WonderObsolete<Colossus>())

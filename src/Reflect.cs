@@ -68,19 +68,45 @@ namespace CivOne
 			}
 		}
 		
+		// Which concrete types implement T. Cached because resolving it means
+		// enumerating every type in every loaded assembly, and callers ask for it in
+		// loops: loading a saved game called GetProduction() once per city, so a
+		// 283-city save did ~1,700 assembly-wide type scans before it could start.
+		//
+		// Only the TYPE LIST is cached, never the instances — callers assign the
+		// objects they get back to cities and players, so handing out shared
+		// instances would silently alias unrelated game state. Instantiation stays
+		// per call; it was never the expensive half.
+		private static readonly Dictionary<Type, Type[]> _typeCache = new Dictionary<Type, Type[]>();
+
+		private static Type[] ConcreteTypes<T>()
+		{
+			lock (_typeCache)
+			{
+				if (_typeCache.TryGetValue(typeof(T), out Type[] cached)) return cached;
+
+				List<Type> found = new List<Type>();
+				foreach (Assembly asm in GetAssemblies)
+				foreach (Type type in asm.GetTypes().Where(t => typeof(T).GetTypeInfo().IsAssignableFrom(t.GetTypeInfo()) && t.GetTypeInfo().IsClass && !t.GetTypeInfo().IsAbstract))
+					found.Add(type);
+
+				// Second pass kept for behavioural parity with the original. It matches
+				// nothing in practice — `t is T` tests the Type OBJECT against T, not the
+				// type it describes — but it now runs once rather than on every call.
+				foreach (Assembly asm in GetAssemblies)
+				foreach (Type type in asm.GetTypes().Where(t => (t is T) && t.GetTypeInfo().IsClass && !t.GetTypeInfo().IsAbstract))
+					found.Add(type);
+
+				Type[] result = found.ToArray();
+				_typeCache[typeof(T)] = result;
+				return result;
+			}
+		}
+
 		private static IEnumerable<T> GetTypes<T>()
 		{
-			foreach (Assembly asm in GetAssemblies)
-			foreach (Type type in asm.GetTypes().Where(t => typeof(T).GetTypeInfo().IsAssignableFrom(t.GetTypeInfo()) && t.GetTypeInfo().IsClass && !t.GetTypeInfo().IsAbstract))
-			{
+			foreach (Type type in ConcreteTypes<T>())
 				yield return (T)Activator.CreateInstance(type);
-			}
-
-			foreach (Assembly asm in GetAssemblies)
-			foreach (Type type in asm.GetTypes().Where(t => (t is T) && t.GetTypeInfo().IsClass && !t.GetTypeInfo().IsAbstract))
-			{
-				yield return (T)Activator.CreateInstance(type);
-			}
 		}
 		
 		internal static IEnumerable<IAdvance> GetAdvances() => GetTypes<IAdvance>().OrderBy(x => x.Id);

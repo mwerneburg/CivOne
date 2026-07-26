@@ -113,7 +113,10 @@ namespace CivOne.Screens
 					.DrawText("Debug Options:", 0, 15, 4, 4)
 					.As<Picture>();
 
-				IBitmap menuBackground = menuGfx[2, 11, 136, 88].ColourReplace((7, 11), (22, 3));
+				// Crop the active-item strip to the menu width. Was 136 wide taken from
+				// x=2 of a 131-wide picture — a 7px overrun that sampled out of bounds
+				// and threw the highlight out of alignment.
+				IBitmap menuBackground = menuGfx[2, 11, 127, 88].ColourReplace((7, 11), (22, 3));
 
 				this.AddLayer(menuGfx, 25, 17);
 
@@ -122,9 +125,13 @@ namespace CivOne.Screens
 					X = 27,
 					Y = 28,
 					MenuWidth = 127,
-					ActiveColour = 11,
-					TextColour = 5,
-					DisabledColour = 3,
+					// Cassette palette: the panel behind this menu is PanelGrey, built
+					// from indices 3-4 (near-black). The old TextColour 5 is BORDER, a
+					// dark brown, and DisabledColour 3 was the background colour itself
+					// — both were invisible once the original asset palette went away.
+					ActiveColour = CassetteTheme.PHOS_DIM,
+					TextColour = CassetteTheme.INK_HIGH,
+					DisabledColour = CassetteTheme.INK_LOW,
 					FontId = 0,
 					Indent = 8
 				};

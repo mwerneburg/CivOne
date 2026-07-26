@@ -169,11 +169,15 @@ namespace CivOne.Screens
 		{
 			if (Common.TopScreen is GamePlay && !GameTask.Any())
 			{
-				Game.Update();
+				// The turn engine, not drawing — timed separately so it stops being
+				// attributed to screen composition.
+				long __g = TurnMetrics.Now;
+				try { Game.Update(); } finally { TurnMetrics.AddGameUpdate(__g); }
 			}
 
 			if (gameTick == _lastGameTick)
 			{
+				// Re-entered within the same tick (the fast-forward loop does this).
 				_gameMap.MustUpdate(gameTick);
 				DrawLayer(_gameMap, gameTick, _rightSideBar ? 0 : 80, 8);
 				return true;
@@ -183,7 +187,7 @@ namespace CivOne.Screens
 			if (_sideBar.Update(gameTick)) _update = true;
 			if (gameTick % (GameTask.Fast ? 6 : 3) == 0) this.Cycle(96, 103).Cycle(104, 111);
 			if (!_update && !_redraw) return (gameTick % (GameTask.Fast ? 6 : 3) == 0);
-			
+
 			DrawLayer(_menuBar, gameTick, 0, 0);
 			DrawLayer(_sideBar, gameTick, _rightSideBar ? (Width - 80) : 0, 8);
 			DrawLayer(_gameMap, gameTick, _rightSideBar ? 0 : 80, 8);

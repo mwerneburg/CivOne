@@ -45,6 +45,12 @@ namespace CivOne
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;
+			long __m0 = TurnMetrics.Now;
+			try { MoveInner(unit); } finally { TurnMetrics.AddAiMove(__m0); }
+		}
+
+		private void MoveInner(IUnit unit)
+		{
 
 			string gotoStr = unit.Goto.IsEmpty ? "empty" : $"({unit.Goto.X},{unit.Goto.Y})";
 			//Log($"[AI.Move] {Player.LeaderName}(P{Game.PlayerNumber(Player)}) {unit.GetType().Name} ({unit.X},{unit.Y}) ML={unit.MovesLeft} PM={unit.PartMoves} Moving={unit.Moving} Goto={gotoStr}");
@@ -590,6 +596,8 @@ namespace CivOne
 		internal void CityProduction(City city)
 		{
 			if (city is null || city.Size == 0 || city.Tile is null || Player != city.Owner) return;
+			long __t0 = TurnMetrics.Now;
+			try {
 
 			// Stalled city: no net production. Rerunning the full plan every turn just
 			// thrashes the queue and spams the journal. Ensure a cheap defender exists
@@ -602,6 +610,7 @@ namespace CivOne
 				return;
 			}
 
+
 			city.ClearProductionQueue();
 			var stance = GetStance();
 			var plan = PlanProduction(city, stance);
@@ -609,6 +618,7 @@ namespace CivOne
 			DecisionLogger.LogCityProduction(city, plan[0], stance.ToString(), hasRoom: HasExpansionRoom());
 			for (int i = 1; i < plan.Count; i++)
 				city.EnqueueProduction(plan[i]);
+			} finally { TurnMetrics.AddAiProduction(__t0); }
 		}
 
 		private static Dictionary<Player, AI> _instances = new();

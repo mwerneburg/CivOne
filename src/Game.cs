@@ -110,6 +110,9 @@ namespace CivOne
 		// the winning conditions, and the set of enemies (player numbers) in wars the
 		// human started — only those wars break the streak; defensive wars don't.
 		internal uint EconStreak;
+
+		// Timestamp of the last full-round wrap, for TurnMetrics wall-clock timing.
+		private long _turnClock;
 		internal readonly HashSet<byte> HumanStartedWars = new();
 
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
@@ -706,7 +709,16 @@ namespace CivOne
 				_currentPlayer = 0;
 				HandleGlobalWarming();
 				GameTurn++;
-				RecordScoreSnapshot();
+				{ long __s = TurnMetrics.Now; RecordScoreSnapshot(); TurnMetrics.AddScoreSnapshot(__s); }
+
+				// Per-turn timing: emit what the round cost, split by phase, then
+				// reset the counters for the next one. See TurnMetrics.
+				if (_turnClock != 0)
+					DecisionLogger.LogTurnTiming(GameTurn,
+						(TurnMetrics.Now - _turnClock) * 1000.0 / System.Diagnostics.Stopwatch.Frequency,
+						_cities.Count(c => c is not null && c.Size > 0), _units.Count, _players.Count);
+				_turnClock = TurnMetrics.Now;
+				TurnMetrics.Reset();
 
 				// Leonardo's Workshop: one free unit upgrade per owner per turn
 				if (!WonderObsolete<LeonardosWorkshop>())
@@ -1492,6 +1504,7 @@ namespace CivOne
 					Map[x, y].Road = true;
 			}
 			_cities.Add(city);
+			InvalidateBuiltWonders();
 			Game.UpdateResources(city.Tile);
 			if (Game.Started)
 				_replayData.Add(new ReplayData.CityBuilt(_gameTurn, city.Owner, _cities.Count - 1, nameId, x, y));
@@ -1521,6 +1534,7 @@ namespace CivOne
 				_units.Remove(unit);
 			}
 			_cities.Remove(city);
+			InvalidateBuiltWonders();
 			city.X = 255;
 			city.Y = 255;
 			city.Owner = 0;
@@ -1654,7 +1668,31 @@ namespace CivOne
 				.Select(c => GetPlayer(c.Owner))
 				.FirstOrDefault();
 
-		public IWonder[] BuiltWonders => _cities.SelectMany(c => c.Wonders).ToArray();
+		// Rebuilding this walks every city and allocates a new array. It is read from
+		// Player.Visible (via WonderBuilt<ApolloProgram>), which the sidebar minimap
+		// calls once per tile — 3,744 tiles, ~500 times a turn. At 283 cities that was
+		// on the order of 500 MILLION operations per turn to answer a question whose
+		// answer changes only when a wonder is completed.
+		//
+		// Cached and invalidated by BuildingsChanged(), which every add/remove path
+		// already funnels through.
+		private IWonder[]? _builtWonders;
+		public IWonder[] BuiltWonders => _builtWonders ??= _cities.SelectMany(c => c.Wonders).ToArray();
+
+		// Called whenever a city gains or loses a building/wonder, or a city is added
+		// or destroyed, so the cached wonder list cannot go stale.
+		internal void InvalidateBuiltWonders() => _builtWonders = null;
+
+		// Static form for callers that may run BEFORE the singleton is assigned —
+		// LoadCos builds every city inside the Game constructor, so City.AddWonder
+		// fires while Game.Instance is still null. Uses the backing field directly:
+		// the Instance property logs an error when null, which would spam once per
+		// wonder during a load. Nothing to invalidate before the instance exists —
+		// the cache starts empty and is populated on first read afterwards.
+		internal static void InvalidateBuiltWondersSafe()
+		{
+			if (_instance is not null) _instance._builtWonders = null;
+		}
 
 		public bool WonderBuilt<T>() where T : IWonder => BuiltWonders.Any(w => w is T);
 
@@ -3279,9 +3317,12 @@ namespace CivOne
 
 		internal void PerformAutoSave()
 		{
+			long __a = TurnMetrics.Now;
 			try { SaveCos(Settings.Instance.AutoSavePath); }
 			catch (Exception ex) { Log($"Autosave failed: {ex.GetType().Name}: {ex.Message}"); }
+			finally { TurnMetrics.AddAutosave(__a); }
 		}
+
 
 		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
 		{

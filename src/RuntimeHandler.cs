@@ -56,17 +56,27 @@ namespace CivOne
 
 		private bool Update()
 		{
-			if (!GameTask.Update() && (!GameTask.Fast && (_gameTick % 4) > 0)) return false;
-			if (Common.Screens.Any(x => Common.HasAttribute<Modal>(x)))
-				return Common.Screens.Last(x => Common.HasAttribute<Modal>(x)).Update(_gameTick / 4);
-			
-			bool update = false;
-			foreach (IScreen screen in Common.Screens.Reverse())
+			long __q = TurnMetrics.Now;
+			bool taskRan = GameTask.Update();
+			TurnMetrics.AddTaskQueue(__q);
+
+			if (!taskRan && (!GameTask.Fast && (_gameTick % 4) > 0)) return false;
+
+			long __s = TurnMetrics.Now;
+			try
 			{
-				if (screen.Update(_gameTick / 4)) update = true;
-				if (Common.HasAttribute<Break>(screen)) return update;
+				if (Common.Screens.Any(x => Common.HasAttribute<Modal>(x)))
+					return Common.Screens.Last(x => Common.HasAttribute<Modal>(x)).Update(_gameTick / 4);
+
+				bool update = false;
+				foreach (IScreen screen in Common.Screens.Reverse())
+				{
+					if (screen.Update(_gameTick / 4)) update = true;
+					if (Common.HasAttribute<Break>(screen)) return update;
+				}
+				return update;
 			}
-			return update;
+			finally { TurnMetrics.AddScreenUpdate(__s); }
 		}
 
 		private IEnumerable<Type> StartupScreens
@@ -165,15 +175,42 @@ namespace CivOne
 
 		private const long FAST_BUDGET_MS = 8;
 
+		// Wall-clock budget for one batch of ticks before handing control back to SDL.
+		// TickWatch advances 60/sec in REAL time, so if a tick costs more than ~16ms
+		// the loop can never catch up and simply never returns — measured at 40+
+		// seconds with ZERO frames presented, which is what the OS reports as a
+		// beachball.
+		//
+		// This is a TIME budget, not a tick count: a single tick can carry an AI unit
+		// move costing tens of milliseconds, so a fixed count of 12 still meant ~600ms
+		// per iteration and a cursor that only moved twice a second. Budgeting time
+		// keeps the loop returning at roughly frame rate whatever a tick happens to
+		// cost. Same 8ms figure the fast-forward drain below uses.
+		private const long TICK_BUDGET_MS = 8;
+
+		// If we fall further behind than this, the backlog is unrecoverable and
+		// chasing it just starves the loop forever. Drop it and resynchronise —
+		// animation frames are skipped, which is the standard trade and matches what
+		// the existing fast-forward path already does for unwatched turns.
+		private const uint MAX_TICK_BACKLOG = 120;
+
 		private void OnUpdate(object sender, UpdateEventArgs args)
 		{
-			while (_gameTick < TickWatch)
+			// Always run at least one tick so the game cannot stall, then keep going
+			// only while inside the budget.
+			Stopwatch tickBudget = Stopwatch.StartNew();
+			bool first = true;
+			while (_gameTick < TickWatch && (first || tickBudget.ElapsedMilliseconds < TICK_BUDGET_MS))
 			{
+				first = false;
 				_gameTick++;
 				AutopilotTick();
 				if (!Update()) continue;
 				args.HasUpdate = true;
 			}
+
+			uint behind = TickWatch > _gameTick ? TickWatch - _gameTick : 0;
+			if (behind > MAX_TICK_BACKLOG) _gameTick = TickWatch;
 
 			// Fast-forward AI / autopilot turns. The TickWatch loop above caps task-queue
 			// drain at 60 steps/sec to keep animations smooth — but an AI turn has no

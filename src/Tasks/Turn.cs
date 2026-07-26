@@ -45,7 +45,16 @@ namespace CivOne.Tasks
 		{
 			if (_turnObject is not null)
 			{
-				_turnObject.NewTurn();
+				// Split by type: every city, unit and player turn funnels through here,
+				// which is where the unaccounted 92% of a round has to be.
+				long __t = TurnMetrics.Now;
+				try { _turnObject.NewTurn(); }
+				finally
+				{
+					if (_turnObject is City) TurnMetrics.AddCityTurn(__t);
+					else if (_turnObject is IUnit) TurnMetrics.AddUnitTurn(__t);
+					else TurnMetrics.AddPlayerTurn(__t);
+				}
 			}
 			else if (_unit is not null)
 			{

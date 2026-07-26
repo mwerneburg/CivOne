@@ -694,6 +694,7 @@ namespace CivOne
 				city.LoadTechStolen(cd.TechStolen ?? false, GameTurn);
 				cityById[cd.Id] = city;
 				_cities.Add(city);
+				InvalidateBuiltWonders();
 			}
 
 			// Restore trade routes now that all cities exist

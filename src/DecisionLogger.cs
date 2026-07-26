@@ -181,6 +181,51 @@ namespace CivOne
 			}));
 		}
 
+		// Per-turn phase timing (see TurnMetrics). One record per full round, so the
+		// autoplay log answers "where did the turn go" directly: AI production
+		// planning, AI unit movement, rendering, and whatever is left over.
+		internal static void LogTurnTiming(int turn, double wallMs, int cities, int units, int players)
+		{
+			if (!_active) return;
+
+			double prod = TurnMetrics.AiProductionMs, move = TurnMetrics.AiMoveMs, render = TurnMetrics.RenderMs;
+			Enqueue(Fmt(new[] {
+				KV("type",            "turn_timing"),
+				KV("game_id",         _gameId),
+				KV("turn",            turn),
+				KV("wall_ms",         (int)wallMs),
+				KV("ai_prod_ms",      (int)prod),
+				KV("ai_prod_calls",   TurnMetrics.AiProductionCalls),
+				KV("ai_move_ms",      (int)move),
+				KV("ai_move_calls",   TurnMetrics.AiMoveCalls),
+				KV("render_ms",       (int)render),
+				KV("frames",          TurnMetrics.Frames),
+				KV("city_turn_ms",    (int)TurnMetrics.CityTurnMs),
+				KV("city_turn_calls", TurnMetrics.CityTurnCalls),
+				KV("unit_turn_ms",    (int)TurnMetrics.UnitTurnMs),
+				KV("unit_turn_calls", TurnMetrics.UnitTurnCalls),
+				KV("player_turn_ms",  (int)TurnMetrics.PlayerTurnMs),
+				KV("autosave_ms",     (int)TurnMetrics.AutosaveMs),
+				KV("score_ms",        (int)TurnMetrics.ScoreMs),
+				KV("task_queue_ms",   (int)TurnMetrics.TaskQueueMs),
+				KV("task_queue_calls",TurnMetrics.TaskQueueCalls),
+				KV("screen_ms",       (int)TurnMetrics.ScreenUpdateMs),
+				KV("screen_calls",    TurnMetrics.ScreenUpdateCalls),
+				// Nested inside screen_ms — subtract it to get actual drawing time.
+				KV("game_update_ms",  (int)TurnMetrics.GameUpdateMs),
+				KV("game_update_calls", TurnMetrics.GameUpdateCalls),
+				// Remainder after every phase above. AI production/move time is nested
+				// inside the city/unit turns, so it is not subtracted twice.
+				// Task-queue and screen-update time SUBSUME the city/unit/player turns
+				// (those run as task steps), so only the outermost phases are subtracted.
+				KV("other_ms",        (int)Math.Max(0, wallMs - TurnMetrics.TaskQueueMs - TurnMetrics.ScreenUpdateMs
+				                                       - render - TurnMetrics.AutosaveMs - TurnMetrics.ScoreMs)),
+				KV("cities",          cities),
+				KV("units",           units),
+				KV("players",         players),
+			}));
+		}
+
 		// Goody hut outcomes. "AdvancedTribe" founds a city outright (Orders.NewCity in
 		// BaseUnitLand.TribalHut) without any settler, so it leaves no trace in the
 		// settler log — a civ's city count can climb with no matching "found" action.

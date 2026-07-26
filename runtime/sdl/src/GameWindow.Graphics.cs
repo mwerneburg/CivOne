@@ -33,6 +33,17 @@ namespace CivOne
 
 		private void Render()
 		{
+			// Frame cost, accumulated for the per-turn timing record (TurnMetrics).
+			// This covers the palette conversion and texture upload, which is the
+			// part that grows with canvas size — the reason a large external display
+			// slows the game down while the same window fullscreen on the laptop
+			// does not.
+			long __r0 = TurnMetrics.Now;
+			try { RenderInner(); } finally { TurnMetrics.AddRenderFrame(__r0); }
+		}
+
+		private void RenderInner()
+		{
 			switch(Settings.AspectRatio)
 			{
 				case AspectRatio.Scaled:
