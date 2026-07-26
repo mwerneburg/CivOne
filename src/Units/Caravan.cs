@@ -42,7 +42,10 @@ namespace CivOne.Units
 						// returning true here without invoking base.MoveTo is correct for humans.
 						// A caravan on GoTo rolls straight through — no dialog for cities along
 						// the way (or at the destination; wake it there to trade).
-						if (Game.Human == Owner && Goto.IsEmpty)
+						// !Autopilot: under autopilot the human owns the unit but is not
+						// steering it, so this dialog would block the run forever. Fall
+						// through to the AI path below.
+						if (Game.Human == Owner && !Settings.Instance.Autopilot && Goto.IsEmpty)
 						{
 							GameTask.Enqueue(Show.CaravanChoice(this, city));
 							return true;
@@ -55,7 +58,7 @@ namespace CivOne.Units
 						// foreign trade target.
 					}
 				}
-				else if (Game.Human == Owner && Goto.IsEmpty && CaravanActions.HasUnbuiltDomeAssignment(city.Owner))
+				else if (Game.Human == Owner && !Settings.Instance.Autopilot && Goto.IsEmpty && CaravanActions.HasUnbuiltDomeAssignment(city.Owner))
 				{
 					GameTask.Enqueue(Show.CaravanChoice(this, city));
 					return true;

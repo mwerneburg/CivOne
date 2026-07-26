@@ -42,7 +42,8 @@ namespace CivOne.Units
 					{
 						// Human player: pause and let the user pick deliver/help-wonder/move-on.
 						// The dialog performs the move itself, so return true without base.MoveTo.
-						if (Game.Human == Owner)
+						// !Autopilot — see Caravan.cs: the dialog would block an autoplay run.
+						if (Game.Human == Owner && !Settings.Instance.Autopilot)
 						{
 							GameTask.Enqueue(Show.CaravanChoice(this, city));
 							return true;
@@ -50,7 +51,7 @@ namespace CivOne.Units
 						// AI: no dialog — fall through so the city is treated as a waypoint.
 					}
 				}
-				else if (Game.Human == Owner && CaravanActions.HasUnbuiltDomeAssignment(city.Owner))
+				else if (Game.Human == Owner && !Settings.Instance.Autopilot && CaravanActions.HasUnbuiltDomeAssignment(city.Owner))
 				{
 					GameTask.Enqueue(Show.CaravanChoice(this, city));
 					return true;

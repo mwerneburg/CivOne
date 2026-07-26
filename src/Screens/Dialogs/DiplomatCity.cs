@@ -127,7 +127,11 @@ namespace CivOne.Screens.Dialogs
 			_enemyCity = enemyCity ?? throw new ArgumentNullException(nameof(enemyCity));
 			_diplomat = diplomat ?? throw new ArgumentNullException(nameof(diplomat));
 
-			DialogBox.DrawText($"{_enemyCity.Player.TribeName} diplomat arrives", 0, 15, 5, 5);
+			// The diplomat's OWNER, not the city's. This read _enemyCity.Player, so your
+			// own diplomat walking into a German city was announced as "German diplomat
+			// arrives" — which reads as an enemy agent entering YOUR city, in a dialog
+			// that then asks you to pick its action.
+			DialogBox.DrawText($"{_diplomat.Player.TribeName} diplomat arrives", 0, 15, 5, 5);
 			DialogBox.DrawText($"in {_enemyCity.Name}", 0, 15, 5, 5 + Resources.GetFontHeight(FONT_ID));
 		}
 	}

@@ -78,7 +78,10 @@ namespace CivOne.Units
 
 			if (moveTarget.City is not null)
 			{
-				if (Human == Owner)
+				// Under autopilot the human still OWNS the unit but is not playing it —
+				// prompting here stops the whole run dead waiting for a click that never
+				// comes. Fall through to the AI branch, which decides for itself.
+				if (Human == Owner && !Settings.Instance.Autopilot)
 				{
 					GameTask.Enqueue(Show.DiplomatCity(moveTarget.City, this));
 					return true;
