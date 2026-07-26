@@ -131,6 +131,7 @@ namespace CivOne.Screens.GamePlayPanels
 			// nothing overdraws it.
 			void DrawHoverInfo()
 			{
+				_hoverReserve = 0;
 				if (GamePlay.CursorTile is not (int cx, int cy)) return;
 				if (Human.Visible(cx, cy))
 				{
@@ -139,10 +140,16 @@ namespace CivOne.Screens.GamePlayPanels
 					            : tile.Units.Length > 0 ? tile.Units[0].Owner
 					            : (byte?)null;
 					if (owner is byte o && o != Game.PlayerNumber(Human))
+					{
 						_gameInfo.DrawText(Game.GetPlayer(o).TribeName, 0, CassetteTheme.PHOS, 76, _gameInfo.Height - 9, TextAlign.Right);
+						_hoverReserve = 9;
+					}
 				}
 				if (Settings.CursorCoords)
+				{
 					_gameInfo.DrawText($"{cx}:{cy}", 0, CassetteTheme.INK_MID, 76, _gameInfo.Height - 17, TextAlign.Right);
+					_hoverReserve = 17;
+				}
 			}
 
 			if (Game.CurrentPlayer != Human || (unit is not null && Human != unit.Owner) || (GameTask.Any() && !GameTask.Is<Show>() && !GameTask.Is<Message>()))
@@ -216,6 +223,14 @@ namespace CivOne.Screens.GamePlayPanels
 		// ─── WLTK notification strip ──────────────────────────────────────────
 		private const int NotifMaxLines = 5;
 
+		// Bottom pixels of the game-info panel currently occupied by the mouse-over
+		// readout (civilization name, and optionally coordinates). Both that readout
+		// and this strip are anchored to the bottom of the same panel, and the strip
+		// is drawn afterwards — so it used to paint straight over the civ name just
+		// as you pointed at a foreign unit. The readout wins: it is feedback you
+		// asked for by pointing, where the strip is an unprompted notification.
+		private int _hoverReserve;
+
 		private int NotifLineH => Resources.GetFontHeight(0) + 2;
 
 		private int NotifPanelH
@@ -235,8 +250,18 @@ namespace CivOne.Screens.GamePlayPanels
 			if (cities.Count == 0) return;
 
 			int lh = NotifLineH;
-			int ph = NotifPanelH;
-			int py = _gameInfo.Height - ph;
+			// Yield the bottom of the panel to the mouse-over readout, and show fewer
+			// city lines if that is what it takes to fit above it — the newest ones,
+			// since those are the cities that just started celebrating. The header
+			// always survives, so you can still see that SOMETHING is celebrating
+			// while you point at a neighbour's border.
+			int bottom = _gameInfo.Height - _hoverReserve;
+			int lines = Math.Min(cities.Count, NotifMaxLines);
+			while (lines > 0 && (1 + lines) * lh + 3 > bottom - HeaderRoom) lines--;
+			if (lines == 0) return;
+
+			int ph = (1 + lines) * lh + 3;
+			int py = bottom - ph;
 
 			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
 			py += 2;
@@ -244,13 +269,16 @@ namespace CivOne.Screens.GamePlayPanels
 			_gameInfo.DrawText("♥ THE KING", 0, CassetteTheme.PHOS, 3, py, TextAlign.Left);
 			py += lh;
 
-			int skip = Math.Max(0, cities.Count - NotifMaxLines);
-			foreach (string city in cities.Skip(skip))
+			foreach (string city in cities.Skip(cities.Count - lines))
 			{
 				_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
 				py += lh;
 			}
 		}
+
+		// Space kept clear at the top of the panel for the active unit's details
+		// (tribe, unit, veteran, moves, terrain) so the strip cannot grow up into them.
+		private const int HeaderRoom = 60;
 
 		protected override bool HasUpdate(uint gameTick)
 		{
