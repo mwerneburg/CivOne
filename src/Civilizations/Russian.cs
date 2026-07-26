@@ -12,7 +12,7 @@ using CivOne.Leaders;
 
 namespace CivOne.Civilizations
 {
-	internal class Russian : BaseCivilization<Peter>
+	internal class Russian : BaseCivilization<Trotsky>
 	{
 		public Russian() : base(Civilization.Russians, "Russian", "Russians")
 		{

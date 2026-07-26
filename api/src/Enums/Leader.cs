@@ -45,5 +45,6 @@ namespace CivOne.Enums
 		TheRegistry,
 		TheOrganism,
 		TheNetwork,
+		Trotsky,
 	}
 }

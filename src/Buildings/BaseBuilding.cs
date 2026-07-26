@@ -7,7 +7,6 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-using System.IO;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Graphics;
@@ -25,27 +24,14 @@ namespace CivOne.Buildings
 		private IBitmap _icon = null!;
 		public virtual IBitmap Icon
 		{
-			// Hand-drawn art wins when present. Mirrors the leader-portrait path
-			// (BaseLeader.LoadPngPortrait): drop <name>.png into
-			// {StorageDirectory}/data/building_art/ and it replaces the sprite-sheet
-			// or procedural icon with no code change. Falls back silently, so a
-			// missing or unreadable file simply leaves the old icon in place.
+			// Hand-drawn art wins when present: the same data/improvement_art/<name>.png
+			// the improvement-built screen uses, box-filtered down to the 50x50 icon
+			// slot. Falls back silently, so a missing or unreadable file simply leaves
+			// the sprite-sheet or procedural icon in place.
 			get => LoadPngIcon() ?? _icon;
 			protected set => _icon = value;
 		}
 		public virtual IBitmap SmallIcon { get; protected set; } = null!;
-
-		private static string? BuildingArtPath(string name)
-		{
-			try
-			{
-				string file = name.ToLower()
-					.Replace('.', '_').Replace(' ', '_').Replace('\'', '_') + ".png";
-				string path = Path.Combine(Settings.Instance.DataDirectory, "building_art", file);
-				return File.Exists(path) ? path : null;
-			}
-			catch { return null; }
-		}
 
 		// The city-screen building icon is 50x50 (see SetIcon).
 		private const int IconSize = 50;
@@ -85,7 +71,11 @@ namespace CivOne.Buildings
 			if (_pngChecked) return _pngIcon;
 			_pngChecked = true;
 			if (Name is null) return null;
-			string? path = BuildingArtPath(Name);
+			// Same lookup and naming the improvement-built screen already uses
+			// (data/improvement_art/<lowercased_name>.png), so one PNG per building
+			// serves both its celebration screen and its city-view icon. Adding a
+			// second convention here was my error — this is the established one.
+			string? path = CivOne.Screens.ImprovementArtScreen.FindArtPath(Name);
 			if (path is null) return null;
 			try
 			{
