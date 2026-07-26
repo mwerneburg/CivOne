@@ -20,5 +20,8 @@ namespace CivOne.Leaders
 		AggressionLevel Aggression { get; set; }
 		DevelopmentLevel Development { get; set; }
 		MilitarismLevel Militarism { get; set; }
+
+		// What this leader believes, as numbers — see Doctrine.
+		Doctrine Doctrine { get; }
 	}
 }

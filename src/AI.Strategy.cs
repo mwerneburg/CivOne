@@ -43,8 +43,12 @@ namespace CivOne
 			// once cities actually tip into disorder. The LuxuriesRate >= 4 clause keeps us in
 			// Consolidate while ConsiderSliders is leaning on the luxury slider, so we keep
 			// building happiness infrastructure until luxuries can wind back down toward science.
+			// Unrest tolerance is per-leader (Doctrine): the flat "more than half"
+			// meant every civ crossed into Consolidate within a turn or two of each
+			// other once the map filled, so whole fields peaked and crashed together.
+			double tolerance = Leader.Doctrine.UnrestTolerance;
 			if (cities.Length > 0 && (
-			        (Player.RepublicDemocratic && cities.Count(c => c.UnhappyCitizens > 0) * 2 > cities.Length)
+			        (Player.RepublicDemocratic && cities.Count(c => c.UnhappyCitizens > 0) > cities.Length * tolerance)
 			        || cities.Count(c => c.IsInDisorder) >= 2
 			        || Player.LuxuriesRate >= 4))
 				return StrategyStance.Consolidate;
@@ -63,10 +67,14 @@ namespace CivOne
 			if (Leader.Militarism == MilitarismLevel.Militaristic
 			    || Leader.Aggression == AggressionLevel.Aggressive)
 			{
+				// WarAppetite sets how much of an edge this leader wants before turning
+				// on a neighbour: below 1 they want a clear advantage, above 1 they
+				// will pick a fight from parity or worse.
 				int own = MilitaryScore(Player);
+				double edge = 1.0 / Math.Max(0.25, Leader.Doctrine.WarAppetite);
 				if (own > 0 && Game.Players.Any(p =>
 				    p != Player && !p.IsDestroyed()
-				    && IsNeighbor(p) && own >= MilitaryScore(p)))
+				    && IsNeighbor(p) && own >= MilitaryScore(p) * edge))
 					return StrategyStance.Militarize;
 			}
 
@@ -93,9 +101,12 @@ namespace CivOne
 		private int CityTarget()
 		{
 			int mapScale = Math.Max(1, Map.WIDTH / 80);
-			return Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
-			     : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
-			     :                                         (4 * mapScale) + Game.Difficulty;
+			int baseTarget = Leader.Development == Expansionistic ? (9 * mapScale) + Game.Difficulty
+			               : Leader.Development == Normal          ? (6 * mapScale) + Game.Difficulty
+			               :                                         (4 * mapScale) + Game.Difficulty;
+			// Doctrine scales it, so two Expansionistic leaders no longer stop
+			// colonising on the same turn.
+			return Math.Max(1, (int)Math.Round(baseTarget * Leader.Doctrine.ExpansionAppetite));
 		}
 
 		// May our settlers found cities right now?
@@ -275,6 +286,10 @@ namespace CivOne
 			else if (gold < 120) target = Math.Max(target, 6);
 			else if (gold > 500) target = Math.Min(target, 4);
 			else if (gold > 250) target = Math.Min(target, 5);
+
+			// Doctrine: a research-minded leader accepts a thinner treasury to keep
+			// the laboratories funded (negative shifts the other way).
+			target -= (int)Math.Round(Leader.Doctrine.ScienceBias / 40.0);
 
 			// Keep science in [2, 8] and taxes in [2, 8].
 			if (target < 2) target = 2;

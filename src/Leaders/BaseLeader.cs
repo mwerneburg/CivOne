@@ -137,6 +137,13 @@ namespace CivOne.Leaders
 			}
 		}
 		
+		// Declared by leaders with a deliberate character; otherwise derived from the
+		// personality enums (see Doctrine.FromTraits), so every existing leader keeps
+		// broadly the behaviour it had while gaining its own thresholds.
+		private Doctrine? _doctrine;
+		public virtual Doctrine Doctrine =>
+			_doctrine ??= Doctrine.FromTraits(Name, Development, Aggression, Militarism);
+
 		private AggressionLevel _aggression = AggressionLevel.Normal;
 		public AggressionLevel Aggression
 		{
