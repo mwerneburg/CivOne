@@ -168,7 +168,27 @@ namespace CivOne.Tasks
 
 		public static Show DestroyUnit(IUnit unit, bool stack) => new Show(new DestroyUnit(unit, stack));
 
-		public static Show CaptureCity(City city) => new Show(CityView.Capture(city));
+		// Hand-drawn event art when it exists, the built-in city view otherwise.
+		// The stick-figure animation in CityView.NativeAnimFrame is a placeholder
+		// from the asset-free work and sits oddly beside the rest of the art; drop
+		// citycaptured.png into {StorageDirectory}/data/event_art/ and it is used
+		// instead, exactly like famine, hurricane and the other event keys.
+		public static Show CaptureCity(City city)
+		{
+			string? art = CivOne.Screens.EventArtScreen.FindPath("citycaptured");
+			return art is null
+				? new Show(CityView.Capture(city))
+				: new Show(new CivOne.Screens.EventArtScreen(art, $"{city.Name} HAS FALLEN"));
+		}
+
+		// Founding art, shown before the new city's first view when present.
+		public static Show? CityFounded(City city)
+		{
+			string? art = CivOne.Screens.EventArtScreen.FindPath("cityfounded");
+			return art is null
+				? null
+				: new Show(new CivOne.Screens.EventArtScreen(art, $"{city.Name} IS FOUNDED"));
+		}
 
 		public static Show DisorderCity(City city) => new Show(CityView.Disorder(city));
 

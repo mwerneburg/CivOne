@@ -67,6 +67,11 @@ namespace CivOne.Tasks
 
 		private void CityFounded(object sender, EventArgs args)
 		{
+			// Optional founding art (data/event_art/cityfounded.png) ahead of the
+			// city's first view — the founding animation the asset-free rebuild lost.
+			Show? founding = Show.CityFounded(_city!);
+			if (founding is not null) GameTask.Enqueue(founding);
+
 			CityView cityView = new CityView(_city!, firstView: true);
 			cityView.Closed += CityViewed;
 			Common.AddScreen(cityView);
