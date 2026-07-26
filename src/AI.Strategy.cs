@@ -107,7 +107,37 @@ namespace CivOne
 		// one 736-turn game founded 294 cities and logged 11,338 irrigation orders,
 		// while whole continents sat empty. Whether there is somewhere worth settling
 		// is a question about the map, not about this turn's mood.
-		internal bool MayFoundCities() => Player.Cities.Length < CityTarget() || HasExpansionRoom();
+		// Below the leader's city target, expansion is unconditional — that is what
+		// broke the AI out of its one-city paralysis and it must not regress.
+		//
+		// PAST the target, founding becomes conditional on the empire being healthy
+		// enough to deserve another city, and the bar rises the wider it already is.
+		// Measured over a full game (2079 AD, 10 civs): score rank matched MEAN CITY
+		// SIZE almost exactly, and city COUNT hardly mattered —
+		//
+		//     Germans   42.7 cities  size 7.6  ->  2820   (fewest cities, 1st)
+		//     Indians   58.1 cities  size 4.3  ->  1669
+		//     Persians  56.1 cities  size 2.5  ->   559   (most cities, 7th)
+		//
+		// So unrestricted founding was actively losing games. This gate is gradual
+		// rather than a cliff: at the target it asks for size 4, at twice the target
+		// for size 8. A civ whose cities are thriving keeps colonising; one whose
+		// cities are starving stops and — because AI.Move routes settlers to
+		// BestImproveSite when founding is off — puts those settlers on irrigation
+		// instead, which is precisely what raises the sizes back up.
+		internal bool MayFoundCities()
+		{
+			City[] cities = Player.Cities;
+			int target = CityTarget();
+
+			if (cities.Length < target) return true;
+			if (!HasExpansionRoom()) return false;
+
+			double meanSize = cities.Average(c => (double)c.Size);
+			double over = (cities.Length - target) / (double)Math.Max(1, target);
+			double required = 4.0 + (over * 4.0);
+			return meanSize >= required;
+		}
 
 		// Cheap, per-turn-cached test: is there a foundable unclaimed tile reachable by
 		// land near any of our cities? Land only (same continent), habitable, and at
