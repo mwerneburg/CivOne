@@ -374,8 +374,30 @@ namespace CivOne
 		
 		internal static bool TileIsType(ITile tile, params Terrain[] terrain) => terrain.Any(x => tile.Type == x);
 
+		// Set when a tile flips between land and ocean. ContinentId is computed once
+		// by CalculateContinentSize and then stored on the tile — and ChangeTileType
+		// builds a NEW tile object without carrying it over, so any land/ocean flip
+		// leaves the map's continent topology stale.
+		//
+		// That matters because Common.GotoStep short-circuits land pathfinding when
+		// source and destination are on different continents. After global warming
+		// drowns a land bridge, both fragments still carry the ORIGINAL id, the
+		// short-circuit does not fire, and A* explores every reachable tile before
+		// failing — the most expensive outcome there is, repeated every turn for
+		// every unit trying to cross. Loading a save hid this, because Game.Cos
+		// recomputes continents on load; the cost crept back as warming continued.
+		private bool _continentsDirty;
+
+		internal void RecalculateContinentsIfDirty()
+		{
+			if (!_continentsDirty) return;
+			_continentsDirty = false;
+			CalculateContinentSize();
+		}
+
 		public void ChangeTileType(int x, int y, Terrain type)
 		{
+			bool wasOcean = _tiles[x, y].IsOcean;
 			bool special = TileIsSpecial(x, y);
 			bool road = _tiles[x, y].Road;
 			bool railRoad = _tiles[x, y].RailRoad;
@@ -397,6 +419,8 @@ namespace CivOne
 			}
 			_tiles[x, y].Road = road;
 			_tiles[x, y].RailRoad = railRoad;
+			// Land/ocean flip invalidates continent topology — see _continentsDirty.
+			if (_tiles[x, y].IsOcean != wasOcean) _continentsDirty = true;
 		}
 		
 		private int ModGrid(int x, int y) => (x % 4) * 4 + (y % 4);

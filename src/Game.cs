@@ -708,6 +708,15 @@ namespace CivOne
 			{
 				_currentPlayer = 0;
 				HandleGlobalWarming();
+
+				// Recompute continent topology if any tile flipped land<->ocean this
+				// round (global warming drowning coastline, settlers terraforming).
+				// No-op unless something actually changed; a single BFS over the map
+				// when it did. Without this, GotoStep's continent short-circuit goes
+				// stale and land units burn a full failed A* every turn trying to
+				// reach fragments that are no longer connected.
+				Map.Instance.RecalculateContinentsIfDirty();
+
 				GameTurn++;
 				{ long __s = TurnMetrics.Now; RecordScoreSnapshot(); TurnMetrics.AddScoreSnapshot(__s); }
 
