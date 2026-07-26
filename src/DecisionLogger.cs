@@ -212,6 +212,9 @@ namespace CivOne
 				KV("screen_ms",       (int)TurnMetrics.ScreenUpdateMs),
 				KV("screen_calls",    TurnMetrics.ScreenUpdateCalls),
 				// Nested inside screen_ms — subtract it to get actual drawing time.
+				KV("path_ms",         (int)TurnMetrics.PathMs),
+				KV("path_calls",      TurnMetrics.PathCalls),
+				KV("path_fails",      TurnMetrics.PathFails),
 				KV("game_update_ms",  (int)TurnMetrics.GameUpdateMs),
 				KV("game_update_calls", TurnMetrics.GameUpdateCalls),
 				// Remainder after every phase above. AI production/move time is nested

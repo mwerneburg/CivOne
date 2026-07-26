@@ -245,6 +245,14 @@ namespace CivOne
 
 		public static ITile? GotoStep(IUnit unit, int gx, int gy)
 		{
+			long __p = TurnMetrics.Now;
+			bool __found = false;
+			try { ITile? r = GotoStepInner(unit, gx, gy); __found = r is not null; return r; }
+			finally { TurnMetrics.AddPathfind(__p, __found); }
+		}
+
+		private static ITile? GotoStepInner(IUnit unit, int gx, int gy)
+		{
 			int sx = unit.X, sy = unit.Y;
 			if (sx == gx && sy == gy) return null;
 

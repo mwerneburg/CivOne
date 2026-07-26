@@ -52,6 +52,15 @@ namespace CivOne
 		private static long _gameUpdateTicks;
 		private static int _gameUpdateCalls;
 
+		// Fourth layer: A* pathfinding (Common.GotoStep). AI unit movement is now
+		// ~70% of a turn and its cost per unit rises with world population — 18.7ms
+		// per move at 731 units, 175ms at 1157 — which is the signature of a search
+		// that explores more as the map fills. Failures are counted separately: an
+		// unreachable goal exhausts the open set, so it is the most expensive
+		// possible outcome and the one most worth short-circuiting.
+		private static long _pathTicks;
+		private static int _pathCalls, _pathFails;
+
 		public static long Now => Stopwatch.GetTimestamp();
 
 		private static double ToMs(long ticks) => (ticks * 1000.0) / Stopwatch.Frequency;
@@ -92,6 +101,16 @@ namespace CivOne
 
 		public static void AddTaskQueue(long t)    { Interlocked.Add(ref _taskQueueTicks, Stopwatch.GetTimestamp() - t);    Interlocked.Increment(ref _taskQueueCalls); }
 		public static void AddScreenUpdate(long t) { Interlocked.Add(ref _screenUpdateTicks, Stopwatch.GetTimestamp() - t); Interlocked.Increment(ref _screenUpdateCalls); }
+		public static void AddPathfind(long t, bool found)
+		{
+			Interlocked.Add(ref _pathTicks, Stopwatch.GetTimestamp() - t);
+			Interlocked.Increment(ref _pathCalls);
+			if (!found) Interlocked.Increment(ref _pathFails);
+		}
+		public static double PathMs   => ToMs(Interlocked.Read(ref _pathTicks));
+		public static int PathCalls   => _pathCalls;
+		public static int PathFails   => _pathFails;
+
 		public static void AddGameUpdate(long t) { Interlocked.Add(ref _gameUpdateTicks, Stopwatch.GetTimestamp() - t); Interlocked.Increment(ref _gameUpdateCalls); }
 		public static double GameUpdateMs   => ToMs(Interlocked.Read(ref _gameUpdateTicks));
 		public static int GameUpdateCalls   => _gameUpdateCalls;
@@ -130,6 +149,9 @@ namespace CivOne
 			Interlocked.Exchange(ref _screenUpdateCalls, 0);
 			Interlocked.Exchange(ref _gameUpdateTicks, 0);
 			Interlocked.Exchange(ref _gameUpdateCalls, 0);
+			Interlocked.Exchange(ref _pathTicks, 0);
+			Interlocked.Exchange(ref _pathCalls, 0);
+			Interlocked.Exchange(ref _pathFails, 0);
 		}
 	}
 }
