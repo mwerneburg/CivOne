@@ -1741,6 +1741,7 @@ namespace CivOne
 				if (Player.HasAdvance<Currency>()         && !city.HasBuilding<MarketPlace>()) Consider(new MarketPlace());
 				if (Player.HasAdvance<Construction>()     && city.Size >= 4 && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
 				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>())   Consider(new Cathedral());
+				if (Player.HasAdvance<Medicine>()          && !city.HasBuilding<Hospital>())    Consider(new Hospital());
 			}
 
 			// Growth-first: Granary before Barracks/Settlers when Pottery is known.
@@ -1806,6 +1807,7 @@ namespace CivOne
 				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>())    Consider(new Temple());
 				if (Player.HasAdvance<Construction>()     && !city.HasBuilding<Colosseum>()) Consider(new Colosseum());
 				if (Player.HasAdvance<Religion>()         && !city.HasBuilding<Cathedral>()) Consider(new Cathedral());
+				if (Player.HasAdvance<Medicine>()          && !city.HasBuilding<Hospital>())    Consider(new Hospital());
 				if (Player.HasAdvance<Pottery>()          && !city.HasBuilding<Granary>())   Consider(new Granary());
 			}
 
@@ -1870,6 +1872,7 @@ namespace CivOne
 			if (Player.HasAdvance<Rocketry>()          && !city.HasBuilding<SamBattery>())    Consider(new SamBattery());
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
+			if (Player.HasAdvance<Medicine>()          && !city.HasBuilding<Hospital>())    Consider(new Hospital());
 			if (Player.HasAdvance<Computers>()         && !city.HasBuilding<Observatory>())   Consider(new Observatory());
 			// Sewer System: unlocks growth past size 12 (City.cs:1188). Same
 			// pattern — only consider once the city is closing on the cap.

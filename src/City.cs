@@ -1022,6 +1022,7 @@ namespace CivOne
 					unhappyCount -= 2;
 				}
 				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
+				if (HasBuilding<Hospital>()) unhappyCount -= 2;
 				if (HasBuilding<ExchangeCenter>()) unhappyCount -= 1;
 				if (HasBuilding<NeuralLab>()) unhappyCount -= 1;
 				if (HasBuilding<CivicMonument>()) unhappyCount -= 1;
@@ -2012,7 +2013,7 @@ namespace CivOne
 				case 1:
 				{
 					// Plague
-					bool hasMedicine = Player.HasAdvance<Medicine>();
+					bool hasMedicine = Player.HasAdvance<Medicine>() || HasBuilding<Hospital>();
 					bool hasAqueduct = HasBuilding<Aqueduct>();
 					bool hasConstruction = Player.Advances.Any(a => a is Construction);
 

@@ -46,5 +46,6 @@ namespace CivOne.Enums
 		SurplusDepot = 33,
 		CivicMonument = 34,
 		PoliceStation = 35,
+		Hospital = 36,
 	}
 }
