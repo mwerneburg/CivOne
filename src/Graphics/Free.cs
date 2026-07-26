@@ -510,6 +510,12 @@ namespace CivOne.Graphics
 		private static readonly string DifficultiesFilePath =
 			Path.Combine(Environment.CurrentDirectory, "difficulty_tiles.txt");
 
+		private static readonly string AdvisorBadgesFilePath =
+			Path.Combine(Environment.CurrentDirectory, "advisor_badges.txt");
+
+		// Ministry badges shown beside advisor messages, and by Icons.Spy.
+		public const int BadgeSize = 28;
+
 		// The five New Game difficulty panels are 47x41, not 16x16 like the map tiles.
 		public const int DifficultyWidth = 47;
 		public const int DifficultyHeight = 41;
@@ -520,6 +526,7 @@ namespace CivOne.Graphics
 		private Dictionary<string, byte[]> _riverOverrides = null!;
 		private Dictionary<string, byte[]> _improvementOverrides = null!;
 		private Dictionary<string, byte[]> _difficultyOverrides = null!;
+		private Dictionary<string, byte[]> _advisorBadges = null!;
 
 		public void ReloadTiles()
 		{
@@ -529,6 +536,7 @@ namespace CivOne.Graphics
 			_riverOverrides   = null!;
 			_improvementOverrides = null!;
 			_difficultyOverrides = null!;
+			_advisorBadges = null!;
 			// Drop the cached base fields so they regenerate. MapTile.ReloadTileCaches
 			// disposes the sprites wrapping these very Bytemaps, so both must be nulled
 			// here or Free would hand back freed (disposed) memory — an AccessViolation
@@ -562,6 +570,18 @@ namespace CivOne.Graphics
 			if (_difficultyOverrides is null)
 				_difficultyOverrides = ParseTilesFile(DifficultiesFilePath, DifficultyWidth * DifficultyHeight);
 			return _difficultyOverrides.TryGetValue(name, out byte[] data) ? data : null;
+		}
+
+		// 28x28 ministry badge by name (defense/domestic/foreign/science/intelligence)
+		// from advisor_badges.txt. Null when the file or section is missing, so callers
+		// fall back to whatever they drew before.
+		public Bytemap? AdvisorBadge(string name)
+		{
+			if (_advisorBadges is null)
+				_advisorBadges = ParseTilesFile(AdvisorBadgesFilePath, BadgeSize * BadgeSize);
+			return _advisorBadges.TryGetValue(name, out byte[] data)
+				? new Bytemap(BadgeSize, BadgeSize).FromByteArray(data)
+				: null;
 		}
 
 		private byte[]? TryLoadShore(string name)

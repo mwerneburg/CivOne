@@ -231,7 +231,11 @@ namespace CivOne.Graphics
 				{
 					if (RuntimeHandler.Runtime.Settings.Free || !Resources.Exists("SP299"))
 					{
-						_spy = new Picture(Free.Instance.PanelGrey, Common.GetPalette256);
+						// Was Free.PanelGrey — a 16x16 noise square standing in for a
+						// 40x52 portrait, which read as a missing image rather than as
+						// art. The intelligence badge is honest at this size.
+						IO.Bytemap? badge = Free.Instance.AdvisorBadge("intelligence");
+						_spy = new Picture(badge ?? Free.Instance.PanelGrey, Common.GetPalette256);
 					}
 					else
 					{

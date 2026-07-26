@@ -10,6 +10,7 @@
 using System.Linq;
 using CivOne.Enums;
 using CivOne.Graphics;
+using CivOne.IO;
 
 namespace CivOne.Screens.Dialogs
 {
@@ -25,26 +26,48 @@ namespace CivOne.Screens.Dialogs
 			return output;
 		}
 
-		private static int DialogWidth(string[] message)
+		// Ministry badge on the left, with the title and text indented past it. Null
+		// when advisor_badges.txt is absent, in which case the dialog keeps its
+		// original text-only layout rather than reserving empty space.
+		private static Bytemap? Badge(Advisor advisor)
 		{
-			int maxWidth = TextBitmaps(message).Max(b => b.Width) + 16;
+			string[] names = ["defense", "domestic", "foreign", "science"];
+			return Free.Instance.AdvisorBadge(names[(int)advisor]);
+		}
+
+		private const int BadgeMargin = 4;
+		private static int TextLeft(Advisor advisor) =>
+			Badge(advisor) is null ? 8 : BadgeMargin + Free.BadgeSize + BadgeMargin;
+
+		private static int DialogWidth(string[] message, Advisor advisor)
+		{
+			int maxWidth = TextBitmaps(message).Max(b => b.Width) + 8 + TextLeft(advisor);
 			return maxWidth < 140 ? 140 : maxWidth;
 		}
 
-		private static int DialogHeight(string[] message)
+		private static int DialogHeight(string[] message, Advisor advisor)
 		{
-			return 4 + 9 + 4 + TextBitmaps(message).Sum(b => b.Height) + 6;
+			int textHeight = 4 + 9 + 4 + TextBitmaps(message).Sum(b => b.Height) + 6;
+			if (Badge(advisor) is null) return textHeight;
+			// Never shorter than the badge it has to hold.
+			int badgeHeight = BadgeMargin + Free.BadgeSize + BadgeMargin;
+			return textHeight < badgeHeight ? badgeHeight : textHeight;
 		}
 
-		public AdvisorMessage(Advisor advisor, string[] message, bool leftAlign) : base((leftAlign ? 38 : 58), 72, DialogWidth(message), DialogHeight(message))
+		public AdvisorMessage(Advisor advisor, string[] message, bool leftAlign) : base((leftAlign ? 38 : 58), 72, DialogWidth(message, advisor), DialogHeight(message, advisor))
 		{
 			string[] advisorNames = ["Defense Minister", "Domestic Advisor", "Foreign Minister", "Science Advisor"];
 
+			Bytemap? badge = Badge(advisor);
+			if (badge is not null)
+				DialogBox.AddLayer(badge, BadgeMargin, BadgeMargin);
+
+			int x = TextLeft(advisor);
 			_textLines = TextBitmaps(message);
-			DialogBox.DrawText($"{advisorNames[(int)advisor]}:", 0, 15, 8, 4);
-			DialogBox.FillRectangle(8, 11, Resources.GetText($"{advisorNames[(int)advisor]}:", 0, 15).Width + 1, 1, 11);
+			DialogBox.DrawText($"{advisorNames[(int)advisor]}:", 0, 15, x, 4);
+			DialogBox.FillRectangle(x, 11, Resources.GetText($"{advisorNames[(int)advisor]}:", 0, 15).Width + 1, 1, 11);
 			for (int i = 0; i < _textLines.Length; i++)
-				DialogBox.AddLayer(_textLines[i], 8, (_textLines[i].Height * i) + 13);
+				DialogBox.AddLayer(_textLines[i], x, (_textLines[i].Height * i) + 13);
 		}
 	}
 }
