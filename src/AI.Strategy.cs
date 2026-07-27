@@ -2031,10 +2031,30 @@ namespace CivOne
 			if (plan.Count == 0)
 			{
 				bool hasCapital = Player.Cities.Any(c => c.HasBuilding<Palace>());
+
+				// This is a safety net for a city with nothing sensible to build, and
+				// it picks at RANDOM from everything available — so it must not be
+				// allowed to reach for anything that costs POPULATION or that only
+				// makes sense in a specific situation. A size-4 city was rolling a
+				// Longboat and losing a citizen for a boat it had no use for; every
+				// Longboat the AI ever built came from here, never from the rule that
+				// is supposed to gate them on being hemmed in.
+				bool Situational(IProduction p) =>
+					p is Settlers || p is Longboat || p is HydroEngineer   // cost a citizen
+					|| p is ICaravan                                        // needs a destination
+					|| p is Diplomat;                                       // needs a target
+
 				IProduction[] items = city.AvailableProduction
 				    .Where(p => !hasCapital || !(p is Palace))
+				    .Where(p => !Situational(p))
 				    .ToArray();
-				if (items.Length == 0) items = city.AvailableProduction.ToArray();
+				// Last resort: if filtering left nothing, fall back to a defender
+				// rather than to a random population-costing unit.
+				if (items.Length == 0)
+				{
+					Consider(BestDefender());
+					return plan;
+				}
 				Consider(items[Common.Random.Next(items.Length)]);
 			}
 
