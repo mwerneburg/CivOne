@@ -102,7 +102,9 @@ namespace CivOne.Units
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
-		public SeaCaravan() : base(5, 0, 1, 3, 1)
+		// Five moves, matching the Longboat: a trade mission that crawls at 3 across
+		// open ocean arrives long after the wonder it was meant to help is finished.
+		public SeaCaravan() : base(5, 0, 1, 5, 1)
 		{
 			Type = UnitType.SeaCaravan;
 			Name = "Sea Caravan";

@@ -1485,7 +1485,7 @@ namespace CivOne
 					// Autopilot the AI is steering, so let the auto-grow trick on line 1293 fire
 					// — otherwise the city stalls forever with completed-but-uncreated Settlers.
 				}
-				else if ((CurrentProduction is Settlers || CurrentProduction is HydroEngineer)
+				else if ((CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Longboat)
 				         && Size == 1 && Player.Cities.Length > 1 && !Player.IsHuman)
 				{
 					// A Settlers/HydroEngineer costs 1 population. The only-city case is rescued by
@@ -1503,7 +1503,7 @@ namespace CivOne
 					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
 						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);
-					if (CurrentProduction is Settlers || CurrentProduction is HydroEngineer)
+					if (CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Longboat)
 					{
 						if (Size == 1 && Player.Cities.Length == 1) Size++;
 						if (Size > 1) unit.SetHome();
@@ -1517,7 +1517,7 @@ namespace CivOne
 					{
 						GameTask.Enqueue(new ImprovementBuilt(this, unit));
 					}
-					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Diplomat || CurrentProduction is ICaravan))
+					if (!(CurrentProduction is Settlers || CurrentProduction is HydroEngineer || CurrentProduction is Longboat || CurrentProduction is Diplomat || CurrentProduction is ICaravan))
 					{
 						string? uname = (CurrentProduction as ICivilopedia)?.Name;
 						if (uname is not null && !Game.Instance.GetReplayData<ReplayData.UnitBuilt>().Any(u => u.UnitName == uname))

@@ -57,5 +57,8 @@ namespace CivOne.Enums
 		// Barbarian guardian — never producible; steps through Stonehenge's
 		// cursed roll (Game.OpenStoneDoor) and stands in the stones until slain.
 		HengeGuardian = 35,
+		// Sea-going settler: sails, puts ashore, founds a city. The answer to civs
+		// that start on islands or behind a strait and can never expand by land.
+		Longboat = 36,
 	}
 }

@@ -978,6 +978,46 @@ namespace CivOne
 			return from == to;
 		}
 
+		// Is this civ hemmed in — nowhere left to settle by land? Island starts, a
+		// civ behind a strait, or one walled off by desert and a neighbour. These
+		// are the civs that flatline for a whole game: HasExpansionRoom is land-only
+		// by design, so for them it is permanently false and no settler is ever
+		// worth building.
+		internal bool BoxedIn() => !HasExpansionRoom() && Player.Cities.Length > 0;
+
+		// Somewhere across the water worth crossing for. Scans well beyond the land
+		// finders' +-8 window, because the whole point is a long crossing — Japan
+		// wants Manchuria, Britain the North European Plain.
+		private const int OverseasRange = 15;
+
+		internal ITile? BestOverseasSite(IUnit boat)
+		{
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			ITile? best = null;
+			int bestScore = int.MinValue;
+			byte from = boat.Tile?.ContinentId ?? 15;
+
+			for (int dy = -OverseasRange; dy <= OverseasRange; dy++)
+			for (int dx = -OverseasRange; dx <= OverseasRange; dx++)
+			{
+				int tx = (boat.X + dx + w) % w;
+				int ty = boat.Y + dy;
+				if (ty < 0 || ty >= h) continue;
+				ITile tile = Map[tx, ty];
+				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				if (tile is Arctic || tile is Mountains) continue;
+				// Must be coast — the boat has to reach it.
+				if (!tile.GetBorderTiles().Any(b => b is not null && b.IsOcean)) continue;
+				// Somewhere we could not already have walked.
+				if (from >= 1 && from <= 14 && tile.ContinentId == from) continue;
+				if (Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
+
+				int score = SiteSuitability(tile) - Common.DistanceToTile(boat.X, boat.Y, tx, ty);
+				if (score > bestScore) { bestScore = score; best = tile; }
+			}
+			return best;
+		}
+
 		internal ITile? BestSettleSite(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
@@ -1885,6 +1925,20 @@ namespace CivOne
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
 				if (workers < Math.Max(1, ownCities / 4))
 					Consider(new Settlers());
+			}
+
+			// Longboat: the only expansion a hemmed-in civ has. Built when there is no
+			// land left to settle, the city is coastal, and we do not already have one
+			// at sea — these are expensive (a population point) and one crossing at a
+			// time is enough.
+			if (Player.HasAdvance<MapMaking>() && BoxedIn()
+			    && city.Tile is not null
+			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
+			    && CanAffordSettler(city, 3))
+			{
+				byte lbId = Game.PlayerNumber(Player);
+				if (!Game.GetUnits().Any(u => u.Owner == lbId && u is Longboat))
+					Consider(new Longboat());
 			}
 
 			// Standard infrastructure chain (all stances)

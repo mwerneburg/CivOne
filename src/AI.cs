@@ -139,6 +139,32 @@ namespace CivOne
 				return;
 			}
 
+			// Longboat: sail to the chosen coast, then put ashore and found. Handled
+			// before the land-settler branch because it is a sea unit and shares none
+			// of that logic.
+			if (unit is Longboat boat)
+			{
+				// Adjacent to somewhere worth landing? Go ashore now — the crossing
+				// is the expensive part and a founded city beats a better one later.
+				if (boat.LandingSite() is not null && boat.GoAshore()) return;
+
+				if (unit.Goto.IsEmpty)
+				{
+					ITile? target = BestOverseasSite(unit);
+					if (target is not null) unit.Goto = new Point(target.X, target.Y);
+				}
+				if (!unit.Goto.IsEmpty)
+				{
+					ITile? step = Common.GotoStep(unit);
+					if (step is null) { unit.Goto = Point.Empty; unit.SkipTurn(); return; }
+					if (!unit.MoveTo(step.X - unit.X, step.Y - unit.Y)) unit.Goto = Point.Empty;
+					return;
+				}
+				// Nowhere to go: wait rather than re-deciding every turn.
+				unit.Sentry = true;
+				return;
+			}
+
 			if (unit is Settlers)
 			{
 				ITile tile = unit.Tile;
