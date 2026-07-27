@@ -1175,6 +1175,17 @@ namespace CivOne
 			{
 				RelocateResourceTile(tile);
 			}
+
+			// ...but an AI city stripped to zero worked tiles IS always involuntary: the
+			// AI never assigns specialists anywhere (grep AI*.cs for Entertainer — no
+			// hits), so "all citizens are musicians" is never something it chose. Left
+			// alone, such a city works only its centre, turns every citizen into an
+			// entertainer, and starves — a capital at -7 food with its whole population
+			// making music. Refill it. The player's own cities keep the hands-off
+			// treatment described above, since there the allocation may be deliberate.
+			if (_resourceTiles.Count == 0 && Size > 0
+			    && (Player != Human || Settings.Instance.Autopilot))
+				SetResourceTiles();
 		}
 
 		// Industrial + population pollution, reduced by clean-power buildings.

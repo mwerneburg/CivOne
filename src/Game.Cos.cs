@@ -362,6 +362,7 @@ namespace CivOne
 				var cos  = CosSerializer.Deserialize(text);
 				_instance = new Game(cos);
 				_instance.FixDomeAssignmentsIfNeeded();
+				_instance.RepickAiCityTiles();
 				_instance.ClearGhostWars();
 				WLTKNotifications.Clear();
 				DecisionLogger.BeginGame();
@@ -801,13 +802,9 @@ namespace CivOne
 			// the accumulated drift. Human cities are skipped — the player may have
 			// intentionally created Entertainers or chosen specific tiles, and we don't
 			// want to override those choices.
-			byte humanIdx = PlayerNumber(HumanPlayer!);
-			foreach (City city in _cities)
-			{
-				if (city.Owner == humanIdx) continue;
-				if (city.Size == 0) continue;
-				city.ResetResourceTiles();
-			}
+			// Deferred to RepickAiCityTiles(): this runs inside the Game constructor, where
+			// Game.Started is still false, and SetResourceTiles() bails on that — so healing
+			// here cleared every AI city's tiles without refilling them.
 
 			// Replay data
 			foreach (var re in g.ReplayData ?? Enumerable.Empty<CosReplayEntry>())
@@ -868,6 +865,26 @@ namespace CivOne
 		// the dead can't come to the table. Passive asset check rather than
 		// IsDestroyed(), which disbands units and fires events as a side effect.
 		// Called from LoadCos after _instance is set (MakePeace needs Game.Instance).
+		// Post-load tile heal for AI cities. The historic encoder bug at City.cs:555 collided
+		// the NE-inner (1,-1) tile with the ENE-outer (2,-1) tile, silently migrating cities'
+		// best tiles to inferior ones on every save/load cycle. The AI has no path that
+		// re-optimises tile assignments, so the damage stuck. Now that the encoder is fixed,
+		// re-pick AI city tiles greedily on load to undo the accumulated drift. Human cities
+		// are skipped — the player may have intentionally created Entertainers or chosen
+		// specific tiles, and we don't want to override those choices.
+		// Called from LoadCos after _instance is set: ResetResourceTiles() refills via
+		// SetResourceTiles(), which is a no-op while Game.Started is false.
+		private void RepickAiCityTiles()
+		{
+			byte humanIdx = PlayerNumber(HumanPlayer!);
+			foreach (City city in _cities)
+			{
+				if (city.Owner == humanIdx) continue;
+				if (city.Size == 0) continue;
+				city.ResetResourceTiles();
+			}
+		}
+
 		private void ClearGhostWars()
 		{
 			foreach (Player dead in _players.Where(p => p is not null))
