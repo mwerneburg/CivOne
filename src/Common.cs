@@ -343,6 +343,30 @@ namespace CivOne
 				|| (OwnCity(t) && moverHasRail);
 			bool RoadAt(ITile t) => t.Road || t.RailRoad || t.TransportTube || OwnCity(t);
 
+			// Unit occupancy as a per-tile bitmask of owners, built once per search.
+			// ITile.Units routes to Game.GetUnits(x, y), which scans EVERY unit in the
+			// game, sorts the matches and allocates an array. A* consulted it once per
+			// neighbour examined plus up to eight more times per tile for ZOC, making
+			// each search O(nodes × units). At ~1,700 units that came to ~100ms per
+			// path and 80% of the late-game turn. Owner is a byte index, so the whole
+			// set of units on a tile collapses to one int.
+			var occupancy = new Dictionary<int, int>();
+			int seenOwners = 0;
+			foreach (IUnit u in Game.Instance.GetUnits())
+			{
+				if (u is null || u.X < 0 || u.X >= w || u.Y < 0 || u.Y >= h) continue;
+				int key = u.Y * w + u.X;
+				occupancy.TryGetValue(key, out int mask);
+				occupancy[key] = mask | (1 << u.Owner);
+				seenOwners |= 1 << u.Owner;
+			}
+			int selfBit = 1 << unit.Owner;
+			// Resolve Blocks() once per owner actually on the map rather than per edge.
+			int blockingMask = 0;
+			for (int o = 0; o < 32; o++)
+				if ((seenOwners & (1 << o)) != 0 && Blocks((byte)o)) blockingMask |= 1 << o;
+			int OwnerMask(int x, int y) => occupancy.TryGetValue(y * w + x, out int m) ? m : 0;
+
 			// Zone of control: a tile is under enemy ZOC if any of its eight
 			// neighbours holds a foreign unit. Memoised — each tile's status is
 			// computed once per search rather than per visiting edge.
@@ -360,7 +384,7 @@ namespace CivOne
 					if (ay < 0 || ay >= h) continue;
 					ITile at = map[ax, ay];
 					// A garrisoned city projects no ZOC — only units in the open do.
-					if (at is not null && at.City is null && at.Units.Any(u => u.Owner != unit.Owner))
+					if (at is not null && at.City is null && (OwnerMask(ax, ay) & ~selfBit) != 0)
 						result = true;
 				}
 				zocCache[key] = result;
@@ -427,7 +451,7 @@ namespace CivOne
 					// blocked: at war their units are targets to advance on and attack,
 					// which is the whole point of a war. The goal tile is exempt either way.
 					bool blocked = tile.City is null
-						&& tile.Units.Any(u => Blocks(u.Owner));
+						&& (OwnerMask(nx, ny) & blockingMask) != 0;
 
 					// Zone of control (Civ 1): may not move directly from one tile under
 					// enemy ZOC to another tile under enemy ZOC. Exempt: air units, leaving
@@ -436,7 +460,7 @@ namespace CivOne
 					bool zocBlocked = unit.Class != UnitClass.Air
 						&& !(fromTile.City is not null && fromTile.City.Owner == unit.Owner)
 						&& !(tile.City is not null && tile.City.Owner == unit.Owner)
-						&& !tile.Units.Any(u => u.Owner == unit.Owner)
+						&& (OwnerMask(nx, ny) & selfBit) == 0
 						&& InZoc(cx, cy) && InZoc(nx, ny);
 
 					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
