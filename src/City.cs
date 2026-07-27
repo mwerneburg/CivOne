@@ -1498,8 +1498,19 @@ namespace CivOne
 				}
 				else if (CurrentProduction is IUnit currentUnit)
 				{
+					// Create BEFORE spending. Game.CreateUnit is a hand-written switch,
+					// so a unit type added to the enum without a matching case returns
+					// null — and this used to zero the shields first, so the city paid
+					// in full, got nothing, and started over. That reads to the player
+					// as production mysteriously resetting, over and over.
+					IUnit? built = Game.Instance.CreateUnit(currentUnit.Type, X, Y, Owner);
+					if (built is null)
+					{
+						Log($"{Name}: cannot create {currentUnit.Type} — no factory case; keeping shields");
+						return;
+					}
 					Shields = 0;
-					IUnit unit = Game.Instance.CreateUnit(currentUnit.Type, X, Y, Owner)!;
+					IUnit unit = built;
 					bool sunTzu = Player.HasWonder<SunTzusWarAcademy>() && !Game.WonderObsolete<SunTzusWarAcademy>();
 					unit.Veteran = (_buildings.Any(b => (b is Barracks)))
 						|| (sunTzu && unit.Class == UnitClass.Land && unit.Attack > 0);

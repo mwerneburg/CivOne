@@ -1601,6 +1601,7 @@ namespace CivOne
 				case UnitType.Gozira: unit = new Gozira(); break;
 				case UnitType.Leviathan: unit = new Leviathan(); break;
 				case UnitType.HengeGuardian: unit = new HengeGuardian(); break;
+				case UnitType.Longboat: unit = new Longboat(); break;
 				default: return null;
 			}
 			unit.X = x;
