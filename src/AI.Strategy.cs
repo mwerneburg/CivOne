@@ -1184,7 +1184,15 @@ namespace CivOne
 			if (unit is Explorer)
 			{
 				ITile? dest = BestExploreTile(unit);
-				if (dest is not null) unit.Goto = new Point(dest.X, dest.Y);
+				if (dest is not null)
+				{
+					unit.Goto = new Point(dest.X, dest.Y);
+					return;
+				}
+				// Nothing reachable left to scout — a stranded or done explorer.
+				// Sentry rather than re-deciding this every turn for the rest of
+				// the game; it wakes if something changes around it.
+				unit.Sentry = true;
 				return;
 			}
 
@@ -1969,6 +1977,19 @@ namespace CivOne
 			int bestScore = 0; // only move if it adds value
 			var ownCities = Player.Cities;
 
+			// Only consider land we can actually walk to. Without this an Explorer
+			// stranded on a small island picks the mainland across the water — it is
+			// well inside the +-8 scan — then GotoStep returns null, Goto clears, and
+			// it repeats the identical failed A* every turn forever. That is the
+			// explorer parked in the same corner of the Canaries game after game, and
+			// a standing contributor to the ~10% path failures in the timing log.
+			//
+			// Continent 15 is the "misc" bucket that tiny islands share, so equality
+			// there proves nothing: an islet and a different islet both read 15. Those
+			// candidates get an explicit reachability check below instead.
+			byte myContinent = unit.Tile?.ContinentId ?? 15;
+			bool KnownContinent(byte id) => id >= 1 && id <= 14;
+
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
 			{
@@ -1978,6 +1999,8 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean) continue;
+				if (KnownContinent(myContinent) && KnownContinent(tile.ContinentId)
+				    && tile.ContinentId != myContinent) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
 
 				// Hut bias: BaseUnitLand.TribalHut (case 0/3) rolls Barbarians when
@@ -1997,6 +2020,13 @@ namespace CivOne
 				int score = CountUnseenTiles(tx, ty) - dist + hutBonus;
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
+
+			// Misc-continent tiles (islands) can still be unreachable, so confirm the
+			// winner with a single path probe rather than discovering it every turn.
+			if (best is not null && !KnownContinent(myContinent)
+			    && Common.GotoStep(unit, best.X, best.Y) is null)
+				return null;
+
 			return best;
 		}
 
