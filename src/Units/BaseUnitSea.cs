@@ -59,7 +59,21 @@ namespace CivOne.Units
 			// MoveEnd empties it before this runs, but only at the final destination) must keep its
 			// cargo aboard as it transits coastal tiles and canal cities like Panama, or the passengers
 			// wake, lose their Sentry flag, and get left behind on the next step out of the city.
-			if (this is IBoardable && Goto.IsEmpty)
+			// HUMAN-owned ships only. This is a convenience for the player — arrive at a
+			// coast, troops are ready to act. For the AI it is actively harmful: an
+			// AI transport shuffling around its home port is always adjacent to land,
+			// so every hop woke its cargo, which then stepped ashore, found no land
+			// route to its objective, and re-boarded. Board / disembark / board, many
+			// times a second once turns run fast.
+			//
+			// The AI does not need it: AssignMission sails a loaded transport to the
+			// landing zone and calls Unload() there, which clears Sentry and restores
+			// moves explicitly.
+			// !Autopilot too: under autopilot the human's OWN ships are AI-driven, and
+			// that is exactly where this was seen — a Sail off Isipezi, a Zulu city.
+			bool playerDriven = Game.Instance.HumanPlayer == Game.Instance.GetPlayer(Owner)
+			                    && !Settings.Instance.Autopilot;
+			if (this is IBoardable && Goto.IsEmpty && playerDriven)
 			{
 				ITile tile = Map[X, Y];
 				if (tile.GetBorderTiles().Any(t => !t.IsOcean))
