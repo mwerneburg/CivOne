@@ -491,8 +491,18 @@ namespace CivOne
 							           > t.Units.Count(u => u.Class == UnitClass.Land));
 							if (boardTile is not null)
 							{
-								if (!unit.MoveTo(boardTile.X - unit.X, boardTile.Y - unit.Y))
-									unit.SkipTurn();
+								if (unit.MoveTo(boardTile.X - unit.X, boardTile.Y - unit.Y))
+								{
+									// Sentry the passenger. Without this the unit is
+									// reconsidered while sitting on the boat's ocean tile —
+									// GotoStep cannot route a land unit through water, so it
+									// steps ashore, finds no land path, and boards again.
+									// Board, disembark, board, several times a second.
+									// BaseUnitSea wakes cargo when the ship arrives.
+									unit.Sentry = true;
+									unit.Goto = Point.Empty;
+								}
+								else unit.SkipTurn();
 								return;
 							}
 						}
