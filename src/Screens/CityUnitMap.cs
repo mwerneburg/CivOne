@@ -38,8 +38,12 @@ namespace CivOne.Screens
 				ITile tile = Map[x, y];
 				Terrain type = tile.Type;
 				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
-				bool alt = ((x + y) % 2 == 1);
-				byte colour = Resources.WorldMapTiles.Bitmap[((int)type) * 4, alt ? 4 : 0];
+				// Shared terrain palette (Graphics/MiniMap) — the same one the sidebar
+				// minimap, the world map and the replay use. This read the SP299
+				// WorldMapTiles strip, which is a placeholder filled with index 1 when
+				// the original assets are absent: every terrain type came back BG0 and
+				// the whole map rendered black on black.
+				byte colour = MiniMap.TerrainColour(tile);
 				_terrain.FillRectangle(ox + x * tw, oy + y * th, tw, th, colour);
 			}
 		}
@@ -89,9 +93,12 @@ namespace CivOne.Screens
 		public CityUnitMap(City city) : base(MouseCursor.Pointer)
 		{
 			_city = city;
-			Palette = Resources.WorldMapTiles.Palette;
+			// Was WorldMapTiles.Palette — the placeholder's palette in asset-free mode.
+			// Use the standard base palette with the cassette theme over it, matching
+			// every other map view.
+			Palette = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
-				Palette.MergePalette(cassette, 1, 17);
+				Palette.MergePalette(cassette, 1, 18);
 			_terrain = new Picture(Width, Height, Palette);
 			BuildTerrain();
 		}

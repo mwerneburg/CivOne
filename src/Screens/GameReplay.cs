@@ -372,7 +372,10 @@ namespace CivOne.Screens
 
 		public GameReplay()
 		{
-			Palette = Resources.WorldMapTiles.Palette;
+			// Was WorldMapTiles.Palette — the SP299 placeholder's palette when the
+			// original assets are absent. The standard base palette carries the
+			// terrain colours MiniMap.TerrainColour indexes into.
+			Palette = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
 			{
 				Palette.MergePalette(cassette, 1, 18);

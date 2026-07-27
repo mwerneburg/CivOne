@@ -95,11 +95,10 @@ namespace CivOne.Screens.CityManagerPanels
 					int px = OX + rx * TW;
 					int py = OY + ry * TH;
 
-					// Terrain colour from the world-map tile sheet
-					Terrain type = tile.Type;
-					if (type == Terrain.Grassland2) type = Terrain.Grassland1;
-					bool alt = ((tile.X + tile.Y) % 2 == 1);
-					byte colour = Resources.WorldMapTiles.Bitmap[((int)type) * 4, alt ? 4 : 0];
+					// Shared terrain palette. Was the SP299 WorldMapTiles strip, which is
+					// a placeholder filled with index 1 without the original assets —
+					// every terrain came back BG0 and the panel rendered black.
+					byte colour = MiniMap.TerrainColour(tile);
 					output.FillRectangle(px, py, TW, TH, colour);
 
 					// Highlight worked tiles with a 1-px inner border
