@@ -961,6 +961,23 @@ namespace CivOne
 			return score;
 		}
 
+		// Can this unit actually WALK to that tile? Continent equality is the cheap
+		// test; the "misc" bucket (15) that every small island shares proves nothing,
+		// so those fall through to the caller's own handling.
+		//
+		// Site finders used to skip this entirely: a settler on a coast would pick
+		// the better land across a strait, GotoStep would return null, Goto would
+		// clear, and it repeated the identical failed A* every turn. Same bug the
+		// Explorer had in the Canaries, and ~80 failed searches a turn were still
+		// showing in the timing log after that one was fixed.
+		private static bool LandReachable(IUnit unit, ITile tile)
+		{
+			byte from = unit.Tile?.ContinentId ?? 15;
+			byte to   = tile.ContinentId;
+			if (from < 1 || from > 14 || to < 1 || to > 14) return true;   // unknown: allow
+			return from == to;
+		}
+
 		internal ITile? BestSettleSite(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
@@ -981,6 +998,7 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				if (!LandReachable(settlers, tile)) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;
 				int score = SiteSuitability(tile);
@@ -1013,6 +1031,7 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				if (!LandReachable(settlers, tile)) continue;
 				if (tile.Irrigation || tile.Mine) continue;
 				bool farmable = (tile is Grassland || tile is River || tile is Plains || tile is Desert)
 					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
@@ -2146,7 +2165,8 @@ namespace CivOne
 					int ty = city.Y + dy;
 					if (ty < 0 || ty >= Map.HEIGHT) continue;
 					ITile tile = Map[tx, ty];
-					if (tile is null || tile.IsOcean || tile.City is not null) continue;
+					if (tile is not null && !LandReachable(settler, tile)) continue;
+				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 					if (Game.Instance.OlvirImprovements.ContainsKey((tx, ty))) continue;
 					int dist = Common.DistanceToTile(city.X, city.Y, tx, ty);
 					if (dist < bestDist) { bestDist = dist; best = tile; }
@@ -2173,6 +2193,9 @@ namespace CivOne
 					if (t.y <= half || t.y >= Map.HEIGHT - half) return false;
 					if (tile.City is not null) return false;
 					if (tile.IsOcean && !hasAquatic) return false;
+					// Land targets must be walkable from here; ocean targets are left
+					// alone, since aquatic colonisation is how the Olvir reach those.
+					if (!tile.IsOcean && !LandReachable(settler, tile)) return false;
 					// Must be at least 4 tiles from any existing city.
 					if (!Game.GetCities().All(c => Common.DistanceToTile(c.X, c.Y, t.x, t.y) >= 4)) return false;
 					return true;
