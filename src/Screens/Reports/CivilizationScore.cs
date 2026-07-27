@@ -20,10 +20,13 @@ namespace CivOne.Screens.Reports
 	{
 		private const int GRAPH_LEFT   = 52;   // space for Y-axis labels
 		private const int GRAPH_TOP    = 30;   // below the BaseReport header
-		private const int GRAPH_BOTTOM_PAD = 16; // space for X-axis labels + scroll hint
+		private const int GRAPH_BOTTOM_PAD = 16; // space for the X-axis year labels
 
 		private int GraphTop    => GRAPH_TOP;
-		private int GraphBottom => Height - GRAPH_BOTTOM_PAD;
+		// Year labels sit on the first row below the graph, the scroll hint on a second
+		// row under them — they used to share one row and the centred hint overprinted
+		// whichever year label it landed on.
+		private int GraphBottom => Height - GRAPH_BOTTOM_PAD - Resources.GetFontHeight(0) - 1;
 		private int GraphLeft   => GRAPH_LEFT;
 		private int GraphRight  => Width - 4;
 		private int GraphW      => GraphRight - GraphLeft;
@@ -208,7 +211,7 @@ namespace CivOne.Screens.Reports
 				int pct  = (int)(100.0 * _scrollX / maxScrollX);
 				string h = $"[ < > scroll  {pct}% ]";
 				this.DrawText(h, 0, CassetteTheme.INK_LOW,
-				              Width / 2, GraphBottom + 2, TextAlign.Center);
+				              Width / 2, GraphBottom + 2 + fh + 1, TextAlign.Center);
 			}
 
 			_dirty = false;
