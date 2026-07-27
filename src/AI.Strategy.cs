@@ -784,30 +784,58 @@ namespace CivOne
 			// AI neighbour who shares the threat. The human hegemon is the classic
 			// trigger — dominate the continent and watch the alliances form. The
 			// human is never auto-signed as a partner; they consent via the console.
-			if (!atWar && Common.Random.Next(100) < 5)
+			// The random gate comes first: everything below scans every player, and
+			// Player.Cities rebuilds an array on each access.
+			if (!atWar && Common.Random.Next(100) < 25)
 			{
+				Player[] alive = Game.Players
+					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0)
+					.ToArray();
+				// World totals once, not once per candidate.
+				int worldCities = alive.Sum(p => p.Cities.Length);
+				int worldScore  = alive.Sum(p => p.Score);
+
+				// A civ that has broken away from the entire field, not just from us.
+				// The old test asked only "is there a strong neighbour?", so a power
+				// dominating the globe from another continent was invisible to every
+				// civ it had not yet reached — and it snowballed unopposed while the
+				// rest of the world filed no objection. An empire holding a third of
+				// the world's cities or score is everyone's problem; distance buys
+				// time, not safety.
+				bool Global(Player p) =>
+					alive.Length >= 3 &&
+					((worldCities > 0 && p.Cities.Length * 3 >= worldCities) ||
+					 (worldScore  > 0 && p.Score * 3 >= worldScore));
+
 				int myPower = MilitaryScore(Player);
-				Player? hegemon = Game.Players
-					.Where(p => p != Player && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
-					         && IsNeighbor(p) && MilitaryScore(p) > myPower * 2)
+				Player? hegemon = alive
+					.Where(p => p != Player && MilitaryScore(p) > myPower * 2
+					         && (IsNeighbor(p) || Global(p)))
 					.OrderByDescending(MilitaryScore)
 					.FirstOrDefault();
-				if (hegemon is not null)
+
+				// A strong neighbour is routine caution and keeps its old 1-in-20
+				// cadence. A world power gets the full 1-in-4: nobody can afford to
+				// deliberate for fifty turns while it eats the map.
+				if (hegemon is not null && (Global(hegemon) || Common.Random.Next(5) == 0))
 				{
 					int threat = MilitaryScore(hegemon);
-					Player? partner = Game.Players
-						.Where(p => p != Player && p != hegemon && !p.IsDestroyed() && !p.IsHuman
-						         && Game.PlayerNumber(p) != 0
+					// Partners need only be weaker than the hegemon. The old bar —
+					// less than half its strength — excluded exactly the mid-tier
+					// civs with enough army left to make a bloc worth signing.
+					Player? partner = alive
+						.Where(p => p != Player && p != hegemon && !p.IsHuman
 						         && !(p.Civilization is Olvir or TheOthers or TheThing)
 						         && !Player.IsAtWar(p) && Player.HasEmbassy(p)
 						         && !Player.HasDefensePact(p)
-						         && MilitaryScore(p) * 2 < threat)
+						         && MilitaryScore(p) < threat)
 						.OrderByDescending(MilitaryScore)
 						.FirstOrDefault();
 					if (partner is not null)
 					{
 						Player.SetDefensePact(partner, 50);
 						partner.SetDefensePact(Player, 50);
+						DecisionLogger.LogDefensePact(Player, partner, hegemon, Global(hegemon));
 					}
 				}
 			}

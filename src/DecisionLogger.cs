@@ -234,6 +234,24 @@ namespace CivOne
 		// settler log — a civ's city count can climb with no matching "found" action.
 		// Logging the outcome here makes free cities directly countable instead of
 		// inferred from the gap.
+		// Who allied against whom, and whether the trigger was a strong neighbour or a
+		// runaway world power — the two cases are tuned separately, so the log has to
+		// tell them apart.
+		internal static void LogDefensePact(Player signer, Player partner, Player hegemon, bool global)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",      "defense_pact"),
+				KV("game_id",   _gameId),
+				KV("turn",      Game.Instance?.GameTurn ?? 0),
+				KV("signer",    signer?.Civilization?.NamePlural ?? "?"),
+				KV("partner",   partner?.Civilization?.NamePlural ?? "?"),
+				KV("hegemon",   hegemon?.Civilization?.NamePlural ?? "?"),
+				KV("global",    global),
+				KV("heg_score", hegemon?.Score ?? 0),
+			}));
+		}
+
 		internal static void LogHut(IUnit? unit, string outcome)
 		{
 			if (!_active) return;
