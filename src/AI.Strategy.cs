@@ -1969,6 +1969,27 @@ namespace CivOne
 					Consider(new Longboat());
 			}
 
+			// Pollution control. A city past the tolerated smog level (City.cs:1193 gives
+			// the first 20 units free) pays unhappiness for it and rolls for a new polluted
+			// tile every single turn, and enough polluted tiles trigger global warming for
+			// the whole world. The AI considered none of this, so its industrial cities
+			// smoked unchecked for the rest of the game. Ordered ahead of the general
+			// chain deliberately — this list is a priority order, and a city already over
+			// the line should fix that before it builds another Library.
+			if (city.SmokeStacks > 0)
+			{
+				// Mass Transit zeroes population pollution outright; Recycling Center
+				// thirds the industrial side. Hydro Plant only halves it, so it comes
+				// last and only where no plant exists yet.
+				if (Player.HasAdvance<MassProduction>() && !city.HasBuilding<MassTransit>())
+					Consider(new MassTransit());
+				if (Player.HasAdvance<Recycling>()      && !city.HasBuilding<RecyclingCenter>())
+					Consider(new RecyclingCenter());
+				if (Player.HasAdvance<Electronics>()     && !city.HasBuilding<HydroPlant>()
+				    && !city.HasBuilding<NuclearPlant>() && !city.HasBuilding<PowerPlant>())
+					Consider(new HydroPlant());
+			}
+
 			// Standard infrastructure chain (all stances)
 			if (Player.HasAdvance<Pottery>()           && !city.HasBuilding<Granary>())      Consider(new Granary());
 			// Aqueduct: unlocks growth past size 6 (City.cs:1187). Build when the

@@ -67,7 +67,10 @@ namespace CivOne.Units
 		public int BuildingThawTundra { get; internal set; }
 		public int BuildingAddRiver { get; internal set; }
 		public int BuildingCamp { get; private set; }
-		public bool AutoClean { get; private set; }
+		// internal set: the AI turns this on for its own workers (AI.cs). The NewTurn
+		// machinery below already routes an auto-cleaning settler to the nearest
+		// polluted tile and switches the flag back off when the map is clean.
+		public bool AutoClean { get; internal set; }
 		public bool AutoImprove { get; private set; }
 
 		internal bool IsTileClaimed(int tx, int ty) =>

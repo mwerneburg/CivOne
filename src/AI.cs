@@ -169,6 +169,27 @@ namespace CivOne
 			{
 				ITile tile = unit.Tile;
 
+				// Pollution duty. The AI had no pollution behaviour whatsoever — it never
+				// built a mitigation building and never cleaned a tile, so its smog piled
+				// up until global warming rewrote the map for everyone, the human included.
+				// Settlers already know how to do this: AutoClean routes them to the
+				// nearest polluted tile near one of our cities and switches itself back off
+				// when there is nothing left to clean. Nobody was turning it on.
+				// Gated on SmokeStacks rather than a map scan — FindNearestCityPollution
+				// walks every tile, so only settlers actually on duty pay that cost.
+				if (unit is Settlers cleaner && !cleaner.AutoClean && Player.Pollution > 0)
+				{
+					byte pollId = Game.PlayerNumber(Player);
+					Settlers[] crew = Game.GetUnits().OfType<Settlers>()
+						.Where(u => u.Owner == pollId).ToArray();
+					// A third of the workforce at most: the rest still has terraforming to do.
+					if (crew.Count(u => u.AutoClean) < System.Math.Max(1, crew.Length / 3))
+					{
+						DecisionLogger.LogSettlerAction(unit, "autoclean");
+						cleaner.AutoClean = true;
+					}
+				}
+
 				// Opportunistic resource camp: a settler standing on an unclaimed
 				// Iron/Coal/Oil deposit outside a city claims it before doing
 				// anything else. (Dedicated camp-seeking is deferred — city-worked
