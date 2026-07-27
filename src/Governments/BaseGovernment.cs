@@ -42,9 +42,16 @@ namespace CivOne.Governments
 		// Food per settler per turn. Cheaper under the authoritarian governments.
 		public int SettlerFoodCost { get; protected set; } = 2;
 
-		// Anarchy/Despotism pay unit SHIELD upkeep on a per-unit-beyond-free basis;
-		// the later governments use the standard model.
-		public bool PrimitiveUnitUpkeep { get; protected set; }
+		// Units a city supports free of shield upkeep. -1 means "as many as the city
+		// is large", the Anarchy/Despotism model.
+		//
+		// This was a cliff: the primitive governments supported SIZE units free and
+		// every later government supported NONE, so a size-8 city went from 8 free
+		// units to 0 the turn it changed government. Shield income turns negative,
+		// and City.NewTurn disbands the furthest unit every turn until it balances —
+		// so a civ with an army in the field loses that army for modernising. Civ 1
+		// grants Monarchy and Communism 3 free units each; that is restored here.
+		public int FreeUnitSupport { get; protected set; }
 
 		// Garrisoned military units keep citizens content (max 3). The classic tool
 		// for holding a large authoritarian city together.

@@ -25,7 +25,7 @@ namespace CivOne.Governments
 		int TradeBonus { get; }
 		int SpecialResourceTradeBonus { get; }
 		int SettlerFoodCost { get; }
-		bool PrimitiveUnitUpkeep { get; }
+		int FreeUnitSupport { get; }
 		bool MartialLaw { get; }
 		bool CollapsesInDisorder { get; }
 		bool CelebrationGrowsCity { get; }

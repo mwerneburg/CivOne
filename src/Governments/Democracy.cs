@@ -55,6 +55,7 @@ namespace CivOne.Governments
 			TradeBonus = 1;
 			WarWeariness = 2;
 			MartialLaw = false;
+			FreeUnitSupport = 0;
 			CollapsesInDisorder = true;
 			CelebrationGrowsCity = true;
 			SpecialResourceTradeBonus = 2;

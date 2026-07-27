@@ -15,7 +15,7 @@ namespace CivOne.Governments
 		{
 			CorruptionMultiplier = 8;
 			TilePenalty = true;
-			PrimitiveUnitUpkeep = true;
+			FreeUnitSupport = -1;
 			SettlerFoodCost = 1;
 			MartialLaw = true;
 		}

@@ -15,6 +15,7 @@ namespace CivOne.Governments
 		{
 			CorruptionMultiplier = 16;
 			MartialLaw = true;
+			FreeUnitSupport = 3;
 			SpecialResourceTradeBonus = 1;
 		}
 	}

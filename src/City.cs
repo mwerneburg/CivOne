@@ -205,17 +205,9 @@ namespace CivOne
 			get
 			{
 				IGovernment government = Game.GetPlayer(_owner).Government;
-				if (government.PrimitiveUnitUpkeep)
-				{
-					int costs = 0;
-					for (int i = 0; i < Units.Count(u => (!(u is Diplomat) && !(u is ICaravan))); i++)
-					{
-						if (i < _size) continue;
-						costs++;
-					}
-					return costs;
-				}
-				return Units.Count(u => (!(u is Diplomat) && !(u is ICaravan)));
+				int supported = Units.Count(u => (!(u is Diplomat) && !(u is ICaravan)));
+				int free = government.FreeUnitSupport < 0 ? _size : government.FreeUnitSupport;
+				return Math.Max(0, supported - free);
 			}
 		}
 
