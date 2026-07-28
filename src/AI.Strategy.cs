@@ -2093,10 +2093,27 @@ namespace CivOne
 					|| p is ICaravan                                        // needs a destination
 					|| p is Diplomat;                                       // needs a target
 
+				// Unit glut guard. A built-out city reaching this fallback rolled uniformly
+				// over everything available, and for a technologically stalled civ most of
+				// that list is ancient military — which is how Militia, Chariot and Legion
+				// became the most-produced items in the world in the 22nd century, with the
+				// unit count climbing ~11/turn while city count stayed flat. Those units
+				// then dominated turn time in pathfinding. Past three units per city the
+				// civ has enough; let this fallback reach for infrastructure instead, and
+				// only return to units when there is genuinely nothing else to build.
+				byte glutId = Game.PlayerNumber(Player);
+				int ownUnitCount = Game.GetUnits().Count(u => u.Owner == glutId);
+				bool unitGlut = ownUnitCount > Player.Cities.Length * 3;
+
 				IProduction[] items = city.AvailableProduction
 				    .Where(p => !hasCapital || !(p is Palace))
 				    .Where(p => !Situational(p))
 				    .ToArray();
+				if (unitGlut)
+				{
+					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
+					if (civic.Length > 0) items = civic;
+				}
 				// Last resort: if filtering left nothing, fall back to a defender
 				// rather than to a random population-costing unit.
 				if (items.Length == 0)

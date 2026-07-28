@@ -31,10 +31,27 @@ namespace CivOne.Screens
 			return -1;
 		}
 
+		// Persist the finished game so the replay can be watched again later. The end
+		// sequence plays it exactly once and then quits, so anyone called away loses
+		// the only showing — and a long autoplay game is precisely the one you want to
+		// review. Written to the autosave slot, which Load Game already lists: load it,
+		// then Game menu → History Replay. The replay log is serialised with the save
+		// (Game.Cos.cs restores ReplayData on load), so it survives the round trip.
+		private static void SaveFinishedGame()
+		{
+			try { Game.Instance.SaveCos(Settings.Instance.AutoSavePath); }
+			catch (Exception ex)
+			{
+				RuntimeHandler.Runtime.Log($"Final save failed: {ex.Message}");
+			}
+		}
+
 		// Opens: CivilizationScore → GameReplay → HallOfFameScreen → quit()
 		// Called from FinalScore.Closed (or conquest ft.Done for conquest path).
 		internal static void ChainAfterFinal(int hofIdx, Action quit)
 		{
+			SaveFinishedGame();
+
 			var score = new CivilizationScore();
 			score.Closed += (s, a) =>
 			{
