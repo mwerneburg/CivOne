@@ -89,6 +89,23 @@ namespace CivOne
 			}
 		}
 
+		/// <summary>
+		/// A narrative turning point in the game's story — the arrival of the Owners,
+		/// and other set-piece events that are not the founding of a city or the
+		/// building of a wonder. Carries its own finished text because these are one-off
+		/// occurrences with no owning civilization to name them after; the replay draws
+		/// them highlighted so they stand out from the running chronicle.
+		/// </summary>
+		public class Milestone : ReplayData
+		{
+			public readonly string Text;
+
+			public Milestone(int turn, string text) : base(turn)
+			{
+				Text = text;
+			}
+		}
+
 		public class TechDiscovered : ReplayData
 		{
 			public readonly byte OwnerId;

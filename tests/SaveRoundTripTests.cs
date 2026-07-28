@@ -33,6 +33,27 @@ namespace CivOne.Tests
 			Assert.Equal(File.ReadAllText(first), File.ReadAllText(second));
 		}
 
+		// The replay log is what makes a finished game watchable again, and a new event
+		// type is silently dropped if either half of the COS mapping is missed — it
+		// would simply be absent from the chronicle, with nothing to notice at runtime.
+		[Fact]
+		public void Milestone_ReplayEvent_SurvivesSaveLoad()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			const string text = "THE OWNERS ARRIVE — the recovery fleet takes orbit";
+			Game.Instance.AddReplayEvent(new ReplayData.Milestone(42, text));
+
+			string path = Path.Combine(Settings.Instance.SavesDirectory, "milestone.cos");
+			Game.Instance.SaveCos(path);
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "LoadCos should succeed");
+
+			var milestones = Game.Instance.GetReplayData<ReplayData.Milestone>();
+			Assert.Single(milestones);
+			Assert.Equal(42, milestones[0].Turn);
+			Assert.Equal(text, milestones[0].Text);
+		}
+
 		// Regression for the byte-coordinate bug: a city east of x=255 on an Epic-width
 		// map kept its real X (309), not the byte-wrapped 53, through a save/load cycle.
 		[Fact]

@@ -1943,6 +1943,13 @@ namespace CivOne
 			string gameDate = GameYear;
 			RecordTransmission("OwnersArrival", gameDate);
 
+			// The chronicle should name the single most important thing that ever happens
+			// in a game. Without this the replay shows the invasion only as an unexplained
+			// cascade of city captures by a civilization that was not there the turn before.
+			AddReplayEvent(new ReplayData.Milestone(_gameTurn, domeHeld
+				? "THE OWNERS ARRIVE — the dome holds; the claim is disputed"
+				: "THE OWNERS ARRIVE — the recovery fleet takes orbit"));
+
 			// Arrival art: the fleet over Earth. Optional — plays before the transmissions
 			// in both branches when data/event_art/TheOthersArrive.png exists.
 			string? arriveArt = Screens.EventArtScreen.FindPath("TheOthersArrive");

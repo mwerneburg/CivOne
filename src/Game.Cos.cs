@@ -238,6 +238,8 @@ namespace CivOne
 						return new CosReplayEntry { Type = "UnitBuilt", Turn = r.Turn, OwnerId = ub.OwnerId, UnitName = ub.UnitName };
 					case ReplayData.BuildingBuilt bb:
 						return new CosReplayEntry { Type = "BuildingBuilt", Turn = r.Turn, OwnerId = bb.OwnerId, BuildingName = bb.BuildingName };
+					case ReplayData.Milestone ms:
+						return new CosReplayEntry { Type = "Milestone", Turn = r.Turn, Text = ms.Text };
 					default:
 						return null;
 				}
@@ -834,6 +836,9 @@ namespace CivOne
 						break;
 					case "BuildingBuilt":
 						_replayData.Add(new ReplayData.BuildingBuilt(re.Turn, (byte)re.OwnerId, re.BuildingName ?? ""));
+						break;
+					case "Milestone":
+						_replayData.Add(new ReplayData.Milestone(re.Turn, re.Text ?? ""));
 						break;
 				}
 			}

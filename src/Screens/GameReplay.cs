@@ -55,7 +55,8 @@ namespace CivOne.Screens
 		private readonly byte[,] _territory = new byte[Map.WIDTH, Map.HEIGHT];
 
 		// event log (most-recent last)
-		private readonly List<string> _log = new();
+		// (text, colour): milestones are drawn highlighted, everything else in INK_MID.
+		private readonly List<(string Text, byte Colour)> _log = new();
 		private const int LOG_LINES = 12;
 
 		// track which techs/units/buildings have already been logged as "first"
@@ -163,9 +164,9 @@ namespace CivOne.Screens
 			int start   = Math.Max(0, _log.Count - LOG_LINES);
 			for (int i = start; i < _log.Count; i++)
 			{
-				string line = _log[i];
+				string line = _log[i].Text;
 				if (line.Length > maxChars) line = line.Substring(0, maxChars);
-				this.DrawText(line, 0, CassetteTheme.INK_MID, textX, ly);
+				this.DrawText(line, 0, _log[i].Colour, textX, ly);
 				ly += fh + 2;
 			}
 
@@ -212,7 +213,7 @@ namespace CivOne.Screens
 						_cities[(cb.X, cb.Y)] = (cb.OwnerId, cname);
 						PaintTerritory(cb.X, cb.Y, cb.OwnerId);
 						string tribe = PlayerTribeName(cb.OwnerId);
-						_log.Add($"{tribe}: {cname} founded");
+						_log.Add(($"{tribe}: {cname} founded", CassetteTheme.INK_MID));
 						break;
 					}
 					case ReplayData.CityCaptured cc:
@@ -222,7 +223,7 @@ namespace CivOne.Screens
 							_cities[(cc.X, cc.Y)] = (cc.NewOwnerId, cname);
 						PaintTerritory(cc.X, cc.Y, cc.NewOwnerId);
 						string tribe = PlayerTribeName(cc.NewOwnerId);
-						_log.Add($"{tribe} captures {cname}");
+						_log.Add(($"{tribe} captures {cname}", CassetteTheme.INK_MID));
 						break;
 					}
 					case ReplayData.CityDestroyed cd:
@@ -231,13 +232,13 @@ namespace CivOne.Screens
 						ClearTerritory(cd.X, cd.Y);
 						_cities.Remove((cd.X, cd.Y));
 						string tribe = PlayerTribeName(cd.OwnerId);
-						_log.Add($"{cname} ({tribe}) destroyed");
+						_log.Add(($"{cname} ({tribe}) destroyed", CassetteTheme.INK_MID));
 						break;
 					}
 					case ReplayData.WonderBuilt wb:
 					{
 						string tribe = PlayerTribeName(wb.OwnerId);
-						_log.Add($"{tribe}: {wb.WonderName}");
+						_log.Add(($"{tribe}: {wb.WonderName}", CassetteTheme.INK_MID));
 						break;
 					}
 					case ReplayData.TechDiscovered td:
@@ -245,7 +246,7 @@ namespace CivOne.Screens
 						if (_seenTechs.Add(td.TechName))
 						{
 							string tribe = PlayerTribeName(td.OwnerId);
-							_log.Add($"{tribe} discovers {td.TechName}");
+							_log.Add(($"{tribe} discovers {td.TechName}", CassetteTheme.INK_MID));
 						}
 						break;
 					}
@@ -254,7 +255,7 @@ namespace CivOne.Screens
 						if (_seenUnits.Add(ub.UnitName))
 						{
 							string tribe = PlayerTribeName(ub.OwnerId);
-							_log.Add($"{tribe} fields first {ub.UnitName}");
+							_log.Add(($"{tribe} fields first {ub.UnitName}", CassetteTheme.INK_MID));
 						}
 						break;
 					}
@@ -263,8 +264,13 @@ namespace CivOne.Screens
 						if (_seenBuildings.Add(bb.BuildingName))
 						{
 							string tribe = PlayerTribeName(bb.OwnerId);
-							_log.Add($"{tribe} builds first {bb.BuildingName}");
+							_log.Add(($"{tribe} builds first {bb.BuildingName}", CassetteTheme.INK_MID));
 						}
+						break;
+					}
+					case ReplayData.Milestone ms:
+					{
+						_log.Add((ms.Text, CassetteTheme.PHOS_GLOW));
 						break;
 					}
 					case ReplayData.CivilizationDestroyed cvd:
@@ -273,11 +279,11 @@ namespace CivOne.Screens
 						// Self-destruction marks a famine collapse, not a conquest.
 						if (cvd.DestroyedId == cvd.DestroyedById)
 						{
-							_log.Add($"{dead} civilization collapses");
+							_log.Add(($"{dead} civilization collapses", CassetteTheme.INK_MID));
 							break;
 						}
 						string killer = CivName(cvd.DestroyedById);
-						_log.Add($"{dead} destroyed by {killer}");
+						_log.Add(($"{dead} destroyed by {killer}", CassetteTheme.INK_MID));
 						break;
 					}
 				}

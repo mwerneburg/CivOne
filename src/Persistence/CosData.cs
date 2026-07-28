@@ -149,6 +149,8 @@ namespace CivOne.Persistence
 		// UnitBuilt / BuildingBuilt
 		public string UnitName { get; set; } = null!;
 		public string BuildingName { get; set; } = null!;
+		// Milestone
+		public string Text { get; set; } = null!;
 	}
 
 	public class CosPlayer
