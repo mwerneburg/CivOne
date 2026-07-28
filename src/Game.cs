@@ -487,6 +487,16 @@ namespace CivOne
 				ICivilization buddyCiv = Common.Civilizations.FirstOrDefault(c => c.Id == buddyId);
 				if (!buddyDestroyed && !buddyAlive && buddyCiv is not null)
 				{
+					// A dead civilization's claims die with it. City.OriginalOwner is a player
+					// SLOT, not a civilization, and the buddy inherits the slot — so without
+					// this every city the dead civ ever lost reads as the newcomer's ancestral
+					// property. Frederick, freshly arrived in South America, opened his first
+					// conversation by demanding the return of Paris. Clearing the stamp also
+					// stops a recapture counting as liberation (BaseUnit.cs:375) and keeps the
+					// dome loss check (Game.cs:1227) honest.
+					foreach (City stale in _cities.Where(c => c.OriginalOwner == playerSlot && c.Owner != playerSlot))
+						stale.OriginalOwner = stale.Owner;
+
 					_players[playerSlot] = new Player(buddyCiv);
 					_players[playerSlot].Destroyed += PlayerDestroyed;
 					AddStartingUnits(playerSlot);
