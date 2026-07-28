@@ -2120,21 +2120,33 @@ namespace CivOne
 				int ownUnitCount = Game.GetUnits().Count(u => u.Owner == glutId);
 				bool unitGlut = ownUnitCount > Player.Cities.Length * 3;
 
+				// A nation under attack does not retool its foundries for pure research,
+				// and an army fighting for its life is not a "glut". Both guards are
+				// suspended in wartime — without this the Lakota spent an entire alien
+				// invasion issuing Research Grants in 79% of their cities while The
+				// Others took the map, because a built-out city's only civic option IS
+				// the grant, so it won every roll.
+				bool fighting = stance == StrategyStance.Militarize
+				    || Game.Players.Any(p => p is not null && p != Player
+				                          && !p.IsDestroyed() && Player.IsAtWar(p));
+
 				IProduction[] items = city.AvailableProduction
 				    .Where(p => !hasCapital || !(p is Palace))
 				    .Where(p => !Situational(p))
+				    .Where(p => !fighting || p is not ResearchGrant)
 				    .ToArray();
-				if (unitGlut)
+				if (unitGlut && !fighting)
 				{
 					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
 					if (civic.Length > 0) items = civic;
 				}
 
-				// Nothing civic left to build. Rather than roll for another obsolete
-				// spearman, put the foundry to work on research — which is precisely what
-				// a civ in this position lacks. A backward civ with a full building set is
+				// At peace with every building already raised, the only civic item left is
+				// the grant itself. Take it deliberately rather than rolling the dice —
+				// otherwise the random pick lands on another obsolete spearman, which is
 				// the case this whole fallback kept getting wrong.
-				if (Player.HasAdvance<Writing>() && !items.Any(p => p is not IUnit))
+				if (!fighting && Player.HasAdvance<Writing>()
+				    && !items.Any(p => p is not IUnit && p is not ResearchGrant))
 				{
 					Consider(new ResearchGrant());
 					return plan;
