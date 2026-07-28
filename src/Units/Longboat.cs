@@ -7,11 +7,13 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System.Collections.Generic;
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
 using CivOne.Tasks;
 using CivOne.Tiles;
+using CivOne.UserInterface;
 
 namespace CivOne.Units
 {
@@ -28,28 +30,73 @@ namespace CivOne.Units
 	// its own colonists. It is a one-way journey, not a navy.
 	internal class Longboat : BaseUnitSea
 	{
-		// Coast the boat can land on: adjacent, habitable, unclaimed, and clear of
-		// existing cities by the usual founding distance.
+		// Is this a coast the boat could put its colonists on? Habitable, unclaimed,
+		// and clear of existing cities by the usual founding distance.
+		internal bool CanLandOn(ITile? t) =>
+			t is not null && !t.IsOcean
+			&& !(t is Arctic) && !(t is Mountains)
+			&& t.City is null
+			&& !Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) < 4);
+
+		// The best adjacent coast, used when nobody has named one (the AI, and the
+		// menu item's default).
 		internal ITile? LandingSite()
 		{
 			if (Tile is null) return null;
 			return Tile.GetBorderTiles()
-				.Where(t => t is not null && !t.IsOcean
-				         && !(t is Arctic) && !(t is Mountains)
-				         && t.City is null
-				         && !Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) < 4))
+				.Where(CanLandOn)
 				.OrderByDescending(t => t.LandValue)
 				.FirstOrDefault();
 		}
 
-		// Put ashore and found. Returns false when there is nowhere to land.
-		internal bool GoAshore()
+		// Put ashore and found. Pass the tile to land on a chosen coast — steering the
+		// boat into a shoreline is how a player says which one, and on a strait that
+		// choice is the whole point. Falls back to the best adjacent site.
+		// Returns false when there is nowhere to land.
+		internal bool GoAshore(ITile? site = null)
 		{
-			ITile? site = LandingSite();
-			if (site is null) return false;
-			GameTask.Enqueue(Orders.NewCity(Player, site.X, site.Y));
+			site ??= LandingSite();
+			if (!CanLandOn(site)) return false;
+			GameTask.Enqueue(Orders.NewCity(Player, site!.X, site.Y));
 			Game.DisbandUnit(this);
 			return true;
+		}
+
+		// Steering into an adjacent coast lands there rather than bouncing off it.
+		// BaseUnitSea.ValidMoveTarget rejects land outright, so without this the boat
+		// silently refuses every direction key that points at the new world.
+		public override bool MoveTo(int relX, int relY)
+		{
+			ITile? target = Tile?[relX, relY];
+			if (target is not null && !target.IsOcean && target.City is null)
+			{
+				if (GoAshore(target)) return true;
+				// Say why. Steering at a shore and having nothing happen is indistinguishable
+				// from the boat being broken, which is how this gap was found.
+				if (Human == Owner)
+					GameTask.Enqueue(Message.Error("-- Civilization Note --",
+						"", "  This shore cannot be settled:", "  it is barren, or lies too",
+						"  close to an existing city.", ""));
+				return false;
+			}
+			return base.MoveTo(relX, relY);
+		}
+
+		private MenuItem<int> MenuGoAshore() => MenuItem<int>
+			.Create("Found New City")
+			.SetShortcut("b")
+			.OnSelect((s, a) => GoAshore());
+
+		public override IEnumerable<MenuItem<int>> MenuItems
+		{
+			get
+			{
+				// The sea menu minus Unload/Home City (a longboat carries nobody and has
+				// no home to change), plus the one thing it exists to do.
+				if (LandingSite() is not null) yield return MenuGoAshore();
+				foreach (MenuItem<int> item in base.MenuItems)
+					yield return item;
+			}
 		}
 
 		private static readonly string[] _page1 =

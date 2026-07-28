@@ -496,6 +496,11 @@ namespace CivOne.Screens.GamePlayPanels
 			switch (args.KeyChar)
 			{
 				case 'B':
+					// A Longboat founds by putting its colonists on an adjacent coast, not
+					// on its own tile — Orders.FoundCity requires a Settlers and would do
+					// nothing at all here, which left an arrived boat with no way to settle.
+					if (Game.ActiveUnit is Units.Longboat landing)
+						return landing.GoAshore();
 					GameTask.Enqueue(Orders.FoundCity(Game.ActiveUnit));
 					return true;
 				case 'C':
