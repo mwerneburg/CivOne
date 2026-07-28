@@ -1563,9 +1563,15 @@ namespace CivOne
 					// so the city can repeat-build the same part.
 					Shields = 0;
 					int playerIndex = Owner;
-					if (CurrentProduction is Buildings.SSStructural)      Game.SpaceshipStructural[playerIndex]++;
-					else if (CurrentProduction is Buildings.SSComponent)  Game.SpaceshipComponent[playerIndex]++;
-					else if (CurrentProduction is Buildings.SSModule)     Game.SpaceshipModule[playerIndex]++;
+					// Clamped as well as gated in BuildingAvailable: a part already sitting in
+					// the production QUEUE was validated when it was queued, so the cap has to
+					// hold here too or the queue becomes a way around it.
+					if (CurrentProduction is Buildings.SSStructural)
+						Game.SpaceshipStructural[playerIndex] = Math.Min(Game.MaxSpaceshipStructural, Game.SpaceshipStructural[playerIndex] + 1);
+					else if (CurrentProduction is Buildings.SSComponent)
+						Game.SpaceshipComponent[playerIndex]  = Math.Min(Game.MAX_SS_COMPONENT, Game.SpaceshipComponent[playerIndex] + 1);
+					else if (CurrentProduction is Buildings.SSModule)
+						Game.SpaceshipModule[playerIndex]     = Math.Min(Game.MAX_SS_MODULE, Game.SpaceshipModule[playerIndex] + 1);
 					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
 					message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
 					GameTask.Enqueue(message);

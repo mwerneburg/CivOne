@@ -537,6 +537,18 @@ namespace CivOne
 				// No new SS parts once launched
 				if (Game.SpaceshipLaunchTurn[Game.PlayerNumber(this)] != 0)
 					return false;
+
+				// Hull limits (Game.MAX_SS_*). Completed parts are never added to the city's
+				// building list, so the usual "already built" filter in AvailableProduction
+				// can't retire them — without this the part stays on offer forever and the
+				// ship grows without bound.
+				byte ssNum = Game.PlayerNumber(this);
+				if (building is SSStructural && Game.Instance.SpaceshipStructural[ssNum] >= Game.MaxSpaceshipStructural)
+					return false;
+				if (building is SSComponent  && Game.Instance.SpaceshipComponent[ssNum]  >= Game.MAX_SS_COMPONENT)
+					return false;
+				if (building is SSModule     && Game.Instance.SpaceshipModule[ssNum]     >= Game.MAX_SS_MODULE)
+					return false;
 			}
 
 			// Determine if the building requires a tech

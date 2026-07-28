@@ -556,6 +556,22 @@ namespace CivOne
 
 		// mass_ht = comps×4 + mods×4 + str (in hundred-ton units)
 		// flight_years = (4445 + mass_ht) / (100 × engines)  where engines = comps/2
+		// Hull limits. Spaceship parts are player-level counters rather than city
+		// buildings (City.cs:1560), which is what lets a city build them repeatedly —
+		// but nothing ever capped the totals, so a civ could keep going forever. The
+		// consequences compound: SpaceshipScore is LINEAR in modules, and flight time
+		// divides by engine count, so an unbounded ship is worth unbounded points and
+		// arrives almost immediately. One AI assembled a ship worth +18,000 points —
+		// more than the rest of the world's scores combined — crossing in 2.2 years.
+		// Component/module ceilings are the classic Civ 1 maxima.
+		internal const int MAX_SS_COMPONENT = 16;   // 8 engines
+		internal const int MAX_SS_MODULE    = 12;   // 4 module sets
+
+		// Derived rather than fixed at Civ 1's 39, because this project's structure
+		// requirement is its own formula — a maxed hull must remain buildable.
+		internal static int MaxSpaceshipStructural
+			=> SpaceshipStructuresNeeded(MAX_SS_COMPONENT, MAX_SS_MODULE);
+
 		internal static float SpaceshipFlightYears(int structural, int component, int module)
 		{
 			int engines = Math.Max(1, component / 2);
