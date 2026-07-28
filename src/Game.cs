@@ -1910,49 +1910,85 @@ namespace CivOne
 		// careless, undefended world). The draw is only WEIGHTED, never fixed — your civilization
 		// changes the odds, not the outcome, so replays still surprise. Only Refugees and Owners
 		// have arcs today; Evaluators/Conquerors join the draw as their content is built.
+		// What kind of visitor Earth attracts, judged on the SPECIES rather than on one
+		// civilization. The signal that summons them is world-wide (five Observatories
+		// anywhere), so the reception should be read the same way: every living civ is
+		// assessed on the same rubric, weighted by the share of humanity it actually
+		// represents. A large, well-governed, peaceful power carries the verdict; a
+		// single backwater no longer damns everyone — which is what happened when the
+		// old human-only test let an autoplay laggard summon a recovery fleet down onto
+		// a world whose leading civ had just built a starship.
+		//
+		// The human is in the average like anybody else, so their choices still tell —
+		// in proportion to how much of the world they are.
 		private VisitorArchetype SelectVisitorArchetype()
 		{
-			Player h = HumanPlayer;
-			int score = 0; // positive = enlightened (Refugees), negative = harsh (Owners)
+			// Story factions are not humanity and get no vote.
+			Player[] nations = _players.Where(p => p is not null && !p.IsDestroyed()
+				&& PlayerNumber(p) != 0
+				&& !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers
+				                    or Civilizations.TheThing or Civilizations.Skynet))
+				.ToArray();
+			if (nations.Length == 0) return VisitorArchetype.Owners;
 
-			// Government — the clearest read on a civilization's character.
-			if (h.Government is CivOne.Governments.Democracy)      score += 3;
-			else if (h.Government is CivOne.Governments.Republic)  score += 2;
-			else if (h.Government is CivOne.Governments.Monarchy)  score -= 1;
-			else                                                  score -= 2; // Despotism / Anarchy / Communism
+			double avgCulture = nations.Average(p => (double)p.Culture);
 
-			// Wars — an aggressive, embattled civ leans Owners.
-			int wars = _players.Count(p => p != null && p != h && !p.IsDestroyed()
-				&& !(p.Civilization is Civilizations.Barbarian) && h.IsAtWar(p));
-			score -= Math.Min(wars, 3);
-
-			// Happiness / culture — Temple coverage across the empire leans Refugees.
-			if (h.Cities.Length > 0)
+			// positive = enlightened (Refugees), negative = harsh (Owners)
+			int Assess(Player n)
 			{
-				double temples = h.Cities.Count(c => c.HasBuilding<Temple>()) / (double)h.Cities.Length;
-				if (temples >= 0.6) score += 2;
-				else if (temples <= 0.2) score -= 1;
+				int score = 0;
+
+				// Government — the clearest read on a civilization's character.
+				if (n.Government is CivOne.Governments.Democracy)      score += 3;
+				else if (n.Government is CivOne.Governments.Republic)  score += 2;
+				else if (n.Government is CivOne.Governments.Monarchy)  score -= 1;
+				else                                                   score -= 2; // Despotism / Anarchy / Communism
+
+				// Wars — an aggressive, embattled civ leans Owners.
+				int wars = nations.Count(p => p != n && n.IsAtWar(p));
+				score -= Math.Min(wars, 3);
+
+				// Happiness / culture — Temple coverage across the empire leans Refugees.
+				if (n.Cities.Length > 0)
+				{
+					double temples = n.Cities.Count(c => c.HasBuilding<Temple>()) / (double)n.Cities.Length;
+					if (temples >= 0.6) score += 2;
+					else if (temples <= 0.2) score -= 1;
+				}
+
+				// Accumulated culture, against the world's average: a deep artistic and
+				// civic tradition reads as an enlightened people.
+				if (avgCulture > 0)
+				{
+					if (n.Culture > avgCulture * 2)      score += 2;
+					else if (n.Culture * 2 < avgCulture) score -= 1;
+				}
+
+				// Pollution — a smoke-choked land is loud and careless; leans Owners.
+				if (n.Pollution >= 8)      score -= 2;
+				else if (n.Pollution == 0) score += 1;
+
+				return score;
 			}
 
-			// Accumulated culture — a deep artistic and civic tradition, relative to
-			// the world's, reads as an enlightened civilization.
-			Player[] cultureRivals = _players.Where(p => p != null && p != h && !p.IsDestroyed()
-				&& PlayerNumber(p) != 0).ToArray();
-			if (cultureRivals.Length > 0)
+			// Weighted by population: the visitors are judging a species, and a civ of
+			// forty cities is more of it than a civ of two. Population can be zero for a
+			// civ down to its last settler, hence the floor.
+			double weighted = 0, totalWeight = 0;
+			foreach (Player n in nations)
 			{
-				double avgCulture = cultureRivals.Average(p => p.Culture);
-				if (h.Culture > avgCulture * 2)      score += 2;
-				else if (h.Culture * 2 < avgCulture) score -= 1;
+				double weight = Math.Max(1.0, n.Population);
+				weighted    += Assess(n) * weight;
+				totalWeight += weight;
 			}
-
-			// Pollution — a smoke-choked world is loud and careless; leans Owners.
-			if (h.Pollution >= 8)      score -= 2;
-			else if (h.Pollution == 0) score += 1;
+			double character = totalWeight > 0 ? weighted / totalWeight : 0;
 
 			// Map the character score to P(Refugees), clamped so it is never deterministic.
-			double pRefugees = 0.5 + score * 0.07;
+			double pRefugees = 0.5 + character * 0.07;
 			if (pRefugees < 0.20) pRefugees = 0.20;
 			if (pRefugees > 0.80) pRefugees = 0.80;
+
+			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length);
 
 			return Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
 				? VisitorArchetype.Refugees

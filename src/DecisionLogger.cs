@@ -252,6 +252,22 @@ namespace CivOne
 			}));
 		}
 
+		// The visitor draw happens once per game and decides its whole ending, so the
+		// inputs are worth recording — a run that ends in invasion should be able to
+		// say how close it came to the other outcome.
+		internal static void LogVisitorDraw(double character, double pRefugees, int nations)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",       "visitor_draw"),
+				KV("game_id",    _gameId),
+				KV("turn",       Game.Instance?.GameTurn ?? 0),
+				KV("character",  Math.Round(character, 2)),
+				KV("p_refugees", Math.Round(pRefugees, 2)),
+				KV("nations",    nations),
+			}));
+		}
+
 		internal static void LogHut(IUnit? unit, string outcome)
 		{
 			if (!_active) return;
@@ -389,6 +405,11 @@ namespace CivOne
 
 		private static (string, string) KV(string key, bool value)
 			=> (key, $"\"{key}\":{(value ? "true" : "false")}");
+
+		// Invariant culture: this is JSON, not display text — a comma decimal separator
+		// on a European locale would silently corrupt every record in the file.
+		private static (string, string) KV(string key, double value)
+			=> (key, $"\"{key}\":{value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}");
 
 		private static string Esc(string s) =>
 			s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
