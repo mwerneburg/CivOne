@@ -47,5 +47,6 @@ namespace CivOne.Enums
 		CivicMonument = 34,
 		PoliceStation = 35,
 		Hospital = 36,
+		ResearchGrant = 37,
 	}
 }

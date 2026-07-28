@@ -804,7 +804,11 @@ namespace CivOne
 			if (BondPool <= 0) return;
 
 			City[] recipients = Cities
-				.Where(c => c.CurrentProduction is not null && !(c.CurrentProduction is InfrastructureBond))
+				// A Research Grant city converts its own output already and never completes,
+				// so donated shields would sit in it forever. Not a recipient.
+				.Where(c => c.CurrentProduction is not null
+				         && !(c.CurrentProduction is InfrastructureBond)
+				         && !(c.CurrentProduction is ResearchGrant))
 				.ToArray();
 
 			if (recipients.Length == 0)

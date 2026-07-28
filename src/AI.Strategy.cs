@@ -2129,6 +2129,16 @@ namespace CivOne
 					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
 					if (civic.Length > 0) items = civic;
 				}
+
+				// Nothing civic left to build. Rather than roll for another obsolete
+				// spearman, put the foundry to work on research — which is precisely what
+				// a civ in this position lacks. A backward civ with a full building set is
+				// the case this whole fallback kept getting wrong.
+				if (Player.HasAdvance<Writing>() && !items.Any(p => p is not IUnit))
+				{
+					Consider(new ResearchGrant());
+					return plan;
+				}
 				// Last resort: if filtering left nothing, fall back to a defender
 				// rather than to a random population-costing unit.
 				if (items.Length == 0)

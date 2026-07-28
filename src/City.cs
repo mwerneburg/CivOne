@@ -1482,12 +1482,23 @@ namespace CivOne
 					// accumulating them locally. Player.NewTurn distributes the pool.
 					if (CurrentProduction is InfrastructureBond && Player.HasWonder<AdamSmithsTradingHouse>())
 						Player.BondPool += income;
+					// Research Grant: the city's whole output becomes research. Applied here
+					// so it lands before the ProcessScience below picks the total up on the
+					// same turn, exactly as a city's own science does.
+					else if (CurrentProduction is ResearchGrant)
+						Player.Science = (short)Math.Min(short.MaxValue, Player.Science + income);
 					else
 						Shields += income;
 				}
 			}
 
-			if (CurrentProduction is not null && Shields >= ProductionCost(CurrentProduction))
+			// A Research Grant is never finished — it is a standing commitment, not a
+			// building. Guarded here rather than by keeping Shields at zero, because
+			// shields can also arrive from outside (the bond pool), and one stray
+			// donation would otherwise "complete" it and hand the city a phantom
+			// improvement it can never use.
+			if (CurrentProduction is not ResearchGrant
+			    && CurrentProduction is not null && Shields >= ProductionCost(CurrentProduction))
 			{
 				if (CurrentProduction is Settlers && Size == 1 && Game.Difficulty == 0 && !Settings.Instance.Autopilot)
 				{
