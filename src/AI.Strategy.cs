@@ -47,9 +47,17 @@ namespace CivOne
 			// meant every civ crossed into Consolidate within a turn or two of each
 			// other once the map filled, so whole fields peaked and crashed together.
 			double tolerance = Leader.Doctrine.UnrestTolerance;
+			// The disorder test is proportional, with the old flat 2 as a floor. An
+			// absolute "2 cities rioting" was written when empires held a handful of
+			// cities; at 55 it is met essentially every turn, so every large civ sat in
+			// Consolidate permanently — never expanding, never switching research
+			// priorities, and building whatever the random fallback handed them. The
+			// scoreboard showed it plainly: civs with 54 and 55 cities scoring less than
+			// half of the one civ that still reached Expand.
+			int disorderLimit = Math.Max(2, (int)(cities.Length * 0.15));
 			if (cities.Length > 0 && (
 			        (Player.RepublicDemocratic && cities.Count(c => c.UnhappyCitizens > 0) > cities.Length * tolerance)
-			        || cities.Count(c => c.IsInDisorder) >= 2
+			        || cities.Count(c => c.IsInDisorder) >= disorderLimit
 			        || Player.LuxuriesRate >= 4))
 				return StrategyStance.Consolidate;
 
@@ -262,8 +270,15 @@ namespace CivOne
 			// until happiness buildings (Consolidate stance) let luxury fall for real.
 			if (Player.LuxuriesRate > 0)
 			{
-				bool brink = Player.Cities.Any(c => c.Size > 0 && c.UnhappyCitizens >= c.HappyCitizens);
-				if (!brink) Player.LuxuriesRate--;
+				// Proportional, for the same reason as the disorder gate above: with any
+				// sizeable empire SOME city is always one citizen from the brink, so an
+				// Any() test pinned luxuries high forever. That fed straight back into
+				// GetStance (LuxuriesRate >= 4 forces Consolidate) and ate the science
+				// slider for the rest of the game — the flatlined score traces that run
+				// dead level for centuries.
+				City[] live = Player.Cities.Where(c => c.Size > 0).ToArray();
+				int brink = live.Count(c => c.UnhappyCitizens >= c.HappyCitizens);
+				if (brink <= live.Length * 0.10) Player.LuxuriesRate--;
 				return;
 			}
 
