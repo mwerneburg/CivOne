@@ -257,16 +257,27 @@ namespace CivOne.Units
 			if (tile is null)
 				return false;
 
-			// Settlers and Caravans may always enter tiles worked by another civilization.
-			// Military units (Attack > 0) may enter if at war with the working civ.
-			// All others are blocked. Barbarians (Owner 0) are exempt — they raid freely.
+			// Tiles worked by a foreign city are closed to trespassers. Barbarians
+			// (Owner 0) are exempt — they raid freely.
+			//
+			// Two ways through. AT WAR, nobody respects which tiles the other side's
+			// cities farm, so every unit may cross: the old test additionally required
+			// Attack > 0, which quietly excluded the Diplomat (Attack 0) even against a
+			// civ we were actively fighting. A city works a 5x5 radius, so that ringed
+			// every enemy city with two tiles of ground a Diplomat could not cross — and
+			// reaching enemy cities is the only thing a Diplomat is for. With no enemy
+			// units anywhere in sight it presented as the map itself refusing to let the
+			// unit advance.
+			//
+			// AT PEACE, the civilian units cross anyway. Settlers and Caravans always
+			// did; the Diplomat belongs with them, since establishing an embassy means
+			// travelling to somebody else's capital through somebody else's fields.
 			if (Owner != 0 && Game.Instance.IsWorkedByOther(tile.X, tile.Y, Owner))
 			{
-				if (!(this is Settlers || this is Caravan))
-				{
-					if (Attack == 0 || !Player.IsAtWar(Game.Instance.GetWorkerOfTile(tile.X, tile.Y, Owner)))
-						return false;
-				}
+				bool civilian = this is Settlers || this is Caravan || this is Diplomat;
+				bool atWar = Player.IsAtWar(Game.Instance.GetWorkerOfTile(tile.X, tile.Y, Owner));
+				if (!civilian && !atWar)
+					return false;
 			}
 
 			// If the tile is not an ocean tile, movement is allowed
