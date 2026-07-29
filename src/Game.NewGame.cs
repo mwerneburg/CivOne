@@ -64,6 +64,23 @@ namespace CivOne
 			{ Civilization.Iroquois,    ( 43.0,  -76.0) },
 		};
 
+		// Civilizations withheld from the Earth maps. Their real homelands cannot carry a
+		// viable start under this generator, and no amount of AI work fixes a start with
+		// no food: Arabia paints as unbroken desert, so Medina sat at size 2 with ZERO
+		// food surplus, three advances by 1500 AD and one city for the whole game. They
+		// remain fully playable on random maps, so this is conditional on the map rather
+		// than a removal from the roster. Add the English here too if their isles keep
+		// generating as shield-poor grassland.
+		private static readonly System.Collections.Generic.HashSet<Civilization> EarthMapExcluded = new()
+		{
+			Civilization.Arabs,
+		};
+
+		// Public so the New Game tribe picker can hide the same civs it will never draw.
+		// Guarded on FixedStartPositions, so on a random map nothing is withheld.
+		internal static bool EarthMapExcludes(ICivilization civ) =>
+			Map.Instance.FixedStartPositions && EarthMapExcluded.Contains((Civilization)civ.Id);
+
 		private void AddStartingUnits(byte player)
 		{
 			// Translated from this post by darkpanda, might contain errors:
@@ -400,8 +417,38 @@ namespace CivOne
 				// the Barbarians but only ever join mid-game via their own arcs — the
 				// barbarian slot must always be the actual Barbarians, or a new game
 				// can start with the Registry raiding huts in 3000 BC.
-				ICivilization[] civs = Common.Civilizations.Where(civ => civ.PreferredPlayerNumber == i
-					&& !(civ is Civilizations.Olvir or Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
+				bool Selectable(ICivilization civ) =>
+					!(civ is Civilizations.Olvir or Civilizations.TheOthers
+					       or Civilizations.TheThing or Civilizations.Skynet);
+
+				ICivilization[] civs = Common.Civilizations
+					.Where(civ => civ.PreferredPlayerNumber == i && Selectable(civ) && !EarthMapExcludes(civ))
+					.ToArray();
+
+				// An extended civ (enum 17-26) owns its slot outright, so excluding one
+				// empties that slot — for the Arabs, slot 11. Refill from an unused
+				// EXTENDED civ only: the pre-0AD buddy respawn writes to
+				// destroyed.PreferredPlayerNumber (Game.cs:480), so seating an ORIGINAL
+				// civ (1-14) in a slot that isn't its own would make its respawn clobber
+				// whichever player really owns that slot. Extended civs never respawn, so
+				// they can sit anywhere safely.
+				if (civs.Length == 0)
+				{
+					var taken = new System.Collections.Generic.HashSet<int>(
+						_players.Where(p => p is not null).Select(p => (int)p.Civilization.Id));
+					civs = Common.Civilizations
+						.Where(civ => (int)civ.Id >= 17 && (int)civ.Id <= 26
+						           && Selectable(civ) && !EarthMapExcludes(civ)
+						           && !taken.Contains((int)civ.Id))
+						.ToArray();
+				}
+				// Last resort: never leave a slot null — every slot is indexed directly
+				// throughout the engine, and AddStartingUnits would throw on a hole.
+				if (civs.Length == 0)
+					civs = Common.Civilizations
+						.Where(civ => civ.PreferredPlayerNumber == i && Selectable(civ))
+						.ToArray();
+
 				int r = Common.Random.Next(civs.Length);
 				
 				_players[i] = new Player(civs[r]);

@@ -2295,17 +2295,16 @@ namespace CivOne
 			int bestScore = 0; // only move if it adds value
 			var ownCities = Player.Cities;
 
-			// Only consider land we can actually walk to. Without this an Explorer
-			// stranded on a small island picks the mainland across the water — it is
-			// well inside the +-8 scan — then GotoStep returns null, Goto clears, and
-			// it repeats the identical failed A* every turn forever. That is the
-			// explorer parked in the same corner of the Canaries game after game, and
-			// a standing contributor to the ~10% path failures in the timing log.
-			//
-			// Continent 15 is the "misc" bucket that tiny islands share, so equality
-			// there proves nothing: an islet and a different islet both read 15. Those
-			// candidates get an explicit reachability check below instead.
-			byte myContinent = unit.Tile?.ContinentId ?? 15;
+			// Only consider land we can actually walk to, using the SHARED rule
+			// (LandReachable) rather than a private copy of it. The copy that used to
+			// live here treated "candidate is in the misc bucket 15" as acceptable, so
+			// an explorer standing on a named continent would happily target an islet
+			// across open water — and the reachability probe below only fires when the
+			// EXPLORER's own continent is unknown, so that case was never checked. The
+			// unit set Goto, GotoStep returned null, Goto cleared, and it re-picked the
+			// identical tile every turn: an explorer that races to the coast facing the
+			// islet and then appears to park there forever.
+			byte myContinent = unit.Tile?.ContinentId ?? MISC_CONTINENT;
 			bool KnownContinent(byte id) => id >= 1 && id <= 14;
 
 			for (int dy = -8; dy <= 8; dy++)
@@ -2317,8 +2316,7 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean) continue;
-				if (KnownContinent(myContinent) && KnownContinent(tile.ContinentId)
-				    && tile.ContinentId != myContinent) continue;
+				if (!LandReachable(unit, tile)) continue;
 				int dist = Common.DistanceToTile(unit.X, unit.Y, tx, ty);
 
 				// Hut bias: BaseUnitLand.TribalHut (case 0/3) rolls Barbarians when

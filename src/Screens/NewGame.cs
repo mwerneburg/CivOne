@@ -141,8 +141,13 @@ namespace CivOne.Screens
 			// Alphabetical: the canonical Civ order is meaningless to a player hunting
 			// for one tribe among two dozen. _tribe indexes _tribesAvailable, so both
 			// are sorted together.
+			// Withheld on the Earth maps for the same reason the AI never draws them
+			// there (Game.NewGame.EarthMapExcluded): the real homeland cannot support a
+			// playable start under this generator, and offering it to the player is just
+			// a trap. Still offered on random maps.
 			_tribesAvailable = Common.Civilizations
 				.Where(c => c.PreferredPlayerNumber > 0 && c.PreferredPlayerNumber <= _competition)
+				.Where(c => !Game.EarthMapExcludes(c))
 				.OrderBy(c => c.Name, System.StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 			_menuItemsTribes = _tribesAvailable.Select(c => c.Name).ToArray();
