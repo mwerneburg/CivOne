@@ -171,22 +171,60 @@ namespace CivOne
 			_roomTurn = (int)Game.GameTurn;
 			_roomCached = false;
 
+			// Reachability is established by walking the land, not by comparing continent
+			// IDs. Every small island shares the "misc" bucket 15, so the old ID test told
+			// an island civ that islets across open water were part of its own landmass:
+			// room was reported forever, BoxedIn (its inverse) never became true, and the
+			// Longboat — the one way off an archipelago — was never built. Japan sat on
+			// seven cities for 127 turns while the test insisted it had somewhere to go.
+			//
+			// Flood fill is bounded to the same ±8 window the search already used, and the
+			// whole result is cached per turn, so this is a few hundred tile visits per
+			// city once a turn.
+			int W = Map.WIDTH, H = Map.HEIGHT;
+			int WrapDX(int a, int b)
+			{
+				int d = Math.Abs(a - b);
+				return Math.Min(d, W - d);
+			}
+
 			foreach (City c in Player.Cities)
 			{
-				byte cont = Map[c.X, c.Y].ContinentId;
-				for (int dy = -8; dy <= 8; dy++)
-				for (int dx = -8; dx <= 8; dx++)
+				var seen  = new HashSet<int> { c.Y * W + c.X };
+				var queue = new Queue<(int X, int Y)>();
+				queue.Enqueue((c.X, c.Y));
+
+				while (queue.Count > 0)
 				{
-					if (Math.Max(Math.Abs(dx), Math.Abs(dy)) < 3) continue; // too close to be a new site
-					int tx = (c.X + dx + Map.WIDTH) % Map.WIDTH;
-					int ty = c.Y + dy;
-					if (ty < 0 || ty >= Map.HEIGHT) continue;
+					(int cx, int cy) = queue.Dequeue();
+					for (int dy = -1; dy <= 1; dy++)
+					for (int dx = -1; dx <= 1; dx++)
+					{
+						if (dx == 0 && dy == 0) continue;
+						int tx = (cx + dx + W) % W;
+						int ty = cy + dy;
+						if (ty < 0 || ty >= H) continue;
+						if (Math.Max(WrapDX(tx, c.X), Math.Abs(ty - c.Y)) > 8) continue;
+						ITile step = Map[tx, ty];
+						if (step is null || step.IsOcean) continue;   // the sea stops the walk
+						if (!seen.Add(ty * W + tx)) continue;
+						queue.Enqueue((tx, ty));
+					}
+				}
+
+				foreach (int key in seen)
+				{
+					int tx = key % W, ty = key / W;
+					if (Math.Max(WrapDX(tx, c.X), Math.Abs(ty - c.Y)) < 4) continue; // too close to be a new site
 					ITile t = Map[tx, ty];
-					if (t is null || t.IsOcean) continue;
+					if (t is null) continue;
 					if (t.Type == Terrain.Mountains || t.Type == Terrain.Arctic) continue;
-					if (t.ContinentId != cont) continue;        // land-reachable only
 					if (t.City is not null) continue;
-					if (Game.GetCities().Any(cc => cc.Size > 0 && Common.DistanceToTile(cc.X, cc.Y, tx, ty) < 3)) continue;
+					// Must match BestSettleSite's bar exactly (>= 4 from every city). At < 3
+					// this reported "room" on tiles no settler is ever permitted to settle,
+					// so BoxedIn stayed false and the Longboat — the only way off an
+					// archipelago — was never built.
+					if (Game.GetCities().Any(cc => cc.Size > 0 && Common.DistanceToTile(cc.X, cc.Y, tx, ty) < 4)) continue;
 					_roomCached = true;
 					return true;
 				}
@@ -1013,12 +1051,30 @@ namespace CivOne
 		// clear, and it repeated the identical failed A* every turn. Same bug the
 		// Explorer had in the Canaries, and ~80 failed searches a turn were still
 		// showing in the timing log after that one was fixed.
+		// The "misc" bucket every landmass past the 14 named ones is folded into.
+		private const byte MISC_CONTINENT = 15;
+
 		private static bool LandReachable(IUnit unit, ITile tile)
 		{
-			byte from = unit.Tile?.ContinentId ?? 15;
+			byte from = unit.Tile?.ContinentId ?? MISC_CONTINENT;
 			byte to   = tile.ContinentId;
-			if (from < 1 || from > 14 || to < 1 || to > 14) return true;   // unknown: allow
-			return from == to;
+
+			// Both on named landmasses: reachable only if it is the SAME one.
+			bool fromKnown = from >= 1 && from <= 14;
+			bool toKnown   = to   >= 1 && to   <= 14;
+			if (fromKnown && toKnown) return from == to;
+
+			// The misc bucket is genuinely ambiguous only against ITSELF: two different
+			// islets both land in it. But a named landmass is a distinct connected
+			// component, so named-vs-misc can never be the same ground — and blanket
+			// "unknown: allow" is what let a settler on continent 7 be sent to a
+			// continent-15 island across open water. GotoStep returned null, Goto
+			// cleared, and it re-ran the identical failed search every turn for the rest
+			// of the game. That is Japan's four settlers, and a standing share of the
+			// failed pathfinds in the timing log.
+			if (fromKnown != toKnown) return false;
+
+			return true;   // both misc, or an unexpected id: cannot tell, so allow
 		}
 
 		// Is this civ hemmed in — nowhere left to settle by land? Island starts, a
@@ -1061,7 +1117,21 @@ namespace CivOne
 			return best;
 		}
 
+		// Nearest site worth founding on. Searched at ±8 first; if that finds nothing, the
+		// search widens once to ±16 before the settler gives up and drifts home.
+		//
+		// The narrow window is right for a civ with room at its elbow, and it keeps the
+		// per-settler scan small. But a settler that finds nothing simply returns to its
+		// nearest city and waits — so any gap further out than 8 tiles is invisible
+		// forever, however long the civ stands there. Japan's city chain runs 22 tiles
+		// north to south with its settlers clustered at the southern end: the northern
+		// gaps could never be seen, the chain could never fill, and BoxedIn (which gates
+		// the Longboat) could never become true. Only civs that have already failed the
+		// cheap search pay for the wide one.
 		internal ITile? BestSettleSite(IUnit settlers)
+			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
+
+		private ITile? BestSettleSiteWithin(IUnit settlers, int radius)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile? best = null;
@@ -1073,8 +1143,8 @@ namespace CivOne
 				    .Where(s => s != settlers && s.Owner == ownId && !s.Goto.IsEmpty)
 				    .Select(s => (s.Goto.X, s.Goto.Y)));
 
-			for (int dy = -8; dy <= 8; dy++)
-			for (int dx = -8; dx <= 8; dx++)
+			for (int dy = -radius; dy <= radius; dy++)
+			for (int dx = -radius; dx <= radius; dx++)
 			{
 				int tx = (settlers.X + dx + mapWidth) % mapWidth;
 				int ty = settlers.Y + dy;
