@@ -1344,6 +1344,19 @@ namespace CivOne
 					}
 				}
 
+				// Nothing to ferry and no war to fight: go and chart something. Preferred
+				// over the harbour patrol below, which is what every idle ship used to do
+				// for the entire game.
+				if (Player.ExploredLandFraction < 0.70)
+				{
+					ITile? seaDest = BestSeaExploreTile(unit);
+					if (seaDest is not null)
+					{
+						unit.Goto = new Point(seaDest.X, seaDest.Y);
+						return;
+					}
+				}
+
 				// Warships and fallback: patrol nearest own city
 				City port = Player.Cities
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
@@ -1946,6 +1959,17 @@ namespace CivOne
 			// Linear map scale — see GetStance (line 71) for why area-based was wrong.
 			int maxCities = CityTarget();
 
+			// Empire-wide settler ceiling: two per three cities. Every settler rule below
+			// has its own local condition, but nothing counted the TOTAL, so several could
+			// fire across different cities in the same turn — 16th-century logs showed
+			// settlers idling near home with nothing left to do while their cities kept
+			// building more. A settler costs a population point, so an unused one is a
+			// citizen deleted. Longboats are deliberately NOT counted: a hemmed-in civ's
+			// boats are its only expansion and are capped by BoxedIn and cost instead.
+			byte settlerCapId = Game.PlayerNumber(Player);
+			int liveSettlers  = Game.GetUnits().Count(u => u.Owner == settlerCapId && u is Settlers);
+			bool settlerBudget = liveSettlers < Math.Max(1, ownCities * 2 / 3);
+
 			// Tiny-empire settlers: < 3 cities → skip Explorer, build settlers
 			// once the city has actual mass to spend. Requiring size >= 3 (and Granary
 			// where Pottery is researched) breaks the "size-1 cycle" where AI civs
@@ -1957,7 +1981,7 @@ namespace CivOne
 			if (ownCities < 3)
 			{
 				bool granaryReady = !Player.HasAdvance<Pottery>() || city.HasBuilding<Granary>();
-				if (granaryReady && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				if (granaryReady && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
@@ -1977,8 +2001,11 @@ namespace CivOne
 			{
 				byte ownId = Game.PlayerNumber(Player);
 				int ownExplorers = Game.GetUnits().Count(u => u.Owner == ownId && u is Explorer);
-				int explorerCap  = Math.Max(1, ownCities / 3);
-				if (ownExplorers < explorerCap) Consider(new Explorer());
+				// Two per civilization, flat. Scaling with city count meant a 40-city
+				// empire fielded a dozen scouts; through most of history even ONE
+				// expedition in the field was a national undertaking. The fog tests
+				// above already stop the queue once home is charted.
+				if (ownExplorers < 2) Consider(new Explorer());
 			}
 
 			// Consolidate: happiness and growth buildings first
@@ -2000,7 +2027,7 @@ namespace CivOne
 			{
 				if (defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 				byte mzId = Game.PlayerNumber(Player);
-				if (CanAffordSettler(city, 3) && !city.Units.Any(u => u is Settlers)
+				if (settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(u => u is Settlers)
 				    && !Game.GetUnits().Any(u => u.Owner == mzId && u is Settlers))
 					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
@@ -2018,7 +2045,7 @@ namespace CivOne
 				            : Leader.Development == Normal          ? 4 : 4;
 				// Past the fixed cap, keep founding while reachable land remains — GetStance
 				// only holds us in Expand here because HasExpansionRoom() is already true.
-				if (CanAffordSettler(city, minSize) && !city.Units.Any(x => x is Settlers)
+				if (settlerBudget && CanAffordSettler(city, minSize) && !city.Units.Any(x => x is Settlers)
 				    && (ownCities < maxCities || HasExpansionRoom()))
 					Consider(new Settlers());
 			}
@@ -2032,7 +2059,7 @@ namespace CivOne
 			// so an unirrigated city stuck at 3 must still be able to build its way out.
 			// It is not 2 — a size-2 city drops to 1 the moment the settler completes.
 			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
-			    && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
+			    && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
@@ -2041,18 +2068,16 @@ namespace CivOne
 			}
 
 			// Longboat: the only expansion a hemmed-in civ has. Built when there is no
-			// land left to settle, the city is coastal, and we do not already have one
-			// at sea — these are expensive (a population point) and one crossing at a
-			// time is enough.
+			// land left to settle and the city is coastal. Uncapped deliberately — the
+			// old "one at sea at a time" rule meant an island civ colonised a new world
+			// at one city per crossing, which is indistinguishable from never. The cost
+			// is its own brake: each boat spends a population point, and CanAffordSettler
+			// keeps a city from starving itself to build one.
 			if (Player.HasAdvance<MapMaking>() && BoxedIn()
 			    && city.Tile is not null
 			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
 			    && CanAffordSettler(city, 3))
-			{
-				byte lbId = Game.PlayerNumber(Player);
-				if (!Game.GetUnits().Any(u => u.Owner == lbId && u is Longboat))
-					Consider(new Longboat());
-			}
+				Consider(new Longboat());
 
 			// Pollution control. A city past the tolerated smog level (City.cs:1193 gives
 			// the first 20 units free) pays unhappiness for it and rolls for a new polluted
@@ -2291,6 +2316,50 @@ namespace CivOne
 			// winner with a single path probe rather than discovering it every turn.
 			if (best is not null && !KnownContinent(myContinent)
 			    && Common.GotoStep(unit, best.X, best.Y) is null)
+				return null;
+
+			return best;
+		}
+
+		// Where a ship should sail to chart the world. The naval AI had exactly two
+		// behaviours — ferry troops to an invasion, or patrol the nearest home port — so
+		// every warship and every idle transport loitered in harbour for the whole game
+		// while the map stayed dark. That is fatal for an island civ in particular: its
+		// Explorers are land units that can never leave home, so nothing it owns is
+		// capable of finding another continent.
+		//
+		// Targets are water (the ship has to be able to float there) chosen for how much
+		// fog they would lift. Coast counts double: a ship that reaches an unknown
+		// shoreline reveals a landmass, which is the thing worth knowing.
+		internal ITile? BestSeaExploreTile(IUnit unit)
+		{
+			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
+			ITile? best = null;
+			int bestScore = 0;   // only move if it actually adds something
+
+			for (int dy = -12; dy <= 12; dy++)
+			for (int dx = -12; dx <= 12; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				int tx = (unit.X + dx + mapWidth) % mapWidth;
+				int ty = unit.Y + dy;
+				if (ty < 0 || ty >= mapHeight) continue;
+				ITile tile = Map[tx, ty];
+				// Sea units move through ocean and their own ports only.
+				if (tile is null || (!tile.IsOcean && tile.City is null)) continue;
+
+				int unseen = CountUnseenTiles(tx, ty);
+				if (unseen == 0) continue;
+
+				bool coastal = tile.GetBorderTiles().Any(b => b is not null && !b.IsOcean);
+				int score = unseen * (coastal ? 2 : 1) - Common.DistanceToTile(unit.X, unit.Y, tx, ty);
+				if (score > bestScore) { bestScore = score; best = tile; }
+			}
+
+			// Confirm the winner is actually sailable to. Enclosed seas and lakes are
+			// common on the Earth maps, and without this a ship re-runs the identical
+			// failed search every turn — the same loop the land Explorer had.
+			if (best is not null && Common.GotoStep(unit, best.X, best.Y) is null)
 				return null;
 
 			return best;
