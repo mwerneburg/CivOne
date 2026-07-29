@@ -1087,17 +1087,44 @@ namespace CivOne
 		// Somewhere across the water worth crossing for. Scans well beyond the land
 		// finders' +-8 window, because the whole point is a long crossing — Japan
 		// wants Manchuria, Britain the North European Plain.
-		private const int OverseasRange = 15;
+		//
+		// Searched near first, then wide. 15 tiles finds a neighbouring island or the
+		// far side of a strait, which is the common case and stays cheap. But on an
+		// Earth map the nearest OTHER continent can be far further off: measured on a
+		// real save, Australia's northern coast is ~40 tiles from southern Japan and the
+		// island chain above it ~29. At 15 alone a Japanese Longboat found nothing, and
+		// AI.cs then sentries a boat with nowhere to go — so every longboat the civ
+		// built sat in harbour for the rest of the game. Only a boat that has already
+		// failed the cheap search pays for the wide one.
+		private const int OverseasRange     = 15;
+		private const int OverseasRangeFar  = 45;
 
 		internal ITile? BestOverseasSite(IUnit boat)
+		{
+			ITile? site = BestOverseasSiteWithin(boat, OverseasRange)
+			           ?? BestOverseasSiteWithin(boat, OverseasRangeFar);
+
+			// One path probe on the winner. A coast 45 tiles off may sit in a different
+			// ocean basin with no sailable route, and without this the boat would set
+			// Goto, fail the step, clear Goto and re-pick the same tile every turn. The
+			// probe runs only when an idle boat chooses a target, not per turn — Goto
+			// persists across the crossing. Land is impassable to a ship, but GotoStep
+			// exempts the goal tile, so a coastal target resolves correctly.
+			if (site is not null && Common.GotoStep(boat, site.X, site.Y) is null)
+				return null;
+
+			return site;
+		}
+
+		private ITile? BestOverseasSiteWithin(IUnit boat, int range)
 		{
 			int w = Map.WIDTH, h = Map.HEIGHT;
 			ITile? best = null;
 			int bestScore = int.MinValue;
 			byte from = boat.Tile?.ContinentId ?? 15;
 
-			for (int dy = -OverseasRange; dy <= OverseasRange; dy++)
-			for (int dx = -OverseasRange; dx <= OverseasRange; dx++)
+			for (int dy = -range; dy <= range; dy++)
+			for (int dx = -range; dx <= range; dx++)
 			{
 				int tx = (boat.X + dx + w) % w;
 				int ty = boat.Y + dy;
