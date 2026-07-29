@@ -32,6 +32,9 @@ namespace CivOne
 
 		private enum StrategyStance { Expand, Develop, Militarize, Consolidate }
 
+		// Test/diagnostic accessor: the stance this civ would take right now.
+		internal string CurrentStanceName() => GetStance().ToString();
+
 		private StrategyStance GetStance()
 		{
 			var cities = Player.Cities;
@@ -93,13 +96,18 @@ namespace CivOne
 			// Expand forever, never flipped research priorities to Trade/Currency/Banking,
 			// never reached Republic, never escaped the Despotism tile penalty. The linear
 			// scale matches the civ-separation knob in Game.NewGame.cs:32 (same source).
-			if (cities.Length < CityTarget()) return StrategyStance.Expand;
-
-			// Past the fixed target, keep expanding as long as good unclaimed land is
-			// still reachable by land. Without this a civ freezes colonisation at the
-			// cap while whole continents sit empty — the "everyone stalls at a modest
-			// size with open land next door" failure. The room check is land-only, so
-			// isolated overseas continents don't count (naval colonisation is separate).
+			// Expand only while there is somewhere to expand TO. Being under the city
+			// target is not sufficient: a civ hemmed in by water is under it forever, so
+			// it sat in Expand for the whole game — and Expand is precisely the wrong
+			// posture for the situation. Everything a confined civ ought to be doing is
+			// gated on Develop: worker settlers and irrigation (line 2088), the leaner
+			// tax target that funds research, and the government preference, which in
+			// Expand scores Monarchy 5 and Democracy 2 — actively steering an island
+			// nation away from the constitution that suits it. Japan on Epic Earth holds
+			// ~10 cities against a target of 26 and never once reached Develop.
+			//
+			// This changes PRIORITIES only, not permission: MayFoundCities is deliberately
+			// independent of stance, so a settler that does find a site still founds on it.
 			if (HasExpansionRoom()) return StrategyStance.Expand;
 
 			return StrategyStance.Develop;
