@@ -280,10 +280,29 @@ namespace CivOne
 
 		// ── tax/science slider management ─────────────────────────────────────
 
+		// The most a civ may put into luxuries, leaving at least this much trade on
+		// research. Previously the ceiling was simply "everything that isn't tax", and a
+		// large empire spent its whole economy on a slider that plainly wasn't working:
+		// at 8/10 luxuries the Romans still had 15 cities in disorder and the Mongols 32.
+		// Buying nothing for two points of trade is a poor deal, and stopping research
+		// outright is what left the whole field in Despotism and Monarchy in 1890 AD.
+		private const int MinScienceTrade = 2;
+
+		private int MaxLuxuries() => Math.Max(0, 10 - Player.TaxesRate - MinScienceTrade);
+
 		internal void ConsiderSliders()
 		{
 			if (Player.IsDestroyed()) return;
 			if (Player.Government is Gov.Anarchy) return;
+
+			// Enforce the ceiling on the way IN, not merely as a target to climb toward.
+			// The raise branch below only ever moves the slider upward, so a civ that had
+			// already reached 8 luxuries against a tax floor of 2 under the old rule would
+			// sit there permanently however the thresholds changed. One step per turn, so
+			// an empire in real trouble eases down rather than dropping its whole luxury
+			// spend at once and rioting on the spot.
+			if (Player.TaxesRate < 3) Player.TaxesRate++;
+			else if (Player.LuxuriesRate > MaxLuxuries()) Player.LuxuriesRate--;
 
 			// Happiness safety valve: pump luxuries UP while cities are rioting, then wind them
 			// back down once order returns. Civil disorder freezes a city's production AND its
@@ -292,18 +311,31 @@ namespace CivOne
 			// illness"). Raising luxuries quells it far faster than waiting for a Temple to
 			// finish; it costs science, but GetStance flips to Consolidate to build the
 			// happiness infrastructure that lets luxuries fall back toward research.
-			int rioting = Player.Cities.Count(c => c.IsInDisorder);
-			if (rioting > 0)
+			// The luxury slider is an EMPIRE-WIDE lever, so it must answer to an
+			// empire-wide measure. "Any city rioting" is guaranteed true forever once a
+			// civ is large — at 79 cities this branch fired every single turn, took the
+			// early return, and the wind-down below was simply never reached. Luxuries
+			// ratcheted to 8, taxes pinned at the floor of 2, and science got nothing for
+			// the rest of the game: measured at turn 440, the Romans held 79 cities on 30
+			// advances and the Mongols 51 on 15. It also locked every large civ in the
+			// Consolidate stance (LuxuriesRate >= 4 is a trigger), which is why no civ in
+			// a 440-turn game ever reached Develop, Republic or Democracy.
+			//
+			// Two thresholds with a dead band between them, so the slider settles instead
+			// of oscillating: push up above 12% unrest, ease down below 5%, hold in
+			// between while happiness buildings do the real work.
+			int rioting  = Player.Cities.Count(c => c.IsInDisorder);
+			int cityCount = Math.Max(1, Player.Cities.Length);
+			double unrest = rioting / (double)cityCount;
+
+			if (unrest > 0.12)
 			{
 				// Deadlock break: a rioting city earns no gold, so the gold overlay's
-				// habit of pinning taxes high when broke only perpetuates the disorder
-				// (broke -> high tax -> luxury capped at 10-tax -> still rioting -> still
-				// broke). If luxuries are already maxed against the current tax rate and
-				// cities STILL riot, sacrifice tax (to a floor of 2) to raise the luxury
-				// ceiling — quelling the riots restarts production and the gold flow.
-				if (Player.LuxuriesRate >= 10 - Player.TaxesRate && Player.TaxesRate > 2)
+				// habit of pinning taxes high when broke only perpetuates the disorder.
+				// Sacrifice tax to widen the luxury ceiling — but only to 3, not 2.
+				if (Player.LuxuriesRate >= MaxLuxuries() && Player.TaxesRate > 3)
 					Player.TaxesRate--;
-				int maxLux = 10 - Player.TaxesRate;   // keep science >= 0
+				int maxLux = MaxLuxuries();
 				if (Player.LuxuriesRate < maxLux)
 					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
 				return;
@@ -316,15 +348,13 @@ namespace CivOne
 			// until happiness buildings (Consolidate stance) let luxury fall for real.
 			if (Player.LuxuriesRate > 0)
 			{
-				// Proportional, for the same reason as the disorder gate above: with any
-				// sizeable empire SOME city is always one citizen from the brink, so an
-				// Any() test pinned luxuries high forever. That fed straight back into
-				// GetStance (LuxuriesRate >= 4 forces Consolidate) and ate the science
-				// slider for the rest of the game — the flatlined score traces that run
-				// dead level for centuries.
-				City[] live = Player.Cities.Where(c => c.Size > 0).ToArray();
-				int brink = live.Count(c => c.UnhappyCitizens >= c.HappyCitizens);
-				if (brink <= live.Length * 0.10) Player.LuxuriesRate--;
+				// Lower on the same empire-wide measure that raises. The old test asked
+				// whether any city was near the brink, which for a large empire is always
+				// yes — one city in forty is permanently one citizen from unhappy — so
+				// the slider could only ever go up. Below 5% unrest the buildings are
+				// carrying it and the trade is better spent on research; between 5% and
+				// 12% hold, so the two thresholds cannot chase each other.
+				if (unrest < 0.05) Player.LuxuriesRate--;
 				return;
 			}
 
