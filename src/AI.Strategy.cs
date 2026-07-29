@@ -555,6 +555,36 @@ namespace CivOne
 			             .FirstOrDefault();
 		}
 
+		// The first advance we could research right now that leads toward T. Walks T's
+		// prerequisite tree, skipping what we already know, and returns something the
+		// player can actually start on this turn. Null when T is already known or its
+		// tree is blocked for some other reason.
+		private IAdvance? NextStepToward<T>() where T : IAdvance, new()
+		{
+			if (Player.HasAdvance<T>()) return null;
+			IAdvance[] available = Player.AvailableResearch.ToArray();
+			if (available.Length == 0) return null;
+
+			var seen = new System.Collections.Generic.HashSet<byte>();
+			var queue = new System.Collections.Generic.Queue<IAdvance>();
+			queue.Enqueue(new T());
+
+			while (queue.Count > 0)
+			{
+				IAdvance node = queue.Dequeue();
+				if (!seen.Add(node.Id)) continue;
+				if (Player.HasAdvance(node)) continue;
+
+				// Researchable now — this is the step to take.
+				IAdvance? ready = available.FirstOrDefault(a => a.Id == node.Id);
+				if (ready is not null) return ready;
+
+				foreach (IAdvance prereq in node.RequiredTechs)
+					queue.Enqueue(prereq);
+			}
+			return null;
+		}
+
 		// Called when anarchy ends: pick the best available government.
 		internal void ChooseGovernment()
 		{
@@ -576,9 +606,19 @@ namespace CivOne
 			    && Player.CurrentResearch is not null
 			    && Player.CurrentResearch is not Advances.Monarchy)
 			{
-				IAdvance monarchy = Player.AvailableResearch.FirstOrDefault(a => a is Advances.Monarchy);
-				if (monarchy is not null)
-					Player.CurrentResearch = monarchy;
+				// Steer along the PATH to Monarchy, not merely onto Monarchy once it
+				// happens to become available. Waiting for it to appear in
+				// AvailableResearch is no help to a civ that lacks its prerequisites:
+				// measured at 1940 AD, an autoplayed Japan held 20 cities on EIGHT
+				// advances, still in Despotism because it had never researched
+				// Ceremonial Burial, so Monarchy was never offered and this escape was
+				// dead. Despotism's tile penalty then kept every city tiny, tiny cities
+				// made 3 trade a turn between them, and 3 trade a turn never buys the
+				// advance that ends it. Nothing else in the AI breaks that circle.
+				IAdvance? escape = Player.AvailableResearch.FirstOrDefault(a => a is Advances.Monarchy)
+				               ?? NextStepToward<Advances.Monarchy>();
+				if (escape is not null)
+					Player.CurrentResearch = escape;
 			}
 
 			if (BestGovernment() is null) return; // already optimal
