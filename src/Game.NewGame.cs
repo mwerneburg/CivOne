@@ -439,7 +439,13 @@ namespace CivOne
 					civs = Common.Civilizations
 						.Where(civ => (int)civ.Id >= 17 && (int)civ.Id <= 26
 						           && Selectable(civ) && !EarthMapExcludes(civ)
-						           && !taken.Contains((int)civ.Id))
+						           && !taken.Contains((int)civ.Id)
+						           // Slots are filled in ascending order, so "not taken yet"
+						           // is not the same as "free": a civ whose own slot is still
+						           // ahead of us will claim that slot too, and the game ends
+						           // up with two of them. Observed as a duplicate Khmer, one
+						           // in slot 11 and one in slot 12.
+						           && civ.PreferredPlayerNumber <= i)
 						.ToArray();
 				}
 				// Last resort: never leave a slot null — every slot is indexed directly

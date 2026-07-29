@@ -1469,7 +1469,14 @@ namespace CivOne
 				// uses to escape disorder, so without this relaxation a single unhappy
 				// citizen freezes its production indefinitely). Food is still blocked by
 				// disorder above — the city stops growing, it just doesn't stop building.
-				if (!inDisorder || Player != Human)
+				//
+				// Autopilot counts as AI here, matching City.cs:1187 and :2011. The human
+				// slot under autopilot is driven by the same AI that gets this relaxation
+				// everywhere else, so without it that civ alone kept the human penalty
+				// while keeping none of the human's tools: an autoplayed Japan sat on one
+				// rioting city for 250 turns, production frozen, locked on a wonder it
+				// could never finish and therefore never re-planning.
+				if (!inDisorder || Player != Human || Settings.Instance.Autopilot)
 				{
 					int income = shieldIncome;
 					// Higher difficulties give AI cities a production bonus (classic Civ 1 "cheat").

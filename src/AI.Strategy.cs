@@ -288,21 +288,41 @@ namespace CivOne
 		// outright is what left the whole field in Despotism and Monarchy in 1890 AD.
 		private const int MinScienceTrade = 2;
 
-		private int MaxLuxuries() => Math.Max(0, 10 - Player.TaxesRate - MinScienceTrade);
+		// Above this share of cities in disorder the research reserve is waived entirely:
+		// the civ is fighting for its life and the luxury slider is the only fast lever
+		// it has. Reserving trade for science below the threshold is what stops a large,
+		// mostly-content empire from spending its whole economy on a handful of angry
+		// cities; applying it during a real crisis is what made small civs stillborn —
+		// a one-city nation is at 100% unrest the moment that city riots, and capping it
+		// at 5 luxuries left it rioting forever with no way back.
+		private const double CrisisUnrest = 0.40;
+
+		private int MaxLuxuries(double unrest)
+		{
+			int reserve = unrest > CrisisUnrest ? 0 : MinScienceTrade;
+			return Math.Max(0, 10 - Player.TaxesRate - reserve);
+		}
 
 		internal void ConsiderSliders()
 		{
 			if (Player.IsDestroyed()) return;
 			if (Player.Government is Gov.Anarchy) return;
 
+			int rioting   = Player.Cities.Count(c => c.IsInDisorder);
+			int cityCount = Math.Max(1, Player.Cities.Length);
+			double unrest = rioting / (double)cityCount;
+
 			// Enforce the ceiling on the way IN, not merely as a target to climb toward.
 			// The raise branch below only ever moves the slider upward, so a civ that had
-			// already reached 8 luxuries against a tax floor of 2 under the old rule would
-			// sit there permanently however the thresholds changed. One step per turn, so
-			// an empire in real trouble eases down rather than dropping its whole luxury
-			// spend at once and rioting on the spot.
-			if (Player.TaxesRate < 3) Player.TaxesRate++;
-			else if (Player.LuxuriesRate > MaxLuxuries()) Player.LuxuriesRate--;
+			// already reached 8 luxuries against a tax floor of 2 would sit there
+			// permanently however the thresholds changed. One step per turn, and only
+			// while the civ is NOT in crisis — clawing trade back from a burning empire
+			// is exactly the mistake that froze the small civs.
+			if (unrest <= CrisisUnrest)
+			{
+				if (Player.TaxesRate < 3) Player.TaxesRate++;
+				else if (Player.LuxuriesRate > MaxLuxuries(unrest)) Player.LuxuriesRate--;
+			}
 
 			// Happiness safety valve: pump luxuries UP while cities are rioting, then wind them
 			// back down once order returns. Civil disorder freezes a city's production AND its
@@ -324,18 +344,15 @@ namespace CivOne
 			// Two thresholds with a dead band between them, so the slider settles instead
 			// of oscillating: push up above 12% unrest, ease down below 5%, hold in
 			// between while happiness buildings do the real work.
-			int rioting  = Player.Cities.Count(c => c.IsInDisorder);
-			int cityCount = Math.Max(1, Player.Cities.Length);
-			double unrest = rioting / (double)cityCount;
-
 			if (unrest > 0.12)
 			{
 				// Deadlock break: a rioting city earns no gold, so the gold overlay's
 				// habit of pinning taxes high when broke only perpetuates the disorder.
-				// Sacrifice tax to widen the luxury ceiling — but only to 3, not 2.
-				if (Player.LuxuriesRate >= MaxLuxuries() && Player.TaxesRate > 3)
+				// The tax floor is 3 normally, but 2 in a crisis — the old escape valve.
+				int taxFloor = unrest > CrisisUnrest ? 2 : 3;
+				if (Player.LuxuriesRate >= MaxLuxuries(unrest) && Player.TaxesRate > taxFloor)
 					Player.TaxesRate--;
-				int maxLux = MaxLuxuries();
+				int maxLux = MaxLuxuries(unrest);
 				if (Player.LuxuriesRate < maxLux)
 					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
 				return;
