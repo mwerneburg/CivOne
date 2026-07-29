@@ -858,7 +858,12 @@ namespace CivOne
 
 			if (_anarchy == 0 && Government is Anarchy)
 			{
-				if (Human == Game.CurrentPlayer)
+				// Autopilot picks for itself rather than raising the chooser — matching
+				// City.cs:1187, :1472 and :2011, which all treat autopilot as AI-driven.
+				// Nothing would answer that dialog in an unattended run, so it would sit
+				// there and the game would stop. It has not bitten yet only because no
+				// autoplayed civ had ever managed to revolt.
+				if (Human == Game.CurrentPlayer && !Settings.Instance.Autopilot)
 					GameTask.Enqueue(Show.ChooseGovernment);
 				else
 					AI?.ChooseGovernment();

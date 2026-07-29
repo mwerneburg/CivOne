@@ -526,24 +526,44 @@ namespace CivOne
 
 		// ── government progression ────────────────────────────────────────────
 
+		// How much this civ wants a given government, by strategic posture.
+		//
+		// The table used to make Monarchy worth 5 in BOTH Expand and Militarize, while
+		// the Republic and Democracy could only win inside Develop. Since BestGovernment
+		// requires a STRICTLY higher score, that made Monarchy a terminus: a large civ
+		// lives in Expand or Militarize, nothing there could beat 5, so the search
+		// returned null and no upgrade was ever attempted. Measured at 1973 AD, every
+		// surviving civ was in Monarchy — the Lakota on 65 cities and 76 advances.
+		//
+		// Monarchy now tops the table only in Militarize, where its simplicity under arms
+		// genuinely is the point. A large empire at peace — expanding or consolidating —
+		// should want the Republic's trade and then Democracy, and now scores them that
+		// way. Despotism stays bottom; Anarchy falls through to 0 so anything beats it.
 		private static int GovernmentScore(IGovernment gov, StrategyStance stance)
 		{
+			bool war = stance == StrategyStance.Militarize;
+
 			if (gov is Gov.Democracy)
-				return stance == StrategyStance.Develop ? 5 : 2;
+				return war ? 2                                    // war weariness is crippling
+				     : stance == StrategyStance.Develop ? 6 : 5;  // best in peace
 			if (gov is Gov.Republic)
-				return stance == StrategyStance.Develop ? 4 : 3;
-			// Communism now carries a 50% science bonus (see Governments/Communism),
-			// so it is a research government as well as a wartime one — worth as much
-			// to a builder as the Republic, without the war weariness.
+				return war ? 3
+				     : stance == StrategyStance.Develop ? 5 : 4;
+			// Communism carries a 50% science bonus (see Governments/Communism), so it is
+			// a research government as well as a wartime one — the builder's alternative
+			// to the Republic, and the fighter's alternative to Monarchy.
 			if (gov is Gov.Communism)
-				return stance == StrategyStance.Militarize ? 5
-				     : stance == StrategyStance.Develop    ? 4 : 3;
+				return war ? 5
+				     : stance == StrategyStance.Develop ? 4 : 3;
 			if (gov is Gov.Monarchy)
-				return stance == StrategyStance.Militarize || stance == StrategyStance.Expand ? 5 : 3;
+				return war ? 6 : 3;
 			if (gov is Gov.Despotism)
 				return 1;
 			return 0;
 		}
+
+		// Test/diagnostic accessor.
+		internal string? BestGovernmentName() => BestGovernment()?.GetType().Name;
 
 		private IGovernment BestGovernment()
 		{
@@ -635,13 +655,26 @@ namespace CivOne
 				return;
 			}
 
-			// Don't revolt while at war — the anarchy interregnum is too dangerous.
-			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p))) return;
+			// Don't revolt while a war is actually being FOUGHT — the anarchy interregnum
+			// is genuinely dangerous with an enemy at the gates. But AI wars are rarely
+			// concluded, only abandoned, so "at war with anybody" is a near-permanent
+			// state and testing for it alone meant no civ ever upgraded past Monarchy.
+			// What matters is whether anyone is actually pressing us: a foreign unit
+			// belonging to a civ we are at war with, within a few tiles of one of ours.
+			bool underThreat = Game.GetUnits().Any(u =>
+				u.Owner != Game.PlayerNumber(Player)
+				&& Player.IsAtWar(Game.GetPlayer(u.Owner))
+				&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= 4));
+			if (underThreat) return;
 
-			// Further upgrades (Monarchy → Republic/Democracy, etc.): only revolt from a
-			// stable, developing position, and less often.
+			// Further upgrades (Monarchy → Republic/Democracy, etc.). Consolidate is no
+			// longer a veto — a civ managing unhappiness is exactly the one that wants the
+			// Republic's trade and the Democracy's content citizens, and holding it back
+			// until it reaches Develop (1% of decisions) is what pinned the whole field in
+			// Monarchy. Militarize still abstains: changing constitution mid-campaign is
+			// how you lose the campaign.
 			StrategyStance stance = GetStance();
-			if (stance == StrategyStance.Militarize || stance == StrategyStance.Consolidate) return;
+			if (stance == StrategyStance.Militarize) return;
 			if (Common.Random.Next(100) < 25)
 				Player.Revolt();
 		}
