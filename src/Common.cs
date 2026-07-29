@@ -324,12 +324,25 @@ namespace CivOne
 
 			// The mover's player, for the war-aware occupancy check below.
 			Player moverPlayer = Game.Instance.GetPlayer(unit.Owner);
+			// Units that cannot fight must route AROUND every foreign unit, at war or not.
+			// For a combat unit an enemy tile is a target, so it deliberately does not
+			// block — but a Diplomat, Caravan, Settlers or Hydro Engineer refuses to
+			// enter it (BaseUnit.Confront returns false for exactly these four), so the
+			// planner would hand it a path whose next step it will not take. It walks up
+			// to the enemy stack and stops there, re-deciding the identical move every
+			// turn: the diplomat that never reaches the city it was sent to. The comment
+			// at BaseUnit.cs:271 has flagged this gap for a while — this closes it at the
+			// planner instead of only guarding at the boundary.
+			bool nonCombat = unit is Diplomat || unit is Caravan
+			              || unit is Settlers || unit is HydroEngineer;
+
 			// A foreign unit blocks the tile only when we're at PEACE with its owner —
 			// a peaceful neighbour's stack you cannot trespass through. At war (and
 			// against barbarians, always hostile) an enemy unit's tile is a target to
 			// attack into, not a wall to route around, so it does not block.
-			bool Blocks(byte owner) => owner != unit.Owner && owner != 0
-				&& !moverPlayer.IsAtWar(Game.Instance.GetPlayer(owner));
+			bool Blocks(byte owner) => owner != unit.Owner
+				&& (nonCombat
+				    || (owner != 0 && !moverPlayer.IsAtWar(Game.Instance.GetPlayer(owner))));
 
 			// One of the mover's own cities is a hub on its transport network: it
 			// always carries a road, and carries rail once its side has the RailRoad
@@ -457,7 +470,16 @@ namespace CivOne
 					// enemy ZOC to another tile under enemy ZOC. Exempt: air units, leaving
 					// or entering one of the mover's own cities, and stepping onto a tile
 					// that already holds a friendly unit. The goal tile is always allowed.
-					bool zocBlocked = unit.Class != UnitClass.Air
+					//
+					// Diplomat, Caravan and Explorer ignore ZOC entirely — BaseUnit.MoveTo
+					// exempts them (BaseUnit.cs:523) and this must agree, or the planner
+					// refuses to route a move the unit is perfectly entitled to make. The
+					// approach to a foreign city is ZOC-to-ZOC by definition (its garrison
+					// projects control over every neighbouring tile), so a Diplomat sent to
+					// one got a null path, cleared its Goto and stalled a few tiles short —
+					// every time, for the whole game.
+					bool ignoresZoc = unit is Diplomat || unit is Caravan || unit is Explorer;
+					bool zocBlocked = unit.Class != UnitClass.Air && !ignoresZoc
 						&& !(fromTile.City is not null && fromTile.City.Owner == unit.Owner)
 						&& !(tile.City is not null && tile.City.Owner == unit.Owner)
 						&& (OwnerMask(nx, ny) & selfBit) == 0

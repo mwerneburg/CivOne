@@ -38,10 +38,48 @@ namespace CivOne.IO
 			return textLines.ToArray();
 		}
 		
+		// CC0 replacements for the original ERROR.TXT entries, used when the DOS text
+		// files are absent — which is the normal case now, since asset-free mode ships
+		// no *.TXT at all. Returning an empty array there meant every one of these
+		// refusals popped an EMPTY message box: the rule fired, the move was denied, and
+		// the player was told nothing. The zone-of-control case is the one that bites, as
+		// it stops a unit two tiles from a city it is at war with and looks for all the
+		// world like a bug in the map.
+		private static readonly Dictionary<string, string[]> _fallback = new()
+		{
+			["ERROR/ZOC"] = [
+				"You cannot move directly from one",
+				"tile beside an enemy unit to",
+				"another. Attack it, move to a",
+				"tile held by your own unit, or",
+				"step back before going around.",
+			],
+			["ERROR/OCCUPY"] = [
+				"That tile is already occupied.",
+			],
+			["ERROR/AMPHIB"] = [
+				"Units cannot attack from aboard",
+				"ship. Put them ashore first.",
+			],
+			["ERROR/TRIREME"] = [
+				"A TRIREME must end its turn",
+				"within one tile of land, or risk",
+				"being lost at sea.",
+			],
+			["ERROR/NOIRR"] = [
+				"This tile cannot be irrigated.",
+				"Irrigation needs fresh water in an",
+				"adjacent tile: a river, a lake, or",
+				"a tile already irrigated.",
+			],
+		};
+
 		public string[] GetGameText(string key)
 		{
-			if (_gameTexts.ContainsKey(key))
-				return _gameTexts[key];
+			if (_gameTexts.TryGetValue(key, out string[] text) && text.Length > 0)
+				return text;
+			if (_fallback.TryGetValue(key, out string[] spare))
+				return spare;
 			return new string[0];
 		}
 		
