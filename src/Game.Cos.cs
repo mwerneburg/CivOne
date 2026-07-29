@@ -332,6 +332,7 @@ namespace CivOne
 					                          .SelectMany(kv => kv.Value.Select(w => new[] { (int)kv.Key, (int)w }))
 					                          .ToList(),
 					DomeVictoryFired        = _domeVictoryFired,
+					CoexistenceFired        = _coexistenceFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
 					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
@@ -587,6 +588,7 @@ namespace CivOne
 			GooNextDoubleTurn = g.GooNextDoubleTurn;
 			NanobotCursed     = g.NanobotCursed;
 			_domeVictoryFired     = g.DomeVictoryFired;
+			_coexistenceFired     = g.CoexistenceFired;
 			if (g.DomeAssignments is not null)
 				foreach (var pair in g.DomeAssignments)
 					if (pair.Length == 2)

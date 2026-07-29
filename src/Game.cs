@@ -187,6 +187,14 @@ namespace CivOne
 
 		private bool _domeVictoryFired = false;
 
+		// The 2200 AD Coexistence ending, once fired. Persisted, because the end
+		// sequence now writes a save of the finished game so the replay can be watched
+		// again (EndSequence.SaveFinishedGame) — and loading that save puts the year
+		// straight back past 2200 with the arc still active, so the ending re-fired and
+		// awarded its milestone a SECOND time. Observed as a score of 5,881 becoming
+		// 11,496 on reload.
+		private bool _coexistenceFired = false;
+
 		// Guards the conquest-victory sequence in EndTurn so it can't re-enqueue
 		// the victory screens on every subsequent call before the game quits.
 		private bool _conquestVictoryFired = false;
@@ -1212,8 +1220,9 @@ namespace CivOne
 				// somewhere the player can't reach. Without a backstop such a game runs forever.
 				// From 2200 AD, close it out with a "Coexistence" ending that scores the peaceful,
 				// multi-species Earth the player built and held together.
-				if (Common.TurnToYear(_gameTurn) >= 2200 && SETISignalReceived)
+				if (Common.TurnToYear(_gameTurn) >= 2200 && SETISignalReceived && !_coexistenceFired)
 				{
+					_coexistenceFired = true;
 					Player? olvir = _players.FirstOrDefault(p => p.Civilization is Civilizations.Olvir);
 					int olvirCities = olvir?.Cities.Length ?? 0;
 					int coexistence = 100                                                    // reached a peaceful end at all

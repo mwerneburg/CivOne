@@ -105,6 +105,7 @@ namespace CivOne.Persistence
 		// Dome assignments: list of [ownerByte, wonderId] pairs
 		public List<int[]> DomeAssignments { get; set; } = null!;
 		public bool DomeVictoryFired { get; set; }
+		public bool CoexistenceFired { get; set; }
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; } = null!;
 		public List<CosReplayEntry> ReplayData { get; set; } = null!;
