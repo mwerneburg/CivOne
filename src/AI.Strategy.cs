@@ -2061,10 +2061,41 @@ namespace CivOne
 			return PlanProductionInto(new List<IProduction>(), city, stance);
 		}
 
+		// Does this building earn its upkeep in THIS city?
+		//
+		// Nothing in the AI consulted maintenance before this: grep TotalMaintenance
+		// across AI*.cs found no hits. The obvious rule — "don't build what the treasury
+		// cannot fund" — turns out to be unshippable, because measured across a turn-616
+		// save EVERY civ runs a permanent gold deficit (the Russians take 214 gold a turn
+		// against 686 of upkeep) that Player.Gold silently absorbs by clamping to zero.
+		// A solvency test would therefore stop the whole world building anything, so the
+		// rule here is about need, not affordability, and it is deliberately narrow.
+		private bool EarnsItsKeep(IBuilding building, City city)
+		{
+			// Happiness buildings only pay for themselves where there is unhappiness to
+			// quell. The autoplayed Japan held NINE Temples across ten cities that each
+			// showed happy 0 / unhappy 0 — content at size 2 — for 9 gold a turn out of
+			// the 29 it could not afford.
+			//
+			// Gated on the luxury slider being idle, which is the whole subtlety: a city
+			// can read as content precisely BECAUSE luxuries are cranked to 8, and
+			// refusing it a Temple then would pin the slider up forever and re-create the
+			// research shutdown from the other direction. While luxuries are doing the
+			// work, keep building the thing that lets them stop.
+			if (building is Temple or Colosseum or Cathedral
+			    && city.UnhappyCitizens == 0 && Player.LuxuriesRate == 0)
+				return false;
+
+			return true;
+		}
+
 		private List<IProduction> PlanProductionInto(List<IProduction> plan, City city, StrategyStance stance)
 		{
 			void Consider(IProduction p)
 			{
+				// Wonders are exempt — they carry no maintenance and are the one build
+				// worth going hungry for.
+				if (p is IBuilding b && p is not IWonder && !EarnsItsKeep(b, city)) return;
 				if (plan.All(x => x.GetType() != p.GetType())) plan.Add(p);
 			}
 
@@ -2472,6 +2503,12 @@ namespace CivOne
 				    .Where(p => !hasCapital || !(p is Palace))
 				    .Where(p => !Situational(p))
 				    .Where(p => !fighting || p is not ResearchGrant)
+				    // Apply the upkeep rule HERE rather than letting Consider drop the pick
+				    // silently: this branch is the last one that adds anything, so a
+				    // dropped pick leaves the plan empty and CityProduction (AI.cs:674)
+				    // indexes plan[0]. That crash is not hypothetical — it fired on the
+				    // first run of this gate, via the ResearchGrant path below.
+				    .Where(p => p is not IBuilding b || p is IWonder || EarnsItsKeep(b, city))
 				    .ToArray();
 				if (unitGlut && !fighting)
 				{
@@ -2498,6 +2535,12 @@ namespace CivOne
 				}
 				Consider(items[Common.Random.Next(items.Length)]);
 			}
+
+			// The plan must never come back empty — CityProduction takes plan[0]. Every
+			// path above can now decline a candidate on upkeep grounds, so this backstop
+			// adds a defender DIRECTLY rather than through Consider, which could decline
+			// it too. A unit carries no maintenance, so it is always affordable.
+			if (plan.Count == 0) plan.Add(BestDefender());
 
 			return plan;
 		}
