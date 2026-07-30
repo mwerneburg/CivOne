@@ -2792,9 +2792,11 @@ namespace CivOne
 		// `conversion` marks an irrigate order that CHANGES THE TERRAIN — draining swamp,
 		// clearing jungle or forest — rather than adding a water channel to open ground.
 		// The distinction matters because of the despot rule below.
+		// `newRoad` distinguishes laying the FIRST road on a bare tile from upgrading one
+		// that already exists (road → railroad → transport tube). See the ordering below.
 		private SettlerImprovement ChooseSettlerImprovement(
 		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity,
-		    bool conversion = false)
+		    bool conversion = false, bool newRoad = true)
 		{
 		    StrategyStance stance = GetStance();
 
@@ -2819,22 +2821,47 @@ namespace CivOne
 		    bool preMonarchy = (Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
 		                       && !conversion;
 
+		    // A ROAD UPGRADE never outranks food.
+		    //
+		    // validRoad counts railroading an existing road, and later tubing an existing
+		    // railroad (AI.cs:220). So the moment Railroad is discovered, every roaded tile
+		    // in the empire becomes "available road work" again — and with roads placed
+		    // unconditionally first, the AI re-swept its whole network instead of farming
+		    // it. The decision log shows the collapse precisely: irrigation as a share of
+		    // settler work, by era, for the four largest empires —
+		    //
+		    //     turn 150+   300+    450+    600+
+		    //         93%     37%      2%      0%   Babylonians
+		    //         87%     88%     30%      0%   Chinese
+		    //          0%      2%     21%      0%   Egyptians
+		    //         94%     96%     87%     41%   Mongols
+		    //
+		    // Every civ holding Railroad finished the game at 6-9% of its worked land
+		    // irrigated; Japan and the French, who never got it, were at 26% and 7%.
+		    //
+		    // A FIRST road still comes first — that is connectivity, and it is finite work.
+		    // The upgrade is the tail option, taken only when there is nothing left to farm.
+		    bool roadFirst = validRoad && newRoad;
+
 		    // Expansion phase: roads first; skip irrigation under Despotism
 		    if (stance == StrategyStance.Expand)
-		        return validRoad ? SettlerImprovement.Road :
+		        return roadFirst ? SettlerImprovement.Road :
 		               (!preMonarchy && validIrrigation) ? SettlerImprovement.Irrigation :
-		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
+		               validMine ? SettlerImprovement.Mine :
+		               validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
 
 		    // Consolidation: irrigation → growth (roads first under Despotism)
 		    if (stance == StrategyStance.Consolidate)
 		        return (!preMonarchy && validIrrigation) ? SettlerImprovement.Irrigation :
-		               validRoad ? SettlerImprovement.Road :
+		               roadFirst ? SettlerImprovement.Road :
 		               validMine ? SettlerImprovement.Mine :
-		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
+		               validIrrigation ? SettlerImprovement.Irrigation :
+		               validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
 
-		    // Militarization: roads first for rapid troop movement — but a swamp inside our
-		    // own territory is drained ahead of a mine, since the world is at war for most of
-		    // the late game and this is otherwise the stance in which nothing ever gets fixed.
+		    // Militarization: roads first for rapid troop movement, and here that DOES include
+		    // the rail upgrade — this stance now only applies to settlers working within 8
+		    // tiles of a hostile, where moving troops twice as fast is worth more than a
+		    // wheat field. Behind the lines the demotion above has already made this Develop.
 		    if (stance == StrategyStance.Militarize)
 		        return validRoad ? SettlerImprovement.Road :
 		               (conversion && validIrrigation) ? SettlerImprovement.Irrigation :

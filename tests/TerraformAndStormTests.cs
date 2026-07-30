@@ -172,6 +172,90 @@ namespace CivOne.Tests
 			Assert.True(city.HasBuilding<Aqueduct>(), "a solvent civ should not be selling anything");
 		}
 
+		// Railroading an existing road must not outrank irrigating a farm tile. validRoad
+		// counts road → railroad as available work, so discovering Railroad re-opened the
+		// whole network and the big empires re-swept it instead of farming: every civ
+		// holding Railroad finished a 750-turn game at 6-9% of its worked land irrigated.
+		[Fact]
+		public void RailUpgrade_DoesNotOutrankIrrigation()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			player.Government = new CivOne.Governments.Monarchy();   // despot rule not under test
+			player.AddAdvance(new CivOne.Advances.RailRoad());       // every road is now upgradable
+
+			int cx = 40, cy = 25;
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);   // irrigation water source
+			Map.Instance.RecalculateContinentsIfDirty();
+			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
+			Assert.NotNull(city);
+
+			foreach (IUnit stray in Game.Instance.GetUnits()
+				.Where(u => u.Owner != Game.Instance.PlayerNumber(player)
+				         && Common.DistanceToTile(u.X, u.Y, cx, cy) <= 12).ToArray())
+				Game.Instance.DisbandUnit(stray);
+
+			ITile spot = Map.Instance[cx + 1, cy];
+			spot.Road = true;              // roaded, not railed: the upgrade is available
+			Assert.False(spot.RailRoad);
+			Assert.False(spot.Irrigation);
+
+			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx + 1, cy,
+				Game.Instance.PlayerNumber(player))!;
+
+			Sim.ClearTasks();
+			AI.Instance(player).Move(settler);
+			for (int i = 0; i < 20 && GameTask.Any(); i++) GameTask.Update();
+
+			Assert.True(((Settlers)settler).BuildingIrrigation > 0,
+				"food should win over a railroad upgrade on an already-roaded tile");
+		}
+
+		// ...but laying the FIRST road on a bare tile is finite, useful work and still
+		// comes first in the EXPANSION stance. Which stance a one-city civ lands in depends
+		// on the generated map — a civ hemmed in at its start is legitimately in Develop,
+		// where irrigation leads — so the assertion follows the stance. It still fails if
+		// first roads are ever demoted below irrigation in Expand, which is the regression
+		// this guards.
+		[Fact]
+		public void FirstRoad_StillComesBeforeIrrigation()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			player.Government = new CivOne.Governments.Monarchy();
+
+			int cx = 40, cy = 25;
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Game.Instance.AddCity(player, 0, cx, cy);
+
+			ITile spot = Map.Instance[cx + 1, cy];
+			Assert.False(spot.Road, "precondition: bare ground");
+
+			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx + 1, cy,
+				Game.Instance.PlayerNumber(player))!;
+			string stance = AI.Instance(player).CurrentStanceName();
+			Sim.ClearTasks();
+			AI.Instance(player).Move(settler);
+			for (int i = 0; i < 20 && GameTask.Any(); i++) GameTask.Update();
+
+			var s = (Settlers)settler;
+			bool roaded = s.BuildingRoad > 0 || spot.Road;
+			if (stance == "Expand")
+				Assert.True(roaded, "in Expand, a bare tile should get its first road before irrigation");
+			else
+				Assert.True(roaded || s.BuildingIrrigation > 0,
+					$"stance {stance}: the settler should be doing SOME useful work on a bare tile");
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()
