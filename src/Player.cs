@@ -106,12 +106,26 @@ namespace CivOne
 			}
 		}
 
+		// Tax + luxuries + science is always 10, and science is the REMAINDER: it is
+		// never set directly, only pushed around by the other two. So a caller that
+		// raises one past (10 - the other) is not buying more luxuries, it is driving
+		// the science rate negative — and nothing downstream expects that. Measured on a
+		// turn-630 autoplayed save: the AI's slider logic held tax 3 with luxuries 8, for
+		// a science rate of -1.
+		//
+		// Clamping here rather than at each call site makes the invariant unbreakable.
+		// It cannot change what a human picked — SetRate.cs:99,107 only ever offers
+		// values up to (10 - the other slider) — and the save loader sets taxes while
+		// luxuries are still 0, then derives luxuries from the stored science rate
+		// (Game.Cos.cs:413), so a legitimate load always lands inside the clamp. A save
+		// written with a negative science rate is corrected on the way in.
 		private int _luxuriesRate = 0, _taxesRate = 5, _scienceRate = 5;
 		public int LuxuriesRate
 		{
 			get => _luxuriesRate;
 			set
 			{
+				value = Math.Max(0, Math.Min(value, 10 - _taxesRate));
 				int diff = _luxuriesRate - value;
 				_luxuriesRate = value;
 				_scienceRate += diff;
@@ -123,6 +137,7 @@ namespace CivOne
 			get => _taxesRate;
 			set
 			{
+				value = Math.Max(0, Math.Min(value, 10 - _luxuriesRate));
 				int diff = _taxesRate - value;
 				_taxesRate = value;
 				_scienceRate += diff;

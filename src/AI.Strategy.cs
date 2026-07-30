@@ -320,9 +320,39 @@ namespace CivOne
 		// at 5 luxuries left it rioting forever with no way back.
 		private const double CrisisUnrest = 0.40;
 
+		// ...but it is never waived to NOTHING. A crisis reserve of 0 let luxuries take
+		// the last point of trade, and a civ that reaches science rate 0 stops advancing
+		// permanently — which is worse than the riot it was buying off, because the
+		// happiness buildings that end the riot for good are themselves behind research.
+		// Measured on a turn-630 autoplayed save: Japan sat at tax 2 / luxuries 8 /
+		// science 0, and at 2080 AD still had no Pottery, no Granary and no Aqueduct, its
+		// largest city pinned at exactly 7 — the Aqueduct ceiling. The Mongols (45
+		// cities), the Olvir and the Babylonians were all at zero beakers the same way.
+		// One point of trade is a small price for still being in the game.
+		private const int CrisisScienceTrade = 1;
+
+		// Hysteresis on the crisis test. With a single threshold the two halves of
+		// ConsiderSliders traded the same point back and forth forever: lowering
+		// luxuries tipped two more cities into disorder, unrest crossed 0.40, the crisis
+		// branch put the point back, and order returned — a stable two-turn cycle with
+		// luxuries pinned at 8 and science at 0 for the rest of the game. Entering a
+		// crisis is a decision the empire has to hold for a while, so leaving it needs a
+		// real improvement (30%), not merely stepping back over the line it came in on.
+		private const double CrisisRecovered = 0.30;
+		private bool _inCrisis;
+
+		// Latched crisis state — call once per ConsiderSliders pass, before anything reads
+		// the thresholds, so every branch in that pass agrees about the situation.
+		private bool InCrisis(double unrest)
+		{
+			if (_inCrisis) _inCrisis = unrest > CrisisRecovered;
+			else           _inCrisis = unrest > CrisisUnrest;
+			return _inCrisis;
+		}
+
 		private int MaxLuxuries(double unrest)
 		{
-			int reserve = unrest > CrisisUnrest ? 0 : MinScienceTrade;
+			int reserve = _inCrisis ? CrisisScienceTrade : MinScienceTrade;
 			return Math.Max(0, 10 - Player.TaxesRate - reserve);
 		}
 
@@ -334,6 +364,7 @@ namespace CivOne
 			int rioting   = Player.Cities.Count(c => c.IsInDisorder);
 			int cityCount = Math.Max(1, Player.Cities.Length);
 			double unrest = rioting / (double)cityCount;
+			bool crisis   = InCrisis(unrest);
 
 			// Enforce the ceiling on the way IN, not merely as a target to climb toward.
 			// The raise branch below only ever moves the slider upward, so a civ that had
@@ -341,10 +372,17 @@ namespace CivOne
 			// permanently however the thresholds changed. One step per turn, and only
 			// while the civ is NOT in crisis — clawing trade back from a burning empire
 			// is exactly the mistake that froze the small civs.
-			if (unrest <= CrisisUnrest)
+			//
+			// The luxury ceiling is tested FIRST. These two clauses are different goals
+			// welded to one else-if: "climb to a tax floor of 3" and "come back inside the
+			// luxury ceiling". With the tax test first, a civ parked below the floor never
+			// reached the second clause at all — and a civ at tax 2 with luxuries 8 is
+			// precisely the one whose research has stopped. Order matters more than which
+			// clause wins, since only one step is taken per turn either way.
+			if (!crisis)
 			{
-				if (Player.TaxesRate < 3) Player.TaxesRate++;
-				else if (Player.LuxuriesRate > MaxLuxuries(unrest)) Player.LuxuriesRate--;
+				if (Player.LuxuriesRate > MaxLuxuries(unrest)) Player.LuxuriesRate--;
+				else if (Player.TaxesRate < 3) Player.TaxesRate++;
 			}
 
 			// Happiness safety valve: pump luxuries UP while cities are rioting, then wind them
@@ -372,12 +410,20 @@ namespace CivOne
 				// Deadlock break: a rioting city earns no gold, so the gold overlay's
 				// habit of pinning taxes high when broke only perpetuates the disorder.
 				// The tax floor is 3 normally, but 2 in a crisis — the old escape valve.
-				int taxFloor = unrest > CrisisUnrest ? 2 : 3;
+				int taxFloor = crisis ? 2 : 3;
 				if (Player.LuxuriesRate >= MaxLuxuries(unrest) && Player.TaxesRate > taxFloor)
 					Player.TaxesRate--;
 				int maxLux = MaxLuxuries(unrest);
 				if (Player.LuxuriesRate < maxLux)
 					Player.LuxuriesRate = Math.Min(maxLux, Player.LuxuriesRate + (rioting >= 3 ? 2 : 1));
+				// The reserve is a CEILING, not merely a target to climb toward — and it
+				// has to bind inside a crisis too, which is the only time luxuries ever
+				// reach 8. Without this the branch above was the sole mover here, the
+				// !crisis clause never ran, and a civ over the threshold kept luxuries at
+				// 8 and science at 0 for good: the Mongols at 45 cities and 51% disorder
+				// had 26 advances at 2080 AD, the Olvir 10.
+				else if (Player.LuxuriesRate > maxLux)
+					Player.LuxuriesRate--;
 				return;
 			}
 			// Wind luxuries back down only when EVERY city has a real happiness margin

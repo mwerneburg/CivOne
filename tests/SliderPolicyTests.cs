@@ -7,6 +7,7 @@
 // science got nothing for the rest of the game. Measured at turn 440 of a real
 // game: Romans 79 cities on 30 advances, Mongols 51 cities on 15.
 
+using System;
 using System.Linq;
 using CivOne;
 
@@ -39,6 +40,66 @@ namespace CivOne.Tests
 			Assert.True(science >= 2,
 				$"expected at least 2 trade on research, got {science} "
 				+ $"(tax {player.TaxesRate}, luxuries {player.LuxuriesRate})");
+		}
+
+		// Science is the remainder of the other two sliders, so pushing either past
+		// (10 - the other) drives it NEGATIVE rather than buying anything. The AI did
+		// exactly that — tax 3 against luxuries 8, for a science rate of -1 — so the
+		// invariant is enforced in the setters and this pins it.
+		[Fact]
+		public void Sliders_CannotDriveScienceNegative()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Player player = Game.Instance.HumanPlayer;
+
+			player.TaxesRate    = 8;
+			player.LuxuriesRate = 8;   // would be 16 points of a 10-point budget
+
+			Assert.True(player.TaxesRate + player.LuxuriesRate <= 10,
+				$"tax {player.TaxesRate} + luxuries {player.LuxuriesRate} exceeds the budget");
+			Assert.True(player.ScienceRate >= 0, $"science rate {player.ScienceRate} went negative");
+
+			// ...and the same from the other direction.
+			player.LuxuriesRate = 10;
+			player.TaxesRate    = 7;
+			Assert.True(player.TaxesRate + player.LuxuriesRate <= 10);
+			Assert.True(player.ScienceRate >= 0);
+		}
+
+		// The real path, on a real save: 71 Malian cities with one in disorder, parked at
+		// tax 5 / luxuries 5 / science 0. Two things must hold for every civ in it —
+		// research restarts, and the sliders SETTLE. With a single crisis threshold the
+		// two halves of ConsiderSliders traded one point back and forth forever (lowering
+		// luxuries tipped cities into disorder, unrest crossed 40%, the crisis branch put
+		// the point back), which is a stable two-turn cycle at science 0.
+		[Fact]
+		public void Sliders_SettleAndKeepResearchAlive_OnARealSave()
+		{
+			Sim.EnsureRuntime();
+			Sim.ResetState();
+			Settings.Instance.Autopilot = true;
+			Assert.True(Game.LoadCos(System.IO.Path.Combine(
+				AppContext.BaseDirectory, "fixtures", "CIVIL3.cos")), "fixture should load");
+
+			foreach (Player p in Game.Instance.Players.Where(p => !p.IsDestroyed() && p.Cities.Length > 0))
+			{
+				int trade = p.Cities.Sum(c => c.TradeTotal);
+				var states = new System.Collections.Generic.List<string>();
+				for (int turn = 0; turn < 12; turn++)
+				{
+					AI.Instance(p).ConsiderSliders();
+					states.Add($"{p.TaxesRate}/{p.LuxuriesRate}/{p.ScienceRate}");
+					Assert.True(p.ScienceRate >= 0,
+						$"{p.TribeNamePlural} science rate {p.ScienceRate} went negative");
+					Assert.True(p.TaxesRate + p.LuxuriesRate <= 10,
+						$"{p.TribeNamePlural} sliders sum past 10");
+				}
+
+				Assert.Single(states.Skip(states.Count - 4).Distinct());
+				if (trade > 0)
+					Assert.True(p.ScienceRate > 0,
+						$"{p.TribeNamePlural} has {trade} trade but ended on science rate 0");
+			}
 		}
 	}
 }
