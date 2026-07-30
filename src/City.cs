@@ -1579,9 +1579,12 @@ namespace CivOne
 						Game.SpaceshipComponent[playerIndex]  = Math.Min(Game.MAX_SS_COMPONENT, Game.SpaceshipComponent[playerIndex] + 1);
 					else if (CurrentProduction is Buildings.SSModule)
 						Game.SpaceshipModule[playerIndex]     = Math.Min(Game.MAX_SS_MODULE, Game.SpaceshipModule[playerIndex] + 1);
-					Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
-					message.Done += (s, a) => GameTask.Insert(Show.CityManager(this));
-					GameTask.Enqueue(message);
+					// Deliberately silent. A spaceship is dozens of identical parts, and this
+					// announced every one of them — for EVERY civ, since nothing here gated on
+					// the human — then opened the building city. During a space race that is a
+					// popup every turn or two about someone else's factory. The parts are
+					// visible on the SpaceShips screen, which is where a player tracking the
+					// race is already looking. (Launches still announce; see Game.cs:1074.)
 				}
 				else if (CurrentProduction is IBuilding currentBuilding && !_buildings.Any(b => b.Id == currentBuilding.Id))
 				{
@@ -1599,13 +1602,19 @@ namespace CivOne
 						}
 						_buildings.Add(currentBuilding);
 
-						Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
-						message.Done += (s, a) => {
-							GameTask advisorMessage = Message.Advisor(Advisor.Foreign, true, $"{Player.TribeName} capital", $"moved to {Name}.");
-							advisorMessage.Done += (s1, a1) => GameTask.Insert(Show.CityManager(this));
-							GameTask.Enqueue(advisorMessage);
-						};
-						GameTask.Enqueue(message);
+						// Only the player whose capital actually moved. This fired for every
+						// civ's Palace, so a rival relocating its seat of government opened a
+						// newspaper, an advisor and then that civ's City Manager.
+						if (Player == Human)
+						{
+							Message message = Message.Newspaper(this, $"{this.Name} builds", $"{(CurrentProduction as ICivilopedia)?.Name}.");
+							message.Done += (s, a) => {
+								GameTask advisorMessage = Message.Advisor(Advisor.Foreign, true, $"{Player.TribeName} capital", $"moved to {Name}.");
+								advisorMessage.Done += (s1, a1) => GameTask.Insert(Show.CityManager(this));
+								GameTask.Enqueue(advisorMessage);
+							};
+							GameTask.Enqueue(message);
+						}
 					}
 					else
 					{

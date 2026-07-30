@@ -54,6 +54,25 @@ namespace CivOne.Tasks
 			if (Human != _city.Owner)
 			{
 				Log($"{_city.Name} builds {name}.");
+
+				// A rival completing a WONDER is world news — it is the one foreign build
+				// worth interrupting for, and the thing you most want to know about, since
+				// each wonder can only be built once. Ordinary buildings stay silent.
+				if (_improvement is IWonder)
+				{
+					// Never the city view for a foreign city: Newspaper(city) draws the
+					// place, which would hand the player a look at a city they may not have
+					// discovered. The art screen shows the wonder and names its city
+					// without touching the map, so it is safe either way.
+					string? artPath = Game.Animations ? ImprovementArtScreen.FindArtPath(name) : null;
+					IScreen screen = artPath is not null
+						? new ImprovementArtScreen(artPath, name, _city.Name)
+						: new Newspaper(null, [$"{name} completed", $"in {_city.Name}."], showGovernment: false);
+					screen.Closed += (s, a) => EndTask();
+					Common.AddScreen(screen);
+					return;
+				}
+
 				EndTask();
 				return;
 			}
