@@ -2143,16 +2143,8 @@ namespace CivOne
 			// developing city even while the empire is at war — only frontline cities
 			// pay the war tax. GetStance() stays empire-wide for research, sliders and
 			// diplomacy; this demotion is production-only.
-			if (stance == StrategyStance.Militarize)
-			{
-				byte flId = Game.PlayerNumber(Player);
-				bool Hostile(byte owner) => owner != flId
-					&& (owner == 0 || Player.IsAtWar(Game.GetPlayer(owner)));
-				bool frontline =
-					Game.GetUnits().Any(u => Hostile(u.Owner) && Common.DistanceToTile(u.X, u.Y, city.X, city.Y) <= 8)
-					|| Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, city.X, city.Y) <= 8);
-				if (!frontline) stance = StrategyStance.Develop;
-			}
+			if (stance == StrategyStance.Militarize && !NearHostiles(city.X, city.Y))
+				stance = StrategyStance.Develop;
 
 			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
@@ -2706,6 +2698,18 @@ namespace CivOne
 
 		private enum SettlerImprovement { Road, Irrigation, Mine, None }
 
+		// Is there a hostile unit or an enemy city within `radius` of this spot? Barbarians
+		// (owner 0) always count. Shared by the two places that ask "is this the front, or
+		// just a map square inside a country that happens to be at war".
+		private bool NearHostiles(int x, int y, int radius = 8)
+		{
+			byte own = Game.PlayerNumber(Player);
+			bool Hostile(byte owner) => owner != own
+				&& (owner == 0 || Player.IsAtWar(Game.GetPlayer(owner)));
+			return Game.GetUnits().Any(u => Hostile(u.Owner) && Common.DistanceToTile(u.X, u.Y, x, y) <= radius)
+			    || Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);
+		}
+
 		// `conversion` marks an irrigate order that CHANGES THE TERRAIN — draining swamp,
 		// clearing jungle or forest — rather than adding a water channel to open ground.
 		// The distinction matters because of the despot rule below.
@@ -2714,6 +2718,17 @@ namespace CivOne
 		    bool conversion = false)
 		{
 		    StrategyStance stance = GetStance();
+
+		    // Same per-city demotion production uses: a settler working ground with no
+		    // hostile within 8 tiles terraforms like a peacetime one, even while the empire
+		    // is at war somewhere. Without this the stance is empire-wide, and since AI wars
+		    // are rarely concluded — only abandoned — most civs sit in Militarize for the
+		    // whole late game, where roads outrank irrigation. Measured at turn 578 with ten
+		    // of twelve civs in Militarize: world irrigation stood at 5-11% of worked land.
+		    // The frontier still builds roads for troop movement; the interior farms.
+		    if (stance == StrategyStance.Militarize && !NearHostiles(unit.X, unit.Y))
+		        stance = StrategyStance.Develop;
+
 		    // Under Despotism the despot penalty cuts any tile yielding >2, so irrigation adds little.
 		    // Build roads first to connect the empire; switch to irrigation once Monarchy removes the penalty.
 		    //

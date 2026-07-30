@@ -75,6 +75,19 @@ namespace CivOne.Tests
 		// Null the Game and Map singletons so the next CreateGame/LoadCos starts clean
 		// (both refuse to run while an instance already exists). The fields are private
 		// statics, so reflection is the only handle — kept here, out of production code.
+		// Empty the task queue without touching anything else. Setting a scenario up
+		// (founding a city, building a unit) enqueues UI tasks that never complete
+		// headlessly — they park at the head of the queue and block everything behind
+		// them, including the order a test is actually trying to observe. Call this
+		// immediately before the action under test.
+		public static void ClearTasks()
+		{
+			((System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!
+				.GetValue(null)!).Clear();
+			SetStaticField(typeof(GameTask), "_currentTask", null);
+		}
+
 		public static void ResetState()
 		{
 			SetStaticField(typeof(Game), "_instance", null);
@@ -85,10 +98,7 @@ namespace CivOne.Tests
 			// order) were still pending in the next one. A test that pumps GameTask.Update()
 			// then spends its iterations on another test's leftovers — which is exactly how
 			// the swamp-drain test passed alone and failed in the suite.
-			((System.Collections.IList)typeof(GameTask)
-				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!
-				.GetValue(null)!).Clear();
-			SetStaticField(typeof(GameTask), "_currentTask", null);
+			ClearTasks();
 		}
 
 		private static void SetStaticField(Type type, string name, object value)
