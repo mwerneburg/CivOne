@@ -37,8 +37,8 @@ namespace CivOne.Tests
 
 			// A city, and swamp everywhere it works.
 			int cx = 40, cy = 25;
-			for (int dy = -2; dy <= 2; dy++)
-			for (int dx = -2; dx <= 2; dx++)
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
 				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Swamp);
 			Map.Instance.RecalculateContinentsIfDirty();
 			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
@@ -97,8 +97,8 @@ namespace CivOne.Tests
 			// Grassland with a river alongside, so classic irrigation is legal, and a road
 			// already down so roads are not the available work.
 			int cx = 40, cy = 25;
-			for (int dy = -2; dy <= 2; dy++)
-			for (int dx = -2; dx <= 2; dx++)
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
 				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
 			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);
 			Map.Instance.RecalculateContinentsIfDirty();
@@ -186,8 +186,8 @@ namespace CivOne.Tests
 			player.AddAdvance(new CivOne.Advances.RailRoad());       // every road is now upgradable
 
 			int cx = 40, cy = 25;
-			for (int dy = -2; dy <= 2; dy++)
-			for (int dx = -2; dx <= 2; dx++)
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
 				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
 			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);   // irrigation water source
 			Map.Instance.RecalculateContinentsIfDirty();
@@ -230,8 +230,8 @@ namespace CivOne.Tests
 			player.Government = new CivOne.Governments.Monarchy();
 
 			int cx = 40, cy = 25;
-			for (int dy = -2; dy <= 2; dy++)
-			for (int dx = -2; dx <= 2; dx++)
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
 				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
 			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);
 			Map.Instance.RecalculateContinentsIfDirty();
@@ -254,6 +254,93 @@ namespace CivOne.Tests
 			else
 				Assert.True(roaded || s.BuildingIrrigation > 0,
 					$"stance {stance}: the settler should be doing SOME useful work on a bare tile");
+		}
+
+		// A one-city civ whose ground tops out at size 2 must still be able to build the
+		// settler that lifts it. Size 3 needs a food surplus, the surplus needs irrigation,
+		// and the irrigation needs a settler — the Lakota sat in that loop for 590 turns
+		// with one size-2 city, fifteen production picks and no settler ever built.
+		[Fact]
+		public void StalledTinyCiv_BuildsTheSettlerThatUnlocksIt()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+
+			// Plains all round (1 food each under the despot penalty) with a river beside
+			// the city, so there IS improvable land but the city cannot feed a third citizen.
+			int cx = 40, cy = 25;
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Plains);
+			Map.Instance.ChangeTileType(cx + 1, cy, Terrain.River);
+			Map.Instance.RecalculateContinentsIfDirty();
+			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
+			Assert.NotNull(city);
+			player.Explore(cx, cy, range: 3);   // CityRadius only counts tiles the owner has seen
+			city.Size = 2;
+			city.ResetResourceTiles();          // Size alone does not assign worked tiles
+
+			// Some tribes start with Pottery, and the settler rule deliberately wants the
+			// Granary built first in that case — a separate gate from the size one under
+			// test here. Give the city its Granary so the scenario is about size alone.
+			city.AddBuilding(new Granary());
+
+			// Map generation hands out starting settlers; the hatch deliberately refuses to
+			// build a second one while any is alive, so clear them to reach the case.
+			foreach (IUnit s0 in Game.Instance.GetUnits()
+				.Where(u => u.Owner == Game.Instance.PlayerNumber(player) && u is Settlers).ToArray())
+				Game.Instance.DisbandUnit(s0);
+
+			// Bonus resources are seeded from the map word and survive ChangeTileType, so the
+			// exact surplus is not fully scriptable. Grow until the city is genuinely stalled
+			// — each extra citizen eats 2 food, so this converges.
+			for (int guard = 0; guard < 6 && city.FoodIncome > 1; guard++)
+			{
+				city.Size = (byte)(city.Size + 1);
+				city.ResetResourceTiles();
+			}
+			Assert.True(city.FoodIncome <= 1, $"precondition: stalled, food was {city.FoodIncome}");
+			Assert.True(city.Size < 3, $"precondition: below the normal settler gate, size {city.Size}");
+			Assert.False(Game.Instance.GetUnits().Any(u => u is Settlers && u.Owner == Game.Instance.PlayerNumber(player)),
+				"precondition: no settler in the field");
+
+			Sim.ClearTasks();
+			AI.Instance(player).CityProduction(city);
+			var plan = new System.Collections.Generic.List<IProduction>();
+			if (city.CurrentProduction is not null) plan.Add(city.CurrentProduction);
+			plan.AddRange(city.ProductionQueue);
+
+			Assert.Contains(plan, p => p is Settlers);
+		}
+
+		// The random production fallback must respect the caps the deliberate rules
+		// enforce. Explorers are capped at two per civ, but the fallback picked from
+		// everything available and minted them without limit — Japan reached 21 alive.
+		[Fact]
+		public void ProductionFallback_RespectsTheExplorerCap()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			City city = Game.Instance.AddCity(player, 0, 40, 25)!;
+			byte id = Game.Instance.PlayerNumber(player);
+
+			for (int i = 0; i < 3; i++)
+				Game.Instance.CreateUnit(UnitType.Explorer, 40, 25, id);
+			Assert.True(Game.Instance.GetUnits().Count(u => u.Owner == id && u is Explorer) >= 2,
+				"precondition: already at or past the cap");
+
+			// Re-plan many times: the fallback picks at random, so once proves nothing.
+			for (int i = 0; i < 40; i++)
+			{
+				Sim.ClearTasks();
+				AI.Instance(player).CityProduction(city);
+				var plan = new System.Collections.Generic.List<IProduction>();
+				if (city.CurrentProduction is not null) plan.Add(city.CurrentProduction);
+				plan.AddRange(city.ProductionQueue);
+				Assert.DoesNotContain(plan, p => p is Explorer);
+			}
 		}
 
 		// Pollution and the warming counter must survive a save/load round trip.

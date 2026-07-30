@@ -2141,6 +2141,55 @@ namespace CivOne
 			return city.Size >= minSize && city.FoodIncome >= upkeep;
 		}
 
+		// The escape hatch for a civ whose city cannot reach the size the rule above wants.
+		//
+		// A settler needs size 3; size 3 needs a food surplus; the surplus needs irrigation;
+		// the irrigation needs a settler. For a civ with one or two cities on ground that
+		// tops out at size 2, that loop never opens, and the gate meant to prevent the
+		// size-2 settler-shipping churn becomes a life sentence instead. Measured over a
+		// 590-turn game: the Lakota held ONE size-2 city in a wide-open continent with no
+		// enemy within ten tiles, made fifteen production picks in the whole game, and never
+		// built a single settler — their only settler action was founding the capital on
+		// turn 0. The Greeks and the Arabs ended identically.
+		//
+		// Shipping the settler costs a population point, and that is the point: at size 1
+		// the city feeds two fewer mouths, so its surplus goes POSITIVE while the settler
+		// irrigates the ground that lifts the ceiling. Guards keep it narrow — a tiny
+		// empire, a city genuinely stalled rather than merely slow, no settler already in
+		// the field, and somewhere for this one to actually work.
+		private bool SettlerIsTheOnlyWayOut(City city)
+		{
+			if (Player.Cities.Length > 2) return false;
+			if (city.Size < 2) return false;
+			if (city.FoodIncome > 1) return false;   // still growing on its own — normal rules apply
+			byte own = Game.PlayerNumber(Player);
+			if (Game.GetUnits().Any(u => u.Owner == own && u is Settlers)) return false;
+			return HasImprovableLandNear(city);
+		}
+
+		// Is there a tile this city works — or could work — that a settler could actually
+		// improve? Mirrors the irrigation predicates in AI.cs so the settler is never built
+		// for work that does not exist.
+		private bool HasImprovableLandNear(City city)
+		{
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
+				int ty = city.Y + dy;
+				if (ty < 0 || ty >= Map.HEIGHT) continue;
+				ITile t = Map[(city.X + dx + Map.WIDTH) % Map.WIDTH, ty];
+				if (t is null || t.IsOcean || t.City is not null) continue;
+				if (t.Irrigation || t.Mine) continue;
+				if (t is Swamp || t is Jungle || t is Forest) return true;   // conversion: no water source needed
+				if ((t is Grassland || t is River || t is Plains || t is Desert)
+				    && t.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp
+				                            || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))))
+					return true;
+			}
+			return false;
+		}
+
 		private List<IProduction> PlanProduction(City city, StrategyStance stance)
 		{
 			return PlanProductionInto(new List<IProduction>(), city, stance);
@@ -2322,7 +2371,10 @@ namespace CivOne
 			if (ownCities < 3)
 			{
 				bool granaryReady = !Player.HasAdvance<Pottery>() || city.HasBuilding<Granary>();
-				if (granaryReady && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
+				// ...or the city is stalled below that size for good, in which case the
+				// settler is the only thing that can lift it (see SettlerIsTheOnlyWayOut).
+				bool canBuild = CanAffordSettler(city, 3) || SettlerIsTheOnlyWayOut(city);
+				if (granaryReady && settlerBudget && canBuild && !city.Units.Any(x => x is Settlers) && ownCities < maxCities)
 					Consider(new Settlers());
 			}
 
@@ -2555,10 +2607,18 @@ namespace CivOne
 				// Longboat and losing a citizen for a boat it had no use for; every
 				// Longboat the AI ever built came from here, never from the rule that
 				// is supposed to gate them on being hemmed in.
+				// The deliberate rules above cap explorers at two per civ; this fallback
+				// picked at random from everything available and Explorer was not excluded,
+				// so it minted them without limit — measured at turn 590, Japan had 21 alive
+				// and the Mongols 13, against a cap of 2. Any cap the considered rules
+				// enforce has to bind here as well, or the fallback quietly overrides it.
+				int fallbackExplorers = Game.GetUnits().Count(u => u.Owner == Game.PlayerNumber(Player) && u is Explorer);
+
 				bool Situational(IProduction p) =>
 					p is Settlers || p is Longboat || p is HydroEngineer   // cost a citizen
 					|| p is ICaravan                                        // needs a destination
-					|| p is Diplomat;                                       // needs a target
+					|| p is Diplomat                                        // needs a target
+					|| (p is Explorer && fallbackExplorers >= 2);           // already at the cap
 
 				// Unit glut guard. A built-out city reaching this fallback rolled uniformly
 				// over everything available, and for a technologically stalled civ most of
@@ -2570,7 +2630,6 @@ namespace CivOne
 				// only return to units when there is genuinely nothing else to build.
 				byte glutId = Game.PlayerNumber(Player);
 				int ownUnitCount = Game.GetUnits().Count(u => u.Owner == glutId);
-				bool unitGlut = ownUnitCount > Player.Cities.Length * 3;
 
 				// A nation under attack does not retool its foundries for pure research,
 				// and an army fighting for its life is not a "glut". Both guards are
@@ -2581,6 +2640,14 @@ namespace CivOne
 				bool fighting = stance == StrategyStance.Militarize
 				    || Game.Players.Any(p => p is not null && p != Player
 				                          && !p.IsDestroyed() && Player.IsAtWar(p));
+
+				// The glut ceiling is RAISED in wartime, not switched off. Suspending it
+				// outright made this fallback the empire's production policy for any civ at
+				// war — and AI wars are rarely concluded, only abandoned, so that is most
+				// civs for most of the late game. Measured over a 590-turn game: Japan's 192
+				// production picks were 67 Militia and 63 Explorers, 68% of everything it
+				// built, while it sat on 14 advances.
+				bool unitGlut = ownUnitCount > Player.Cities.Length * (fighting ? 6 : 3);
 
 				IProduction[] items = city.AvailableProduction
 				    .Where(p => !hasCapital || !(p is Palace))
@@ -2593,7 +2660,7 @@ namespace CivOne
 				    // first run of this gate, via the ResearchGrant path below.
 				    .Where(p => p is not IBuilding b || p is IWonder || EarnsItsKeep(b, city))
 				    .ToArray();
-				if (unitGlut && !fighting)
+				if (unitGlut)
 				{
 					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
 					if (civic.Length > 0) items = civic;
