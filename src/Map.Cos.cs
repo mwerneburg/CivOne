@@ -70,7 +70,11 @@ namespace CivOne
 			for (int x = 0; x < WIDTH; x++)
 			{
 				var t = _tiles[x, y];
-				if (!t.Road && !t.RailRoad && !t.TransportTube && !t.Irrigation && !t.Mine && !t.Hut) continue;
+				// Pollution belongs in this test as well as in the record: a tile whose ONLY
+				// flag was pollution used to be skipped here entirely, so smog vanished on
+				// save. Pollution is what accumulates toward the next global-warming event,
+				// so losing it meant a reloaded game could never warm.
+				if (!t.Road && !t.RailRoad && !t.TransportTube && !t.Irrigation && !t.Mine && !t.Hut && !t.Pollution) continue;
 				improvements.Add(new CosImprovement
 				{
 					X = x, Y = y,
@@ -79,7 +83,8 @@ namespace CivOne
 					TransportTube = t.TransportTube,
 					Irrigation    = t.Irrigation,
 					Mine          = t.Mine,
-					Hut           = t.Hut
+					Hut           = t.Hut,
+					Pollution     = t.Pollution
 				});
 			}
 
@@ -134,6 +139,7 @@ namespace CivOne
 					t.RailRoad      = imp.Railroad;
 					t.TransportTube = imp.TransportTube;
 					t.Irrigation    = imp.Irrigation;
+					t.Pollution     = imp.Pollution;
 					t.Mine          = imp.Mine;
 					t.Hut           = imp.Hut;
 				}

@@ -78,6 +78,15 @@ namespace CivOne.Persistence
 		public int DoorY { get; set; }
 		// Oracle: the Other Voice speaks until Religion silences it.
 		public bool OracleVoiceActive { get; set; }
+		// Global warming: how many events have fired. Drives the next event's threshold
+		// (8 + count*2) and its severity (count*20% polar / count*10% wet), so losing it
+		// on load reset the whole escalation to "first ever warming" every time a game was
+		// resumed. Tile Pollution is likewise saved now (Map.Cos.cs) — without it the
+		// pollution that DRIVES warming vanished on load too, so a long session with
+		// reloads could never accumulate toward an event at all.
+		public int GlobalWarmingCount { get; set; }
+		// Year of the most recent hurricane anywhere in the world, for the global cooldown.
+		public int LastHurricaneYear { get; set; }
 		// Strategic resource camps: [x, y, ownerPlayerIdx] triples.
 		public List<int[]> ResourceCamps { get; set; } = null!;
 		// Skynet uprising latch (the fifth Neural Lab woke the machines).
@@ -301,5 +310,6 @@ namespace CivOne.Persistence
 		public bool Irrigation { get; set; }
 		public bool Mine { get; set; }
 		public bool Hut { get; set; }
+		public bool Pollution { get; set; }
 	}
 }

@@ -376,6 +376,17 @@ namespace CivOne
 		
 		internal ushort GlobalWarmingCount { get; set; }
 
+		// Storm frequency: at most one landfall in the world per this many game years.
+		// Five is the player-facing number — in the 1-year-per-turn late game that is one
+		// storm every five turns worldwide, where it used to be several per turn.
+		// Early on, when a turn spans 20 years, the cooldown is always satisfied and the
+		// one-storm-per-tick rule is what binds.
+		internal const int HurricaneCooldownYears = 5;
+
+		// Year of the last storm anywhere. Negative years are BC, so this starts far
+		// enough back that the first storm is never blocked by the cooldown.
+		internal int LastHurricaneYear { get; set; } = int.MinValue / 2;
+
 		private ushort _gameTurn;
 		internal ushort GameTurn
 		{
@@ -1341,13 +1352,34 @@ namespace CivOne
 				foreach (City city in disasterCities)
 					city.Disaster();
 
-				// Hurricanes/typhoons: every coastal-or-floating city in the tropical or arid
-				// bands rolls independently each turn, plus inland cities one tile from the ocean.
-				// The Hurricane check self-gates by latitude/coast/probability; cheap to call on all.
-				// WarmingIndicator scans the whole map, so compute it once for all cities.
-				int hurricaneWarming = WarmingIndicator;
-				foreach (City city in _cities)
-					city.HurricaneCheck(hurricaneWarming);
+				// Hurricanes/typhoons: ONE storm in the world at most, and no more often than
+				// every five game years.
+				//
+				// Every coastal city in the two storm bands used to roll independently every
+				// single turn. With a settled map that is several landfalls per turn somewhere
+				// in the world, and a coastal city cannot hold a Temple or an Aqueduct long
+				// enough to matter — a Major strike destroys a building AND converts a worked
+				// coastal tile to Swamp (City.cs:2377). That is where the swamp bunched around
+				// coastlines came from; it reads as warming damage but it is storm waterlogging,
+				// and it accumulated far faster than warming ever could.
+				//
+				// The per-city gates (latitude band, coast class, warming-scaled probability,
+				// severity roll) are all unchanged, so WHICH city is hit and how hard is still
+				// the same model — there is simply one landfall per cooldown instead of one per
+				// eligible city per turn. Cities are walked in random order so the storm does
+				// not favour whoever appears first in the list.
+				int currentYear = Common.TurnToYear(_gameTurn);
+				if (currentYear - LastHurricaneYear >= HurricaneCooldownYears)
+				{
+					// WarmingIndicator scans the whole map, so compute it once.
+					int hurricaneWarming = WarmingIndicator;
+					foreach (City city in _cities.OrderBy(c => Common.Random.Next(0, 1000)))
+					{
+						if (!city.HurricaneCheck(hurricaneWarming)) continue;
+						LastHurricaneYear = currentYear;
+						break;
+					}
+				}
 
 				// Barbarian population cap: spawns used to accumulate without limit (127
 				// units by the late game — collectively larger than any AI army), pinning

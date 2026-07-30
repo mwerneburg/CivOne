@@ -79,6 +79,16 @@ namespace CivOne.Tests
 		{
 			SetStaticField(typeof(Game), "_instance", null);
 			SetStaticField(typeof(Map), "_instance", null);
+
+			// Drain the task queue too. It is a static list that nothing clears between
+			// games, so tasks enqueued by one test (a newspaper, an advisor, a settler
+			// order) were still pending in the next one. A test that pumps GameTask.Update()
+			// then spends its iterations on another test's leftovers — which is exactly how
+			// the swamp-drain test passed alone and failed in the suite.
+			((System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!
+				.GetValue(null)!).Clear();
+			SetStaticField(typeof(GameTask), "_currentTask", null);
 		}
 
 		private static void SetStaticField(Type type, string name, object value)

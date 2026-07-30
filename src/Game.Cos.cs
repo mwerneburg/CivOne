@@ -305,6 +305,8 @@ namespace CivOne
 					DoorX                   = DoorX,
 					DoorY                   = DoorY,
 					OracleVoiceActive       = OracleVoiceActive,
+					GlobalWarmingCount      = GlobalWarmingCount,
+					LastHurricaneYear       = LastHurricaneYear,
 					ResourceCamps           = ResourceCamps.Count > 0
 					                          ? ResourceCamps.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -560,6 +562,11 @@ namespace CivOne
 			DoorX = g.DoorX;
 			DoorY = g.DoorY;
 			OracleVoiceActive = g.OracleVoiceActive;
+			GlobalWarmingCount = (ushort)Math.Max(0, g.GlobalWarmingCount);
+			// 0 means the field was absent (a save written before storms had a cooldown),
+			// NOT "a storm in year 0" — leaving it at 0 would read as a recent storm and
+			// suppress every storm in a BC-era game until 5 AD.
+			if (g.LastHurricaneYear != 0) LastHurricaneYear = g.LastHurricaneYear;
 			if (g.ResourceCamps is not null)
 				foreach (var triple in g.ResourceCamps)
 					if (triple.Length == 3)

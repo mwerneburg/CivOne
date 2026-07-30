@@ -2295,25 +2295,27 @@ namespace CivOne
 		// damage. Global warming both increases strike frequency and shifts severity toward
 		// catastrophic. Sea Platform blunts the worst: it eliminates Catastrophic strikes and
 		// prevents building damage in Major ones.
-		public void HurricaneCheck(int warming)
+		// Returns true when a storm actually landed, so the caller can enforce the global
+		// one-storm cooldown (Game.cs) — every early return below is "no storm here".
+		public bool HurricaneCheck(int warming)
 		{
 			// 1. Latitude band: tropical (~equator) or one of the two arid bands.
 			double half = (Map.HEIGHT - 1) / 2.0;
 			double d = Math.Abs(Y - half) / half;
 			bool inBand = d < 0.15 || (d > 0.20 && d < 0.40);
-			if (!inBand) return;
+			if (!inBand) return false;
 
 			// 2. Coastal class: full damage when sea is adjacent (or the city itself sits on sea);
 			// half damage when sea is one ring further out ("one tile removed"). Freshwater lakes
 			// don't generate hurricanes, so they're excluded from every check via IsRealSea.
 			bool coastal = IsRealSea(Tile) || Tile.GetBorderTiles().Any(IsRealSea);
 			bool nearCoast = !coastal && AnyRealSeaInOuterRing();
-			if (!coastal && !nearCoast) return;
+			if (!coastal && !nearCoast) return false;
 
 			// 3. Strike probability, intensified by warming (Game.WarmingIndicator,
 			// computed once per global tick by the caller — it scans the whole map).
 			int strikePct = coastal ? (1 + warming) : (1 + warming / 2);
-			if (Common.Random.Next(0, 100) >= strikePct) return;
+			if (Common.Random.Next(0, 100) >= strikePct) return false;
 
 			// 4. Severity. 0 = Minor, 1 = Major, 2 = Catastrophic.
 			bool seaPlatform = HasBuilding<SeaPlatform>();
@@ -2405,7 +2407,7 @@ namespace CivOne
 			}
 
 			// 6. Notify the human player only.
-			if (Human != Owner) return;
+			if (Human != Owner) return true;
 
 			GameTask.Enqueue(Show.EventArt("hurricane", $"{title} {Name}!"));
 
@@ -2421,6 +2423,8 @@ namespace CivOne
 				msg.Add("Sea Platform reduced losses.");
 			if (msg.Count > 0)
 				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
+
+			return true;
 		}
 
 		// Real sea: ocean tile that's NOT flagged as a freshwater lake. Lakes are stored as

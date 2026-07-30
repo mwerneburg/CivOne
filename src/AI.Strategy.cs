@@ -1410,8 +1410,14 @@ namespace CivOne
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (!LandReachable(settlers, tile)) continue;
 				if (tile.Irrigation || tile.Mine) continue;
-				bool farmable = (tile is Grassland || tile is River || tile is Plains || tile is Desert)
-					&& tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)));
+				// Must agree with validIrrigation in AI.cs, or a settler is routed to a tile it
+				// will then refuse to work — and worse, is never routed to the tile it would
+				// happily work. Swamp/Jungle/Forest need no water source: the irrigate order
+				// CONVERTS them (Settlers.cs:438).
+				bool convertible = tile is Swamp || tile is Jungle || tile is Forest;
+				bool farmable = convertible
+					|| ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
+					    && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))));
 				if (!farmable) continue;
 				if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
 				if (claimed.Contains((tx, ty))) continue;
@@ -2300,9 +2306,15 @@ namespace CivOne
 				// filling a swamp gap and no city was allowed to build a second. The
 				// empire-wide settlerBudget above (2 per 3 cities) is still the real
 				// ceiling; this only stops a war footing from meaning "never colonise".
+				// One per three cities, floor of two. The previous ownCities/4 with a floor of
+				// ONE was too tight at the small end, which is exactly where it matters: a
+				// 7-city Japan got a single settler for its whole territory, and one settler
+				// cannot road and drain an empire. Measured at turn 578, its two settlers stood
+				// on already-improved tiles with nothing in reach. The empire-wide settlerBudget
+				// (2 per 3 cities) is still the real ceiling.
 				int mzSettlers = Game.GetUnits().Count(u => u.Owner == mzId && u is Settlers);
 				if (settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(u => u is Settlers)
-				    && mzSettlers < Math.Max(1, ownCities / 4))
+				    && mzSettlers < Math.Max(2, ownCities / 3))
 					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());
@@ -2694,13 +2706,24 @@ namespace CivOne
 
 		private enum SettlerImprovement { Road, Irrigation, Mine, None }
 
+		// `conversion` marks an irrigate order that CHANGES THE TERRAIN — draining swamp,
+		// clearing jungle or forest — rather than adding a water channel to open ground.
+		// The distinction matters because of the despot rule below.
 		private SettlerImprovement ChooseSettlerImprovement(
-		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity)
+		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity,
+		    bool conversion = false)
 		{
 		    StrategyStance stance = GetStance();
 		    // Under Despotism the despot penalty cuts any tile yielding >2, so irrigation adds little.
 		    // Build roads first to connect the empire; switch to irrigation once Monarchy removes the penalty.
-		    bool preMonarchy = Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy;
+		    //
+		    // Terrain conversion is exempt, and the exemption is the whole point: the penalty
+		    // argument is about tiles pushed ABOVE 2 food, but draining a swamp takes it from
+		    // 1 to 2, which the despot penalty never touches. Suppressing that under Despotism
+		    // would have withheld the fix from exactly the civs that need it most — the poor,
+		    // swamp-locked ones that cannot reach Monarchy in the first place.
+		    bool preMonarchy = (Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
+		                       && !conversion;
 
 		    // Expansion phase: roads first; skip irrigation under Despotism
 		    if (stance == StrategyStance.Expand)
@@ -2715,9 +2738,12 @@ namespace CivOne
 		               validMine ? SettlerImprovement.Mine :
 		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
 
-		    // Militarization: roads first for rapid troop movement
+		    // Militarization: roads first for rapid troop movement — but a swamp inside our
+		    // own territory is drained ahead of a mine, since the world is at war for most of
+		    // the late game and this is otherwise the stance in which nothing ever gets fixed.
 		    if (stance == StrategyStance.Militarize)
 		        return validRoad ? SettlerImprovement.Road :
+		               (conversion && validIrrigation) ? SettlerImprovement.Irrigation :
 		               validMine ? SettlerImprovement.Mine :
 		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
 
