@@ -19,6 +19,7 @@ using CivOne;
 using CivOne.Enums;
 using CivOne.Tiles;
 using CivOne.Units;
+using CivOne.Buildings;
 
 namespace CivOne.Tests
 {
@@ -43,15 +44,28 @@ namespace CivOne.Tests
 			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
 			Assert.NotNull(city);
 
-			// A settler on a swamp tile one step off the city centre.
-			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx + 1, cy,
+			// A settler on a swamp tile one step off the city centre. Pick one with no
+			// strategic resource on it: map generation scatters those at random, and a
+			// settler standing on an unclaimed deposit builds a camp instead of terraforming
+			// — which made this test pass or fail depending on the seed.
+			ITile? spot = null;
+			for (int dy = -1; dy <= 1 && spot is null; dy++)
+			for (int dx = -1; dx <= 1 && spot is null; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				ITile t = Map.Instance[cx + dx, cy + dy];
+				if (t is Swamp && Game.ResourceAt(t) == StrategicResource.None) spot = t;
+			}
+			Assert.NotNull(spot);
+
+			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, spot!.X, spot.Y,
 				Game.Instance.PlayerNumber(player))!;
 			Assert.NotNull(settler);
-			Assert.True(Map.Instance[cx + 1, cy] is Swamp, "precondition: standing on swamp");
+			Assert.True(Map.Instance[settler.X, settler.Y] is Swamp, "precondition: standing on swamp");
 
 			// Already roaded, so the road order (which legitimately comes first in the
 			// Expand stance) is not the available work — drainage is.
-			Map.Instance[cx + 1, cy].Road = true;
+			Map.Instance[settler.X, settler.Y].Road = true;
 
 			Sim.ClearTasks();   // drop the UI tasks AddCity queued; they never finish headlessly
 			AI.Instance(player).Move(settler);
@@ -115,6 +129,47 @@ namespace CivOne.Tests
 
 			Assert.True(((Settlers)settler).BuildingIrrigation > 0,
 				"an interior settler should irrigate even while the empire is at war");
+		}
+
+		// Divestment sheds only buildings that are provably inert where they stand, and
+		// never a happiness building — a Temple in a content city is usually the reason the
+		// city is content, and the riot costs more than the gold.
+		[Fact]
+		public void Divestment_SellsInertBuildings_ButNeverHappinessOnes()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			City city = Game.Instance.AddCity(player, 0, 40, 25)!;
+			Assert.NotNull(city);
+
+			// A size-1 city carrying the infrastructure of a city it no longer is.
+			city.AddBuilding(new Temple());
+			city.AddBuilding(new Aqueduct());
+			player.Gold = 0;
+			Assert.True(city.Size <= 4, "precondition: too small for an Aqueduct to do anything");
+			Assert.True(city.Taxes < city.TotalMaintenance, "precondition: insolvent");
+
+			AI.Instance(player).ConsiderDivestment();
+
+			Assert.False(city.HasBuilding<Aqueduct>(), "an Aqueduct in a tiny city is doing nothing");
+			Assert.True(city.HasBuilding<Temple>(), "happiness buildings must never be divested");
+		}
+
+		// A solvent civ sells nothing, however small its cities.
+		[Fact]
+		public void Divestment_LeavesASolventCivAlone()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			City city = Game.Instance.AddCity(player, 0, 40, 25)!;
+			city.AddBuilding(new Aqueduct());
+			player.Gold = 500;
+
+			AI.Instance(player).ConsiderDivestment();
+
+			Assert.True(city.HasBuilding<Aqueduct>(), "a solvent civ should not be selling anything");
 		}
 
 		// Pollution and the warming counter must survive a save/load round trip.

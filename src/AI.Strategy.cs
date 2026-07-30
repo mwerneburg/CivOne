@@ -22,6 +22,8 @@ using CivOne.Units;
 using CivOne.Governments;
 using CivOne.Wonders;
 using Gov = CivOne.Governments;
+using UniversityBuilding = CivOne.Buildings.University;
+using ObservatoryBuilding = CivOne.Buildings.Observatory;
 using static CivOne.Enums.DevelopmentLevel;
 
 namespace CivOne
@@ -579,6 +581,83 @@ namespace CivOne
 		// Militia — 1 shield income, 1 upkeep, net zero, production frozen for
 		// centuries. Disband one excess home defender per turn until the city
 		// produces again. Never touches the last defender.
+		// ── divestment ────────────────────────────────────────────────────────
+		//
+		// Sell one building a turn while the empire is insolvent, but ONLY buildings that
+		// are provably doing nothing where they stand.
+		//
+		// The gate on construction (EarnsItsKeep) is preventative and cannot reach this:
+		// a city that shrinks keeps paying for the infrastructure of the city it used to
+		// be. Measured at the end of a 750-turn autoplayed game, Japan took 62 gold a turn
+		// and owed 175 — Osaka was a size-1 city carrying 12 buildings at 20 gold of upkeep
+		// and producing NO taxes at all. Nothing in the game ever divested, and Player.Gold
+		// clamps at zero, so the shortfall was silently absorbed forever while the gold
+		// overlay pinned taxes at 8 and research at 2.
+		//
+		// Deliberately NOT happiness buildings. A Temple in a content city looks redundant
+		// but is usually the reason the city is content — selling it starts a riot, and the
+		// riot costs more than the gold. Only the two provable cases qualify: a building
+		// whose effect is gated on a city size this city no longer has, and a multiplier
+		// sitting on a base of zero. Both give back exactly nothing today.
+		//
+		// One sale per turn empire-wide, so a civ that has a bad decade sheds a little
+		// rather than dismantling itself.
+		internal void ConsiderDivestment()
+		{
+			if (Player.IsDestroyed()) return;
+			// Anarchy is NOT excluded here, unlike the slider logic: a civ between
+			// governments still pays upkeep, and the two deepest deficits in the game
+			// measured (Rome at -2289 a turn, Egypt at -667) were both in Anarchy.
+
+			// Only while genuinely insolvent: broke AND spending more than it earns.
+			// Matches the gold overlay's threshold in ConsiderSliders, so divestment stops
+			// exactly when the tax slider is free to come back down.
+			int taxes = Player.Cities.Sum(c => (int)c.Taxes);
+			int upkeep = Player.Cities.Sum(c => (int)c.TotalMaintenance);
+			if (Player.Gold >= 20 || taxes >= upkeep) return;
+
+			City? worstCity = null;
+			IBuilding? worst = null;
+			foreach (City city in Player.Cities)
+			{
+				// A city in disorder produces nothing THIS turn, which would make every
+				// multiplier in it look worthless. Skip it rather than gut it.
+				if (city.IsInDisorder) continue;
+				foreach (IBuilding building in city.Buildings)
+				{
+					if (building.Maintenance == 0) continue;
+					if (!DoesNothingHere(city, building)) continue;
+					if (worst is null || building.Maintenance > worst.Maintenance)
+					{
+						worst = building;
+						worstCity = city;
+					}
+				}
+			}
+
+			if (worst is null || worstCity is null) return;
+			Log($"{Player.TribeName}: selling {worst.Name} in {worstCity.Name} "
+			  + $"(size {worstCity.Size}, upkeep {worst.Maintenance}; empire {taxes} income vs {upkeep} upkeep)");
+			worstCity.SellBuilding(worst);
+		}
+
+		// Provably inert: the building's whole effect is unavailable in this city right now.
+		private static bool DoesNothingHere(City city, IBuilding building) => building switch
+		{
+			// Growth caps: City.cs:1367-1368 blocks growth at 7 without an Aqueduct and at
+			// 12 without a Sewer. The thresholds here leave two sizes of HEADROOM below
+			// each cap on purpose — selling a size-6 city's Aqueduct would be technically
+			// correct and practically absurd, since it needs one again the moment it grows,
+			// and a rebuild costs far more in shields than the upkeep ever saved.
+			Aqueduct    => city.Size <= 4,
+			SewerSystem => city.Size <= 9,
+			// Multipliers on a base of zero. A Library is +50% of the city's science, and
+			// half of nothing is nothing.
+			Library or UniversityBuilding or ObservatoryBuilding or Xenolab => city.Science == 0,
+			MarketPlace or Bank => city.Taxes == 0,
+			_ => false
+		};
+
 		internal void ConsiderGarrisonUpkeep()
 		{
 			if (Player.IsDestroyed()) return;
