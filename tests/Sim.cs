@@ -85,7 +85,7 @@ namespace CivOne.Tests
 			=> type.GetField(name, BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, value);
 
 		// Generate a fresh map of the requested size and start a game on it.
-		public static void NewGame(int width = 80, int height = 50, int competition = 7)
+		public static void NewGame(int width = 80, int height = 50, int competition = 7, int difficulty = 0)
 		{
 			EnsureRuntime();
 			ResetState();
@@ -102,7 +102,7 @@ namespace CivOne.Tests
 			var tribe = System.Linq.Enumerable.First(
 				Common.Civilizations,
 				c => c.PreferredPlayerNumber >= 1 && c.PreferredPlayerNumber <= competition);
-			Game.CreateGame(0, competition, tribe, "Tester", "Test", "Testers");
+			Game.CreateGame(difficulty, competition, tribe, "Tester", "Test", "Testers");
 			System.IO.Directory.CreateDirectory(Settings.Instance.SavesDirectory);
 		}
 	}

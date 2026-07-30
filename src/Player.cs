@@ -203,7 +203,19 @@ namespace CivOne
 			get
 			{
 				// Difficulty only slows the human player; AI always pays the Chieftain rate.
-				int diffFactor = IsHuman ? Game.Instance.Difficulty + 3 : 3;
+				//
+				// Autopilot counts as AI here, matching City.cs:1187, :1479, :2018 and
+				// Player.cs:866. The AI's economic logic — the tax/science slider, the
+				// research weights, every "is this worth building" threshold — is tuned
+				// against the Chieftain rate, so running it on the human's cost curve
+				// starves it. Measured on a 751-turn autoplayed island game at difficulty
+				// 2: Japan paid 380 per advance where an AI holding the same 18 advances
+				// paid 228, which at its 7 beakers/turn is 54 turns per advance instead of
+				// 32. It finished with 18 advances against the field's 70-89, so no
+				// Pottery, no Construction, and therefore no Granary or Aqueduct in any of
+				// its ten cities — an empire that could not grow because it could not
+				// research the buildings that let a city pass size 7.
+				int diffFactor = (IsHuman && !Settings.Instance.Autopilot) ? Game.Instance.Difficulty + 3 : 3;
 				short cost = (short)(diffFactor * 2 * (_advances.Count() + 1) * (Common.TurnToYear(Game.Instance.GameTurn) > 0 ? 2 : 1));
 				if (cost < 12)
 					return 12;

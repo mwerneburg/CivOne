@@ -68,15 +68,38 @@ namespace CivOne
 			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p)))
 				return StrategyStance.Militarize;
 
+			// Everything below this line is SPECULATIVE militarisation — nobody has
+			// actually declared war on us. Those clauses have no expiry of their own: a
+			// barbarian city that is never expelled, or a neighbour we merely out-gun,
+			// holds a civ on a war footing for the rest of the game. And Militarize is
+			// the most expensive stance to be wrong about — it is the only one that never
+			// weights growth tech, it sets a tax target of 6 before the broke overlay
+			// pushes it to 8, and it caps colonisation hard.
+			//
+			// So an army that is already large answers the question. Measured on a
+			// 751-turn autoplayed island game: Japan sat in Militarize at peace with
+			// nobody, holding 36 combat units across 10 cities — 13 of its 27 total
+			// shields going to upkeep — on 18 advances, with no Granary or Aqueduct
+			// anywhere. Three per city is a garrison plus a field force; past that,
+			// another Legion is worth less than the Granary it displaces.
+			//
+			// A real war still overrides this: the at-war clause above returns before we
+			// get here, so a besieged civ arms without limit.
+			byte stanceOwn = Game.PlayerNumber(Player);
+			bool armySaturated = cities.Length > 0
+			    && Game.GetUnits().Count(u => u.Owner == stanceOwn
+			        && (u.Role == UnitRole.LandAttack || u.Role == UnitRole.Defense)) > cities.Length * 3;
+
 			// Militarize: barbarian city visible near our empire — rally to expel them
-			if (Game.GetCities().Any(c => c.Owner == 0
+			if (!armySaturated && Game.GetCities().Any(c => c.Owner == 0
 			    && Player.Cities.Any(oc => Common.DistanceToTile(c.X, c.Y, oc.X, oc.Y) <= 10)
 			    && Player.Visible(c.X, c.Y)))
 				return StrategyStance.Militarize;
 
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
-			if (Leader.Militarism == MilitarismLevel.Militaristic
-			    || Leader.Aggression == AggressionLevel.Aggressive)
+			if (!armySaturated
+			    && (Leader.Militarism == MilitarismLevel.Militaristic
+			     || Leader.Aggression == AggressionLevel.Aggressive))
 			{
 				// WarAppetite sets how much of an edge this leader wants before turning
 				// on a neighbour: below 1 they want a clear advantage, above 1 they
@@ -1765,6 +1788,15 @@ namespace CivOne
 					if (a is Automobile)          weight += 8;
 					if (a is LaborUnion)          weight += 8;
 					if (a is Masonry)             weight += 4; // gateway to Construction -> Aqueduct (growth)
+					// A war economy still has to eat, and a city that cannot pass size 7
+					// cannot pay for the war either. Masonry was the only nod to growth in
+					// this branch, and its two payoffs sat at weight 0 — so a civ latched
+					// in Militarize never researched them at all. The autoplayed Japan's
+					// 18 advances are this list read off in order (Bronze Working, Iron
+					// Working, Mathematics, Physics, Magnetism) with Pottery still missing
+					// after 751 turns. Weighted below the weapons, above nothing.
+					if (a is Pottery)             weight += 6; // Granary
+					if (a is Construction)        weight += 6; // Aqueduct: the size-7 ceiling
 					break;
 
 				case StrategyStance.Develop:
@@ -2182,8 +2214,18 @@ namespace CivOne
 			{
 				if (defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 				byte mzId = Game.PlayerNumber(Player);
+				// One per four cities, not one empire-wide. A single settler cannot be in
+				// two places, and on an archipelago it is stranded wherever it happens to
+				// stand: the autoplayed Japan held a mainland beachhead at Kagoshima with
+				// ~30 unclaimed prime sites 4-8 tiles out (grassland and plains, 21 land
+				// tiles in the working diamond) and took none of them for 751 turns,
+				// because its one permitted settler was 20 tiles south on the home island
+				// filling a swamp gap and no city was allowed to build a second. The
+				// empire-wide settlerBudget above (2 per 3 cities) is still the real
+				// ceiling; this only stops a war footing from meaning "never colonise".
+				int mzSettlers = Game.GetUnits().Count(u => u.Owner == mzId && u is Settlers);
 				if (settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(u => u is Settlers)
-				    && !Game.GetUnits().Any(u => u.Owner == mzId && u is Settlers))
+				    && mzSettlers < Math.Max(1, ownCities / 4))
 					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());

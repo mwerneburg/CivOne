@@ -1224,17 +1224,34 @@ namespace CivOne
 				{
 					_coexistenceFired = true;
 					Player? olvir = _players.FirstOrDefault(p => p.Civilization is Civilizations.Olvir);
-					int olvirCities = olvir?.Cities.Length ?? 0;
+
+					// Credit the world you SHARED, not everything the visitors did anywhere.
+					// Counting every Olvir city and improvement on the planet made this award
+					// a measure of Olvir industry rather than of the player's stewardship:
+					// 883 improvements at 5 points each came to 4,415, against 271 points
+					// that Japan had earned by its own efforts across the entire game. A
+					// ten-city civ with no wonders finished ahead of a Rome holding 79
+					// cities. Only what grew within reach of the player's own cities counts —
+					// the shared frontier, which is the thing the ending is about.
+					const int ShareRadius = 6;
+					bool NearUs(int x, int y) =>
+						HumanPlayer.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, x, y) <= ShareRadius);
+
+					int sharedCities = olvir?.Cities.Count(c => NearUs(c.X, c.Y)) ?? 0;
+					int sharedWorks  = OlvirImprovements.Keys.Count(k => NearUs(k.x, k.y));
+
 					int coexistence = 100                                                    // reached a peaceful end at all
 					                + (VisitorType == VisitorArchetype.Refugees ? 100 : 0)   // they came in peace, and stayed that way
-					                + olvirCities * 25                                       // every surviving Olvir city is a home made on Earth
-					                + OlvirImprovements.Count * 5;                            // and a shared world reshaped together
+					                + sharedCities * 25                                      // an Olvir home made among ours
+					                + sharedWorks * 5;                                        // and ground we reshaped together
 					HumanPlayer.AwardMilestone(coexistence);
+					Log($"Coexistence: {sharedCities}/{olvir?.Cities.Length ?? 0} Olvir cities and "
+					  + $"{sharedWorks}/{OlvirImprovements.Count} improvements within {ShareRadius} tiles — award {coexistence}");
 
 					DecisionLogger.EndGame(HumanPlayer.Score, "Coexistence", humanWon: true, turns: _gameTurn);
 					int coexFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Coexistence");
 					GameTask.Enqueue(Message.Newspaper(null!, "The year is 2200.",
-						olvirCities > 0 ? "Two species share one Earth." : "Earth endures, alone.",
+						(olvir?.Cities.Length ?? 0) > 0 ? "Two species share one Earth." : "Earth endures, alone.",
 						$"Your score: {HumanPlayer.Score}"));
 					GameTask coexFt;
 					GameTask.Enqueue(coexFt = Show.Screen(new FinalScore("Coexistence")));
