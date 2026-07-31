@@ -167,11 +167,15 @@ namespace CivOne.Tests
 
 		// Generate a fresh map of the requested size and start a game on it.
 		// `seed` pins the world: map generation and every AI die roll run off Common.Random,
-		// so without it two harness runs get different continents and the comparison is
-		// noise. Pass the same seed to both sides of an A/B and the only difference is the
-		// code. Omit it (0) for the old behaviour of a fresh random world each run.
+		// which is otherwise seeded from the clock. Unpinned, every scenario test gets a
+		// different continent — and tests that reason about who is near whom then pass or
+		// fail by luck. Several did exactly that before this default was added. Pass a
+		// different seed to vary the world deliberately (the autoplay harness does, for
+		// A/B runs); pass 0 to opt out and take a clock-seeded world.
+		public const short DefaultSeed = 1234;
+
 		public static void NewGame(int width = 80, int height = 50, int competition = 7,
-		                           int difficulty = 0, short seed = 0)
+		                           int difficulty = 0, short seed = DefaultSeed)
 		{
 			EnsureRuntime();
 			ResetState();

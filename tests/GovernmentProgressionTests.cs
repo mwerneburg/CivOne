@@ -11,6 +11,7 @@ using System.Linq;
 using CivOne;
 using CivOne.Enums;
 using CivOne.Tiles;
+using CivOne.Units;
 using Gov = CivOne.Governments;
 
 namespace CivOne.Tests
@@ -21,7 +22,9 @@ namespace CivOne.Tests
 		// on open land so its stance is Expand.
 		private static Player ModernCiv()
 		{
-			Sim.NewGame(width: 80, height: 50);
+			// Seeded: these tests reason about who is near whom, and an unpinned map put a
+			// rival city inside the threat radius on some runs and not others.
+			Sim.NewGame(width: 80, height: 50, seed: 909);
 			Settings.Instance.Autopilot = true;
 			Player player = Game.Instance.HumanPlayer;
 
@@ -51,8 +54,15 @@ namespace CivOne.Tests
 			Assert.Equal("Democracy", player.AI!.BestGovernmentName());
 		}
 
-		// Under arms, Monarchy remains the right answer — the change must not make a
-		// civ swap constitution in the middle of a war.
+		// Under arms, Monarchy remains the right answer — the change must not make a civ
+		// swap constitution in the middle of a war.
+		//
+		// Sharpened after a later finding: "under arms" has to mean a war being FOUGHT, not
+		// merely declared. AI wars are rarely concluded, only abandoned, so testing the
+		// declaration alone made Monarchy a terminus by another route — measured at 1858 in
+		// a real game, Japan held Democracy as a researched advance and sat in Monarchy
+		// while at war with two civs that were nowhere near it. So the guard now keys on an
+		// enemy actually at the gates, and this test pins both halves.
 		[Fact]
 		public void MonarchyStillWins_UnderArms()
 		{
@@ -60,10 +70,26 @@ namespace CivOne.Tests
 			Player rival = Game.Instance.Players.First(p => p is not null && p != player
 			                                             && Game.Instance.PlayerNumber(p) != 0);
 			player.DeclareWar(rival);
+			City capital = player.Cities.First();
 
-			// Militarize is reached via the war; confirm, then assert Monarchy holds.
-			if (player.AI!.CurrentStanceName() == "Militarize")
-				Assert.Null(player.AI!.BestGovernmentName());
+			// A rival force at the gates: the constitution holds.
+			IUnit besieger = Game.Instance.CreateUnit(UnitType.Legion, capital.X + 2, capital.Y,
+				Game.Instance.PlayerNumber(rival))!;
+			Assert.Equal("Militarize", player.AI!.CurrentStanceName());
+			Assert.Null(player.AI!.BestGovernmentName());
+
+			// The siege lifts, the war stays on the books: the civ may modernise again.
+			Game.Instance.DisbandUnit(besieger);
+			foreach (IUnit stray in Game.Instance.GetUnits()
+				.Where(u => u.Owner != Game.Instance.PlayerNumber(player)
+				         && Common.DistanceToTile(u.X, u.Y, capital.X, capital.Y) <= 16).ToArray())
+				Game.Instance.DisbandUnit(stray);
+			Assert.DoesNotContain(Game.Instance.GetCities(),
+				c => c.Owner != Game.Instance.PlayerNumber(player)
+				  && Common.DistanceToTile(c.X, c.Y, capital.X, capital.Y) <= 8);
+			Assert.True(Game.Instance.Players.Any(p => p != player && player.IsAtWar(p)),
+				"still formally at war");
+			Assert.Equal("Democracy", player.AI!.BestGovernmentName());
 		}
 	}
 }

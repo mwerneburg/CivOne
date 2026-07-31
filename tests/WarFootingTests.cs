@@ -15,6 +15,7 @@ using CivOne;
 using CivOne.Enums;
 using CivOne.Civilizations;
 using CivOne.Advances;
+using CivOne.Units;
 
 namespace CivOne.Tests
 {
@@ -82,6 +83,93 @@ namespace CivOne.Tests
 				Game.Instance.CreateUnit(UnitType.Legion, own.X, own.Y, Game.Instance.PlayerNumber(player));
 
 			Assert.NotEqual("Militarize", player.AI!.CurrentStanceName());
+		}
+
+		// A war being FOUGHT blocks a revolt; a war merely declared does not. AI wars are
+		// rarely concluded, only abandoned, so testing the Militarize stance as well as the
+		// enemy-at-the-gates test left civs holding an advance they never used — Japan sat
+		// in Monarchy with Democracy researched, at war with two civs it was not fighting.
+		[Fact]
+		public void DormantWar_DoesNotFreezeTheConstitution()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
+			Assert.NotNull(own);
+			player.Government = new CivOne.Governments.Monarchy();
+			foreach (IAdvance a in Common.Advances)
+				player.AddAdvance(a);   // Democracy available, so a better government exists
+
+			Player enemy = Game.Instance.Players.First(p => p != player && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian));
+			player.DeclareWar(enemy);
+
+			// Nobody at the gates: the war is on paper only.
+			foreach (IUnit stray in Game.Instance.GetUnits()
+				.Where(u => u.Owner != Game.Instance.PlayerNumber(player)
+				         && Common.DistanceToTile(u.X, u.Y, own.X, own.Y) <= 8).ToArray())
+				Game.Instance.DisbandUnit(stray);
+			Assert.Equal("Militarize", player.AI!.CurrentStanceName());
+
+			for (int i = 0; i < 40 && player.Government is CivOne.Governments.Monarchy; i++)
+				player.AI!.ConsiderGovernment();
+
+			Assert.False(player.Government is CivOne.Governments.Monarchy,
+				"a civ at war with nobody nearby should still be able to change government");
+		}
+
+		// A rival's Caravan or Diplomat loitering on the border is not a siege. They count
+		// as hostile only once a war is on the books, and even then they cannot take or
+		// hold ground — so they must not be what keeps an empire mobilised.
+		[Fact]
+		public void EnemyCaravansAndDiplomats_AreNotASiege()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
+			player.Government = new CivOne.Governments.Monarchy();
+			foreach (IAdvance a in Common.Advances) player.AddAdvance(a);
+
+			Player enemy = Game.Instance.Players.First(p => p != player && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian));
+			player.DeclareWar(enemy);
+			foreach (IUnit stray in Game.Instance.GetUnits()
+				.Where(u => u.Owner != Game.Instance.PlayerNumber(player)
+				         && Common.DistanceToTile(u.X, u.Y, own.X, own.Y) <= 16).ToArray())
+				Game.Instance.DisbandUnit(stray);
+
+			// Two non-combatants parked right on the doorstep.
+			byte eid = Game.Instance.PlayerNumber(enemy);
+			Game.Instance.CreateUnit(UnitType.Caravan,  own.X + 1, own.Y, eid);
+			Game.Instance.CreateUnit(UnitType.Diplomat, own.X + 2, own.Y, eid);
+
+			for (int i = 0; i < 40 && player.Government is CivOne.Governments.Monarchy; i++)
+				player.AI!.ConsiderGovernment();
+
+			Assert.False(player.Government is CivOne.Governments.Monarchy,
+				"a caravan and a diplomat on the border must not freeze the constitution");
+		}
+
+		// ...but with an enemy actually at the gates it holds its constitution.
+		[Fact]
+		public void EnemyAtTheGates_StillBlocksARevolt()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
+			player.Government = new CivOne.Governments.Monarchy();
+			foreach (IAdvance a in Common.Advances) player.AddAdvance(a);
+
+			Player enemy = Game.Instance.Players.First(p => p != player && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian));
+			player.DeclareWar(enemy);
+			Game.Instance.CreateUnit(UnitType.Legion, own.X + 2, own.Y,
+				Game.Instance.PlayerNumber(enemy));   // within the 4-tile threat radius
+
+			for (int i = 0; i < 40; i++) player.AI!.ConsiderGovernment();
+
+			Assert.True(player.Government is CivOne.Governments.Monarchy,
+				"with an enemy 2 tiles from the capital, no revolt");
 		}
 
 		// Non-combat units are not an army: nine Diplomats and seven Caravans (which is

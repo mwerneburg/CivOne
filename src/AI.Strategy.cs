@@ -66,7 +66,17 @@ namespace CivOne
 			        || Player.LuxuriesRate >= 4))
 				return StrategyStance.Consolidate;
 
-			// Militarize: already at war
+			// Militarize: already at war.
+			//
+			// A stance-level "dormant war" cap was tried here — stand down when no enemy is
+			// within 12 tiles and no offensive of our own is under way — and MEASURED to be
+			// inert: in a completed 750-turn game every one of the nine live wars had an
+			// enemy within 12 tiles (most within 1), because on a shared continent a rival's
+			// CITY is permanently in range even when nothing is happening. It changed
+			// nothing across three harness seeds. The war economy's real damage is done by
+			// its consequences, so those are capped individually instead — see the
+			// government cap in ConsiderGovernment and the wartime unit ceiling in the
+			// production fallback. Do not re-add a proximity test here without new evidence.
 			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p)))
 				return StrategyStance.Militarize;
 
@@ -716,6 +726,18 @@ namespace CivOne
 		private IGovernment BestGovernment()
 		{
 			StrategyStance stance = GetStance();
+
+			// Same demotion the production and terraforming code uses: a civ formally at
+			// war but with no enemy near any of its cities is not on campaign, and should
+			// not be choosing its constitution as though it were. Militarize is the one
+			// stance whose table puts Monarchy on top, so without this a civ at war —
+			// which, since AI wars are rarely concluded, means most civs most of the time —
+			// permanently rates Monarchy "already optimal" and never upgrades, however long
+			// ago the fighting stopped. Removing the stance veto in ConsiderGovernment was
+			// not enough on its own; this is the half that actually held the door shut.
+			if (stance == StrategyStance.Militarize
+			    && !Player.Cities.Any(c => NearHostiles(c.X, c.Y)))
+				stance = StrategyStance.Develop;
 			int currentScore = GovernmentScore(Player.Government, stance);
 			return Player.AvailableGovernments
 			             .Where(g => GovernmentScore(g, stance) > currentScore)
@@ -811,6 +833,7 @@ namespace CivOne
 			// belonging to a civ we are at war with, within a few tiles of one of ours.
 			bool underThreat = Game.GetUnits().Any(u =>
 				u.Owner != Game.PlayerNumber(Player)
+				&& !NonCombatant(u)                      // a caravan at the border is not a siege
 				&& Player.IsAtWar(Game.GetPlayer(u.Owner))
 				&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= 4));
 			if (underThreat) return;
@@ -821,8 +844,17 @@ namespace CivOne
 			// until it reaches Develop (1% of decisions) is what pinned the whole field in
 			// Monarchy. Militarize still abstains: changing constitution mid-campaign is
 			// how you lose the campaign.
-			StrategyStance stance = GetStance();
-			if (stance == StrategyStance.Militarize) return;
+			// The Militarize stance no longer vetoes this outright. "Changing constitution
+			// mid-campaign loses the campaign" is sound for a campaign actually being
+			// fought — which is exactly what the underThreat test above already measures,
+			// enemy units within 4 tiles of one of our cities. Testing the STANCE as well
+			// was a second, far broader veto: AI wars are rarely concluded, so a civ could
+			// hold an advance and never use it. Measured at 1858 in a real game, Japan sat
+			// in Monarchy with Democracy researched, at war with two civs it was not
+			// fighting, and stayed there until the war happened to end.
+			//
+			// The narrower guard stands: with an enemy at the gates, underThreat returns
+			// above and no revolt happens.
 			if (Common.Random.Next(100) < 25)
 				Player.Revolt();
 		}
@@ -2866,12 +2898,23 @@ namespace CivOne
 		// Is there a hostile unit or an enemy city within `radius` of this spot? Barbarians
 		// (owner 0) always count. Shared by the two places that ask "is this the front, or
 		// just a map square inside a country that happens to be at war".
+		// A unit that cannot take or hold ground is not a threat, whoever owns it. Settlers,
+		// Diplomats, Caravans, Explorers and Hydro Engineers are all things a rival parks on
+		// a border in the ordinary course of play — and since the threat tests below decide
+		// whether an empire stays on a war footing, counting a trade caravan as an enemy
+		// army would keep a civ mobilised and its constitution frozen on the strength of
+		// somebody's freight. (At peace none of them count anyway: Hostile() requires a
+		// declared war or a barbarian. This matters once a war IS on the books.)
+		private static bool NonCombatant(IUnit u)
+			=> u is Settlers || u is Diplomat || u is ICaravan || u is Explorer || u is HydroEngineer;
+
 		private bool NearHostiles(int x, int y, int radius = 8)
 		{
 			byte own = Game.PlayerNumber(Player);
 			bool Hostile(byte owner) => owner != own
 				&& (owner == 0 || Player.IsAtWar(Game.GetPlayer(owner)));
-			return Game.GetUnits().Any(u => Hostile(u.Owner) && Common.DistanceToTile(u.X, u.Y, x, y) <= radius)
+			return Game.GetUnits().Any(u => Hostile(u.Owner) && !NonCombatant(u)
+			                             && Common.DistanceToTile(u.X, u.Y, x, y) <= radius)
 			    || Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);
 		}
 
