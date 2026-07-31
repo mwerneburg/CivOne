@@ -315,13 +315,31 @@ namespace CivOne
 					// Self-limiting by construction — BestImproveSite only returns tiles
 					// within 2 of one of our own cities, so once local work runs out the
 					// settler goes back to expanding on its own.
+					// ...but expansion comes FIRST for a civ that barely exists. Without the two
+					// guards below this rule was catastrophic: a 1-city civ is allowed exactly
+					// one settler (settlerBudget), improvable ground is always within reach of
+					// home, so that settler terraformed the capital's tiles forever and the civ
+					// never founded a second city. Measured over a full 650-turn game, EVERY
+					// civ in the world finished on 1-6 cities and the top score was 747, where
+					// the same map had produced 48- and 57-city empires scoring thousands.
+					// Japan built its one settler on turn 36, improved two tiles, and sat on a
+					// single city for the remaining 614 turns.
+					//
+					//   - Three cities minimum: below that, founding IS the strategy.
+					//   - And only while the local city is actually short of improvement, so a
+					//     tended countryside releases its settlers back to expanding. That
+					//     keeps the Lakota case working (48 cities, 9% improved, size-18 towns
+					//     with one roaded tile) without stalling anyone's early game.
 					const int ImproveFirstRadius = 3;
 					ITile? settleSite  = expanding ? BestSettleSite(unit) : null;
 					ITile? improveSite = BestImproveSite(unit);
 					ITile? best;
-					if (improveSite is not null
+					bool improveFirst = improveSite is not null
 					    && (settleSite is null
-					        || Common.DistanceToTile(unit.X, unit.Y, improveSite.X, improveSite.Y) <= ImproveFirstRadius))
+					        || (Player.Cities.Length >= 3
+					            && NeedsCountryside(unit)
+					            && Common.DistanceToTile(unit.X, unit.Y, improveSite.X, improveSite.Y) <= ImproveFirstRadius));
+					if (improveFirst)
 						best = improveSite;
 					else
 						best = settleSite ?? improveSite;

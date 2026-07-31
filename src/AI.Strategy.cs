@@ -1468,6 +1468,34 @@ namespace CivOne
 		// settlers here to raise city food (irrigation) instead of founding ever-smaller
 		// towns; this is the fix for AI cities stalling at ~+0.8 food/turn. Null when there's
 		// nothing useful to improve nearby.
+		// Is the city nearest this settler actually short of improvement? Under a third of
+		// its workable land carrying a road or irrigation counts as neglected. This is what
+		// releases settlers back to expansion once a countryside is tended, so improve-first
+		// can never become a permanent halt to founding.
+		private const double TendedFraction = 0.34;
+
+		private bool NeedsCountryside(IUnit settlers)
+		{
+			City? near = Player.Cities
+				.OrderBy(c => Common.DistanceToTile(c.X, c.Y, settlers.X, settlers.Y))
+				.FirstOrDefault();
+			if (near is null) return false;
+
+			int land = 0, improved = 0;
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+			{
+				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
+				int ty = near.Y + dy;
+				if (ty < 0 || ty >= Map.HEIGHT) continue;
+				ITile t = Map[(near.X + dx + Map.WIDTH) % Map.WIDTH, ty];
+				if (t is null || t.IsOcean) continue;
+				land++;
+				if (t.Road || t.Irrigation || t.Mine) improved++;
+			}
+			return land > 0 && improved < land * TendedFraction;
+		}
+
 		internal ITile? BestImproveSite(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
