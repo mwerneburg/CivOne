@@ -19,6 +19,7 @@ using CivOne;
 using CivOne.Enums;
 using CivOne.Tiles;
 using CivOne.Units;
+using CivOne.Advances;
 using CivOne.Buildings;
 
 namespace CivOne.Tests
@@ -561,6 +562,61 @@ namespace CivOne.Tests
 			Assert.True(city.PollutionPressure > 0,
 				"a working industrial city has pollution pressure even while tolerated");
 			Assert.Equal(Math.Max(0, city.PollutionPressure - 20), city.SmokeStacks);
+		}
+
+		// The cleanup crew scales with the backlog. A flat "one third of settlers" meant one
+		// cleaner for most civs — they run a handful of settlers all game — and one settler
+		// clears about one tile every few turns including travel, so an industrial city
+		// out-produced its own crew and the polluted tiles that drive warming piled up.
+		[Fact]
+		public void CleanupCrew_ScalesWithTheBacklog()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			byte id = Game.Instance.PlayerNumber(player);
+
+			int cx = 40, cy = 25;
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Hills);   // shields
+			Map.Instance.RecalculateContinentsIfDirty();
+			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
+			player.Explore(cx, cy, range: 4);
+
+			// Make the city actually smoke: SmokeStacks is industry plus a population term
+			// that only exists once Industrialization and its successors are known, minus 20
+			// tolerated units. A big industrial city on hills clears that.
+			foreach (IAdvance a in Common.Advances) player.AddAdvance(a);
+			city.Size = 14;
+			city.ResetResourceTiles();
+			city.AddBuilding(new Factory());
+
+			// Six settlers, and six polluted tiles for them to deal with.
+			var crew = new System.Collections.Generic.List<IUnit>();
+			for (int i = 0; i < 6; i++)
+				crew.Add(Game.Instance.CreateUnit(UnitType.Settlers, cx, cy, id)!);
+			int polluted = 0;
+			for (int dy = -2; dy <= 2 && polluted < 6; dy++)
+			for (int dx = -2; dx <= 2 && polluted < 6; dx++)
+			{
+				if (dx == 0 && dy == 0) continue;
+				Map.Instance[cx + dx, cy + dy].Pollution = true;
+				polluted++;
+			}
+			Assert.True(player.Pollution > 0, $"precondition: the city smokes ({player.Pollution})");
+
+			foreach (IUnit u in crew)
+			{
+				Sim.ClearTasks();
+				AI.Instance(player).Move(u);
+			}
+
+			int cleaners = crew.Count(u => ((Settlers)u).AutoClean);
+			Assert.True(cleaners > 2,
+				$"with 6 polluted tiles and 6 settlers, more than the old flat third should be cleaning; got {cleaners}");
+			Assert.True(cleaners <= 3,
+				$"...but never more than half the workforce; got {cleaners}");
 		}
 
 		// Pollution and the warming counter must survive a save/load round trip.

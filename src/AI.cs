@@ -182,13 +182,32 @@ namespace CivOne
 				// when there is nothing left to clean. Nobody was turning it on.
 				// Gated on SmokeStacks rather than a map scan — FindNearestCityPollution
 				// walks every tile, so only settlers actually on duty pay that cost.
+				//
+				// The crew SIZE follows the backlog rather than a flat share. A fixed third
+				// meant one cleaner for most civs (they run 1-6 settlers all game), and one
+				// settler clears roughly one tile every few turns including travel — so a
+				// single industrial city could out-produce its whole cleanup crew, and the
+				// polluted tiles that drive global warming simply accumulated. One cleaner
+				// per outstanding polluted tile, never more than half the workforce, so
+				// terraforming does not stop while the smog is dealt with.
+				//
+				// Note the trigger stays reactive, and deliberately: an enrolled settler with
+				// nothing to clean switches its own flag straight back off (Settlers.cs:706),
+				// so enrolling before the first tile smokes achieves nothing. The response
+				// lags the first polluted tile by one turn, which is cheap; it was the crew
+				// size that was letting the backlog grow.
 				if (unit is Settlers cleaner && !cleaner.AutoClean && Player.Pollution > 0)
 				{
 					byte pollId = Game.PlayerNumber(Player);
 					Settlers[] crew = Game.GetUnits().OfType<Settlers>()
 						.Where(u => u.Owner == pollId).ToArray();
-					// A third of the workforce at most: the rest still has terraforming to do.
-					if (crew.Count(u => u.AutoClean) < System.Math.Max(1, crew.Length / 3))
+
+					int backlog = Map.Instance.AllTiles().Count(t => t.Pollution
+						&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, t.X, t.Y) <= 3));
+					int wanted = System.Math.Max(1,
+						System.Math.Min(System.Math.Max(1, crew.Length / 2), backlog));
+
+					if (crew.Count(u => u.AutoClean) < wanted)
 					{
 						DecisionLogger.LogSettlerAction(unit, "autoclean");
 						cleaner.AutoClean = true;
