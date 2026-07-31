@@ -104,11 +104,78 @@ namespace CivOne.Tests
 		private static void SetStaticField(Type type, string name, object value)
 			=> type.GetField(name, BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, value);
 
+		// Drive N game turns headlessly.
+		//
+		// The turn machinery runs through GameTask: EndTurn advances the current player and
+		// queues Turn tasks for its units, cities and player pass, and those tasks are what
+		// call AI.Move and City.NewTurn. Pumping the queue therefore plays the game.
+		//
+		// The catch is UI tasks. A screen task parks at the head of the queue waiting for a
+		// Closed event that never comes without a renderer, and Update() then returns false
+		// forever. So a task that fails to progress `StuckLimit` times in a row is dropped
+		// and the queue moves on — that is the whole trick that makes headless autoplay work.
+		//
+		// Returns the turn actually reached (may be short of the target if the loop stalls).
+		public static int RunTurns(int turns, Action<int>? onTurn = null)
+		{
+			EnsureRuntime();
+			const int StuckLimit = 200;
+			int startTurn = (int)Game.Instance.GameTurn;
+			int target = startTurn + turns;
+			int lastSeen = startTurn;
+			int stuck = 0;
+			// Generous ceiling: a turn is many task steps, and a stalled loop must still end.
+			long budget = (long)turns * 20000 + 200000;
+
+			while (Game.Instance.GameTurn < target && budget-- > 0)
+			{
+				if (GameTask.Any())
+				{
+					if (!GameTask.Update())
+					{
+						if (++stuck >= StuckLimit) { DropCurrentTask(); stuck = 0; }
+					}
+					else stuck = 0;
+				}
+				else
+				{
+					// Game.Update() is the real driver: it takes the active unit and queues
+					// Turn.Move(unit) for it, then Turn.End() — which calls EndTurn — once the
+					// player has no units left to move. Calling EndTurn directly here skipped
+					// unit movement altogether, so nothing was ever founded or built.
+					Game.Instance.Update();
+					stuck = 0;
+				}
+
+				int now = (int)Game.Instance.GameTurn;
+				if (now != lastSeen) { lastSeen = now; onTurn?.Invoke(now); }
+			}
+			return (int)Game.Instance.GameTurn;
+		}
+
+		// Discard the task at the head of the queue — see RunTurns.
+		private static void DropCurrentTask()
+		{
+			var list = (System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+			object? current = typeof(GameTask)
+				.GetField("_currentTask", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
+			if (current is not null && list.Contains(current)) list.Remove(current);
+			else if (list.Count > 0) list.RemoveAt(0);
+			SetStaticField(typeof(GameTask), "_currentTask", null);
+		}
+
 		// Generate a fresh map of the requested size and start a game on it.
-		public static void NewGame(int width = 80, int height = 50, int competition = 7, int difficulty = 0)
+		// `seed` pins the world: map generation and every AI die roll run off Common.Random,
+		// so without it two harness runs get different continents and the comparison is
+		// noise. Pass the same seed to both sides of an A/B and the only difference is the
+		// code. Omit it (0) for the old behaviour of a fresh random world each run.
+		public static void NewGame(int width = 80, int height = 50, int competition = 7,
+		                           int difficulty = 0, short seed = 0)
 		{
 			EnsureRuntime();
 			ResetState();
+			if (seed != 0) Common.SetRandomSeed(seed);
 
 			Map.Instance.Generate(width: width, height: height);
 			Stopwatch sw = Stopwatch.StartNew();

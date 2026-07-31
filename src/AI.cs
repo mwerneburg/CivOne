@@ -315,34 +315,25 @@ namespace CivOne
 					// Self-limiting by construction — BestImproveSite only returns tiles
 					// within 2 of one of our own cities, so once local work runs out the
 					// settler goes back to expanding on its own.
-					// ...but expansion comes FIRST for a civ that barely exists. Without the two
-					// guards below this rule was catastrophic: a 1-city civ is allowed exactly
-					// one settler (settlerBudget), improvable ground is always within reach of
-					// home, so that settler terraformed the capital's tiles forever and the civ
-					// never founded a second city. Measured over a full 650-turn game, EVERY
-					// civ in the world finished on 1-6 cities and the top score was 747, where
-					// the same map had produced 48- and 57-city empires scoring thousands.
-					// Japan built its one settler on turn 36, improved two tiles, and sat on a
-					// single city for the remaining 614 turns.
+					// Expansion first, improvement only when there is nowhere left to settle.
 					//
-					//   - Three cities minimum: below that, founding IS the strategy.
-					//   - And only while the local city is actually short of improvement, so a
-					//     tended countryside releases its settlers back to expanding. That
-					//     keeps the Lakota case working (48 cities, 9% improved, size-18 towns
-					//     with one roaded tile) without stalling anyone's early game.
-					const int ImproveFirstRadius = 3;
-					ITile? settleSite  = expanding ? BestSettleSite(unit) : null;
-					ITile? improveSite = BestImproveSite(unit);
-					ITile? best;
-					bool improveFirst = improveSite is not null
-					    && (settleSite is null
-					        || (Player.Cities.Length >= 3
-					            && NeedsCountryside(unit)
-					            && Common.DistanceToTile(unit.X, unit.Y, improveSite.X, improveSite.Y) <= ImproveFirstRadius));
-					if (improveFirst)
-						best = improveSite;
-					else
-						best = settleSite ?? improveSite;
+					// Prioritising nearby improvement over founding was tried and measured, and
+					// it is a trap: improvable ground is always within reach of home, so
+					// settlers garden instead of expanding. Guarding it on "3+ cities and a
+					// neglected countryside" was not enough either — past 3 cities the
+					// countryside is ALWAYS neglected, so the rule simply latched. Headless
+					// autoplay over 200 turns, same map, with and without it:
+					//
+					//     with:    7 cities, biggest civ 2, 68 advances, 9% of land improved
+					//     without: 16 cities, biggest civ 5, 87 advances, 10% improved
+					//
+					// It halves the world and buys no extra terraforming. If the bare
+					// countryside is worth attacking again, it needs a dedicated worker quota
+					// — settlers explicitly assigned to improvement and capped per empire —
+					// not a diversion applied to every settler that walks past a bare tile.
+					ITile? best = expanding
+						? (BestSettleSite(unit) ?? BestImproveSite(unit))
+						: BestImproveSite(unit);
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);
@@ -355,6 +346,20 @@ namespace CivOne
 						if (Common.DistanceToTile(home.X, home.Y, unit.X, unit.Y) > 2)
 							unit.Goto = new Point(home.X, home.Y);
 					}
+				}
+
+				// Road as you go. A settler crossing its own ground to found a city lays road
+				// under itself first: it pre-seeds the trade bonus on the corridor, lets the
+				// capital rush units up to the new town, and speeds every settler that
+				// follows. It costs two turns per tile, so it is bounded to the corridor near
+				// home rather than paving the whole wilderness.
+				const int RoadCorridor = 8;
+				if (!unit.Goto.IsEmpty && canNewRoadHere && nearestOwnCity <= RoadCorridor)
+				{
+					DecisionLogger.LogSettlerAction(unit, "road");
+					GameTask.Enqueue(Orders.BuildRoad(unit));
+					unit.SkipTurn();
+					return;
 				}
 
 				if (!unit.Goto.IsEmpty)

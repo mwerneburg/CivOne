@@ -417,9 +417,9 @@ namespace CivOne.Tests
 		}
 
 		// THE regression guard. A one-city civ gets exactly one settler, and improvable
-		// ground is always within reach of home — so prioritising improvement over founding
-		// stalled every civ in the world at 1-6 cities across a full 650-turn game. Founding
-		// must win while the civ is tiny, however much terraforming is available next door.
+		// ground is always within reach of home — so any rule that lets improvement outrank
+		// founding turns that settler into a permanent gardener. It shipped once and left
+		// every civ in the world on 1-6 cities after 650 turns. Founding wins, full stop.
 		[Fact]
 		public void TinyCiv_FoundsCitiesRatherThanTerraformingForever()
 		{
@@ -449,44 +449,6 @@ namespace CivOne.Tests
 			var st = (Settlers)settler;
 			Assert.True(st.BuildingIrrigation == 0 && st.BuildingRoad == 0,
 				"a one-city civ's only settler must go and found, not terraform the capital");
-		}
-
-		// ...but a large empire with a neglected countryside still terraforms it. This is the
-		// Lakota case: 48 cities, 9% of worked land improved, size-18 towns with one roaded
-		// tile, because settlers only ever walked to the next city site.
-		[Fact]
-		public void LargeEmpire_TendsANeglectedCountryside()
-		{
-			Sim.NewGame(width: 80, height: 50);
-			Settings.Instance.Autopilot = true;
-			Player player = Game.Instance.HumanPlayer;
-			player.Government = new CivOne.Governments.Monarchy();   // despot rule not under test
-
-			int cx = 40, cy = 25;
-			for (int dy = -10; dy <= 10; dy++)
-			for (int dx = -10; dx <= 10; dx++)
-				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Plains);
-			Map.Instance.RecalculateContinentsIfDirty();
-			// Four cities spaced far enough apart to be legal, so the empire is past the
-			// "founding is survival" threshold.
-			foreach (var (ox, oy) in new[] { (0, 0), (5, 0), (0, 5), (5, 5) })
-				Game.Instance.AddCity(player, 0, cx + ox, cy + oy);
-			player.Explore(cx, cy, range: 10);
-			Assert.True(player.Cities.Length >= 3, $"precondition: {player.Cities.Length} cities");
-
-			// A river beside the settler so classic irrigation is legal next door.
-			Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);
-			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx + 1, cy,
-				Game.Instance.PlayerNumber(player))!;
-			Map.Instance[cx + 1, cy].Road = true;   // roads done here; irrigation is the work
-
-			Sim.ClearTasks();
-			AI.Instance(player).Move(settler);
-			for (int i = 0; i < 20 && GameTask.Any(); i++) GameTask.Update();
-
-			var st = (Settlers)settler;
-			Assert.True(st.BuildingIrrigation > 0 || st.BuildingRoad > 0,
-				"a large empire with an unimproved countryside should improve it");
 		}
 
 		// Pollution and the warming counter must survive a save/load round trip.
