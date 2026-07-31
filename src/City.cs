@@ -945,10 +945,27 @@ namespace CivOne
 			// the balance counterweight to unlimited expansion — without it a runaway
 			// empire keeps its 70th city as easy to please as its 3rd. Difficulty brings
 			// it on sooner. Tunable: raise EmpireFree/RedShirtFree or the steps to soften.
+			// Difficulty is the HUMAN's handicap, not a world-wide malaise. This read
+			// Game.Difficulty for every player, so raising the level took two content
+			// citizens from every AI city as well — and the AI is far less able to absorb
+			// that: it reaches Temples late, manages the luxury slider badly, and its cities
+			// are small to begin with. The effect was that a harder setting produced a
+			// WEAKER world to play against rather than a stronger one.
+			//
+			// The asymmetry matches how research already works (Player.ScienceCost: the
+			// human pays Difficulty + 3, the AI a flat 3), including the Autopilot clause —
+			// when the AI is steering the human's civ it gets the AI's terms, which also
+			// keeps autoplay runs representative of AI behaviour.
+			//
+			// The empire-size penalty below is deliberately NOT exempted: that is the
+			// counterweight to unlimited expansion and it should bite everyone.
+			bool aiRun = Player != Human || Settings.Instance.Autopilot;
+			int handicap = aiRun ? 0 : Game.Difficulty;
+
 			int empireCities = Player.Cities.Length;
-			int contentFloor = 6 - Game.Difficulty;
+			int contentFloor = 6 - handicap;
 			const int EmpireStep = 8;                    // -1 content per this many cities…
-			int empireFree = Math.Max(6, 12 - Game.Difficulty); // …beyond this many
+			int empireFree = Math.Max(6, 12 - handicap); // …beyond this many
 			if (empireCities > empireFree)
 				contentFloor -= (empireCities - empireFree) / EmpireStep;
 			if (contentFloor < 0) contentFloor = 0;
