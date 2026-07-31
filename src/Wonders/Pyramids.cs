@@ -42,7 +42,10 @@ namespace CivOne.Wonders
 		{
 			Name = "Pyramids";
 			RequiredTech = new Masonry();
-			ObsoleteTech = new Communism();
+			// Was Communism, which has moved early in the tree. Industrialization was
+			// Communism's own prerequisite, so retiring on it keeps this wonder's
+			// working life almost exactly where it was rather than cutting it short.
+			ObsoleteTech = new Industrialization();
 			SetSmallIcon(4, 1);
 			Type = Wonder.Pyramids;
 		}

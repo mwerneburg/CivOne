@@ -39,7 +39,10 @@ namespace CivOne.Wonders
 		public UnitedNations() : base(60)
 		{
 			Name = "United Nations";
-			RequiredTech = new Communism();
+			// Was Communism, which has moved early in the tree (it is a political idea,
+			// not an industrial one). Globalism carries Communism's old prerequisites, so
+			// the UN still arrives at the same point it always did.
+			RequiredTech = new Globalism();
 			ObsoleteTech = null;
 			SetSmallIcon(7, 3);
 			Type = Wonder.UnitedNations;

@@ -44,7 +44,10 @@ namespace CivOne.Wonders
 		{
 			Name = "Hagia Sofia";
 			RequiredTech = new Religion();
-			ObsoleteTech = new Communism();
+			// Was Communism, which has moved early in the tree. Industrialization was
+			// Communism's own prerequisite, so retiring on it keeps this wonder's
+			// working life almost exactly where it was rather than cutting it short.
+			ObsoleteTech = new Industrialization();
 			Type = Wonder.HagiaSofia;
 		}
 	}

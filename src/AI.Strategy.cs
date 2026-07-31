@@ -705,7 +705,27 @@ namespace CivOne
 		// genuinely is the point. A large empire at peace — expanding or consolidating —
 		// should want the Republic's trade and then Democracy, and now scores them that
 		// way. Despotism stays bottom; Anarchy falls through to 0 so anything beats it.
-		private static int GovernmentScore(IGovernment gov, StrategyStance stance)
+		// How far-flung this empire is: mean distance of its cities from the capital.
+		// Government-independent by design — measuring the graft we currently pay is
+		// useless for the comparison, because the civs that matter are already in Democracy,
+		// which has no distance corruption at all (measured across a finished game: every
+		// civ with 20+ cities sat at 0% graft). What decides whether Communism's
+		// fixed-distance corruption is a good trade is the SHAPE of the empire, not the
+		// bill the current constitution happens to be sending.
+		private int EmpireSpread()
+		{
+			City? capital = Player.Cities.FirstOrDefault(c => c.HasBuilding<Palace>())
+			             ?? Player.Cities.FirstOrDefault();
+			if (capital is null || Player.Cities.Length == 0) return 0;
+			return (int)Player.Cities.Average(c => (double)Common.DistanceToTile(capital.X, capital.Y, c.X, c.Y));
+		}
+
+		// Test seam: the scoring is situational now, so a test needs to ask for a score
+		// under this civ's actual circumstances rather than reimplement the table.
+		internal int GovernmentScoreForTest(IGovernment gov) => GovernmentScore(gov, GetStance());
+		internal int EmpireSpreadForTest() => EmpireSpread();
+
+		private int GovernmentScore(IGovernment gov, StrategyStance stance)
 		{
 			bool war = stance == StrategyStance.Militarize;
 
@@ -715,12 +735,27 @@ namespace CivOne
 			if (gov is Gov.Republic)
 				return war ? 3
 				     : stance == StrategyStance.Develop ? 5 : 4;
-			// Communism carries a 50% science bonus (see Governments/Communism), so it is
-			// a research government as well as a wartime one — the builder's alternative
-			// to the Republic, and the fighter's alternative to Monarchy.
+
+			// Communism is the LATE war government, where Monarchy is the early one. Scored
+			// flat it was unreachable: second in war behind Monarchy, third in peace behind
+			// both republics, and since BestGovernment only moves on a strictly higher score,
+			// no civ could adopt it by any path at all.
+			//
+			// In peace the republics genuinely out-earn it — it has no trade bonus — so they
+			// stay ahead. At war it carries everything Monarchy does (martial law, three free
+			// unit supports, no war weariness, no collapse into anarchy) and adds +50%
+			// science in every city and corruption that stops growing with distance. For a
+			// large or far-flung empire that is simply the better war constitution; for a
+			// small compact one Monarchy's lower multiplier still wins, so it stays behind.
 			if (gov is Gov.Communism)
-				return war ? 5
-				     : stance == StrategyStance.Develop ? 4 : 3;
+			{
+				if (!war) return stance == StrategyStance.Develop ? 4 : 3;
+				int score = 5;
+				if (Player.Cities.Length >= 12) score += 1;   // draws level with Monarchy
+				if (EmpireSpread() >= 12)       score += 1;   // and passes it when sprawling
+				return score;
+			}
+
 			if (gov is Gov.Monarchy)
 				return war ? 6 : 3;
 			if (gov is Gov.Despotism)

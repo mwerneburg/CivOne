@@ -366,6 +366,10 @@ namespace CivOne
 
 		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)));
 
+		// Pre-corruption trade, for the AI's government comparison — it needs the
+		// denominator to judge what graft is actually costing the empire.
+		internal int RawTradeForAi => RawTrade;
+
 		private int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
 
 		private int RouteBonus(City partner)

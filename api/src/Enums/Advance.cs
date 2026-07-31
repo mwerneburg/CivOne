@@ -99,6 +99,8 @@ namespace CivOne.Enums
 		CollectiveMemory,
 		Geoplasticity,
 		Bioformatting,
-		Hydroengineering
+		Hydroengineering,
+		// Appended: enum values are persisted as advance ids, so new entries go on the end.
+		Globalism
 	}
 }
