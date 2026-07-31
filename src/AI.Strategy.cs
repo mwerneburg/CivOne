@@ -1114,6 +1114,15 @@ namespace CivOne
 
 			Player.MergeVisibility(partner);
 			partner.MergeVisibility(Player);
+
+			// The charts go with the map. Visibility alone buys surprisingly little for
+			// colonisation — the site scan reads terrain through fog and is bounded by how
+			// far a hull can see, not by what has been explored — so it is the REGISTER that
+			// carries the useful part of a map across an ocean: somewhere worth settling
+			// that we could never have surveyed ourselves.
+			AI partnerAi = AI.Instance(partner);
+			MergeColonyRegister(partnerAi);
+			partnerAi.MergeColonyRegister(this);
 		}
 
 		// ── proactive war declaration ──────────────────────────────────────────
@@ -1498,8 +1507,130 @@ namespace CivOne
 		private const int OverseasRange     = 15;
 		private const int OverseasRangeFar  = 45;
 
+		// ── the colony register ───────────────────────────────────────────────
+		//
+		// What a civ knows about the world beyond its own shores, and the first piece of
+		// memory this AI has ever had. Everything else it does is recomputed from nothing
+		// every turn: BestOverseasSiteWithin scans up to 91x91 tiles per idle ship, scores
+		// every candidate, keeps one, and throws the rest away — then does it again next
+		// turn, and again for the next ship, which is also why two hulls would sail for the
+		// same beach without either knowing the other had looked.
+		//
+		// Recording what the scan already discovered turns that work into an asset:
+		// exploration accumulates instead of evaporating, ships consult a list rather than
+		// re-survey an ocean, and a claim marks a site so the second hull picks another.
+		// It is deliberately a plain fact-store, not a plan — no scoring of our own
+		// ambitions, no goals. If goal-directed behaviour is ever wanted, it reads this
+		// rather than being tangled into it.
+		//
+		// Not persisted: AI instances are rebuilt at runtime and hold no saved state, so a
+		// reloaded game re-surveys. That is consistent with the rest of the class and costs
+		// only the first scan back.
+		private sealed class ColonySite
+		{
+			public int X, Y;
+			public byte Continent;
+			public int Score;
+			public int SurveyedTurn;
+			public IUnit? Claimant;   // the hull already sailing for it
+		}
+
+		private readonly Dictionary<(int X, int Y), ColonySite> _colonyRegister = new();
+
+		// Is this entry still worth having? Sites go stale when somebody founds on or beside
+		// them, and claims lapse when the claimant is lost at sea.
+		private bool StillViable(ColonySite site)
+		{
+			ITile t = Map[site.X, site.Y];
+			if (t is null || t.IsOcean || t.City is not null) return false;
+			if (Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, site.X, site.Y) < 4))
+				return false;
+			if (site.Claimant is not null && !Game.GetUnits().Contains(site.Claimant))
+				site.Claimant = null;
+			return true;
+		}
+
+		// Everything the register knows, freshest survey first, minus the stale entries.
+		internal int KnownColonySites()
+		{
+			foreach (var key in _colonyRegister.Keys.ToArray())
+				if (!StillViable(_colonyRegister[key])) _colonyRegister.Remove(key);
+			return _colonyRegister.Count;
+		}
+
+		private void RecordColonySite(ITile tile, int score)
+		{
+			var key = (tile.X, tile.Y);
+			if (_colonyRegister.TryGetValue(key, out ColonySite? existing))
+			{
+				existing.Score = score;
+				existing.SurveyedTurn = (int)Game.GameTurn;
+				return;
+			}
+			_colonyRegister[key] = new ColonySite
+			{
+				X = tile.X, Y = tile.Y,
+				Continent = tile.ContinentId,
+				Score = score,
+				SurveyedTurn = (int)Game.GameTurn
+			};
+		}
+
+		// Fold another civ's colony register into ours. This is what a map is worth: the
+		// scan that builds a register only ever sees within 45 tiles of one of OUR hulls, so
+		// a coast on the far side of the world is unreachable knowledge no amount of our own
+		// surveying can produce. A partner who has sailed there can simply tell us.
+		//
+		// Claims are not copied — their hull's business is theirs. Staleness is not filtered
+		// here either; BestOverseasSite prunes the whole register on every call, so a site
+		// they knew about and somebody has since settled drops out on first use.
+		internal void MergeColonyRegister(AI other)
+		{
+			int gained = 0;
+			foreach (var kv in other._colonyRegister)
+			{
+				if (_colonyRegister.ContainsKey(kv.Key)) continue;
+				ColonySite src = kv.Value;
+				_colonyRegister[kv.Key] = new ColonySite
+				{
+					X = src.X, Y = src.Y,
+					Continent = src.Continent,
+					Score = src.Score,
+					SurveyedTurn = src.SurveyedTurn,
+					Claimant = null
+				};
+				gained++;
+			}
+			if (gained > 0)
+				Log($"{Player.TribeName}: charts from {other.Player.TribeName} add {gained} colony sites");
+		}
+
+		// Best unclaimed site this hull could sail to, from memory alone.
+		private ITile? RegisteredSite(IUnit boat)
+		{
+			byte from = boat.Tile?.ContinentId ?? MISC_CONTINENT;
+			foreach (ColonySite site in _colonyRegister.Values
+				.Where(s => s.Claimant is null || s.Claimant == boat)
+				.OrderByDescending(s => s.Score - Common.DistanceToTile(boat.X, boat.Y, s.X, s.Y)))
+			{
+				if (!StillViable(site)) continue;
+				// Somewhere we could not simply have walked.
+				if (from >= 1 && from <= 14 && site.Continent == from) continue;
+				if (Common.GotoStep(boat, site.X, site.Y) is null) continue;   // no sailable route
+				site.Claimant = boat;
+				return Map[site.X, site.Y];
+			}
+			return null;
+		}
+
 		internal ITile? BestOverseasSite(IUnit boat)
 		{
+			// Memory first. A hull that already knows where the good coast is does not need
+			// to survey the ocean again, and the claim keeps the next hull off the same beach.
+			foreach (var key in _colonyRegister.Keys.ToArray())
+				if (!StillViable(_colonyRegister[key])) _colonyRegister.Remove(key);
+			if (RegisteredSite(boat) is ITile remembered) return remembered;
+
 			ITile? site = BestOverseasSiteWithin(boat, OverseasRange)
 			           ?? BestOverseasSiteWithin(boat, OverseasRangeFar);
 
@@ -1512,6 +1643,8 @@ namespace CivOne
 			if (site is not null && Common.GotoStep(boat, site.X, site.Y) is null)
 				return null;
 
+			if (site is not null && _colonyRegister.TryGetValue((site.X, site.Y), out ColonySite? chosen))
+				chosen.Claimant = boat;
 			return site;
 		}
 
@@ -1537,7 +1670,13 @@ namespace CivOne
 				if (from >= 1 && from <= 14 && tile.ContinentId == from) continue;
 				if (Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 
-				int score = SiteSuitability(tile) - Common.DistanceToTile(boat.X, boat.Y, tx, ty);
+				// Every viable candidate goes into the register, not just the winner — the
+				// scan has already paid for the survey, and next turn's ship should not
+				// have to repeat it.
+				int suitability = SiteSuitability(tile);
+				RecordColonySite(tile, suitability);
+
+				int score = suitability - Common.DistanceToTile(boat.X, boat.Y, tx, ty);
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
 			return best;
