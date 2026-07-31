@@ -78,7 +78,7 @@ namespace CivOne.Tests
 				landWorked++;
 				if (t.Road || t.Irrigation) improved++;
 			}
-			return $"turn {turn,4}: civs {live.Length,2}  cities {cities,4}  biggest {live.Max(p => p.Cities.Length),3}"
+			return $"turn {turn,4}: warm {g.GlobalWarmingCount}  civs {live.Length,2}  cities {cities,4}  biggest {live.Max(p => p.Cities.Length),3}"
 			     + $"  meanSize {meanSize,4:F1}  settlers {settlers,3}  advances {advances,4}"
 			     + $"  improved {(landWorked > 0 ? improved * 100 / landWorked : 0),3}%"
 			     + $"  riot {riot,3}/{cityList.Length,-3} unhappy/city {unhappy,4:F1} lux {lux,3:F1}"

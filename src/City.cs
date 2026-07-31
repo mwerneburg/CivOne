@@ -1206,7 +1206,16 @@ namespace CivOne
 		}
 
 		// Industrial + population pollution, reduced by clean-power buildings.
-		public int SmokeStacks
+		// Pollution BEFORE the tolerance is subtracted. SmokeStacks only becomes non-zero
+		// once a city is already over the line and rolling for a polluted tile every turn —
+		// so an AI that waits for it is always cleaning up after damage it has already done,
+		// and a Mass Transit takes many turns to build. This exposes the pressure so the
+		// mitigation can be started while there is still time for it to matter.
+		internal int PollutionPressure => RawPollution;
+
+		public int SmokeStacks => Math.Max(0, RawPollution - 20); // first 20 units are tolerated
+
+		private int RawPollution
 		{
 			get
 			{
@@ -1222,8 +1231,7 @@ namespace CivOne
 				else if (Player.HasAdvance<Advances.Industrialization>()) popMult = 25;
 				else                                                     popMult = 0;
 
-				int stacks = industrial + (Size * popMult / 100);
-				return Math.Max(0, stacks - 20); // first 20 units are tolerated
+				return industrial + (Size * popMult / 100);
 			}
 		}
 

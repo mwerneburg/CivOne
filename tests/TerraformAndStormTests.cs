@@ -533,6 +533,36 @@ namespace CivOne.Tests
 				+ $"it is at ({settler.X},{settler.Y}) heading ({settler.Goto.X},{settler.Goto.Y})");
 		}
 
+		// Mitigation must start BEFORE the city crosses the tolerance, not after. SmokeStacks
+		// is post-tolerance, so waiting for it means the city has been rolling for polluted
+		// tiles for as long as the Mass Transit takes to build — and polluted tiles are what
+		// drive global warming, which is irreversible. One measured game reached five warming
+		// events and finished with 24% of all land as swamp and no rivers at all.
+		[Fact]
+		public void PollutionPressure_IsVisibleBeforeTheThresholdIsCrossed()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+
+			int cx = 40, cy = 25;
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Hills);   // shields
+			Map.Instance.RecalculateContinentsIfDirty();
+			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
+			player.Explore(cx, cy, range: 4);
+			city.Size = 6;
+			city.ResetResourceTiles();
+
+			// A city under the tolerance reports zero smog but non-zero pressure — that gap
+			// is the whole point: it is the window in which mitigation can still be built.
+			Assert.Equal(0, city.SmokeStacks);
+			Assert.True(city.PollutionPressure > 0,
+				"a working industrial city has pollution pressure even while tolerated");
+			Assert.Equal(Math.Max(0, city.PollutionPressure - 20), city.SmokeStacks);
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()

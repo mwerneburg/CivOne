@@ -838,6 +838,19 @@ namespace CivOne
 				&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= 4));
 			if (underThreat) return;
 
+			// NOTE — a pre-revolt army drawdown was tried here and reverted, because the
+			// model was wrong. FreeUnitSupport is 0 under Republic and Democracy, but that
+			// is not a cap: units beyond the free allowance simply cost shields. Treating it
+			// as a cap meant a civ had to disband its ENTIRE army before it was allowed to
+			// revolt, one unit per turn, which in a 500-turn harness run cost half the
+			// world's research (174 advances -> 81 on one seed) and killed two civs outright.
+			//
+			// The real problem is still worth solving: switching from Monarchy (3 free per
+			// city) to Democracy (0) makes shields negative in most cities, and City.NewTurn
+			// then disbands one unit per city per turn, silently. But the affordability test
+			// has to be about SHIELD INCOME covering the new upkeep, not a unit count — and
+			// the drawdown has to be bounded so it can never block the revolt indefinitely.
+
 			// Further upgrades (Monarchy → Republic/Democracy, etc.). Consolidate is no
 			// longer a veto — a civ managing unhappiness is exactly the one that wants the
 			// Republic's trade and the Democracy's content citizens, and holding it back
@@ -2629,7 +2642,20 @@ namespace CivOne
 			// smoked unchecked for the rest of the game. Ordered ahead of the general
 			// chain deliberately — this list is a priority order, and a city already over
 			// the line should fix that before it builds another Library.
-			if (city.SmokeStacks > 0)
+			// Start the cleanup BEFORE the city crosses the line, not after. SmokeStacks is
+			// post-tolerance, so waiting for it means the city has already been rolling for
+			// polluted tiles for as long as the Mass Transit takes to build — and polluted
+			// tiles are what drive global warming, which is irreversible and rewrites the
+			// map for everyone. Measured over one 750-turn game: FIVE warming events, ending
+			// with 24% of all land turned to swamp and rivers wiped out entirely, driven by a
+			// single industrial superpower that built its 28 Mass Transits and 29 Recycling
+			// Centers only after the damage was done.
+			//
+			// 15 of the 20 tolerated units is the trigger: close enough that the build
+			// finishes near the crossing, far enough that a merely large city is not
+			// retooled for nothing.
+			const int PollutionActionPoint = 15;
+			if (city.SmokeStacks > 0 || city.PollutionPressure >= PollutionActionPoint)
 			{
 				// Mass Transit zeroes population pollution outright; Recycling Center
 				// thirds the industrial side. Hydro Plant only halves it, so it comes
@@ -3091,14 +3117,26 @@ namespace CivOne
 		               validMine ? SettlerImprovement.Mine :
 		               validIrrigation ? SettlerImprovement.Irrigation : SettlerImprovement.None;
 
-		    // Default (Develop): roads first under Despotism; irrigation once Monarchy unlocks it
+		    // Default (Develop). The two halves are the government's, not the stance's:
+		    //
+		    //   Despot / Anarchy — the tile penalty claws back anything above 2, so the
+		    //     things worth doing are roads (trade, movement, never penalised) and mines
+		    //     (hills 0 -> 2 shields, also under the line). Irrigation is already handled
+		    //     terrain-by-terrain above: Plains/Hills/Desert pay, Grassland/River do not.
+		    //
+		    //   Republic / Democracy — the penalty is gone, so food leads, and the ROAD
+		    //     UPGRADE finally earns its place: a railroad adds half again to a worked
+		    //     tile's yield and doubles movement. It sits above mines and below
+		    //     irrigation, deliberately — putting rail above food is the mistake that
+		    //     stalled every large empire's countryside for a whole game.
 		    if (preMonarchy)
-		        return validRoad ? SettlerImprovement.Road :
-		               validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
+		        return roadFirst ? SettlerImprovement.Road :
+		               validMine ? SettlerImprovement.Mine :
+		               validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
 
 		    return validIrrigation ? SettlerImprovement.Irrigation :
-		           validMine ? SettlerImprovement.Mine :
-		           validRoad ? SettlerImprovement.Road : SettlerImprovement.None;
+		           validRoad ? SettlerImprovement.Road :      // first road, then the rail upgrade
+		           validMine ? SettlerImprovement.Mine : SettlerImprovement.None;
 		}
 
 		// ── Olvir improvement helpers ─────────────────────────────────────────
