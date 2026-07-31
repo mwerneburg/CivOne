@@ -56,6 +56,15 @@ namespace CivOne.Tests
 			int riot = cityList.Count(c => c.IsInDisorder);
 			double unhappy = cityList.Average(c => (double)c.UnhappyCitizens);
 			double lux = live.Average(p => (double)p.LuxuriesRate);
+			// Colonisation: civs holding cities on more than one landmass, and how many
+			// cities sit away from their civ's main one.
+			int colonisers = 0, colonies = 0;
+			foreach (Player p in live)
+			{
+				var byCont = p.Cities.GroupBy(c => Map.Instance[c.X, c.Y].ContinentId)
+					.OrderByDescending(x => x.Count()).ToArray();
+				if (byCont.Length > 1) { colonisers++; colonies += p.Cities.Length - byCont[0].Count(); }
+			}
 			int landWorked = 0, improved = 0;
 			foreach (City c in live.SelectMany(p => p.Cities))
 			for (int dy = -2; dy <= 2; dy++)
@@ -72,7 +81,9 @@ namespace CivOne.Tests
 			return $"turn {turn,4}: civs {live.Length,2}  cities {cities,4}  biggest {live.Max(p => p.Cities.Length),3}"
 			     + $"  meanSize {meanSize,4:F1}  settlers {settlers,3}  advances {advances,4}"
 			     + $"  improved {(landWorked > 0 ? improved * 100 / landWorked : 0),3}%"
-			     + $"  riot {riot,3}/{cityList.Length,-3} unhappy/city {unhappy,4:F1} lux {lux,3:F1}";
+			     + $"  riot {riot,3}/{cityList.Length,-3} unhappy/city {unhappy,4:F1} lux {lux,3:F1}"
+			     + $"  colonisers {colonisers,2} overseasCities {colonies,3}"
+			     + $"  ships {g.GetUnits().Count(u => u.Class == CivOne.Enums.UnitClass.Water && u.Owner != 0),3}";
 		}
 
 		[Fact]

@@ -1636,6 +1636,34 @@ namespace CivOne
 			return null;
 		}
 
+		// Where a landlocked-out settler can catch a boat: an empty-ish transport of ours
+		// parked in or beside one of our coastal cities. Returns its tile, which the settler
+		// walks onto to board. Nothing else in the AI ever put a settler on a ship, which is
+		// why overseas colonisation only happened via the Longboat and therefore never.
+		private ITile? BoardingTile(IUnit settler)
+		{
+			byte own = Game.PlayerNumber(Player);
+			var berths = Game.GetUnits()
+				.Where(u => u.Owner == own && u is IBoardable
+				         && u.Tile is not null
+				         && u.Tile.Units.Count(p => p.Class == UnitClass.Land) < ((IBoardable)u).Cargo)
+				.Where(u => Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= 1))
+				.ToArray();
+			if (berths.Length == 0) return null;
+
+			// Nearest berth within a sensible walk. No path probe: the berth is an OCEAN
+			// tile, and GotoStep refuses those for a land unit — boarding is precisely the
+			// move that is allowed to break that rule, so probing rejects every real berth.
+			// A settler that cannot reach the coast simply fails to close the distance and
+			// re-decides next turn.
+			const int MaxWalkToPort = 8;
+			return berths
+				.Where(u => Common.DistanceToTile(settler.X, settler.Y, u.X, u.Y) <= MaxWalkToPort)
+				.OrderBy(u => Common.DistanceToTile(settler.X, settler.Y, u.X, u.Y))
+				.Select(u => u.Tile)
+				.FirstOrDefault();
+		}
+
 		// Own coastal city that has land attackers waiting for a ride.
 		private City EmbarkationCity()
 		{
@@ -1668,6 +1696,37 @@ namespace CivOne
 				{
 					byte own = Game.PlayerNumber(Player);
 					bool hasPassengers = unit.Tile.Units.Any(u => u.Owner == own && u.Class == UnitClass.Land);
+
+					// Colonisation run. A transport carrying settlers is not an invasion
+					// fleet: it is looking for empty coast, and it outranks the wait-for-
+					// troops branch below. Overseas settlement previously existed ONLY on the
+					// Longboat, which is gated on being boxed in — so in a measured 750-turn
+					// game not one Longboat was ever built and, apart from the Arabs, every
+					// civ died on the continent it started on.
+					bool carriesSettlers = unit.Tile.Units.Any(u => u.Owner == own && u is Settlers);
+					if (carriesSettlers)
+					{
+						// Already beside somewhere worth landing? Put them ashore; the settler's
+						// own logic founds from there (AI.cs: validCity && nearestCity > 3).
+						ITile? beach = unit.Tile.GetBorderTiles()
+							.FirstOrDefault(t => t is not null && !t.IsOcean && t.City is null
+							                  && t is not Arctic && t is not Mountains
+							                  && !Game.GetCities().Any(c => c.Size > 0
+							                       && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) < 4));
+						if (beach is not null)
+						{
+							(unit as BaseUnitSea)!.Unload();
+							return;
+						}
+
+						ITile? shore = BestOverseasSite(unit);
+						if (shore is not null)
+						{
+							unit.Goto = new Point(shore.X, shore.Y);
+							return;
+						}
+						// Nowhere to take them: fall through and let the ship do something useful.
+					}
 
 					if (hasPassengers && _attackTarget is not null)
 					{
@@ -2538,6 +2597,30 @@ namespace CivOne
 			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
 			    && CanAffordSettler(city, 3))
 				Consider(new Longboat());
+
+			// A hull, for a civ that has run out of world to walk to.
+			//
+			// The Longboat above is gated on BoxedIn(), which means "no legal land site
+			// anywhere in reach" — a bar so high that across a measured 750-turn game not a
+			// single Longboat was built by anybody, and every civ but one finished on the
+			// continent it started on. This is the softer condition that actually fires: the
+			// home continent is charted, most of the WORLD is not, and we have a coast. A
+			// transport is worth building then whether or not the last inland gap has been
+			// filled — it carries settlers out (AssignMission's colonisation run) and charts
+			// the sea lanes on the way.
+			//
+			// Two per civ. These are expensive hulls, not a navy, and the transport that
+			// exists is usually idle rather than full.
+			if (Player.HasAdvance<MapMaking>()
+			    && Player.ExploredHomeContinentFraction > 0.90
+			    && Player.ExploredLandFraction < 0.60
+			    && city.Tile is not null
+			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean))
+			{
+				byte hullId = Game.PlayerNumber(Player);
+				int hulls = Game.GetUnits().Count(u => u.Owner == hullId && u is IBoardable);
+				if (hulls < 2) Consider(new Trireme());
+			}
 
 			// Pollution control. A city past the tolerated smog level (City.cs:1193 gives
 			// the first 20 units free) pays unhappiness for it and rolls for a new polluted

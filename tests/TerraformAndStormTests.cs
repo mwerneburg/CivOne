@@ -451,6 +451,88 @@ namespace CivOne.Tests
 				"a one-city civ's only settler must go and found, not terraform the capital");
 		}
 
+		// A transport carrying settlers beside empty coast puts them ashore. Overseas
+		// settlement previously existed only on the Longboat, which is gated on being boxed
+		// in — so across a measured 750-turn game not one was ever built and every civ but
+		// the Arabs died on the continent it started on.
+		[Fact]
+		public void TransportWithSettlers_PutsThemAshore()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			byte id = Game.Instance.PlayerNumber(player);
+
+			// A home island, open sea, and an empty shore well clear of anyone's cities.
+			int hx = 20, hy = 25, sx = 30;
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
+				Map.Instance.ChangeTileType(hx + dx, hy + dy, Terrain.Ocean);
+			Map.Instance.ChangeTileType(hx, hy, Terrain.Grassland1);
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+				Map.Instance.ChangeTileType(sx + dx, hy + dy, Terrain.Ocean);
+			Map.Instance.ChangeTileType(sx, hy, Terrain.Grassland1);   // the beach
+			Map.Instance.RecalculateContinentsIfDirty();
+			Game.Instance.AddCity(player, 0, hx, hy);
+			player.Explore(hx, hy, range: 12);
+			player.Explore(sx, hy, range: 4);
+
+			// Transport in the water beside the beach, with a settler aboard.
+			IUnit ship = Game.Instance.CreateUnit(UnitType.Trireme, sx - 1, hy, id)!;
+			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, sx - 1, hy, id)!;
+			settler.Sentry = true;
+			settler.MovesLeft = 0;
+
+			Sim.ClearTasks();
+			AI.Instance(player).Move(ship);
+
+			Assert.False(settler.Sentry, "the settler should have been put ashore-ready, not left aboard");
+			Assert.True(settler.MovesLeft > 0, "unloading restores the passenger's moves");
+		}
+
+		// ...and a settler with nowhere left to walk goes to find a berth rather than
+		// drifting home to stand still.
+		[Fact]
+		public void StrandedSettler_HeadsForABoat()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			byte id = Game.Instance.PlayerNumber(player);
+
+			// A one-tile rock: a city, no room for another, nothing to walk to.
+			int cx = 40, cy = 25;
+			for (int dy = -6; dy <= 6; dy++)
+			for (int dx = -6; dx <= 6; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Ocean);
+			Map.Instance.ChangeTileType(cx, cy, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(cx, cy + 1, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Game.Instance.AddCity(player, 0, cx, cy);
+			player.Explore(cx, cy, range: 8);
+
+			// Leave nothing to do at home: an unimproved tile underfoot is legitimately
+			// worth more than a sea voyage, and the settler would road it first.
+			foreach (var (tx, ty) in new[] { (cx, cy), (cx, cy + 1) })
+			{
+				Map.Instance[tx, ty].Road = true;
+				Map.Instance[tx, ty].Irrigation = true;
+			}
+
+			IUnit ship = Game.Instance.CreateUnit(UnitType.Trireme, cx + 1, cy, id)!;
+			IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx, cy + 1, id)!;
+
+			Sim.ClearTasks();
+			AI.Instance(player).Move(settler);
+
+			bool headingForTheBoat = (settler.X == ship.X && settler.Y == ship.Y)
+			                      || (settler.Goto.X == ship.X && settler.Goto.Y == ship.Y);
+			Assert.True(headingForTheBoat,
+				$"expected the settler to make for the berth at ({ship.X},{ship.Y}), "
+				+ $"it is at ({settler.X},{settler.Y}) heading ({settler.Goto.X},{settler.Goto.Y})");
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()

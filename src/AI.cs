@@ -338,13 +338,30 @@ namespace CivOne
 					{
 						unit.Goto = new Point(best.X, best.Y);
 					}
-					else if (best is null && ownCities.Any())
+					// Note the condition: not just "no site found", but also "the only site is
+					// where I already stand" — the improvement branch above has already had
+					// its chance at this tile, so falling through here means there is nothing
+					// left to do on foot either way.
+					else if (ownCities.Any())
 					{
-						// No expansion site found — drift toward the nearest own city rather
-						// than milling in empty terrain indefinitely.
-						City home = ownCities.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y)).First();
-						if (Common.DistanceToTile(home.X, home.Y, unit.X, unit.Y) > 2)
-							unit.Goto = new Point(home.X, home.Y);
+						// Nothing left to reach on foot. Before drifting home, look for a ride:
+						// a transport sitting in one of our coastal cities is a way to ground
+						// this continent does not have. Walking onto its tile boards it
+						// (MovementStart sentries the passenger), and the ship's own logic
+						// carries it to an overseas shore and unloads.
+						ITile? berth = BoardingTile(unit);
+						if (berth is not null)
+						{
+							unit.Goto = new Point(berth.X, berth.Y);
+						}
+						else
+						{
+							// Drift toward the nearest own city rather than milling in empty
+							// terrain indefinitely.
+							City home = ownCities.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y)).First();
+							if (Common.DistanceToTile(home.X, home.Y, unit.X, unit.Y) > 2)
+								unit.Goto = new Point(home.X, home.Y);
+						}
 					}
 				}
 
