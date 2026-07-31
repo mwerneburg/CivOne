@@ -343,6 +343,79 @@ namespace CivOne.Tests
 			}
 		}
 
+		// Under Despotism the tile penalty claws back yields ABOVE 2 food, so irrigation
+		// pays on Plains (1 -> 2) and is worthless on Grassland (2 -> 3, clawed back).
+		// Blanket-skipping it froze whole civs: the English finished 1900 AD with four
+		// settlers standing still on a fully-roaded island.
+		[Fact]
+		public void UnderDespotism_IrrigatesPlainsButNotGrassland()
+		{
+			foreach (var (terrain, shouldIrrigate) in new[]
+				{ (Terrain.Plains, true), (Terrain.Grassland1, false) })
+			{
+				Sim.NewGame(width: 80, height: 50);
+				Settings.Instance.Autopilot = true;
+				Player player = Game.Instance.HumanPlayer;
+				Assert.True(player.Government is CivOne.Governments.Despotism, "precondition: despot");
+
+				int cx = 40, cy = 25;
+				for (int dy = -3; dy <= 3; dy++)
+				for (int dx = -3; dx <= 3; dx++)
+					Map.Instance.ChangeTileType(cx + dx, cy + dy, terrain);
+				Map.Instance.ChangeTileType(cx + 2, cy, Terrain.River);   // water source
+				Map.Instance.RecalculateContinentsIfDirty();
+				Game.Instance.AddCity(player, 0, cx, cy);
+				player.Explore(cx, cy, range: 3);
+
+				ITile spot = Map.Instance[cx + 1, cy];
+				spot.Road = true;   // roads done, so irrigation is the question
+				IUnit settler = Game.Instance.CreateUnit(UnitType.Settlers, cx + 1, cy,
+					Game.Instance.PlayerNumber(player))!;
+
+				Sim.ClearTasks();
+				AI.Instance(player).Move(settler);
+				for (int i = 0; i < 20 && GameTask.Any(); i++) GameTask.Update();
+
+				bool irrigating = ((Settlers)settler).BuildingIrrigation > 0;
+				Assert.True(irrigating == shouldIrrigate,
+					$"{terrain}: expected irrigating={shouldIrrigate}, got {irrigating}");
+			}
+		}
+
+		// An empty transport with no invasion to ferry must go and chart the map, not park
+		// at a pier. The wait-for-troops branch used to return unconditionally, so the sea
+		// exploration below it was unreachable for the only ship class most civs build —
+		// Japan held three Triremes and had seen 1% of the world's land.
+		[Fact]
+		public void EmptyTransport_ExploresInsteadOfParking()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+
+			int cx = 40, cy = 25;
+			Map.Instance.ChangeTileType(cx, cy, Terrain.Grassland1);
+			for (int dy = -2; dy <= 2; dy++)
+			for (int dx = -2; dx <= 2; dx++)
+				if (dx != 0 || dy != 0)
+					Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Ocean);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Game.Instance.AddCity(player, 0, cx, cy);
+			player.Explore(cx, cy, range: 2);
+
+			IUnit ship = Game.Instance.CreateUnit(UnitType.Trireme, cx + 1, cy,
+				Game.Instance.PlayerNumber(player))!;
+			Assert.NotNull(ship);
+			Assert.DoesNotContain(ship.Tile.Units, u => u.Class == UnitClass.Land);
+
+			Sim.ClearTasks();
+			AI.Instance(player).Move(ship);
+
+			Assert.False(ship.Goto.IsEmpty, "an idle transport should be given somewhere to chart");
+			Assert.False(ship.Goto.X == cx && ship.Goto.Y == cy,
+				"it should be charting, not parked on its home city");
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()

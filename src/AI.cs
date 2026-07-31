@@ -303,9 +303,28 @@ namespace CivOne
 					// drifted home and sat on the city tile, where no improvement is legal. Two
 					// settlers doing nothing for centuries beside 24 drainable swamp and forest
 					// tiles inside their own city radii.
-					ITile? best = expanding
-						? (BestSettleSite(unit) ?? BestImproveSite(unit))
-						: BestImproveSite(unit);
+					// Work at hand beats a journey. Routing "settle first, improve only if
+					// there is nowhere to settle" meant that while ANY site remained anywhere
+					// in range, no settler ever improved anything — and on a big continent
+					// that is the whole game. Measured at 1900 AD, the Lakota led the world
+					// with 48 cities and 49 advances, and Rosebud — size 18 — worked 21 tiles
+					// of which ONE was roaded and ONE irrigated.
+					//
+					// So: unimproved ground within a short walk is done first, and the settler
+					// heads off to found a city only once its own neighbourhood is in order.
+					// Self-limiting by construction — BestImproveSite only returns tiles
+					// within 2 of one of our own cities, so once local work runs out the
+					// settler goes back to expanding on its own.
+					const int ImproveFirstRadius = 3;
+					ITile? settleSite  = expanding ? BestSettleSite(unit) : null;
+					ITile? improveSite = BestImproveSite(unit);
+					ITile? best;
+					if (improveSite is not null
+					    && (settleSite is null
+					        || Common.DistanceToTile(unit.X, unit.Y, improveSite.X, improveSite.Y) <= ImproveFirstRadius))
+						best = improveSite;
+					else
+						best = settleSite ?? improveSite;
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);
@@ -651,6 +670,22 @@ namespace CivOne
 					// Ceremonial Burial in the first place.
 					if (available[i] is CodeOfLaws || available[i] is CeremonialBurial)
 						weights[i] += 10;
+				}
+			}
+
+			// Seafaring escape: a civ that has charted its whole home continent but almost
+			// none of the world is on an island, and every scout it can build is a land unit
+			// that will never leave. Nothing in the stance tables values the advances that
+			// float a hull, so an island civ could sit on its rock indefinitely — measured at
+			// 1900 AD, the English held seven size-7 cities, 100% of home explored, 0% of the
+			// world, no Map Making and not a single ship.
+			if (Player.ExploredHomeContinentFraction > 0.95 && Player.ExploredLandFraction < 0.50)
+			{
+				for (int i = 0; i < available.Length; i++)
+				{
+					if (available[i] is MapMaking)  weights[i] += 15;   // Trireme: the way off
+					if (available[i] is Astronomy)  weights[i] += 5;    // ...and the way onward
+					if (available[i] is Navigation) weights[i] += 8;
 				}
 			}
 

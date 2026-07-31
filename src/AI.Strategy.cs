@@ -1494,6 +1494,15 @@ namespace CivOne
 				// happily work. Swamp/Jungle/Forest need no water source: the irrigate order
 				// CONVERTS them (Settlers.cs:438).
 				bool convertible = tile is Swamp || tile is Jungle || tile is Forest;
+
+				// ...and it must agree with the despot rule too. Under Despotism, irrigating
+				// Grassland or River yields nothing (City.FoodValue withholds the bonus), so
+				// sending a settler there is sending it to stand still. Route it to the
+				// Plains and Hills it CAN improve instead — measured at 1900 AD, English
+				// settlers sat idle on roaded grassland with unimproved plains a few tiles off.
+				if ((Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
+				    && !convertible && (tile is Grassland || tile is River))
+					continue;
 				bool farmable = convertible
 					|| ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
 					    && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))));
@@ -1644,12 +1653,22 @@ namespace CivOne
 						}
 					}
 
-					// No passengers (or no target): wait at a coastal city for troops
-					City embark = EmbarkationCity();
-					if (embark is not null)
+					// Wait at a coastal city for troops — but ONLY when there is actually an
+					// invasion to ferry. This branch used to return unconditionally, and an
+					// embarkation city always exists, so every empty transport parked at a
+					// pier for the rest of the game and the sea-exploration code below was
+					// unreachable for the only ship class most civs ever build. Measured at
+					// 1900 AD: Japan held three Triremes and had charted 1% of the world's
+					// land, while the English — with no ships at all — could not see the
+					// continent across the water.
+					if (hasPassengers || _attackTarget is not null)
 					{
-						ITile pier = EmbarkationTile(embark);
-						if (pier is not null) { unit.Goto = new Point(pier.X, pier.Y); return; }
+						City embark = EmbarkationCity();
+						if (embark is not null)
+						{
+							ITile pier = EmbarkationTile(embark);
+							if (pier is not null) { unit.Goto = new Point(pier.X, pier.Y); return; }
+						}
 					}
 				}
 
@@ -2877,16 +2896,27 @@ namespace CivOne
 		    if (stance == StrategyStance.Militarize && !NearHostiles(unit.X, unit.Y))
 		        stance = StrategyStance.Develop;
 
-		    // Under Despotism the despot penalty cuts any tile yielding >2, so irrigation adds little.
-		    // Build roads first to connect the empire; switch to irrigation once Monarchy removes the penalty.
+		    // Under Despotism the despot penalty cuts any tile yielding >2 food — but that is
+		    // a statement about SOME terrain, not all of it, and blanket-skipping irrigation
+		    // under Despotism froze whole civs solid. Measured at 1900 AD: the English held
+		    // seven size-7 cities on a fully-roaded island with four settlers that did
+		    // literally nothing — no move, no road, no irrigation — because roads were done,
+		    // there was nowhere left to settle, and irrigation was forbidden. They finished
+		    // on six advances, unable to research their way out of the government that was
+		    // freezing them.
 		    //
-		    // Terrain conversion is exempt, and the exemption is the whole point: the penalty
-		    // argument is about tiles pushed ABOVE 2 food, but draining a swamp takes it from
-		    // 1 to 2, which the despot penalty never touches. Suppressing that under Despotism
-		    // would have withheld the fix from exactly the civs that need it most — the poor,
-		    // swamp-locked ones that cannot reach Monarchy in the first place.
+		    // Which terrain pays under a despot follows from City.FoodValue: Plains and Hills
+		    // carry their irrigation bonus in ITile.Food itself (1 -> 2), unconditionally, and
+		    // Desert likewise (0 -> 1) — none of which exceeds 2, so the penalty never bites.
+		    // Grassland and River are flat 2 and take their bonus from the government-gated
+		    // branch in FoodValue, so irrigating those really does yield nothing until
+		    // Monarchy. Terrain conversion (draining swamp, clearing jungle) is exempt for the
+		    // same reason: it moves 1 -> 2.
+		    ITile? here = unit.Tile;
+		    bool despotIrrigationPays = conversion
+		        || here is Plains || here is Hills || here is Desert;
 		    bool preMonarchy = (Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
-		                       && !conversion;
+		                       && !despotIrrigationPays;
 
 		    // A ROAD UPGRADE never outranks food.
 		    //
