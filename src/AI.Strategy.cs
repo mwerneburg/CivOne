@@ -102,11 +102,19 @@ namespace CivOne
 			    && Game.GetUnits().Count(u => u.Owner == stanceOwn
 			        && (u.Role == UnitRole.LandAttack || u.Role == UnitRole.Defense)) > cities.Length * 3;
 
-			// Militarize: barbarian city visible near our empire — rally to expel them
-			if (!armySaturated && Game.GetCities().Any(c => c.Owner == 0
-			    && Player.Cities.Any(oc => Common.DistanceToTile(c.X, c.Y, oc.X, oc.Y) <= 10)
-			    && Player.Visible(c.X, c.Y)))
-				return StrategyStance.Militarize;
+			// A barbarian city near our empire used to put the whole civ on a war footing.
+			// It no longer does. Barbarians are a raiding nuisance, not a rival power: they
+			// hold no diplomacy, they never sue for peace, and nothing ever expels them, so
+			// the clause had no expiry — a horde camped ten tiles away kept an empire in
+			// Militarize for the rest of the game. That is the stance which weights no
+			// growth tech, targets a tax rate of 6, caps colonisation, and puts Monarchy at
+			// the top of the government table. Japan finished a measured game in Monarchy on
+			// 43 advances with Democracy researched, at war with nobody, held there by this.
+			//
+			// The response to barbarians belongs at the city that can see them, and it
+			// already exists: a hostile within 3 tiles earns a second defender
+			// (PlanProductionInto, `hostileNear`), stance regardless. Local threat, local
+			// answer.
 
 			// Militarize: aggressive/militaristic and at least as strong as a neighbour
 			if (!armySaturated
@@ -3087,11 +3095,17 @@ namespace CivOne
 		private static bool NonCombatant(IUnit u)
 			=> u is Settlers || u is Diplomat || u is ICaravan || u is Explorer || u is HydroEngineer;
 
+		// Barbarians (owner 0) are deliberately NOT hostile here. This test answers "are we
+		// on campaign" — it decides whether a city builds for war, whether a settler roads
+		// instead of irrigating, and whether the constitution is frozen. A raiding party is
+		// none of those things, and since barbarians never make peace, counting them meant
+		// those answers could never revert. Defending against a raid is a local matter and
+		// is handled where it belongs, at the threatened city.
 		private bool NearHostiles(int x, int y, int radius = 8)
 		{
 			byte own = Game.PlayerNumber(Player);
-			bool Hostile(byte owner) => owner != own
-				&& (owner == 0 || Player.IsAtWar(Game.GetPlayer(owner)));
+			bool Hostile(byte owner) => owner != own && owner != 0
+				&& Player.IsAtWar(Game.GetPlayer(owner));
 			return Game.GetUnits().Any(u => Hostile(u.Owner) && !NonCombatant(u)
 			                             && Common.DistanceToTile(u.X, u.Y, x, y) <= radius)
 			    || Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);

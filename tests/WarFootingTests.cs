@@ -60,29 +60,84 @@ namespace CivOne.Tests
 			Assert.Equal(handPlayed * 3 / 5, autopiloted);
 		}
 
-		// A barbarian city parked next door justifies arming — once. It does not justify
-		// a permanent war economy, because nothing ever expels it and Militarize weights
-		// no growth tech. Past three combat units per city the civ has enough.
+		// An aggressive leader who out-guns a neighbour arms speculatively — once. It does
+		// not justify a permanent war economy, so past three combat units per city the civ
+		// has enough. (Frederick of the Germans is Aggressive; the harness's own civ, Caesar,
+		// is not — this clause has to be tested on a leader who actually has it.)
 		[Fact]
-		public void PeacetimeCiv_LeavesMilitarize_OnceArmyIsSaturated()
+		public void AggressiveCiv_LeavesMilitarize_OnceArmyIsSaturated()
 		{
-			Player player = FreshHuman();
-			Settings.Instance.Autopilot = true;   // Player.AI is null for a hand-played human
-			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
-			Assert.NotNull(own);
+			FreshHuman();
+			Settings.Instance.Autopilot = true;
+			Player germans = Game.Instance.Players.First(p => p.TribeNamePlural == "Germans");
+			Player rival = Game.Instance.Players.First(p => p.TribeNamePlural == "Babylonians");
+			Assert.Equal(AggressionLevel.Aggressive, germans.Civilization.Leader.Aggression);
 
-			// A visible barbarian city 5 tiles off, and no war with anyone.
-			Game.Instance.AddCity(Barbarians, 1, 45, 25);
-			player.Explore(45, 25, range: 3);
-			Assert.False(Game.Instance.Players.Any(p => p != player && player.IsAtWar(p)),
-				"precondition: this civ is at peace");
-			Assert.Equal("Militarize", player.AI!.CurrentStanceName());
+			City home = Game.Instance.AddCity(germans, 0, 40, 25)!;
+			Game.Instance.AddCity(rival, 0, 48, 25);          // a neighbour, inside 15 tiles
+			byte gid = Game.Instance.PlayerNumber(germans);
+			Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);   // out-guns them
+			Assert.False(Game.Instance.Players.Any(p => p != germans && germans.IsAtWar(p)),
+				"precondition: at peace with everyone");
+			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
 
 			// One city, so the ceiling is three combat units. The fourth ends it.
-			for (int i = 0; i < 4; i++)
-				Game.Instance.CreateUnit(UnitType.Legion, own.X, own.Y, Game.Instance.PlayerNumber(player));
+			for (int i = 0; i < 3; i++)
+				Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);
+
+			Assert.NotEqual("Militarize", AI.Instance(germans).CurrentStanceName());
+		}
+
+		// Non-combat units are not an army: diplomats and caravans must not read as "armed
+		// enough" and talk a civ out of defending itself.
+		[Fact]
+		public void CiviliansDoNotCountAsAnArmy()
+		{
+			FreshHuman();
+			Settings.Instance.Autopilot = true;
+			Player germans = Game.Instance.Players.First(p => p.TribeNamePlural == "Germans");
+			Player rival = Game.Instance.Players.First(p => p.TribeNamePlural == "Babylonians");
+
+			City home = Game.Instance.AddCity(germans, 0, 40, 25)!;
+			Game.Instance.AddCity(rival, 0, 48, 25);
+			byte gid = Game.Instance.PlayerNumber(germans);
+			Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);
+			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
+
+			for (int i = 0; i < 6; i++)
+				Game.Instance.CreateUnit(UnitType.Diplomat, home.X, home.Y, gid);
+
+			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
+		}
+
+		// Barbarians are a raiding nuisance, not a rival power. They hold no diplomacy and
+		// never sue for peace, so treating a nearby horde as a war put civs on a permanent
+		// war footing — no growth tech, tax target 6, colonisation capped, and Monarchy
+		// pinned at the top of the government table. The answer belongs at the threatened
+		// city, not in the empire's economy.
+		[Fact]
+		public void Barbarians_DoNotPutTheEmpireOnAWarFooting()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
+			player.Explore(40, 25, range: 6);
+
+			// A barbarian city five tiles off, and a raiding party at the gates.
+			Game.Instance.AddCity(Barbarians, 1, 45, 25);
+			Game.Instance.CreateUnit(UnitType.Legion, own.X + 2, own.Y, 0);
+			player.Explore(45, 25, range: 3);
 
 			Assert.NotEqual("Militarize", player.AI!.CurrentStanceName());
+
+			// ...but the threatened city still answers for itself: a hostile within 3 tiles
+			// earns a garrison, whatever the empire's posture.
+			Sim.ClearTasks();
+			AI.Instance(player).CityProduction(own);
+			var plan = new System.Collections.Generic.List<IProduction>();
+			if (own.CurrentProduction is not null) plan.Add(own.CurrentProduction);
+			plan.AddRange(own.ProductionQueue);
+			Assert.Contains(plan, p => p is IUnit u && u.Role == UnitRole.Defense);
 		}
 
 		// A war being FOUGHT blocks a revolt; a war merely declared does not. AI wars are
@@ -238,23 +293,5 @@ namespace CivOne.Tests
 				"and it must not have disbanded the entire army to get there");
 		}
 
-		// Non-combat units are not an army: nine Diplomats and seven Caravans (which is
-		// what Japan actually held alongside its Legions) must not read as "armed enough"
-		// and talk a genuinely threatened civ out of defending itself.
-		[Fact]
-		public void CiviliansDoNotCountAsAnArmy()
-		{
-			Player player = FreshHuman();
-			Settings.Instance.Autopilot = true;
-			City own = Game.Instance.AddCity(player, 0, 40, 25)!;
-			Game.Instance.AddCity(Barbarians, 1, 45, 25);
-			player.Explore(45, 25, range: 3);
-			Assert.Equal("Militarize", player.AI!.CurrentStanceName());
-
-			for (int i = 0; i < 6; i++)
-				Game.Instance.CreateUnit(UnitType.Diplomat, own.X, own.Y, Game.Instance.PlayerNumber(player));
-
-			Assert.Equal("Militarize", player.AI!.CurrentStanceName());
-		}
 	}
 }
