@@ -42,6 +42,11 @@ namespace CivOne
 		// Grievance-demand cooldown: turn on which the last GrievancePack was issued.
 		internal int LastGrievanceTurn = -50;
 
+		// Consecutive turns spent shedding units before a constitutional change. Bounded —
+		// see ConsiderGovernment; an unbounded version of this cost half the world's
+		// research in testing because it could block reform forever.
+		private int _govDrawdownTurns;
+
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;

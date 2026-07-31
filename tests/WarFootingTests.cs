@@ -172,6 +172,72 @@ namespace CivOne.Tests
 				"with an enemy 2 tiles from the capital, no revolt");
 		}
 
+		// Monarchy gives 3 free unit-supports per city, Republic and Democracy give ZERO.
+		// A big army therefore evaporates the moment a civ modernises: City.NewTurn disbands
+		// the furthest-from-home unit of every city whose shields have gone negative, one per
+		// city per turn, silently for an AI. The AI should shed what it cannot carry
+		// deliberately, before the revolt, rather than bleed it afterwards.
+		[Fact]
+		public void BeforeModernising_TheArmyIsDrawnDownDeliberately()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City city = Game.Instance.AddCity(player, 0, 40, 25)!;
+			player.Explore(40, 25, range: 3);
+			player.Government = new CivOne.Governments.Monarchy();
+			foreach (IAdvance a in Common.Advances) player.AddAdvance(a);
+			byte id = Game.Instance.PlayerNumber(player);
+
+			// An army far larger than a small city's shields can carry once support is free
+			// no longer: they are homed here and standing well away from it.
+			for (int i = 0; i < 12; i++)
+			{
+				IUnit u = Game.Instance.CreateUnit(UnitType.Legion, 40 + 3, 25, id)!;
+				u.SetHome(city);
+			}
+			int before = Game.Instance.GetUnits().Count(u => u.Owner == id);
+
+			player.AI!.ConsiderGovernment();
+
+			int after = Game.Instance.GetUnits().Count(u => u.Owner == id);
+			Assert.True(after < before,
+				$"expected a deliberate drawdown before the revolt, units went {before} -> {after}");
+			Assert.True(player.Government is CivOne.Governments.Monarchy,
+				"the drawdown turn does not also revolt");
+		}
+
+		// ...and it can NEVER block reform indefinitely. An earlier version read
+		// FreeUnitSupport as a hard cap, so a civ had to disband its entire army before it
+		// was allowed to modernise — measured over 500 turns that cost half the world's
+		// research and killed two civs outright.
+		[Fact]
+		public void TheDrawdownCannotBlockReformForever()
+		{
+			Player player = FreshHuman();
+			Settings.Instance.Autopilot = true;
+			City city = Game.Instance.AddCity(player, 0, 40, 25)!;
+			player.Explore(40, 25, range: 3);
+			player.Government = new CivOne.Governments.Monarchy();
+			foreach (IAdvance a in Common.Advances) player.AddAdvance(a);
+			byte id = Game.Instance.PlayerNumber(player);
+
+			// An army so large it can never be paid for: the cap has to give way.
+			for (int i = 0; i < 60; i++)
+			{
+				IUnit u = Game.Instance.CreateUnit(UnitType.Legion, 43, 25, id)!;
+				u.SetHome(city);
+			}
+
+			// Well past MaxDrawdownTurns, plus room for the revolt's own random roll.
+			for (int t = 0; t < 200 && player.Government is CivOne.Governments.Monarchy; t++)
+				player.AI!.ConsiderGovernment();
+
+			Assert.False(player.Government is CivOne.Governments.Monarchy,
+				"reform must proceed once the drawdown budget is spent, army or no army");
+			Assert.True(Game.Instance.GetUnits().Count(u => u.Owner == id) > 0,
+				"and it must not have disbanded the entire army to get there");
+		}
+
 		// Non-combat units are not an army: nine Diplomats and seven Caravans (which is
 		// what Japan actually held alongside its Legions) must not read as "armed enough"
 		// and talk a genuinely threatened civ out of defending itself.

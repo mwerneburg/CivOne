@@ -782,6 +782,56 @@ namespace CivOne
 		}
 
 		// Called each turn: consider starting a revolution if conditions are good.
+		// How many shields a government change would cost us that we cannot pay.
+		//
+		// Mirrors City.ShieldCosts exactly (same non-combatant exclusions, same
+		// free-support semantics including the -1 "free = city size" case) but evaluated
+		// against the government we are ABOUT to adopt. Summed only over cities that would
+		// actually go short: a city with shields to spare does not offset one that starves,
+		// because the disbanding in City.NewTurn is per-city, not empire-wide.
+		private int ProjectedSupportDeficit(IGovernment target)
+		{
+			int deficit = 0;
+			foreach (City c in Player.Cities)
+			{
+				int supported = c.Units.Count(u => !(u is Diplomat) && !(u is ICaravan));
+				int free = target.FreeUnitSupport < 0 ? c.Size : target.FreeUnitSupport;
+				int cost = Math.Max(0, supported - free);
+				deficit += Math.Max(0, cost - c.ShieldTotal);
+			}
+			return deficit;
+		}
+
+		// Disband one unit from the city that would be worst off, choosing the same victim
+		// the engine would: furthest from home. A city's last defender is spared — losing
+		// the garrison to pay for a constitution is not a trade worth making.
+		private void TrimForSupport(IGovernment target)
+		{
+			City? worst = null;
+			int worstShort = 0;
+			foreach (City c in Player.Cities)
+			{
+				int supported = c.Units.Count(u => !(u is Diplomat) && !(u is ICaravan));
+				int free = target.FreeUnitSupport < 0 ? c.Size : target.FreeUnitSupport;
+				int shortfall = Math.Max(0, Math.Max(0, supported - free) - c.ShieldTotal);
+				if (shortfall > worstShort) { worstShort = shortfall; worst = c; }
+			}
+			if (worst is null) return;
+
+			int defenders = worst.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+			IUnit? cull = worst.Units
+				.Where(u => !(u is Diplomat) && !(u is ICaravan))
+				.Where(u => !(defenders <= 1 && u.Role == UnitRole.Defense
+				             && u.X == worst.X && u.Y == worst.Y))
+				.OrderByDescending(u => Common.DistanceToTile(worst.X, worst.Y, u.X, u.Y))
+				.FirstOrDefault();
+			if (cull is null) return;
+
+			Log($"{Player.TribeName}: {worst.Name} cannot carry {cull.GetType().Name} under "
+			  + $"{target.Name} (short {worstShort} shields) — disbanding ahead of the revolt");
+			Game.DisbandUnit(cull);
+		}
+
 		internal void ConsiderGovernment()
 		{
 			if (Player.Government is Gov.Anarchy) return;
@@ -838,18 +888,38 @@ namespace CivOne
 				&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= 4));
 			if (underThreat) return;
 
-			// NOTE — a pre-revolt army drawdown was tried here and reverted, because the
-			// model was wrong. FreeUnitSupport is 0 under Republic and Democracy, but that
-			// is not a cap: units beyond the free allowance simply cost shields. Treating it
-			// as a cap meant a civ had to disband its ENTIRE army before it was allowed to
-			// revolt, one unit per turn, which in a 500-turn harness run cost half the
-			// world's research (174 advances -> 81 on one seed) and killed two civs outright.
+			// Shed what the new constitution cannot carry — deliberately, and in advance.
 			//
-			// The real problem is still worth solving: switching from Monarchy (3 free per
-			// city) to Democracy (0) makes shields negative in most cities, and City.NewTurn
-			// then disbands one unit per city per turn, silently. But the affordability test
-			// has to be about SHIELD INCOME covering the new upkeep, not a unit count — and
-			// the drawdown has to be bounded so it can never block the revolt indefinitely.
+			// FreeUnitSupport is 3 per city under Monarchy and Communism and ZERO under
+			// Republic and Democracy. That is not a cap — units past the allowance cost a
+			// shield each — but it means a 26-city empire revolting to Democracy suddenly
+			// owes 78 shields it did not owe yesterday. Every city whose shields go negative
+			// then has City.NewTurn (City.cs:1464) disband its furthest-from-home unit, one
+			// per city per turn, with no message for an AI: the army evaporation you can
+			// watch in any autoplayed game.
+			//
+			// Two guards, both learned the hard way. The test is SHIELD INCOME against the
+			// new upkeep, not a unit count — reading FreeUnitSupport as a cap demanded a civ
+			// disband its entire army before it could reform, which cost half the world's
+			// research over 500 turns and killed two civs. And the wait is bounded twice
+			// over: a small deficit is tolerated rather than perfected, and after
+			// MaxDrawdownTurns the revolt proceeds regardless. Reform must never be
+			// blockable indefinitely.
+			IGovernment? target = BestGovernment();
+			if (target is not null && target.FreeUnitSupport < Player.Government.FreeUnitSupport)
+			{
+				const int TolerableDeficit  = 2;   // a couple of shields is not worth delaying reform for
+				const int MaxDrawdownTurns  = 15;  // hard stop, whatever the books say
+
+				int deficit = ProjectedSupportDeficit(target);
+				if (deficit > TolerableDeficit && _govDrawdownTurns < MaxDrawdownTurns)
+				{
+					_govDrawdownTurns++;
+					TrimForSupport(target);
+					return;
+				}
+			}
+			_govDrawdownTurns = 0;
 
 			// Further upgrades (Monarchy → Republic/Democracy, etc.). Consolidate is no
 			// longer a veto — a civ managing unhappiness is exactly the one that wants the
