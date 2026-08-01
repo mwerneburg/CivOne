@@ -2251,7 +2251,10 @@ namespace CivOne
 					    .Take(MaxProbes)
 					    .FirstOrDefault(FirstStepReachable);
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
-				else unit.SkipTurn();
+				// Sentry rather than SkipTurn, for the reason spelled out at the Caravan
+				// below: a diplomat with no reachable target re-ran four full A* searches
+				// every turn for the rest of the game.
+				else unit.Sentry = true;
 				return;
 			}
 
@@ -2304,15 +2307,41 @@ namespace CivOne
 				// fall back to the nearest city of any size so the unit always delivers rather
 				// than idling for endless turns at its owner's upkeep.
 				const int popFloor = 3;
-				var byDistance = Game.GetCities()
+				// Probe cap, exactly the one the Diplomat above already has — the comment
+				// there calls this "the Caravan fix immediately below", but the cap itself
+				// was never applied here. Unbounded, this ran a full A* per foreign city on
+				// the continent, and then a SECOND full pass for the no-size-floor fallback,
+				// for every caravan, every turn. FirstStepReachable is expensive precisely
+				// for these units: a Caravan is nonCombat, so in the pathfinder EVERY
+				// foreign unit blocks its tile, and a boxed-in one explores the whole
+				// landmass before failing.
+				//
+				// Measured on the turn-310..365 stretch of a peaceful epic game: 4600
+				// pathfinds per turn at 17 ms each — 80 seconds of a 100-second turn, about
+				// three quarters of the entire game clock. A world at peace is the worst
+				// case, because at peace every foreign unit blocks rather than being a
+				// target to attack through.
+				//
+				// Filtering once instead of twice keeps it to at most MaxProbes searches.
+				// Taking the nearest few before the size floor can skip a big city just
+				// outside the window; that is the same trade the "nearest, not most distant"
+				// note above already argues for.
+				const int MaxProbes = 4;
+				var reachable = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+				    .Take(MaxProbes)
+				    .Where(FirstStepReachable)
 				    .ToList();
-				City target = byDistance.FirstOrDefault(c => c.Size >= popFloor && FirstStepReachable(c))
-				           ?? byDistance.FirstOrDefault(FirstStepReachable);
+				City target = reachable.FirstOrDefault(c => c.Size >= popFloor)
+				           ?? reachable.FirstOrDefault();
 
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
-				else unit.SkipTurn();
+				// Sentry, not SkipTurn: nothing reachable this turn means nothing reachable
+				// next turn either, and SkipTurn re-ran the whole probe every turn for the
+				// rest of the game. Same reasoning and same idiom as the Explorer above —
+				// it wakes if something changes around it.
+				else unit.Sentry = true;
 				return;
 			}
 
