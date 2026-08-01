@@ -2048,6 +2048,28 @@ namespace CivOne
 			}
 
 			Player.Gold += IsInDisorder ? (short)0 : Taxes;
+
+			// INSOLVENCY. Player.Gold clamps at zero (Player.cs:205, where this was a TODO),
+			// so a treasury that cannot meet the bill simply didn't pay it — silently, and
+			// forever. AI.ConsiderDivestment only ever sheds buildings that were provably
+			// doing nothing, so an empire full of USEFUL buildings it could not afford ran a
+			// free permanent deficit: measured at the end of a 750-turn game, Japan took 62
+			// gold a turn against 175 owed and never lost a thing.
+			//
+			// Civ 1 sells a building instead of forgiving the debt, and so do we. Highest
+			// upkeep first, so the fewest buildings go; TotalMaintenance falls as they do, so
+			// this converges. A city with nothing left to sell still gets its debt written
+			// off — disbanding units for arrears is the other half of the Civ 1 rule and is
+			// not implemented here.
+			while (Player.Gold < TotalMaintenance && _buildings.Count > 0)
+			{
+				IBuilding sold = _buildings.OrderByDescending(b => b.Maintenance).First();
+				SellBuilding(sold);
+				if (Player == Human)
+					GameTask.Enqueue(Message.Newspaper(this,
+					    $"{Name} cannot pay its bills.", $"{sold.Name} sold to cover the debt."));
+			}
+
 			Player.Gold -= TotalMaintenance;
 			Player.Science += Science;
 			BuildingSold = false;
