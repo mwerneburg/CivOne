@@ -879,6 +879,11 @@ namespace CivOne
 		{
 			if (Player.Government is Gov.Anarchy) return;
 			if (Player.Civilization is TheOthers or TheThing or Skynet) return; // administrations, organisms, and networks do not revolt
+			// Raiders do not hold constitutional conventions either. Omitted from this list
+			// (and from ChooseResearch) until a turn-750 save showed the horde governed by
+			// REPUBLIC with nine advances to its name — the same defect as the captured-city
+			// production bug: a non-civilisation routed through civilisation machinery.
+			if (Player.Civilization is Civilizations.Barbarian) return;
 
 			// Research lock-in escape. This must live here, on the every-turn path —
 			// ChooseResearch only runs when the research slot is empty or a target just
@@ -2730,6 +2735,42 @@ namespace CivOne
 			}
 
 			int defenders = city.Tile.Units.Count(u => u.Role == UnitRole.Defense);
+
+			// The Others: an occupation, not a civilisation. Cephalopods incapable of sympathy
+			// or of recognising their captives as anything but stock — so they build nothing
+			// that serves a population. No temples, no aqueducts, no marketplaces, and above
+			// all no wonders: they did not come here to develop the place.
+			//
+			// They were running the ordinary planner, and it showed. Over 1255 production
+			// decisions between turns 370 and 749 of a 2200 AD game they built 97
+			// Observatories, 95 Cathedrals, 89 Colosseums, 66 Hospitals and 51 Marketplaces,
+			// against 131 military units — about a tenth of their output. The invasion landed
+			// and then spent five centuries on civic architecture while every human power
+			// grew around it. They held 51 cities and finished sixth on score.
+			//
+			// Three things only: warheads, armour that runs everything down, and agents to
+			// sabotage what is not worth occupying. ProductionAvailable is the gate rather
+			// than a hand-written tech list because Nuclear needs the Manhattan Project built
+			// and HoverTank the occupier's own Fusion Core — prerequisites a HasAdvance check
+			// would miss. Armor is the fallback so a city is never left with nothing to do.
+			if (Player.Civilization is TheOthers)
+			{
+				byte thId = Game.PlayerNumber(Player);
+				int agents = Game.GetUnits().Count(u => u.Owner == thId && u is Diplomat);
+
+				if (Player.ProductionAvailable(new Nuclear())) Consider(new Nuclear());
+				if (Player.ProductionAvailable(new HoverTank())) Consider(new HoverTank());
+				// Sabotage is a tool, not a doctrine — one agent per two cities is plenty.
+				// They were building them regardless of use: 84 Diplomats produced by a
+				// faction that returns early from every diplomatic path (AI.Strategy:1072),
+				// which is 84 units that could never do anything at all.
+				if (agents < Math.Max(1, Player.Cities.Length / 2)
+				    && Player.ProductionAvailable(new Diplomat()))
+					Consider(new Diplomat());
+				if (plan.Count == 0) Consider(new Armor());
+				if (plan.Count == 0) Consider(BestDefender());
+				return plan;
+			}
 
 			// Olvir production: refugee fleet prioritises rapid expansion and sea infrastructure
 			// over military and normal civic buildings. They don't build wonders or advanced

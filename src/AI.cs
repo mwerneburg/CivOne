@@ -694,6 +694,8 @@ namespace CivOne
 		internal void ChooseResearch()
 		{
 			if (Player.CurrentResearch is not null) return;
+			// The horde has no laboratories. See ConsiderGovernment for the companion gate.
+			if (Player.Civilization is Civilizations.Barbarian) return;
 
 			IAdvance[] available = Player.AvailableResearch.ToArray();
 			if (available.Length == 0) return;
