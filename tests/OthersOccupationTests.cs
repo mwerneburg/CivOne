@@ -106,6 +106,43 @@ namespace CivOne.Tests
 				$"an occupation should be producing units; got {city.CurrentProduction!.GetType().Name}");
 		}
 
+		// They do not garrison what they take. This is a smash-and-grab for livestock, to be
+		// over before someone uploads a virus — so an occupied city gets no defender, and is
+		// correspondingly cheap to retake. The arc is meant to be broken, not out-produced.
+		[Fact]
+		public void TheOthers_NeverGarrisonWhatTheyTake()
+		{
+			City city = Occupied();
+			Sim.ClearTasks();
+
+			AI.Instance(city.Player).CityProduction(city);
+
+			var plan = new System.Collections.Generic.List<IProduction>();
+			if (city.CurrentProduction is not null) plan.Add(city.CurrentProduction);
+			plan.AddRange(city.ProductionQueue);
+
+			Assert.DoesNotContain(plan, p => p is IUnit u && u.Role == UnitRole.Defense);
+			Assert.DoesNotContain(plan, p => p is CityWalls);
+		}
+
+		// The warheads are the arrival, not the occupation: ExecuteOwnersLanding nukes the
+		// capitals and that is the whole of it. Stockpiling more would be a weapon this AI
+		// has no doctrine for firing.
+		[Fact]
+		public void TheOthers_DoNotStockpileWarheads()
+		{
+			City city = Occupied();
+			Sim.ClearTasks();
+
+			AI.Instance(city.Player).CityProduction(city);
+
+			var plan = new System.Collections.Generic.List<IProduction>();
+			if (city.CurrentProduction is not null) plan.Add(city.CurrentProduction);
+			plan.AddRange(city.ProductionQueue);
+
+			Assert.DoesNotContain(plan, p => p is Nuclear);
+		}
+
 		// Saboteurs are a tool, not a doctrine. They had produced 84 Diplomats — a faction
 		// that returns early from every diplomatic path — so the count is capped.
 		[Fact]

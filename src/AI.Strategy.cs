@@ -2748,17 +2748,27 @@ namespace CivOne
 			// and then spent five centuries on civic architecture while every human power
 			// grew around it. They held 51 cities and finished sixth on score.
 			//
-			// Three things only: warheads, armour that runs everything down, and agents to
-			// sabotage what is not worth occupying. ProductionAvailable is the gate rather
-			// than a hand-written tech list because Nuclear needs the Manhattan Project built
-			// and HoverTank the occupier's own Fusion Core — prerequisites a HasAdvance check
-			// would miss. Armor is the fallback so a city is never left with nothing to do.
+			// Two things only: armour that runs everything down, and agents to sabotage what
+			// is not worth occupying. The warheads are the ARRIVAL, not the occupation —
+			// ExecuteOwnersLanding nukes each civilisation's capital before the seizure, and
+			// that is the whole of it. Producing more would be stockpiling a weapon this AI
+			// has no doctrine for firing, which is the 84-Diplomat mistake in a costlier form.
+			//
+			// And no defenders, deliberately. They do not care enough about what they take to
+			// garrison it: this is a smash-and-grab for livestock, to be over before the
+			// humans work out how to upload a virus or some microbe gets in. The practical
+			// consequence is that occupied cities are cheap to retake, which is the arc doing
+			// what it should — the occupation has to be broken, not out-produced.
+			//
+			// ProductionAvailable is the gate rather than a hand-written tech list because
+			// HoverTank needs the occupier's own Fusion Core, which a HasAdvance check would
+			// miss. Armor is the guaranteed fallback: the landing grants every advance bar
+			// FutureTech (Game.ExecuteOwnersLanding), so it can never be unavailable to them.
 			if (Player.Civilization is TheOthers)
 			{
 				byte thId = Game.PlayerNumber(Player);
 				int agents = Game.GetUnits().Count(u => u.Owner == thId && u is Diplomat);
 
-				if (Player.ProductionAvailable(new Nuclear())) Consider(new Nuclear());
 				if (Player.ProductionAvailable(new HoverTank())) Consider(new HoverTank());
 				// Sabotage is a tool, not a doctrine — one agent per two cities is plenty.
 				// They were building them regardless of use: 84 Diplomats produced by a
@@ -2768,7 +2778,6 @@ namespace CivOne
 				    && Player.ProductionAvailable(new Diplomat()))
 					Consider(new Diplomat());
 				if (plan.Count == 0) Consider(new Armor());
-				if (plan.Count == 0) Consider(BestDefender());
 				return plan;
 			}
 
