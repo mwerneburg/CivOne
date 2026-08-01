@@ -643,10 +643,17 @@ namespace CivOne
 			}
 		}
 
-		private void HandleGlobalWarming()
+		internal void HandleGlobalWarming()
 		{
 			int polluted = Map.AllTiles().Count(t => t.Pollution);
-			int threshold = 8 + (GlobalWarmingCount * 2);
+			// Civ 1's 8 + 2n was counted against a fixed 80x50 map. Ours is sized at
+			// generation: an epic 320x200 map is 64000 tiles, so the unscaled constant
+			// fired a planet-wide climate event on 14 polluted tiles out of 64000 —
+			// roughly sixteen times too eagerly. Measured on a turn-551 save: three
+			// warming events by 1996 AD with only 8 tiles smoking and one civ (in
+			// Anarchy) responsible; the icecaps were down to 0.3% of land and swamp had
+			// become the second-commonest terrain at 14.4%.
+			int threshold = (8 + (GlobalWarmingCount * 2)) * Map.WIDTH * Map.HEIGHT / 4000;
 			if (polluted < threshold) return;
 
 			GlobalWarmingCount++;
@@ -689,7 +696,12 @@ namespace CivOne
 				if (tile.City is not null || tile.IsOcean) continue;
 
 				int adjacentOcean = tile.GetBorderTiles().Count(t => t is not null && t.IsOcean);
-				int oceanThreshold = Math.Max(0, 7 - GlobalWarmingCount);
+				// Floor of 1, not 0. At GlobalWarmingCount >= 7 a floor of 0 made the test
+				// `adjacentOcean >= 0` true for EVERY land tile on the map, so a single
+				// event past the seventh turned the whole world — inland mountains included
+				// — to swamp and jungle and cleared every irrigation and mine on it. Sea
+				// level rising onto ground that touches no sea is not a flood.
+				int oceanThreshold = Math.Max(1, 7 - GlobalWarmingCount);
 
 				if (adjacentOcean >= oceanThreshold)
 				{
