@@ -3076,6 +3076,24 @@ namespace CivOne
 				{
 					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
 					if (civic.Length > 0) items = civic;
+					else if (ownCities < maxCities && CanAffordSettler(city, 3)
+					         && !city.Units.Any(x => x is Settlers))
+					{
+						// Over the unit ceiling with nothing civic left to build. This is the
+						// state a poor, hemmed-in civ lives in: too few advances to unlock a
+						// single building, so every fallback roll is another spearman it has
+						// to feed. Measured over one 597-turn game, France made 241 production
+						// decisions and 236 of them were Militia, from a size-7 capital that
+						// held one city from the first turn to the last.
+						//
+						// A settler is the only thing that can change the situation — it can
+						// found if an opening appears, and terraform if none does. The
+						// empire-wide settlerBudget is deliberately bypassed here: its job is
+						// to stop a civ drowning in settlers, and a civ whose alternative is a
+						// two-hundredth Militia is not that civ.
+						Consider(new Settlers());
+						return plan;
+					}
 				}
 
 				// At peace with every building already raised, the only civic item left is

@@ -646,6 +646,51 @@ namespace CivOne.Tests
 				"a lake left by flooding should count as freshwater without needing a reload");
 		}
 
+		// A poor, hemmed-in civ has too few advances to unlock any building, so every
+		// fallback production roll is another spearman it must then feed. Measured over a
+		// 597-turn game: France made 241 production decisions, 236 of them Militia, from a
+		// size-7 capital that held exactly one city from the first turn to the last — and
+		// was eventually destroyed. Over the unit ceiling with nothing civic to build, the
+		// answer is a settler, not another garrison.
+		[Fact]
+		public void GlutWithNothingCivicToBuild_ReachesForASettler()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = true;
+			Player player = Game.Instance.HumanPlayer;
+			byte id = Game.Instance.PlayerNumber(player);
+
+			int cx = 40, cy = 25;
+			for (int dy = -3; dy <= 3; dy++)
+			for (int dx = -3; dx <= 3; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+			City city = Game.Instance.AddCity(player, 0, cx, cy)!;
+			player.Explore(cx, cy, range: 4);
+			city.Size = 5;
+			city.ResetResourceTiles();
+
+			// A garrison well past the ceiling — one city allows three units at peace.
+			for (int i = 0; i < 8; i++)
+				Game.Instance.CreateUnit(UnitType.Militia, cx, cy, id);
+			// ...and a settler already in the field, so the empire-wide budget is spent.
+			IUnit spent = Game.Instance.CreateUnit(UnitType.Settlers, cx + 3, cy + 3, id)!;
+			Assert.NotNull(spent);
+
+			Sim.ClearTasks();
+			AI.Instance(player).CityProduction(city);
+			var plan = new System.Collections.Generic.List<IProduction>();
+			if (city.CurrentProduction is not null) plan.Add(city.CurrentProduction);
+			plan.AddRange(city.ProductionQueue);
+
+			// The pathology is the endless garrison. Anything else — a wonder, a building, a
+			// settler — is a legitimate use of the shields; another spearman for a city that
+			// already holds eight is not. (France's list had emptied entirely: few enough
+			// advances that its handful of buildings were done and every wonder was taken.)
+			Assert.DoesNotContain(plan, p => p is IUnit u
+				&& (u.Role == UnitRole.Defense || u.Role == UnitRole.LandAttack));
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()
