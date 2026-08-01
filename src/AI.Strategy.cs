@@ -2965,12 +2965,32 @@ namespace CivOne
 			// the binding constraint; improved land pins near 42% whichever way it moves,
 			// because settlers run out of work BestImproveSite will route them to, not out
 			// of settlers. Do not raise this without fixing that first.
+			//
+			// That last conclusion was drawn in the wrong regime and is false at scale. The
+			// harness's civs hold about five cities each, where the quota resolves to ONE
+			// settler and that settler costs a big share of a small civ's population — which
+			// is why 1-per-2 measured worse there. A turn-551 epic game is a different world:
+			// 257 cities, 80 settlers, and inside the city radii 2432 tiles of outstanding
+			// routable farm work against 2985 land tiles. 81% of all worked land unimproved,
+			// with the settlers nowhere near running out of things to do. A 47-city civ was
+			// allowed eleven workers for roughly 560 workable tiles.
+			//
+			// So the ratio is not wrong, its constancy is: a settler is a big cost to a
+			// 5-city civ and a rounding error to a 40-city one. Large empires get 1-per-2.
+			// Deliberately gated well above anything the harness reaches (its biggest civ
+			// runs 11-13 cities) so the measured small-empire behaviour is untouched —
+			// verified by the three seeds coming back byte-identical.
+			//
+			// UNVALIDATED at scale: the harness cannot build a 16-city civ, so this rests on
+			// the save measurement above, not on an A/B. Epic runs are the judge.
+			const int LargeEmpire = 16;
 			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
 			    && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
-				if (workers < Math.Max(1, ownCities / 4))
+				int quota = ownCities >= LargeEmpire ? ownCities / 2 : ownCities / 4;
+				if (workers < Math.Max(1, quota))
 					Consider(new Settlers());
 			}
 
