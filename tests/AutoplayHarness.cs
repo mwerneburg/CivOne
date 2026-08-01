@@ -11,12 +11,7 @@
 //
 // With the variable unset it runs a short smoke pass and just asserts the loop advances.
 //
-// Two things to know before reading the numbers:
-//   - The HUMAN civ cannot found cities here. Orders.CreateCity opens a city-name screen
-//     for the human player (Orders.cs:119) and nothing can answer it without a renderer,
-//     so the harness effectively plays the AI civs plus one crippled human. Absolute
-//     figures are therefore NOT comparable to a real autoplay run; A/B comparisons on the
-//     same seed are, which is what this is for.
+// One thing to know before reading the numbers:
 //   - The seed is pinned (CIVONE_HARNESS_SEED, default 4242). Map generation and every AI
 //     die roll come off Common.Random, so without pinning, two runs get different
 //     continents and any comparison is noise.

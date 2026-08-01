@@ -3076,8 +3076,13 @@ namespace CivOne
 				{
 					IProduction[] civic = items.Where(p => p is not IUnit).ToArray();
 					if (civic.Length > 0) items = civic;
+					// The cap counts settlers ALIVE, not settlers homed here: city.Units is the
+					// home roster, so a single idle settler homed to the capital blocked this
+					// branch for the rest of the game — which is exactly what happened to
+					// France, 20 Militia and one settler across 149 turns.
 					else if (ownCities < maxCities && CanAffordSettler(city, 3)
-					         && !city.Units.Any(x => x is Settlers))
+					         && Game.GetUnits().Count(u => u.Owner == Game.PlayerNumber(Player)
+					                                   && u is Settlers) < ownCities + 1)
 					{
 						// Over the unit ceiling with nothing civic left to build. This is the
 						// state a poor, hemmed-in civ lives in: too few advances to unlock a

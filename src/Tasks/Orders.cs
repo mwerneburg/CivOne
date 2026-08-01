@@ -116,7 +116,11 @@ namespace CivOne.Tasks
 		private void CreateCity(Player player, int x, int y)
 		{
 			int nameId = Game.CityNameId(player);
-			if (player.IsHuman)
+			// Autopilot counts as AI here, matching City.cs:1187, :1479, :2018 and
+			// Player.cs:866. Without this the human's own settlers raise a naming dialog
+			// that nothing can answer in an unattended run — the one branch of the founding
+			// path the AI cannot execute, on the civ the player is watching most closely.
+			if (player.IsHuman && !Settings.Instance.Autopilot)
 			{
 				CityName cityName = new CityName(nameId, Game.CityNames[nameId]);
 				cityName.Accept += CityNameAccept;
