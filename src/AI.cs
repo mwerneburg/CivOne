@@ -233,32 +233,15 @@ namespace CivOne
 				bool validCity = (tile.City is null) && (
 					(!tile.IsOcean && !(tile is Arctic) && !(tile is Mountains)) ||
 					(tile.IsOcean && Player.HasAdvance<AquaticColonization>()));
-				// Draining a swamp and clearing a jungle or forest are IRRIGATE orders in Civ 1,
-				// and Settlers.BuildIrrigation (Settlers.cs:438) implements all three — 4 turns,
-				// no water source needed, converting the tile to open ground. The AI could not
-				// reach any of it: swamp, jungle and forest appeared in this test only as a
-				// water SOURCE for a neighbouring farm tile, never as a target.
-				//
-				// That left terrain the AI treats as permanently worthless. Measured on a
-				// turn-578 save, 30% of Japan's worked land was swamp, jungle or forest —
-				// Kamakura worked 6 swamp tiles out of 13 and Kagoshima sat at -1 food — and no
-				// settler would ever touch a single one of them. Swamp yields 1 food; drained
-				// it is grassland at 2, and can then be irrigated again for 3.
-				bool convertible = tile is Swamp || tile is Jungle || tile is Forest;
-				bool validIrrigation = (tile.City is null) && (!tile.Mine) && (!tile.Irrigation)
-					&& (convertible
-					    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
-					        && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)))));
-				bool validMine = (tile is Mountains || tile is Hills) && (tile.City is null) && (!tile.Mine) && (!tile.Irrigation);
-				// Mirror Settlers.BuildRoad's eligibility checks: a brand-new road on a River
-				// tile requires Bridge Building. Without this guard the AI loops indefinitely
-				// (validRoad → enqueue BuildRoad → silent fail → SkipTurn → repeat).
-				bool canNewRoadHere = (!tile.Road && !tile.RailRoad)
-					&& (!(tile is River) || Player.HasAdvance<BridgeBuilding>());
-				bool validRoad = (tile.City is null) && !tile.TransportTube && (
-					canNewRoadHere ||
-					(tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) ||
-					(tile.RailRoad && Player.HasAdvance<TransitConduit>()));
+				// What this tile can take. Defined once, in AI.Strategy.WorkAvailable, so that
+				// this half of the settler AI and BestImproveSite cannot disagree about it —
+				// three separate bugs came from them doing exactly that.
+				TileWork work = WorkAvailable(tile);
+				bool convertible      = work.Conversion;
+				bool validIrrigation  = work.Irrigation;
+				bool validMine        = work.Mine;
+				bool canNewRoadHere   = work.NewRoad;
+				bool validRoad        = work.Road;
 				bool validCanopy = Player.HasAdvance<CanopyCultivation>() && (tile is Forest || tile is Jungle) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
 				bool validAquafarm = Player.HasAdvance<BioplexEngineering>() && !tile.IsOcean && tile.GetBorderTiles().Any(t => t.IsOcean) && !Game.OlvirImprovements.ContainsKey((tile.X, tile.Y));
 				int nearestCity = 255;

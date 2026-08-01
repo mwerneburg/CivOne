@@ -60,7 +60,7 @@ namespace CivOne.Tests
 					.OrderByDescending(x => x.Count()).ToArray();
 				if (byCont.Length > 1) { colonisers++; colonies += p.Cities.Length - byCont[0].Count(); }
 			}
-			int landWorked = 0, improved = 0;
+			int landWorked = 0, improved = 0, mined = 0;
 			foreach (City c in live.SelectMany(p => p.Cities))
 			for (int dy = -2; dy <= 2; dy++)
 			for (int dx = -2; dx <= 2; dx++)
@@ -72,10 +72,11 @@ namespace CivOne.Tests
 				if (t is null || t.IsOcean) continue;
 				landWorked++;
 				if (t.Road || t.Irrigation) improved++;
+				if (t.Mine) mined++;
 			}
 			return $"turn {turn,4}: warm {g.GlobalWarmingCount}  civs {live.Length,2}  cities {cities,4}  biggest {live.Max(p => p.Cities.Length),3}"
 			     + $"  meanSize {meanSize,4:F1}  settlers {settlers,3}  advances {advances,4}"
-			     + $"  improved {(landWorked > 0 ? improved * 100 / landWorked : 0),3}%"
+			     + $"  improved {(landWorked > 0 ? improved * 100 / landWorked : 0),3}%  mined {mined,3}"
 			     + $"  riot {riot,3}/{cityList.Length,-3} unhappy/city {unhappy,4:F1} lux {lux,3:F1}"
 			     + $"  colonisers {colonisers,2} overseasCities {colonies,3}"
 			     + $"  ships {g.GetUnits().Count(u => u.Class == CivOne.Enums.UnitClass.Water && u.Owner != 0),3}";

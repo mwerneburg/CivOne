@@ -41,6 +41,36 @@ namespace CivOne.Tests
 			return (player, Game.Instance.CreateUnit(UnitType.Settlers, 20, 24, id)!);
 		}
 
+		// Mines had the same missing routing path.
+		[Fact]
+		public void AHillIsRoutableEvenThoughItIsNotFarmable()
+		{
+			var (player, settler) = FinishedCountryside();
+			Map.Instance.ChangeTileType(19, 26, Terrain.Hills);
+
+			ITile? site = AI.Instance(player).BestImproveSite(settler);
+
+			Assert.NotNull(site);
+			Assert.True(site!.X == 19 && site.Y == 26,
+				$"expected the unmined hill; got ({site.X},{site.Y}) {site.GetType().Name}");
+		}
+
+		// ...but food still comes first when there is farm work in range.
+		[Fact]
+		public void AHillNeverDisplacesFarmWork()
+		{
+			var (player, settler) = FinishedCountryside();
+			Map.Instance.ChangeTileType(19, 26, Terrain.Hills);
+			Map.Instance.ChangeTileType(21, 26, Terrain.Plains);
+			Map.Instance[21, 26].Irrigation = false;
+
+			ITile? site = AI.Instance(player).BestImproveSite(settler);
+
+			Assert.NotNull(site);
+			Assert.True(site!.X == 21 && site.Y == 26,
+				$"the farm tile should win over the hill; got ({site.X},{site.Y})");
+		}
+
 		[Fact]
 		public void WithoutRailroad_AFinishedCountrysideOffersNoWork()
 		{

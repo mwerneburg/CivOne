@@ -1765,6 +1765,95 @@ namespace CivOne
 		// settlers here to raise city food (irrigation) instead of founding ever-smaller
 		// towns; this is the fix for AI cities stalling at ~+0.8 food/turn. Null when there's
 		// nothing useful to improve nearby.
+		// Farm first, then mines, then the rail upgrade — food leads, and each pass runs only
+		// when the one before it found nothing in range.
+		// ── settler work eligibility ──────────────────────────────────────────────
+		//
+		// ONE definition of what work a tile can take, shared by both halves of the settler
+		// AI. They used to state it independently and drifted apart three times, each time
+		// the same way: ChooseSettlerImprovement was willing to do work that BestImproveSite
+		// would never route a settler TO, so the work only ever happened where a settler
+		// already happened to be standing.
+		//
+		//   rails      a full 750-turn game ended with SEVEN railed tiles in the world
+		//   mines      Hills are never `farmable`, so mine sites were unreachable
+		//   converts   a drained swamp kept a stale ContinentId and left the routable world
+		//              altogether (fixed in Map.ChangeTileType, +16pp improved land)
+		//
+		// The division of labour, which is what stops this recurring:
+		//   WorkAvailable          — what CAN be done on this tile. Eligibility, nothing else.
+		//   ChooseSettlerImprovement — which of those to do, given stance and government.
+		//   BestImproveSite        — which tile is worth WALKING to.
+		//
+		// The measurements behind the current ordering live at ChooseSettlerImprovement, and
+		// those behind the worker quota at the settler production rule. Both are negative
+		// results — approaches that looked right and measured worse. Do not re-derive them
+		// from the code; the code only records the winner.
+		internal readonly struct TileWork
+		{
+			public readonly bool Irrigation, Conversion, Mine, NewRoad, RoadUpgrade;
+			public TileWork(bool irrigation, bool conversion, bool mine, bool newRoad, bool roadUpgrade)
+			{
+				Irrigation = irrigation; Conversion = conversion; Mine = mine;
+				NewRoad = newRoad; RoadUpgrade = roadUpgrade;
+			}
+			public bool Road => NewRoad || RoadUpgrade;
+		}
+
+		internal TileWork WorkAvailable(ITile? tile)
+		{
+			if (tile is null || tile.City is not null) return default;
+
+			// Draining a swamp and clearing a jungle or forest are IRRIGATE orders in Civ 1,
+			// and Settlers.BuildIrrigation (Settlers.cs:438) implements all three — 4 turns,
+			// no water source needed, converting the tile to open ground. The AI could not
+			// reach any of it: swamp, jungle and forest appeared only as a water SOURCE for a
+			// neighbouring farm tile, never as a target.
+			//
+			// That left terrain the AI treated as permanently worthless. Measured on a
+			// turn-578 save, 30% of Japan's worked land was swamp, jungle or forest —
+			// Kamakura worked 6 swamp tiles out of 13 and Kagoshima sat at -1 food — and no
+			// settler would ever touch one. Swamp yields 1 food; drained it is grassland at
+			// 2, and can then be irrigated again for 3.
+			bool conversion = tile is Swamp || tile is Jungle || tile is Forest;
+			bool irrigation = !tile.Mine && !tile.Irrigation
+				&& (conversion
+				    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
+				        && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)))));
+			bool mine = (tile is Mountains || tile is Hills) && !tile.Mine && !tile.Irrigation;
+
+			// Mirror Settlers.BuildRoad's eligibility checks: a brand-new road on a River tile
+			// requires Bridge Building. Without this guard the AI loops indefinitely
+			// (road looks valid → enqueue BuildRoad → silent fail → SkipTurn → repeat).
+			bool newRoad = !tile.Road && !tile.RailRoad
+				&& (!(tile is River) || Player.HasAdvance<BridgeBuilding>());
+			bool upgrade = (tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>())
+			            || (tile.RailRoad && Player.HasAdvance<TransitConduit>());
+			if (tile.TransportTube) { newRoad = false; upgrade = false; }
+
+			return new TileWork(irrigation, conversion, mine, newRoad, upgrade);
+		}
+
+		// Under Despotism and Anarchy the tile penalty claws back any yield above 2, so
+		// irrigation pays on some terrain and not others — and that is a statement about SOME
+		// terrain, not all of it. Blanket-skipping irrigation under Despotism froze whole
+		// civs solid: measured at 1900 AD, the English held seven size-7 cities on a fully
+		// roaded island with four settlers doing literally nothing, and finished on six
+		// advances, unable to research their way out of the government freezing them.
+		//
+		// Which terrain pays follows from City.FoodValue. Plains and Hills carry their
+		// irrigation bonus in ITile.Food itself (1 -> 2), unconditionally, and Desert
+		// likewise (0 -> 1) — none exceeds 2, so the penalty never bites. Grassland and River
+		// are flat 2 and take their bonus from the government-gated branch, so irrigating
+		// those really does yield nothing until Monarchy. Conversion is exempt for the same
+		// reason: it moves 1 -> 2.
+		internal bool DespotBlocksIrrigation(ITile? tile)
+			=> (Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
+			   && !(tile is Swamp || tile is Jungle || tile is Forest
+			        || tile is Plains || tile is Hills || tile is Desert);
+
+		private enum Pass { Farm, Mine, Rail }
+
 		internal ITile? BestImproveSite(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
@@ -1776,19 +1865,32 @@ namespace CivOne
 
 			ITile? best = null;
 			int bestDist = int.MaxValue;
-			Scan(railPass: false);
+			Scan(Pass.Farm);
+			// Mines had the same missing routing path railroads did: ChooseSettlerImprovement is
+			// willing to mine a hill, but the site scan below demands `farmable`, and Hills and
+			// Mountains are never farmable — so a settler only ever mined a tile it was already
+			// standing on. Worst under Despotism, where the farm pass ALSO skips grassland and
+			// river (the tile penalty makes irrigating them worthless): a despot civ on grass
+			// and hills had no routable work of any kind, which is the "settlers standing
+			// still" symptom logged against the English at 1900 AD.
+			//
+			// Terrain-dependent, and honestly modest: measured over 400 turns on seeds
+			// 101/202/303, mined tiles went 2/4/1 -> 2/23/1. Two of the three maps have no
+			// hills inside a city radius that a settler ever runs out of farm work beside,
+			// so nothing changed there at all; the third quintupled. No seed regressed.
+			if (best is null) Scan(Pass.Mine);
 			// A rail upgrade had NO ROUTING PATH. The tile that wants a railroad is by
 			// definition already irrigated or mined, and the farm scan rejects exactly those,
 			// so a settler only ever railed a tile it happened to be standing on already —
 			// the last full game ended with SEVEN railed tiles in the entire world, and every
 			// civ holding Railroad finished at 6-9% of its worked land improved.
 			//
-			// This does not reorder anything: SettlerImprovementFor still puts food first,
+			// This does not reorder anything: ChooseSettlerImprovement still puts food first,
 			// and this pass runs only when there is no farm work left within reach.
-			if (best is null && Player.HasAdvance<RailRoad>()) Scan(railPass: true);
+			if (best is null && Player.HasAdvance<RailRoad>()) Scan(Pass.Rail);
 			return best;
 
-			void Scan(bool railPass)
+			void Scan(Pass pass)
 			{
 			for (int dy = -6; dy <= 6; dy++)
 			for (int dx = -6; dx <= 6; dx++)
@@ -1799,35 +1901,17 @@ namespace CivOne
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (!LandReachable(settlers, tile)) continue;
-				if (railPass)
+				// Eligibility is WorkAvailable's, not restated here. What IS this method's
+				// own judgement is the despot rule: a settler routed to grassland it cannot
+				// usefully irrigate is a settler sent to stand still.
+				TileWork work = WorkAvailable(tile);
+				bool wanted = pass switch
 				{
-					// Must agree with validRoad in AI.cs:258.
-					if (!tile.Road || tile.RailRoad || tile.TransportTube) continue;
-					if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
-					if (claimed.Contains((tx, ty))) continue;
-					int rd = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
-					if (rd < bestDist) { bestDist = rd; best = tile; }
-					continue;
-				}
-				if (tile.Irrigation || tile.Mine) continue;
-				// Must agree with validIrrigation in AI.cs, or a settler is routed to a tile it
-				// will then refuse to work — and worse, is never routed to the tile it would
-				// happily work. Swamp/Jungle/Forest need no water source: the irrigate order
-				// CONVERTS them (Settlers.cs:438).
-				bool convertible = tile is Swamp || tile is Jungle || tile is Forest;
-
-				// ...and it must agree with the despot rule too. Under Despotism, irrigating
-				// Grassland or River yields nothing (City.FoodValue withholds the bonus), so
-				// sending a settler there is sending it to stand still. Route it to the
-				// Plains and Hills it CAN improve instead — measured at 1900 AD, English
-				// settlers sat idle on roaded grassland with unimproved plains a few tiles off.
-				if ((Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
-				    && !convertible && (tile is Grassland || tile is River))
-					continue;
-				bool farmable = convertible
-					|| ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
-					    && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))));
-				if (!farmable) continue;
+					Pass.Mine => work.Mine,
+					Pass.Rail => work.RoadUpgrade,
+					_         => work.Irrigation && !DespotBlocksIrrigation(tile)
+				};
+				if (!wanted) continue;
 				if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
 				if (claimed.Contains((tx, ty))) continue;
 				int d = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
@@ -2866,6 +2950,21 @@ namespace CivOne
 			// Size gate is 3, not 4: size 4 is exactly what the worker exists to reach,
 			// so an unirrigated city stuck at 3 must still be able to build its way out.
 			// It is not 2 — a size-2 city drops to 1 the moment the settler completes.
+			//
+			// The 1-per-4 ratio was tested against 1-per-2 and 1-per-6, three seeds each,
+			// 400 turns (2026-08-01), totalled across seeds:
+			//
+			//              improved land   advances   mean city size
+			//     1 per 6       126           443          5.0
+			//     1 per 4       126           444          5.1     <- unchanged
+			//     1 per 2       130           414          4.7
+			//
+			// Halving the ratio changes nothing and doubling it BUYS 3% more improved land
+			// for 7% fewer advances and smaller cities — each settler costs a population
+			// point, and past this point that outweighs the terraforming. The quota is not
+			// the binding constraint; improved land pins near 42% whichever way it moves,
+			// because settlers run out of work BestImproveSite will route them to, not out
+			// of settlers. Do not raise this without fixing that first.
 			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
 			    && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
@@ -3353,27 +3452,9 @@ namespace CivOne
 		    if (stance == StrategyStance.Militarize && !NearHostiles(unit.X, unit.Y))
 		        stance = StrategyStance.Develop;
 
-		    // Under Despotism the despot penalty cuts any tile yielding >2 food — but that is
-		    // a statement about SOME terrain, not all of it, and blanket-skipping irrigation
-		    // under Despotism froze whole civs solid. Measured at 1900 AD: the English held
-		    // seven size-7 cities on a fully-roaded island with four settlers that did
-		    // literally nothing — no move, no road, no irrigation — because roads were done,
-		    // there was nowhere left to settle, and irrigation was forbidden. They finished
-		    // on six advances, unable to research their way out of the government that was
-		    // freezing them.
-		    //
-		    // Which terrain pays under a despot follows from City.FoodValue: Plains and Hills
-		    // carry their irrigation bonus in ITile.Food itself (1 -> 2), unconditionally, and
-		    // Desert likewise (0 -> 1) — none of which exceeds 2, so the penalty never bites.
-		    // Grassland and River are flat 2 and take their bonus from the government-gated
-		    // branch in FoodValue, so irrigating those really does yield nothing until
-		    // Monarchy. Terrain conversion (draining swamp, clearing jungle) is exempt for the
-		    // same reason: it moves 1 -> 2.
-		    ITile? here = unit.Tile;
-		    bool despotIrrigationPays = conversion
-		        || here is Plains || here is Hills || here is Desert;
-		    bool preMonarchy = (Player.Government is Gov.Despotism || Player.Government is Gov.Anarchy)
-		                       && !despotIrrigationPays;
+		    // The despot tile penalty decides whether irrigation is worth anything here — see
+		    // DespotBlocksIrrigation, which owns that rule and the measurement behind it.
+		    bool preMonarchy = DespotBlocksIrrigation(unit.Tile);
 
 		    // A ROAD UPGRADE never outranks food.
 		    //
