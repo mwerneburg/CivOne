@@ -414,6 +414,7 @@ namespace CivOne
 			bool special = TileIsSpecial(x, y);
 			bool road = _tiles[x, y].Road;
 			bool railRoad = _tiles[x, y].RailRoad;
+			byte continentId = _tiles[x, y].ContinentId;
 			switch(type)
 			{
 				case Terrain.Forest: _tiles[x, y] = new Forest(x, y, special); break;
@@ -433,7 +434,14 @@ namespace CivOne
 			_tiles[x, y].Road = road;
 			_tiles[x, y].RailRoad = railRoad;
 			// Land/ocean flip invalidates continent topology — see _continentsDirty.
-			if (_tiles[x, y].IsOcean != wasOcean) _continentsDirty = true;
+			if (_tiles[x, y].IsOcean != wasOcean) { _continentsDirty = true; return; }
+			// Otherwise the topology is unchanged and the id carries over. This is not
+			// cosmetic: the replacement tile object would otherwise default to continent 0,
+			// and AI.LandReachable compares continent ids — so every tile a settler CONVERTED
+			// (drained swamp, cleared jungle or forest) and every tile global warming retyped
+			// became permanently unroutable, in a countryside that grows more converted with
+			// every century.
+			_tiles[x, y].ContinentId = continentId;
 		}
 		
 		private int ModGrid(int x, int y) => (x % 4) * 4 + (y % 4);

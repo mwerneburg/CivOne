@@ -1776,6 +1776,20 @@ namespace CivOne
 
 			ITile? best = null;
 			int bestDist = int.MaxValue;
+			Scan(railPass: false);
+			// A rail upgrade had NO ROUTING PATH. The tile that wants a railroad is by
+			// definition already irrigated or mined, and the farm scan rejects exactly those,
+			// so a settler only ever railed a tile it happened to be standing on already —
+			// the last full game ended with SEVEN railed tiles in the entire world, and every
+			// civ holding Railroad finished at 6-9% of its worked land improved.
+			//
+			// This does not reorder anything: SettlerImprovementFor still puts food first,
+			// and this pass runs only when there is no farm work left within reach.
+			if (best is null && Player.HasAdvance<RailRoad>()) Scan(railPass: true);
+			return best;
+
+			void Scan(bool railPass)
+			{
 			for (int dy = -6; dy <= 6; dy++)
 			for (int dx = -6; dx <= 6; dx++)
 			{
@@ -1785,6 +1799,16 @@ namespace CivOne
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (!LandReachable(settlers, tile)) continue;
+				if (railPass)
+				{
+					// Must agree with validRoad in AI.cs:258.
+					if (!tile.Road || tile.RailRoad || tile.TransportTube) continue;
+					if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
+					if (claimed.Contains((tx, ty))) continue;
+					int rd = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
+					if (rd < bestDist) { bestDist = rd; best = tile; }
+					continue;
+				}
 				if (tile.Irrigation || tile.Mine) continue;
 				// Must agree with validIrrigation in AI.cs, or a settler is routed to a tile it
 				// will then refuse to work — and worse, is never routed to the tile it would
@@ -1809,7 +1833,7 @@ namespace CivOne
 				int d = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
 				if (d < bestDist) { bestDist = d; best = tile; }
 			}
-			return best;
+			}
 		}
 
 		// ── unit mission assignment ────────────────────────────────────────────
