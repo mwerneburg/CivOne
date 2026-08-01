@@ -57,6 +57,15 @@ namespace CivOne.IO
 			["ERROR/OCCUPY"] = [
 				"That tile is already occupied.",
 			],
+			// Shown when a non-land unit is sent into an UNDEFENDED enemy city. The only
+			// call site (BaseUnit.Confront) used to reach for ERROR/OCCUPY here, which told
+			// the player the tile was occupied when the truth is the opposite: the city is
+			// empty and a bomber has nothing to attack and cannot take ground.
+			["ERROR/NOCAPTURE"] = [
+				"Only land units can capture",
+				"a city. There is nothing here",
+				"to attack.",
+			],
 			["ERROR/AMPHIB"] = [
 				"Units cannot attack from aboard",
 				"ship. Put them ashore first.",

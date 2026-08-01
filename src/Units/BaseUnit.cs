@@ -313,9 +313,13 @@ namespace CivOne.Units
 
 			if (!moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City is not null && moveTarget.City.Owner != Owner)
 			{
+				// An empty enemy city. Only land units can walk in and take it; air and sea
+				// units are refused. The refusal was reported as ERROR/OCCUPY ("that tile is
+				// already occupied"), which is the opposite of what happened — this branch
+				// is reached only when the tile holds no enemy unit at all.
 				if (Class != UnitClass.Land)
 				{
-					GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/OCCUPY")));
+					GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/NOCAPTURE")));
 					Movement = null;
 					return false;
 				}
