@@ -3044,11 +3044,40 @@ namespace CivOne
 			// runs 11-13 cities) so the measured small-empire behaviour is untouched —
 			// verified by the three seeds coming back byte-identical.
 			//
-			// UNVALIDATED at scale: the harness cannot build a 16-city civ, so this rests on
-			// the save measurement above, not on an A/B. Epic runs are the judge.
+			// The epic run measured that change and it did NOTHING: worked land went from 81%
+			// unimproved to 86%, settlers from 0.31 to 0.35 per city. The quota was never the
+			// constraint. The STANCE GATE was.
+			//
+			// Develop is the fallback at the bottom of GetStance — reached only when a civ is
+			// not consolidating, NOT AT WAR, not speculatively militarising, and out of
+			// expansion room. Across 8758 production decisions in that game: Militarize 1592,
+			// Expand 703, Consolidate 522, and Develop exactly ONE. 79% of all decisions were
+			// taken at war. On an epic map with room left, Develop is unreachable, so the
+			// terraforming branch behind it may as well not exist — which is the whole of the
+			// "threadbare countryside" symptom that started this.
+			//
+			// So the gate goes — but only for large empires, which is where the evidence is.
+			// Dropping it outright was A/B'd on seeds 101/202/303: one seed inert, one better
+			// (29->33 cities, improved land 42->45%), one materially worse (29->20 cities, 122
+			// ->99 advances). Aggregate 88->83. That is the regime problem again, and the
+			// harness civs are the small regime: for a five-city civ at war a worker settler
+			// really is worse than a defender, because it costs a population point and does
+			// not hold the line. The stance gate is right for them.
+			//
+			// It is wrong for a thirty-city civ that has been nominally at war for four
+			// centuries, where irrigation is what feeds the cities through the war and the
+			// population point is a rounding error. Above the threshold, war and expansion
+			// stop disqualifying terraforming; below it nothing changes at all — the harness
+			// tops out at 11-13 cities, so all three seeds return byte-identical.
+			//
+			// The remaining limits still bind in both regimes: the empire-wide settlerBudget
+			// (2 per 3 cities), the quota below, CanAffordSettler's size floor, and one settler
+			// in build per city at a time.
 			const int LargeEmpire = 16;
-			if ((stance == StrategyStance.Develop || stance == StrategyStance.Consolidate)
-			    && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
+			bool stanceAllows = ownCities >= LargeEmpire
+			                 || stance == StrategyStance.Develop
+			                 || stance == StrategyStance.Consolidate;
+			if (stanceAllows && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
