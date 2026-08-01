@@ -762,6 +762,28 @@ namespace CivOne
 			long __t0 = TurnMetrics.Now;
 			try {
 
+			// Barbarians garrison what they take; they do not run a civilisation out of it.
+			// A captured city put them through the ordinary production planner, and because
+			// they held exactly one city they landed in the tiny-empire branch
+			// (AI.Strategy.cs:2854), whose premise — "for a 1-2 city civ, expansion IS
+			// survival" — is written about civilisations. Measured in a turn-219 game: the
+			// horde took Tenochtitlan from the Aztecs on turn ~140 and thereafter built a
+			// Settlers (turn 145) and then alternated Explorer and Militia to the end. An
+			// Explorer is useless to a player with no research, no diplomacy and no map
+			// trading, and the Settlers turns the raiders into a fifteenth expanding civ
+			// that can never be made peace with. The Aztecs finished on one city, alive only
+			// because BaseUnit.cs:127 makes a civ's last city unattackable by barbarians.
+			//
+			// Defenders only, and no queue: units built here count against the 30-unit horde
+			// cap in Game.cs, so a garrisoned city suppresses new raids rather than adding to
+			// them. Recapture stays possible, which is the Civ 1 behaviour.
+			if (Player.Civilization is Civilizations.Barbarian)
+			{
+				city.ClearProductionQueue();
+				city.SetProduction(BestDefender());
+				return;
+			}
+
 			// Stalled city: no net production. Rerunning the full plan every turn just
 			// thrashes the queue and spams the journal. Ensure a cheap defender exists
 			// and leave everything else alone until income recovers.
