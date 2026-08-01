@@ -1863,6 +1863,19 @@ namespace CivOne
 				    .Where(s => s != settlers && s.Owner == ownId && !s.Goto.IsEmpty)
 				    .Select(s => (s.Goto.X, s.Goto.Y)));
 
+			// The city-proximity test below was an O(cities) scan run per tile, per pass —
+			// 169 tiles x 3 passes x every city the player owns, for every settler, every
+			// turn. At 2147 AD with 257 cities in the world that is the settler AI's single
+			// hottest loop, and raising the worker quota multiplies it.
+			//
+			// Hoisted, and exactly: DistanceToTile is Chebyshev (Common.cs:240), so for any
+			// tile in the 6-tile scan box, d(city, settler) <= d(city, tile) + d(tile, settler)
+			// <= 2 + 6. A city more than 8 away therefore cannot be within 2 of anything
+			// scanned. Same answers, one pass over the city list instead of 507.
+			City[] nearCities = Player.Cities
+				.Where(c => Common.DistanceToTile(c.X, c.Y, settlers.X, settlers.Y) <= 8)
+				.ToArray();
+
 			ITile? best = null;
 			int bestDist = int.MaxValue;
 			Scan(Pass.Farm);
@@ -1912,8 +1925,8 @@ namespace CivOne
 					_         => work.Irrigation && !DespotBlocksIrrigation(tile)
 				};
 				if (!wanted) continue;
-				if (!Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
 				if (claimed.Contains((tx, ty))) continue;
+				if (!nearCities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
 				int d = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
 				if (d < bestDist) { bestDist = d; best = tile; }
 			}
