@@ -264,7 +264,26 @@ namespace CivOne
 					// 3 of an existing city are still improved rather than settled, so the
 					// terraforming workers around a city keep doing their job.
 					bool expanding = MayFoundCities();
-					if (validCity && nearestCity > 3 && expanding)
+					// A civ with no cities left founds where it stands, subject only to the
+					// tile being legal. Both gates below assume a player that already has
+					// somewhere to live: on a crowded late map `nearestCity > 3` is satisfied
+					// nowhere, and MayFoundCities asks whether the world has room — the wrong
+					// question for a player whose alternative is not existing.
+					//
+					// Without this a cityless civ becomes a permanent zombie, because
+					// Player.IsDestroyed (Player.cs:662) keeps a player alive while it holds
+					// one unsupported Settlers. It neither founds nor dies. Measured at 1888 AD
+					// in a 438-turn game: the Aztecs on 0 cities, score 20, and not a single AI
+					// decision of any kind logged for them in the entire game.
+					//
+					// Barbarians and the story factions are excluded — the horde does not
+					// re-found itself, and an occupation that loses everything it seized is
+					// meant to end (Repossession), not squat on a spare tile.
+					bool lastChance = ownCities.Length == 0
+					               && Game.PlayerNumber(Player) != 0
+					               && Player.Civilization is not (TheOthers or TheThing or Skynet)
+					               && Player.Civilization is not Civilizations.Barbarian;
+					if (validCity && (lastChance || (nearestCity > 3 && expanding)))
 					{
 						DecisionLogger.LogSettlerAction(unit, "found");
 						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
