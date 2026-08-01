@@ -416,8 +416,22 @@ namespace CivOne
 			gScore[startPos] = 0;
 			HeapPush((DistanceToTile(sx, sy, gx, gy) * minStepCost, EuclidSq(sx, sy, gx, gy), startPos, 0));
 
+			// Node budget. Land units get a continent short-circuit above, but sea units
+			// have no equivalent: a ship ordered to a goal in an ocean basin its own water
+			// does not connect to expands every reachable tile before admitting defeat, and
+			// on a 320x200 map that is 64000 tiles. Measured on a turn-511 epic save: 71.5
+			// seconds of pathfinding in 2146 calls, i.e. essentially all of it in a handful
+			// of exhaustive futile searches, and 16 of the last 150 minutes of that game.
+			//
+			// 20000 is roughly a third of the map and far beyond what a real crossing costs
+			// (a directed A* over 200 tiles expands a few thousand), so a genuine path is
+			// not affected. Exceeding it returns null, which is the same "no route" answer
+			// the search would have reached anyway — just sooner.
+			int budget = 20000;
+
 			while (open.Count > 0)
 			{
+				if (--budget < 0) return null;
 				var node = HeapPop();
 				int curPos = node.pos;
 				// Lazy staleness: a shorter path to curPos was found after this entry was

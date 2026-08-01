@@ -34,6 +34,7 @@ namespace CivOne.Screens
 		private GameMenu? _gameMenu = null;
 		private int _menuX, _menuY;
 		private uint _lastGameTick;
+		private int _lastDrawnFrame = -1;
 		private bool _update = true;
 		private bool _redraw = false;
 		private bool _rightSideBar;
@@ -178,6 +179,21 @@ namespace CivOne.Screens
 			if (gameTick == _lastGameTick)
 			{
 				// Re-entered within the same tick (the fast-forward loop does this).
+				//
+				// That loop iterates several times per presented frame, and each pass
+				// forced a full map redraw. Measured on a turn-600 epic save: 4080 screen
+				// updates against 1472 frames at ~5 ms each, so two of every three redraws
+				// were composited and then thrown away before anything reached the glass —
+				// 20 s of a 58 s turn. Redraw at most once per frame actually presented.
+				//
+				// Nothing visible is lost: a frame that was never presented was never seen.
+				// The counter resets each turn, hence != rather than >. If no frame is
+				// presented at all the fast-forward loop simply stops redrawing, and the
+				// outer TickWatch loop still advances gameTick 15x/sec, which takes the
+				// normal path below — so this can throttle but never stall.
+				int frames = TurnMetrics.Frames;
+				if (frames == _lastDrawnFrame) return false;
+				_lastDrawnFrame = frames;
 				_gameMap.MustUpdate(gameTick);
 				DrawLayer(_gameMap, gameTick, _rightSideBar ? 0 : 80, 8);
 				return true;
