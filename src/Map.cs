@@ -393,6 +393,19 @@ namespace CivOne
 			if (!_continentsDirty) return;
 			_continentsDirty = false;
 			CalculateContinentSize();
+
+			// The freshwater map has to move with the coastline. Global warming does two
+			// things to a drowning world: it converts wet tiles to Swamp and it floods
+			// low-lying land, and both of those CREATE irrigation sources — swamps are
+			// freshwater by definition here, and any enclosed body of water that is not the
+			// main ocean is a lake. But _freshwater was computed once at map generation and
+			// only ever rebuilt on load, so every lake warming carved out stayed unregistered
+			// and no settler could irrigate beside it. The same save reloaded would suddenly
+			// allow it, which is the giveaway.
+			//
+			// Cheap enough to ride along here: this method already no-ops unless land and
+			// ocean actually swapped somewhere, which is exactly when the lakes change.
+			ComputeFreshwaterLakes();
 		}
 
 		public void ChangeTileType(int x, int y, Terrain type)

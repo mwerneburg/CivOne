@@ -619,6 +619,33 @@ namespace CivOne.Tests
 				$"...but never more than half the workforce; got {cleaners}");
 		}
 
+		// Warming drowns low-lying land, and the enclosed water it leaves behind is a lake —
+		// which is an irrigation source. The freshwater map was computed once at generation
+		// and rebuilt only on load, so every lake carved out mid-game went unregistered and
+		// no settler could irrigate beside it. Reloading the same save would silently allow
+		// it, which is how the bug announced itself.
+		[Fact]
+		public void FloodedLand_BecomesAnIrrigationSource()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Player player = Game.Instance.HumanPlayer;
+
+			// Solid ground, so nothing here is water to begin with.
+			int cx = 40, cy = 25;
+			for (int dy = -4; dy <= 4; dy++)
+			for (int dx = -4; dx <= 4; dx++)
+				Map.Instance.ChangeTileType(cx + dx, cy + dy, Terrain.Plains);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Assert.False(Map.Instance.IsFreshwaterAt(cx, cy), "precondition: dry land");
+
+			// The sea takes a tile in the middle of it — an enclosed body, i.e. a lake.
+			Map.Instance.ChangeTileType(cx, cy, Terrain.Ocean);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Assert.True(Map.Instance.IsFreshwaterAt(cx, cy),
+				"a lake left by flooding should count as freshwater without needing a reload");
+		}
+
 		// Pollution and the warming counter must survive a save/load round trip.
 		[Fact]
 		public void PollutionAndWarmingCount_SurviveARoundTrip()
