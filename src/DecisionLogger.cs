@@ -226,12 +226,17 @@ namespace CivOne
 				KV("cities",          cities),
 				KV("units",           units),
 				KV("players",         players),
-				// TEMPORARY (2026-08-02): the AI.Move split. Heaviest 12 buckets as
+				// TEMPORARY (2026-08-02): the AI.Move split. Heaviest buckets as
 				// "key=ms/calls", one string, so the record stays one line and no schema
 				// change outlives the investigation. Remove with TurnMetrics.AddBucket.
+				//
+				// 24, not 12: at 12 the truncation silently dropped path:Hit (5us a call, so
+				// it never made the cut) and the aggregate read as a 12% cache hit rate when
+				// the true figure was ~84%. A cheap-but-frequent bucket is exactly the kind
+				// this list must not hide.
 				KV("move_split",      string.Join(" ", TurnMetrics.Buckets()
 					.Where(b => b.Ms >= 1)
-					.Take(12)
+					.Take(24)
 					.Select(b => $"{b.Key}={(int)b.Ms}/{b.Calls}"))),
 			}));
 		}

@@ -95,15 +95,27 @@ namespace CivOne
 
 				while (_running)
 				{
+					// TEMPORARY (2026-08-03) — attribution for the `other_ms` remainder, which
+					// survived the idle-sleep fix and is now 38% of the turn (16.8s of 44.4s at
+					// turn 750). other_ms is wall minus task_queue, screen, render, autosave and
+					// score, so what is left is exactly this loop's own calls. It measures 10.3ms
+					// per PRESENTED frame with a standard deviation of 1.1 across 82 turns, which
+					// says one call here blocks per frame. These four buckets say which.
+					// loop:PollEvent runs before every `continue`, so its call count IS the
+					// loop's iteration count — no separate counter needed.
+					long __poll = CivOne.TurnMetrics.Now;
 					if (SDL_PollEvent(out SDL_Event sdlEvent) == 1)
 					{
 						HandleEvent(sdlEvent);
 					}
+					CivOne.TurnMetrics.AddBucket("loop:PollEvent", __poll);
 
 					OnUpdate?.Invoke(this, EventArgs.Empty);
 					OnDraw?.Invoke(this, EventArgs.Empty);
 
+					long __mouse = CivOne.TurnMetrics.Now;
 					HandleMouse();
+					CivOne.TurnMetrics.AddBucket("loop:HandleMouse", __mouse);
 
 					if (!_redraw)
 					{
@@ -126,7 +138,14 @@ namespace CivOne
 						continue;
 					}
 
+					// The prime suspect: the only per-frame call in the loop that can block.
+					// The renderer is created without SDL_RENDERER_PRESENTVSYNC, so in theory it
+					// should not wait for the vertical blank — but macOS composites through Metal
+					// and may pace presentation regardless of that flag. ~10ms is suspiciously
+					// close to a display refresh interval.
+					long __present = CivOne.TurnMetrics.Now;
 					SDL_RenderPresent(_renderer);
+					CivOne.TurnMetrics.AddBucket("loop:Present", __present);
 					_redraw = false;
 					if (FrameCapMs > 0)
 					{
