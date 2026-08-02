@@ -715,6 +715,10 @@ namespace CivOne
 					// fair game. Without the explicit exemption a single Barbarian Settler can
 					// freeze an attack stack of dozens, since each unit treats the Settler as
 					// "peaceful blocked" and skips turn.
+					// Hoisted out of the block below because the SECOND refusal check (foreign
+					// units on the tile) needs it too — see the note there.
+					bool civilianCityEntry = (unit is Caravan || unit is Diplomat)
+					                      && next.City is not null && next.City.Owner != unit.Owner;
 					{
 						Player? nextCityOwner = (next.City is not null && next.City.Owner != unit.Owner) ? Game.GetPlayer(next.City.Owner) : null;
 						// A Caravan or Diplomat stepping onto a foreign city is its purpose, not an
@@ -722,7 +726,6 @@ namespace CivOne
 						// incite / sabotage). Without this exemption the peaceful-city block clears
 						// the unit's Goto on the final step into its target, so it never enters — the
 						// Caravan just shuttles between cities on the rails, the Diplomat never spies.
-						bool civilianCityEntry = (unit is Caravan || unit is Diplomat) && next.City is not null && next.City.Owner != unit.Owner;
 						bool peacefulBlock =
 							next.Units.Any(u => {
 								if (u.Owner == unit.Owner) return false;
@@ -741,7 +744,23 @@ namespace CivOne
 
 					if (next.Units.Any(x => x.Owner != unit.Owner))
 					{
-						if (unit.Role == UnitRole.Civilian || unit.Role == UnitRole.Settler)
+						// ...and the same exemption again, which is where it was being lost. The
+						// peaceful-city check above lets a Caravan or Diplomat step into its target,
+						// and then this blanket rule took it straight back: EVERY city carries a
+						// garrison, so `next.Units.Any(foreign)` is true for every city worth
+						// visiting, and a Civilian-role unit refused the move.
+						//
+						// The result was a caravan that walks to its target, is refused, clears its
+						// Goto, re-targets the same city next turn and walks up again — parked on
+						// the doorstep for the rest of the game. That is the pile-up of idle
+						// caravans beside foreign cities, and because a foreign unit blocks a
+						// Settler from entering a tile, the ones that parked on polluted ground
+						// stopped that city cleaning it (Nagasaki, 2200 AD).
+						//
+						// Confront handles what happens on arrival — trade route or spy mission —
+						// so the garrison is not this rule's business.
+						if ((unit.Role == UnitRole.Civilian || unit.Role == UnitRole.Settler)
+						    && !civilianCityEntry)
 						{
 							unit.Goto = Point.Empty;
 							unit.SkipTurn();

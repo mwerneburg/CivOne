@@ -127,6 +127,41 @@ namespace CivOne.Tests
 			Assert.False(((Settlers)s).AutoClean);
 		}
 
+		// Nagasaki, 2200 AD: ringed by pollution it could not clean because rival
+		// caravans were parked on it. A Settlers can never enter a tile held by a
+		// foreign unit, and this routine picks the NEAREST polluted tile — so one
+		// squatter on the closest smog pinned the whole crew on an impossible job.
+		[Fact]
+		public void PollutionUnderAForeignUnit_IsSkippedForSomethingReachable()
+		{
+			var (mine, theirs) = TwoCivsOnGrass();
+			byte theirId = Game.Instance.PlayerNumber(theirs);
+
+			// Nearest to the settler, and occupied by their caravan: unreachable forever.
+			Map.Instance[31, 25].Pollution = true;
+			Game.Instance.CreateUnit(UnitType.Caravan, 31, 25, theirId);
+			// Further away, but ours to clean.
+			Map.Instance[30, 23].Pollution = true;
+
+			IUnit s = Game.Instance.CreateUnit(UnitType.Settlers, 30, 26,
+				Game.Instance.PlayerNumber(mine))!;
+			Sim.ClearTasks();
+
+			AI.Instance(mine).Move(s);
+			Assert.True(((Settlers)s).AutoClean, "a cleaner should be enrolled");
+
+			// NewTurn is what routes an enrolled cleaner (Settlers.cs:724), not AI.Move.
+			s.Goto = System.Drawing.Point.Empty;
+			s.NewTurn();
+
+			Assert.False(s.Goto.IsEmpty,
+				"an enrolled cleaner with reachable work must be given a destination");
+			Assert.False(s.Goto.X == 31 && s.Goto.Y == 25,
+				$"must not target a tile a Settlers can never enter; got ({s.Goto.X},{s.Goto.Y})");
+			Assert.True(s.Goto.X == 30 && s.Goto.Y == 23,
+				$"should have taken the reachable tile at (30,23); got ({s.Goto.X},{s.Goto.Y})");
+		}
+
 		// The cache is per turn, not forever — a tile cleaned this turn must still be
 		// reflected next turn, or the crew stands down while work remains.
 		[Fact]

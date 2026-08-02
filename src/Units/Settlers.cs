@@ -270,6 +270,15 @@ namespace CivOne.Units
 					ITile t = Map[tx, ty];
 					if (t is null || !t.Pollution) continue;
 					if (IsTileClaimed(tx, ty)) continue;
+					// A tile held by a foreign unit can never be entered by a Settlers: it is
+					// nonCombat, so GotoStep treats every foreign unit as a wall and Confront
+					// refuses the step. Targeting one anyway is how a city stops cleaning
+					// altogether — this picks the NEAREST polluted tile, so one rival caravan
+					// parked on the closest smog pins the whole crew on an impossible job while
+					// reachable tiles behind it stay dirty. That is Nagasaki, 2200 AD: ringed by
+					// pollution it could not touch because someone else's caravans were sitting
+					// on it. Skip it and clean what we can actually reach.
+					if (t.Units.Any(u => u.Owner != Owner)) continue;
 					int d = Common.DistanceToTile(X, Y, tx, ty);
 					if (d < bestDist) { bestDist = d; best = t; }
 				}
