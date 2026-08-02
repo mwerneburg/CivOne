@@ -11,6 +11,47 @@ namespace CivOne.Governments
 {
 	internal class Despotism : BaseGovernment
 	{
+		private static readonly string[] _page1 =
+		{
+			"DESPOTISM",
+			"",
+			"The government every civilization",
+			"begins with. One ruler, absolute",
+			"authority, and a countryside that",
+			"never quite prospers.",
+			"",
+			"THE TILE PENALTY is what defines",
+			"it: any tile yielding three or",
+			"more food, shields or trade gives",
+			"up one of them.",
+			"",
+			"That is why irrigating good",
+			"grassland under a despot buys you",
+			"nothing. Leave the tile, or leave",
+			"the government.",
+		};
+
+		private static readonly string[] _page2 =
+		{
+			"Corruption is high, though far",
+			"short of anarchy.",
+			"",
+			"No unit is supported free — each",
+			"costs its home city a shield —",
+			"and a settler eats one food a",
+			"turn.",
+			"",
+			"Martial law applies: troops in a",
+			"city make its citizens content,",
+			"so a garrison is cheaper than a",
+			"Temple for a while.",
+			"",
+			"Monarchy lifts the tile penalty.",
+			"Take it as soon as it is offered.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
+
 		public Despotism() : base(1, "Despotism")
 		{
 			CorruptionMultiplier = 8;
