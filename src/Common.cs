@@ -243,12 +243,97 @@ namespace CivOne
 		// Cost units: railroad=1, road=3, terrain=Movement*9 (max 18 for hills/forest).
 		public static ITile? GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 
+		// A committed route, kept between calls so walking it costs one search instead of one
+		// per step. The 2026-08-03 run measured 63,632 Diplomat moves at 28 ms each with only
+		// 1.7% of that in target selection: the cost was re-planning the whole journey every
+		// turn and throwing all but the first step away.
+		//
+		// Keyed weakly by unit, so a disbanded unit's plan is collected with it and a loaded
+		// save starts empty (new unit objects) rather than inheriting a stale route.
+		private sealed class PathPlan
+		{
+			public int GoalX, GoalY;
+			public int StartX, StartY;
+			public int[] Steps = System.Array.Empty<int>();   // encoded, start excluded, goal included
+			public int At = -1;                                // index of the unit's current tile; -1 = at Start
+		}
+		private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IUnit, PathPlan> _plans = new();
+
 		public static ITile? GotoStep(IUnit unit, int gx, int gy)
 		{
 			long __p = TurnMetrics.Now;
 			bool __found = false;
-			try { ITile? r = GotoStepInner(unit, gx, gy); __found = r is not null; return r; }
+			try
+			{
+				ITile? reused = CachedStep(unit, gx, gy);
+				if (reused is not null)
+				{
+					__found = true;
+					TurnMetrics.AddBucket("path:Hit", __p);
+					return reused;
+				}
+				long __m = TurnMetrics.Now;
+				ITile? r = GotoStepInner(unit, gx, gy);
+				TurnMetrics.AddBucket("path:Miss", __m);
+				__found = r is not null;
+				return r;
+			}
 			finally { TurnMetrics.AddPathfind(__p, __found); }
+		}
+
+		// Returns the next step off a still-valid plan, or null to force a fresh search.
+		// Null is always safe here: the caller falls through to GotoStepInner, which lays a
+		// new plan. Every doubt is resolved by returning null.
+		private static ITile? CachedStep(IUnit unit, int gx, int gy)
+		{
+			if (!_plans.TryGetValue(unit, out PathPlan plan)) return null;
+			if (plan.GoalX != gx || plan.GoalY != gy) return null;
+
+			int w = Map.WIDTH;
+			int here = unit.Y * w + unit.X;
+			int expected = plan.At < 0 ? plan.StartY * w + plan.StartX : plan.Steps[plan.At];
+
+			if (here != expected)
+			{
+				// The unit took the step we handed it (the normal case, and the one that
+				// repeats within a turn for a unit with more than one move point).
+				if (plan.At + 1 < plan.Steps.Length && here == plan.Steps[plan.At + 1]) plan.At++;
+				// Anywhere else means something moved the unit off plan — boarded a transport,
+				// bounced off a failed attack, teleported by a hut. Re-plan.
+				else return null;
+			}
+
+			int nextIndex = plan.At + 1;
+			if (nextIndex >= plan.Steps.Length) return null;   // already at the goal
+			int next = plan.Steps[nextIndex];
+			int nx = next % w, ny = next / w;
+			ITile tile = Map.Instance[nx, ny];
+			if (tile is null) return null;
+
+			// The one staleness that matters. Terrain the planner costed can change (a road
+			// gets built, making some other route cheaper) but that only costs optimality, and
+			// the plan expires on arrival anyway. A unit moving onto our next tile is different:
+			// a non-combat unit refuses to enter it, so the step is one the unit will not take.
+			// Mirrors the `blocked` test in GotoStepInner, goal-tile exemption included.
+			if (!(nx == gx && ny == gy) && tile.City is null && StepBlocked(unit, tile)) return null;
+
+			return tile;
+		}
+
+		// The `blocked` predicate of GotoStepInner, for a single tile. Kept beside the two
+		// clauses it mirrors — if the blocking rule there changes, this must change with it.
+		private static bool StepBlocked(IUnit unit, ITile tile)
+		{
+			bool nonCombat = unit is Diplomat || unit is Caravan
+			              || unit is Settlers || unit is HydroEngineer;
+			Player moverPlayer = Game.Instance.GetPlayer(unit.Owner);
+			foreach (IUnit u in tile.Units)
+			{
+				if (u is null || u.Owner == unit.Owner) continue;
+				if (nonCombat) return true;
+				if (u.Owner != 0 && !moverPlayer.IsAtWar(Game.Instance.GetPlayer(u.Owner))) return true;
+			}
+			return false;
 		}
 
 		private static ITile? GotoStepInner(IUnit unit, int gx, int gy)
@@ -441,15 +526,25 @@ namespace CivOne
 				int cx = curPos % w, cy = curPos / w;
 				if (cx == gx && cy == gy)
 				{
-					// Reconstruct path and return the first step
-					int cur = curPos;
-					int prev = cameFrom.TryGetValue(cur, out int p) ? p : startPos;
-					while (prev != startPos)
+					// Reconstruct the whole route, not just its first step, and keep it: the
+					// remaining steps are the entire point of the plan cache above.
+					var back = new List<int>();
+					for (int cur = curPos; cur != startPos; )
 					{
+						back.Add(cur);
+						if (!cameFrom.TryGetValue(cur, out int prev)) break;
 						cur = prev;
-						prev = cameFrom[cur];
 					}
-					return map[cur % w, cur / w];
+					back.Reverse();
+					_plans.Remove(unit);
+					_plans.Add(unit, new PathPlan
+					{
+						GoalX = gx, GoalY = gy,
+						StartX = sx, StartY = sy,
+						Steps = back.ToArray(),
+						At = -1
+					});
+					return map[back[0] % w, back[0] / w];
 				}
 
 				for (int dy = -1; dy <= 1; dy++)
