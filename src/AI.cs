@@ -51,7 +51,13 @@ namespace CivOne
 		{
 			if (Player != unit.Owner) return;
 			long __m0 = TurnMetrics.Now;
-			try { MoveInner(unit); } finally { TurnMetrics.AddAiMove(__m0); }
+			try { MoveInner(unit); }
+			finally
+			{
+				TurnMetrics.AddAiMove(__m0);
+				// Which KIND of unit is spending the 25 ms. Temporary — see TurnMetrics.AddBucket.
+				TurnMetrics.AddBucket("unit:" + unit.GetType().Name, __m0);
+			}
 		}
 
 		private void MoveInner(IUnit unit)

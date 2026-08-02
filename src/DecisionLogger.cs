@@ -226,6 +226,13 @@ namespace CivOne
 				KV("cities",          cities),
 				KV("units",           units),
 				KV("players",         players),
+				// TEMPORARY (2026-08-02): the AI.Move split. Heaviest 12 buckets as
+				// "key=ms/calls", one string, so the record stays one line and no schema
+				// change outlives the investigation. Remove with TurnMetrics.AddBucket.
+				KV("move_split",      string.Join(" ", TurnMetrics.Buckets()
+					.Where(b => b.Ms >= 1)
+					.Take(12)
+					.Select(b => $"{b.Key}={(int)b.Ms}/{b.Calls}"))),
 			}));
 		}
 

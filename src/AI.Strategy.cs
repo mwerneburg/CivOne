@@ -1733,8 +1733,15 @@ namespace CivOne
 		// gaps could never be seen, the chain could never fill, and BoxedIn (which gates
 		// the Longboat) could never become true. Only civs that have already failed the
 		// cheap search pay for the wide one.
+		// TEMPORARY probe (2026-08-02) — see TurnMetrics.AddBucket. This one scans
+		// 13x13 and then, on failure, 33x33 = 1089 tiles with a SiteSuitability call
+		// each, so it is the leading suspect for the 25 ms unit move.
 		internal ITile? BestSettleSite(IUnit settlers)
-			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
+		{
+			long __p = TurnMetrics.Now;
+			try { return BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16); }
+			finally { TurnMetrics.AddBucket("site:BestSettleSite", __p); }
+		}
 
 		private ITile? BestSettleSiteWithin(IUnit settlers, int radius)
 		{
@@ -1860,6 +1867,13 @@ namespace CivOne
 		private enum Pass { Farm, Mine, Rail }
 
 		internal ITile? BestImproveSite(IUnit settlers)
+		{
+			long __p = TurnMetrics.Now;
+			try { return BestImproveSiteInner(settlers); }
+			finally { TurnMetrics.AddBucket("site:BestImproveSite", __p); }
+		}
+
+		private ITile? BestImproveSiteInner(IUnit settlers)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			byte ownId = Game.PlayerNumber(Player);
@@ -2032,6 +2046,13 @@ namespace CivOne
 		// walks onto to board. Nothing else in the AI ever put a settler on a ship, which is
 		// why overseas colonisation only happened via the Longboat and therefore never.
 		private ITile? BoardingTile(IUnit settler)
+		{
+			long __p = TurnMetrics.Now;
+			try { return BoardingTileInner(settler); }
+			finally { TurnMetrics.AddBucket("site:BoardingTile", __p); }
+		}
+
+		private ITile? BoardingTileInner(IUnit settler)
 		{
 			byte own = Game.PlayerNumber(Player);
 			var berths = Game.GetUnits()
@@ -3398,6 +3419,13 @@ namespace CivOne
 
 		internal ITile? BestExploreTile(IUnit unit)
 		{
+			long __p = TurnMetrics.Now;
+			try { return BestExploreTileInner(unit); }
+			finally { TurnMetrics.AddBucket("site:BestExploreTile", __p); }
+		}
+
+		private ITile? BestExploreTileInner(IUnit unit)
+		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile? best = null;
 			int bestScore = 0; // only move if it adds value
@@ -3465,6 +3493,13 @@ namespace CivOne
 		// fog they would lift. Coast counts double: a ship that reaches an unknown
 		// shoreline reveals a landmass, which is the thing worth knowing.
 		internal ITile? BestSeaExploreTile(IUnit unit)
+		{
+			long __p = TurnMetrics.Now;
+			try { return BestSeaExploreTileInner(unit); }
+			finally { TurnMetrics.AddBucket("site:BestSeaExploreTile", __p); }
+		}
+
+		private ITile? BestSeaExploreTileInner(IUnit unit)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile? best = null;

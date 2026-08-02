@@ -111,6 +111,37 @@ namespace CivOne
 		public static int PathCalls   => _pathCalls;
 		public static int PathFails   => _pathFails;
 
+		// Fourth layer, added 2026-08-02. With the Caravan probe storm fixed, pathfinding
+		// fell to ~20% of turn time and promoted whatever ELSE lives in AI.Move to the
+		// largest single cost in the game: 21-24 s of a 50 s turn at 850 moves, i.e.
+		// ~25 ms per unit move with no A* in it at all. Every phase counter above says
+		// "AI.Move" and stops there, so this splits it two ways —
+		//
+		//   Bucket("unit:Settlers")  which KIND of unit spends the time
+		//   Bucket("site:BestImproveSite")  which SCAN helper it spends it in
+		//
+		// One free-form bucket rather than a field per suspect, because the point is to
+		// find the culprit, not to enshrine a taxonomy. Once we know, this collapses to
+		// one named counter and the rest comes out.
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, long[]> _buckets = new();
+
+		public static void AddBucket(string key, long startTimestamp)
+		{
+			long[] slot = _buckets.GetOrAdd(key, _ => new long[2]);
+			Interlocked.Add(ref slot[0], Stopwatch.GetTimestamp() - startTimestamp);
+			Interlocked.Increment(ref slot[1]);
+		}
+
+		// key -> (ms, calls), heaviest first. Snapshot; the caller formats it.
+		public static System.Collections.Generic.List<(string Key, double Ms, long Calls)> Buckets()
+		{
+			var rows = new System.Collections.Generic.List<(string, double, long)>();
+			foreach (var kv in _buckets)
+				rows.Add((kv.Key, ToMs(Interlocked.Read(ref kv.Value[0])), Interlocked.Read(ref kv.Value[1])));
+			rows.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+			return rows;
+		}
+
 		public static void AddGameUpdate(long t) { Interlocked.Add(ref _gameUpdateTicks, Stopwatch.GetTimestamp() - t); Interlocked.Increment(ref _gameUpdateCalls); }
 		public static double GameUpdateMs   => ToMs(Interlocked.Read(ref _gameUpdateTicks));
 		public static int GameUpdateCalls   => _gameUpdateCalls;
@@ -152,6 +183,7 @@ namespace CivOne
 			Interlocked.Exchange(ref _pathTicks, 0);
 			Interlocked.Exchange(ref _pathCalls, 0);
 			Interlocked.Exchange(ref _pathFails, 0);
+			foreach (var kv in _buckets) { Interlocked.Exchange(ref kv.Value[0], 0); Interlocked.Exchange(ref kv.Value[1], 0); }
 		}
 	}
 }
