@@ -240,18 +240,39 @@ namespace CivOne.Units
 			}
 		}
 
+		// Nearest unclaimed polluted tile within 3 of one of our own cities.
+		//
+		// Same rewrite, and for the same reason, as AI.PollutionBacklog: this walked all
+		// 64000 tiles and asked every city about each one, per enrolled cleaner, per turn.
+		// The predicate only ever accepts tiles within Chebyshev 3 of one of OUR cities,
+		// so enumerating that box around each of our cities visits exactly the candidate
+		// set and nothing else — identical answers, ~49 x cities reads instead of 64000.
+		//
+		// Deduped because city radii overlap, and the nearest-wins comparison is unchanged.
 		private ITile? FindNearestCityPollution()
 		{
 			ITile? best = null;
 			int bestDist = int.MaxValue;
-			foreach (ITile t in Map.AllTiles())
+			const int R = 3;
+			var seen = new HashSet<int>();
+
+			foreach (City c in Game.GetCities())
 			{
-				if (!t.Pollution) continue;
-				if (IsTileClaimed(t.X, t.Y)) continue;
-				bool nearCity = Game.GetCities().Any(c => c.Owner == Owner && Common.DistanceToTile(c.X, c.Y, t.X, t.Y) <= 3);
-				if (!nearCity) continue;
-				int d = Common.DistanceToTile(X, Y, t.X, t.Y);
-				if (d < bestDist) { bestDist = d; best = t; }
+				if (c.Owner != Owner) continue;
+				for (int dy = -R; dy <= R; dy++)
+				for (int dx = -R; dx <= R; dx++)
+				{
+					int ty = c.Y + dy;
+					if (ty < 0 || ty >= Map.HEIGHT) continue;
+					int tx = (c.X + dx + Map.WIDTH) % Map.WIDTH;
+					if (!seen.Add(ty * Map.WIDTH + tx)) continue;
+
+					ITile t = Map[tx, ty];
+					if (t is null || !t.Pollution) continue;
+					if (IsTileClaimed(tx, ty)) continue;
+					int d = Common.DistanceToTile(X, Y, tx, ty);
+					if (d < bestDist) { bestDist = d; best = t; }
+				}
 			}
 			return best;
 		}

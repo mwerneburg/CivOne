@@ -47,6 +47,52 @@ namespace CivOne
 		// research in testing because it could block reform forever.
 		private int _govDrawdownTurns;
 
+		// Polluted tiles within 3 of one of our own cities, computed once per turn.
+		//
+		// This WAS `Map.AllTiles().Count(t => t.Pollution && Player.Cities.Any(...))`,
+		// evaluated per settler, per turn: 64000 tiles x up to 30 cities, about two
+		// million distance calls, for every settler that took a turn. The move_split
+		// probe measured settler moves at 77 ms each with the site scans accounting for
+		// almost none of it, and this is the only full-map operation in that path.
+		//
+		// Two changes, and neither alters the answer:
+		//   - Pollution only ever lands inside a city's working radius. Every source
+		//     places it there: City.ExecutePollution and ExecuteMeltdown use CityTiles,
+		//     and the Owners' arrival strike uses a 5x5 around a capital. So a 7x7 box
+		//     around each of OUR cities covers every tile the old predicate could match
+		//     (it kept tiles within Chebyshev 3 of an own city — exactly this box).
+		//     ~49 x cities reads instead of 64000, deduped for overlapping radii.
+		//   - Cached per turn. Every settler asked the same question and got the same
+		//     answer; now the first one pays and the rest read it.
+		private int _pollutionBacklog;
+		private int _pollutionBacklogTurn = -1;
+
+		internal int PollutionBacklog()
+		{
+			if (_pollutionBacklogTurn == Game.GameTurn) return _pollutionBacklog;
+
+			long __p = TurnMetrics.Now;
+			const int R = 3;                       // must match the old predicate's <= 3
+			var seen = new HashSet<int>();
+			int n = 0;
+			foreach (City c in Player.Cities)
+			for (int dy = -R; dy <= R; dy++)
+			for (int dx = -R; dx <= R; dx++)
+			{
+				int ty = c.Y + dy;
+				if (ty < 0 || ty >= Map.HEIGHT) continue;
+				int tx = (c.X + dx + Map.WIDTH) % Map.WIDTH;
+				if (!seen.Add(ty * Map.WIDTH + tx)) continue;
+				ITile t = Map[tx, ty];
+				if (t is not null && t.Pollution) n++;
+			}
+
+			_pollutionBacklogTurn = Game.GameTurn;
+			_pollutionBacklog = n;
+			TurnMetrics.AddBucket("settler:PollutionBacklog", __p);
+			return n;
+		}
+
 		internal void Move(IUnit unit)
 		{
 			if (Player != unit.Owner) return;
@@ -202,14 +248,23 @@ namespace CivOne
 				// so enrolling before the first tile smokes achieves nothing. The response
 				// lags the first polluted tile by one turn, which is cheap; it was the crew
 				// size that was letting the backlog grow.
-				if (unit is Settlers cleaner && !cleaner.AutoClean && Player.Pollution > 0)
+				// The gate was `Player.Pollution > 0` — CURRENT EMISSIONS (Player.cs:243 sums
+				// SmokeStacks), not smog on the ground. So a civ that cleaned up its cities
+				// stopped cleaning up its land: Moscow with Mass Transit and a Recycling
+				// Center, emitting zero, sat ringed by tiles nobody would ever be sent to.
+				// The greener the cities, the less the countryside got cleaned, and the
+				// legacy pollution still fed global warming for everyone.
+				//
+				// The gate is now ground truth. It could not be before because the backlog
+				// was a full-map scan and this runs per settler per turn; PollutionBacklog
+				// makes it cheap enough to ask honestly.
+				if (unit is Settlers cleaner && !cleaner.AutoClean && PollutionBacklog() > 0)
 				{
 					byte pollId = Game.PlayerNumber(Player);
 					Settlers[] crew = Game.GetUnits().OfType<Settlers>()
 						.Where(u => u.Owner == pollId).ToArray();
 
-					int backlog = Map.Instance.AllTiles().Count(t => t.Pollution
-						&& Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, t.X, t.Y) <= 3));
+					int backlog = PollutionBacklog();
 					int wanted = System.Math.Max(1,
 						System.Math.Min(System.Math.Max(1, crew.Length / 2), backlog));
 
