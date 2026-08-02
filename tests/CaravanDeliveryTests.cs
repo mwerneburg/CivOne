@@ -29,8 +29,11 @@ namespace CivOne.Tests
 				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
 			Map.Instance.RecalculateContinentsIfDirty();
 
+			// Neither side is the human: these are AI-vs-AI cases, and a visible MoveUnit
+			// (the human's own) is an animation that never completes headless.
 			Player[] ps = Game.Instance.Players
-				.Where(p => p is not null && Game.Instance.PlayerNumber(p) != 0).ToArray();
+				.Where(p => p is not null && Game.Instance.PlayerNumber(p) != 0
+				         && p != Game.Instance.HumanPlayer).ToArray();
 			Player mine = ps[0], theirs = ps[1];
 			byte mineId = Game.Instance.PlayerNumber(mine);
 			byte theirId = Game.Instance.PlayerNumber(theirs);
@@ -87,6 +90,37 @@ namespace CivOne.Tests
 
 			Assert.False(Game.Instance.GetUnits().Any(u => u is Caravan && u.Owner == id),
 				"a caravan beside a peaceful foreign city should enter it and be consumed");
+		}
+
+		// Two AI civs trading is not the player's business. The message was unconditional,
+		// so once caravans started completing routes this morning every AI-to-AI delivery
+		// interrupted the human with someone else's paperwork.
+		[Fact]
+		public void AnAiToAiTradeRoute_DoesNotInterruptTheHuman()
+		{
+			var (mine, theirCity, caravan) = AtTheGates();
+			Assert.NotEqual(Game.Instance.HumanPlayer, mine);
+			Assert.NotEqual(Game.Instance.HumanPlayer, theirCity.Player);
+			Sim.ClearTasks();
+
+			CaravanActions.EstablishTradeRoute(caravan, theirCity);
+
+			Assert.DoesNotContain(Sim.PendingTaskTypes(), t => t.Contains("Message"));
+		}
+
+		// ...but the human's own delivery still reports, or the fix has gone too far.
+		[Fact]
+		public void TheHumansOwnTradeRoute_StillReports()
+		{
+			var (_, theirCity, _) = AtTheGates();
+			Player human = Game.Instance.HumanPlayer;
+			IUnit hisCaravan = Game.Instance.CreateUnit(UnitType.Caravan, 43, 24,
+				Game.Instance.PlayerNumber(human))!;
+			Sim.ClearTasks();
+
+			CaravanActions.EstablishTradeRoute(hisCaravan, theirCity);
+
+			Assert.Contains(Sim.PendingTaskTypes(), t => t.Contains("Message"));
 		}
 
 		// The jammed case: their units fill the approach. It should not deliver — but it

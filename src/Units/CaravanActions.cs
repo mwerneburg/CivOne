@@ -69,11 +69,20 @@ namespace CivOne.Units
 			if (unit.Home is not null)
 				city.AddTradeRoute(unit.Home, ware);
 
-			GameTask.Insert(Message.General(
-				$"{ware} caravan from {homeName}",
-				$"arrives in {city.Name}",
-				"Trade route established",
-				$"Revenue: ${revenue}."));
+			// Only when the human is actually a party to the trade — as the caravan's owner
+			// or as the destination. This was unconditional, so every AI-to-AI delivery
+			// interrupted the player with the details of a transaction between two other
+			// civilizations. Harmless until this morning, because before the civilian
+			// city-entry fix (AI.cs, the `civilianCityEntry` exemption) no AI caravan ever
+			// completed a route, so the message only ever fired for the human's own. Same
+			// owner test the espionage messages in Diplomat.Confront already use.
+			Player human = Game.Instance.HumanPlayer;
+			if (Game.Instance.GetPlayer(unit.Owner) == human || city.Player == human)
+				GameTask.Insert(Message.General(
+					$"{ware} caravan from {homeName}",
+					$"arrives in {city.Name}",
+					"Trade route established",
+					$"Revenue: ${revenue}."));
 			Game.Instance.GetPlayer(unit.Owner).Gold += (short)revenue;
 			Game.Instance.DisbandUnit(unit);
 		}
