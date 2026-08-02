@@ -95,6 +95,24 @@ namespace CivOne.Tests
 			Assert.Equal(4, Game.Instance.WarmingIndicator);
 		}
 
+		// The cache must be per TURN, not forever: pollution appears and is cleaned every
+		// turn, and a stale indicator drives hurricane severity off last century's smog.
+		[Fact]
+		public void TheIndicatorCache_IsPerTurnOnly()
+		{
+			Sim.NewGame(width: 320, height: 200);
+			Game g = Game.Instance;
+			Assert.Equal(0, g.WarmingIndicator);
+
+			int filthy = 5 * 320 * 200 / 4000 + 20;
+			Assert.True(Pollute(filthy) >= filthy);
+			// Same turn: deliberately still the cached reading.
+			Assert.Equal(0, g.WarmingIndicator);
+
+			g.GameTurn++;
+			Assert.Equal(4, g.WarmingIndicator);
+		}
+
 		// A clean world reads clean, whatever the map size — warming 0 is what makes
 		// catastrophic storms impossible, so this is the floor the design relies on.
 		[Fact]

@@ -658,6 +658,9 @@ namespace CivOne
 		// ── Pollution / Global Warming ───────────────────────────────────────────
 
 		// Returns 0-4 warming indicator level: 0=none,1=darkred,2=lightred,3=yellow,4=white
+		private int _warmingIndicator;
+		private uint _warmingIndicatorTurn = uint.MaxValue;
+
 		public int WarmingIndicator
 		{
 			get
@@ -678,15 +681,29 @@ namespace CivOne
 				//
 				// Same scaling as the threshold below, so the classic board is unchanged
 				// (scale == 1 there) and the ratios between indicator and trigger hold.
+				// Cached per turn. This is a full 64000-tile scan, and SideBar.DrawDemographics
+				// reads it to colour a 7x7 dot on roughly every other tick — the probe measured
+				// 457 scans per turn. HandleGlobalWarming and the hurricane roll read it too.
+				//
+				// A per-turn cache rather than a maintained counter, deliberately: it is
+				// recomputed from truth every turn, so it cannot drift away from the map the
+				// way an incremented counter would across the six places pollution is set or
+				// cleared (including Game.cs:740, where warming wipes every polluted tile at
+				// once). Same reasoning as AI.PollutionBacklog.
+				if (_warmingIndicatorTurn == _gameTurn) return _warmingIndicator;
+
 				long __wi = TurnMetrics.Now;
 				int scale = Math.Max(1, Map.WIDTH * Map.HEIGHT / 4000);
 				int n = Map.AllTiles().Count(t => t.Pollution);
 				TurnMetrics.AddBucket("tick:WarmingIndicatorScan", __wi);
-				if (n == 0) return 0;
-				if (n <= 1 * scale) return 1;
-				if (n <= 3 * scale) return 2;
-				if (n <= 5 * scale) return 3;
-				return 4;
+				int level = n == 0        ? 0
+				          : n <= 1 * scale ? 1
+				          : n <= 3 * scale ? 2
+				          : n <= 5 * scale ? 3
+				          : 4;
+				_warmingIndicatorTurn = _gameTurn;
+				_warmingIndicator = level;
+				return level;
 			}
 		}
 

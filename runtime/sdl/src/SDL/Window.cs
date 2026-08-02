@@ -107,10 +107,19 @@ namespace CivOne
 
 					if (!_redraw)
 					{
-						// TEMPORARY probe: the other half of the `other_ms` question. A turn's
-						// wall clock counts these sleeps exactly like work, so a loop that
-						// spends its time waiting looks identical in the log to one grinding
-						// through AI. Strip with the rest of the move_split probes.
+						// Never sleep while the game still has work queued.
+						//
+						// This loop slept IdleWaitMs on every iteration that produced no frame,
+						// including the thousands per turn where the task queue was full and
+						// simply pacing itself to the tick rate. SDL_Delay(1) actually costs
+						// ~1.14ms, and the probe measured EIGHT THOUSAND of them per turn:
+						// 9.1 seconds of a 31-second turn spent doing nothing at all, which
+						// was the whole of the unexplained `other_ms`.
+						//
+						// A real sleep is still taken when the queue is genuinely empty, so an
+						// idle game does not spin a core.
+						if (CivOne.GameTask.Any()) continue;
+
 						long __idle = CivOne.TurnMetrics.Now;
 						Wait(IdleWaitMs);
 						CivOne.TurnMetrics.AddBucket("tick:LoopIdle", __idle);
