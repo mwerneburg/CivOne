@@ -2076,6 +2076,41 @@ namespace CivOne
 				.FirstOrDefault();
 		}
 
+		// True when an idle non-combat unit should NOT re-target this turn.
+		//
+		// This replaces a Sentry that looked right and was wrong. Diplomats and Caravans
+		// with no reachable target were sentried, on the Explorer's precedent and its
+		// comment about waking "if something changes around it". That wake does not exist
+		// for AI units: BaseUnit.cs:604 gates it on `Human == u.Owner`, so an AI unit that
+		// sentries is parked for the rest of the game. A 2104 AD map had idle caravans
+		// standing about everywhere, and they were mine.
+		//
+		// Sentry IS right for the Explorer, and the difference is worth stating: exploration
+		// is monotonic — once the map is charted it stays charted, so there is nothing to
+		// wake for. A caravan's target set is not monotonic. Wars end, blocking stacks move
+		// on, cities are founded; a route that was shut reopens.
+		//
+		// So: retry, but not every turn — re-probing every turn for every idle unit is the
+		// cost the Sentry was trying to avoid, and it was a real cost (4600 pathfinds a
+		// turn). A parked unit does not move, so (X + Y) is a stable per-unit stagger:
+		// each one looks again on its own turn in eight, and the fleet spreads its probing
+		// across the cycle instead of all re-deciding at once.
+		private bool IdleRetryTurn(IUnit unit)
+		{
+			if (!unit.Goto.IsEmpty) return false;
+
+			// Never defer a unit whose mission is one step away. A Caravan beside a foreign
+			// city is about to deliver its trade route and a Diplomat beside one is about to
+			// run its op — both re-target through this path, so making them wait their turn
+			// in eight delays every delivery in the empire by up to seven turns. Eight tile
+			// reads to check, against a full A* probe to skip.
+			if (unit.Tile is not null && unit.Tile.GetBorderTiles()
+			        .Any(t => t is not null && t.City is not null && t.City.Owner != unit.Owner))
+				return false;
+
+			return ((unit.X + unit.Y) & 7) != (Game.GameTurn & 7);
+		}
+
 		// ── colonisation ──────────────────────────────────────────────────────
 		//
 		// Whether this civ should be putting a settler on a boat right now.
@@ -2296,6 +2331,7 @@ namespace CivOne
 			// AI loop's same-unit circuit breaker turn after turn.
 			if (unit is Diplomat)
 			{
+				if (IdleRetryTurn(unit)) { unit.SkipTurn(); return; }
 				byte myContinent = unit.Tile?.ContinentId ?? 15;
 				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
 
@@ -2348,7 +2384,7 @@ namespace CivOne
 				// Sentry rather than SkipTurn, for the reason spelled out at the Caravan
 				// below: a diplomat with no reachable target re-ran four full A* searches
 				// every turn for the rest of the game.
-				else unit.Sentry = true;
+				else unit.SkipTurn();
 				return;
 			}
 
@@ -2357,6 +2393,7 @@ namespace CivOne
 			// impossible walk across the ocean.
 			if (unit is Caravan)
 			{
+				if (IdleRetryTurn(unit)) { unit.SkipTurn(); return; }
 				// Caravans deliver trade-route gold by entering a foreign city
 				// (Caravan.cs:127, EstablishTradeRoute). Target the nearest reachable foreign
 				// city (see the targeting note below for why nearest, not most-distant), and
@@ -2431,11 +2468,9 @@ namespace CivOne
 				           ?? reachable.FirstOrDefault();
 
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
-				// Sentry, not SkipTurn: nothing reachable this turn means nothing reachable
-				// next turn either, and SkipTurn re-ran the whole probe every turn for the
-				// rest of the game. Same reasoning and same idiom as the Explorer above —
-				// it wakes if something changes around it.
-				else unit.Sentry = true;
+				// SkipTurn, not Sentry — an AI unit that sentries never wakes. See
+				// IdleRetryTurn, which is what keeps this from re-probing every turn.
+				else unit.SkipTurn();
 				return;
 			}
 
