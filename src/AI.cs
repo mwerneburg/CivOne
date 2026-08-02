@@ -363,9 +363,17 @@ namespace CivOne
 					// countryside is worth attacking again, it needs a dedicated worker quota
 					// — settlers explicitly assigned to improvement and capped per empire —
 					// not a diversion applied to every settler that walks past a bare tile.
-					ITile? best = expanding
-						? (BestSettleSite(unit) ?? BestImproveSite(unit))
-						: BestImproveSite(unit);
+					// Colonist call-up, deliberately AHEAD of local work — see WantsColonist
+					// for why. A designated colonist walks to the boat; every other settler
+					// gardens exactly as before, so this changes nothing for a civ that has
+					// no hull, no charted site, or a crossing already under way.
+					ITile? port = WantsColonist() ? BoardingTile(unit) : null;
+					if (port is not null) DonatePortEscort(unit, port);
+
+					ITile? best = port
+						?? (expanding
+							? (BestSettleSite(unit) ?? BestImproveSite(unit))
+							: BestImproveSite(unit));
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);

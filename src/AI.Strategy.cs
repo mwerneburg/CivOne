@@ -2076,6 +2076,79 @@ namespace CivOne
 				.FirstOrDefault();
 		}
 
+		// ── colonisation ──────────────────────────────────────────────────────
+		//
+		// Whether this civ should be putting a settler on a boat right now.
+		//
+		// Colonisation used to be the LAST fallback. AI.cs reached the boarding branch
+		// only when BestSettleSite AND BestImproveSite both came back empty — and
+		// BestImproveSite returns any tile within 6 that wants irrigation, a mine or a
+		// rail near one of our cities. A measured game finishes at 42-45% improved land,
+		// so that scan is never empty, the boarding branch never runs, and an entire New
+		// World sits unoccupied for the length of a game. For a settler to go to sea its
+		// civ first had to improve every reachable tile around every city. Nobody clears
+		// that bar.
+		//
+		// Same defect as the mines and the stance gate: a correct mechanism placed where
+		// nothing reaches it. So colonists are DESIGNATED rather than left over — a small
+		// standing quota that outranks local gardening, which is exactly the "settlers
+		// explicitly assigned ... not a diversion applied to every settler that walks past
+		// a bare tile" prescription the comment in AI.cs already wrote for the worker
+		// problem.
+		internal bool WantsColonist()
+		{
+			// Not at the expense of a young civ: a colonist costs a citizen and a hull
+			// berth, and four cities is where that stops being the whole empire.
+			if (Player.Cities.Length < 4) return false;
+			// Nowhere charted to go. The register is filled by ships surveying
+			// (RecordColonySite), so this also sequences the whole thing: hull first,
+			// survey second, colonists third.
+			if (KnownColonySites() == 0) return false;
+
+			byte own = Game.PlayerNumber(Player);
+			// Committed: settlers already aboard a hull (a land unit standing on ocean),
+			// PLUS settlers still walking to one (Goto pointing at an ocean tile).
+			//
+			// The walkers matter. BoardingTile only rejects a berth once the hull is
+			// physically full, and a settler three tiles from the coast has not boarded
+			// anything yet — so without counting them, an epic-map civ with twenty
+			// settlers could send half of them marching at one Trireme and stop improving
+			// its land, which is the exact failure this change exists to fix, inverted.
+			int committed = Game.GetUnits().Count(u => u.Owner == own && u is Settlers
+				&& ((u.Tile is not null && u.Tile.IsOcean)
+				    || (!u.Goto.IsEmpty && Map[u.Goto.X, u.Goto.Y] is ITile g && g.IsOcean)));
+			// Two crossings at a time. Each costs a citizen, and the escort costs a unit
+			// on top, so this is not a cheap standing programme.
+			return committed < 2;
+		}
+
+		// The port's parting gift: one defender sails with the colonist.
+		//
+		// A colony that lands undefended is a colony that gets eaten, which is a fair part
+		// of why colonisation looked like a waste of a settler. Donated only at the moment
+		// the colonist actually steps aboard — the berth has to be adjacent, so the settler
+		// boards this turn and the hull never sails carrying an escort and no one to escort.
+		//
+		// Unsupported (Home null) on purpose: the new town should not be born owing upkeep
+		// on a unit it did not build. Same precedent as the Olvir's free HydroEngineer.
+		private void DonatePortEscort(IUnit settler, ITile berth)
+		{
+			if (Common.DistanceToTile(settler.X, settler.Y, berth.X, berth.Y) > 1) return;
+
+			byte own = Game.PlayerNumber(Player);
+			IUnit? hull = berth.Units.FirstOrDefault(u => u.Owner == own && u is IBoardable);
+			if (hull is null) return;
+			// Room for the colonist AND the escort, or the gift costs the crossing.
+			if (berth.Units.Count(u => u.Class == UnitClass.Land) + 2 > ((IBoardable)hull).Cargo) return;
+			// One escort per crossing.
+			if (berth.Units.Any(u => u.Owner == own && u.Role == UnitRole.Defense)) return;
+
+			IUnit? escort = Game.CreateUnit(((IUnit)BestDefender()).Type, berth.X, berth.Y, own);
+			if (escort is null) return;
+			escort.SetHome(null);
+			escort.Sentry = true;   // aboard: cargo is the land units sharing the hull's tile
+		}
+
 		// Own coastal city that has land attackers waiting for a ride.
 		private City EmbarkationCity()
 		{
@@ -3161,9 +3234,18 @@ namespace CivOne
 			//
 			// Two per civ. These are expensive hulls, not a navy, and the transport that
 			// exists is usually idle rather than full.
+			// `ExploredLandFraction < 0.60` was a window that CLOSED PERMANENTLY. It reads
+			// as "there is unknown world out there", but once a civ has charted 60% of the
+			// world's land it can never build another hull again — including at the exact
+			// moment its ships have finally found somewhere worth going. The proxy was for
+			// unknown world; the thing actually wanted is unclaimed coast.
+			//
+			// So: still exploring, OR we have surveyed a colony site and have not settled
+			// it yet. KnownColonySites prunes the register as it reads, so a site that has
+			// since been taken does not keep the yard open.
 			if (Player.HasAdvance<MapMaking>()
 			    && Player.ExploredHomeContinentFraction > 0.90
-			    && Player.ExploredLandFraction < 0.60
+			    && (Player.ExploredLandFraction < 0.60 || KnownColonySites() > 0)
 			    && city.Tile is not null
 			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean))
 			{
