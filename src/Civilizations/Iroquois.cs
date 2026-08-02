@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Ticonderoga",
 				"Oswego",
 				"Geneseo",
-				"Ganondagan"
+				"Ganondagan",
+				"Kanesatake",
+				"Akwesasne",
+				"Tyendinaga",
+				"Kahnawake",
+				"Ohsweken",
+				"Deseronto",
+				"Genesee",
+				"Tonawanda",
+				"Allegany",
+				"Cattaraugus",
+				"Buffalo Creek",
+				"Chemung",
+				"Tioga",
+				"Owego",
+				"Elmira",
+				"Ithaca",
+				"Auburn",
+				"Skaneateles",
+				"Cazenovia",
+				"Utica",
+				"Herkimer",
+				"Schoharie",
+				"Fonda",
+				"Caughnawaga"
 			};
 		}
 	}

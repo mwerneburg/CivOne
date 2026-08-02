@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Hastings",
 				"Canterbury",
 				"Banbury",
-				"Newcastle"
+				"Newcastle",
+				"Bristol",
+				"Manchester",
+				"Leeds",
+				"Sheffield",
+				"Norwich",
+				"Winchester",
+				"Salisbury",
+				"Bath",
+				"Durham",
+				"Lincoln",
+				"Chester",
+				"Portsmouth",
+				"Plymouth",
+				"Southampton",
+				"Ipswich",
+				"Colchester",
+				"Warwick",
+				"Gloucester",
+				"Worcester",
+				"Shrewsbury",
+				"Carlisle",
+				"Lancaster",
+				"Stafford",
+				"Derby"
 			};
 		}
 	}

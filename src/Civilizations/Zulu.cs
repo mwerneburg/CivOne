@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Ibabanago",
 				"Isipezi",
 				"Amatikulu",
-				"Zunquin"
+				"Zunquin",
+				"Nobamba",
+				"Mgungundlovu",
+				"Ondini",
+				"Emakhosini",
+				"Nodwengu",
+				"Dukuza",
+				"KwaBulawayo",
+				"Eshowe",
+				"Melmoth",
+				"Nongoma",
+				"Vryheid",
+				"Empangeni",
+				"Richards Bay",
+				"Mtubatuba",
+				"Hluhluwe",
+				"Pongola",
+				"Babanango",
+				"Dundee",
+				"Ladysmith",
+				"Colenso",
+				"Estcourt",
+				"Greytown",
+				"Kranskop",
+				"Mandeni"
 			};
 		}
 	}

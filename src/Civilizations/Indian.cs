@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Punjab",
 				"Dacca",
 				"Indus",
-				"Ganges"
+				"Ganges",
+				"Varanasi",
+				"Patna",
+				"Ujjain",
+				"Mathura",
+				"Ayodhya",
+				"Kanchipuram",
+				"Madurai",
+				"Thanjavur",
+				"Vijayanagara",
+				"Golconda",
+				"Agra",
+				"Amritsar",
+				"Surat",
+				"Pune",
+				"Nagpur",
+				"Mysore",
+				"Cochin",
+				"Calicut",
+				"Goa",
+				"Ahmedabad",
+				"Jodhpur",
+				"Udaipur",
+				"Gwalior",
+				"Bhopal"
 			};
 		}
 	}

@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Jijiga",
 				"Arba Minch",
 				"Nekemte",
-				"Gambela"
+				"Gambela",
+				"Yeha",
+				"Debre Damo",
+				"Ankober",
+				"Gorgora",
+				"Sodo",
+				"Hosaena",
+				"Debre Berhan",
+				"Adigrat",
+				"Shashamane",
+				"Ambo",
+				"Nazret",
+				"Wolkite",
+				"Butajira",
+				"Metu",
+				"Assosa",
+				"Robe",
+				"Goba",
+				"Dilla",
+				"Yirgalem",
+				"Negele",
+				"Kombolcha",
+				"Weldiya",
+				"Lasta",
+				"Tigray"
 			};
 		}
 	}

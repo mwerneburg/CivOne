@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Kaifeng",
 				"Ningbo",
 				"Baoding",
-				"Yangzhou"
+				"Yangzhou",
+				"Xian",
+				"Luoyang",
+				"Chengdu",
+				"Chongqing",
+				"Wuhan",
+				"Changsha",
+				"Fuzhou",
+				"Xiamen",
+				"Shenyang",
+				"Harbin",
+				"Taiyuan",
+				"Zhengzhou",
+				"Suzhou",
+				"Wuxi",
+				"Shaoxing",
+				"Quanzhou",
+				"Guilin",
+				"Kunming",
+				"Lanzhou",
+				"Dunhuang",
+				"Turfan",
+				"Yinchuan",
+				"Nanchang",
+				"Hefei"
 			};
 		}
 	}

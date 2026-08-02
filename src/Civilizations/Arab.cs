@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Fez",
 				"Kufah",
 				"Oman",
-				"Jeddah"
+				"Jeddah",
+				"Basra",
+				"Samarra",
+				"Homs",
+				"Hama",
+				"Najaf",
+				"Karbala",
+				"Hebron",
+				"Nablus",
+				"Acre",
+				"Sidon",
+				"Beirut",
+				"Latakia",
+				"Raqqa",
+				"Kairouan",
+				"Marrakesh",
+				"Rabat",
+				"Ceuta",
+				"Bejaia",
+				"Sfax",
+				"Benghazi",
+				"Hail",
+				"Taif",
+				"Yanbu",
+				"Hodeidah"
 			};
 		}
 	}

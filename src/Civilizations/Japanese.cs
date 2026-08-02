@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Yokohama",
 				"Kobe",
 				"Niigata",
-				"Matsuyama"
+				"Matsuyama",
+				"Edo",
+				"Nagano",
+				"Kanazawa",
+				"Toyama",
+				"Gifu",
+				"Shizuoka",
+				"Hamamatsu",
+				"Okayama",
+				"Kurashiki",
+				"Takamatsu",
+				"Kochi",
+				"Tokushima",
+				"Oita",
+				"Kumamoto",
+				"Miyazaki",
+				"Naha",
+				"Aomori",
+				"Akita",
+				"Morioka",
+				"Yamagata",
+				"Fukushima",
+				"Utsunomiya",
+				"Mito",
+				"Chiba"
 			};
 		}
 	}

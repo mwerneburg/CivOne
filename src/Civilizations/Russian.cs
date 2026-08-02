@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Krasnoyarsk",
 				"Riga",
 				"Rostov",
-				"Atrakhan"
+				"Atrakhan",
+				"Novgorod",
+				"Pskov",
+				"Tver",
+				"Vladimir",
+				"Suzdal",
+				"Yaroslavl",
+				"Kostroma",
+				"Voronezh",
+				"Kaluga",
+				"Ryazan",
+				"Bryansk",
+				"Kursk",
+				"Belgorod",
+				"Samara",
+				"Saratov",
+				"Volgograd",
+				"Perm",
+				"Ufa",
+				"Chelyabinsk",
+				"Omsk",
+				"Tomsk",
+				"Irkutsk",
+				"Khabarovsk",
+				"Murmansk"
 			};
 		}
 	}

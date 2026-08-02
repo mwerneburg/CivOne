@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Ollantaytambo",
 				"Tambo Colorado",
 				"Chinchero",
-				"Choquequirao"
+				"Choquequirao",
+				"Sacsayhuaman",
+				"Pisac",
+				"Moray",
+				"Maras",
+				"Urubamba",
+				"Andahuaylas",
+				"Ayacucho",
+				"Huancayo",
+				"Trujillo",
+				"Chiclayo",
+				"Piura",
+				"Tumbes",
+				"Loja",
+				"Riobamba",
+				"Cuenca",
+				"Ibarra",
+				"Latacunga",
+				"Cochabamba",
+				"La Paz",
+				"Oruro",
+				"Sucre",
+				"Copacabana",
+				"Nazca",
+				"Paracas"
 			};
 		}
 	}

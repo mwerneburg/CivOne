@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Cherbourg",
 				"Poitiers",
 				"Toulouse",
-				"Bayonne"
+				"Bayonne",
+				"Nantes",
+				"Reims",
+				"Strasbourg",
+				"Nice",
+				"Lille",
+				"Montpellier",
+				"Nancy",
+				"Rennes",
+				"Angers",
+				"Limoges",
+				"Clermont",
+				"Besancon",
+				"Perpignan",
+				"Arles",
+				"Nimes",
+				"Carcassonne",
+				"Brest",
+				"Le Havre",
+				"Caen",
+				"Troyes",
+				"Metz",
+				"Toulon",
+				"Aix",
+				"Vichy"
 			};
 		}
 	}

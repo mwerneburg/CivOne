@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Athribus",
 				"Mendes",
 				"Tanis",
-				"Abydos"
+				"Abydos",
+				"Luxor",
+				"Karnak",
+				"Aswan",
+				"Elephantine",
+				"Faiyum",
+				"Rosetta",
+				"Damietta",
+				"Bubastis",
+				"Sais",
+				"Naukratis",
+				"Hermopolis",
+				"Akhetaten",
+				"Dendera",
+				"Esna",
+				"Kom Ombo",
+				"Philae",
+				"Buhen",
+				"Napata",
+				"Meroe",
+				"Avaris",
+				"Herakleopolis",
+				"Lisht",
+				"Dahshur",
+				"Saqqara"
 			};
 		}
 	}

@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Skopje",
 				"Plovdiv",
 				"Erzurum",
-				"Trabzon"
+				"Trabzon",
+				"Izmit",
+				"Amasya",
+				"Sivas",
+				"Kayseri",
+				"Adana",
+				"Antalya",
+				"Diyarbakir",
+				"Van",
+				"Kars",
+				"Bitola",
+				"Shkoder",
+				"Nis",
+				"Vidin",
+				"Ruse",
+				"Varna",
+				"Bucharest",
+				"Iasi",
+				"Buda",
+				"Pecs",
+				"Mostar",
+				"Banja Luka",
+				"Podgorica",
+				"Ioannina",
+				"Larnaca"
 			};
 		}
 	}

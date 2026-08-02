@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Circle",
 				"Wounded Knee",
 				"Ash Hollow",
-				"Cheyenne"
+				"Cheyenne",
+				"Oglala",
+				"Brule",
+				"Hunkpapa",
+				"Minneconjou",
+				"Sans Arc",
+				"Two Kettle",
+				"Yankton",
+				"Santee",
+				"Greasy Grass",
+				"Powder River",
+				"Little Bighorn",
+				"Black Hills",
+				"Badlands",
+				"Missouri Breaks",
+				"White River",
+				"Cheyenne River",
+				"Grand River",
+				"Moreau",
+				"Belle Fourche",
+				"Spearfish",
+				"Sturgis",
+				"Rapid Creek",
+				"Thunder Butte",
+				"Medicine Root"
 			};
 		}
 	}

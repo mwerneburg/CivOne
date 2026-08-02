@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Shangtu",
 				"Kazan",
 				"Qyinsay",
-				"Kerman"
+				"Kerman",
+				"Ulaanbaatar",
+				"Avarga",
+				"Ordos",
+				"Hovd",
+				"Uliastai",
+				"Choibalsan",
+				"Erdenet",
+				"Darhan",
+				"Bulgan",
+				"Arvaikheer",
+				"Dalanzadgad",
+				"Baruun-Urt",
+				"Mandalgovi",
+				"Sainshand",
+				"Altai",
+				"Tsetserleg",
+				"Moron",
+				"Ondorhaan",
+				"Herat",
+				"Merv",
+				"Balkh",
+				"Ghazni",
+				"Urgench",
+				"Otrar"
 			};
 		}
 	}

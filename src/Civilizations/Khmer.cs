@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Siem Reap",
 				"Kampong Thom",
 				"Mahendraparvata",
-				"Wat Phu"
+				"Wat Phu",
+				"Roluos",
+				"Hariharalaya",
+				"Yasodharapura",
+				"Beng Mealea",
+				"Banteay Chhmar",
+				"Preah Vihear",
+				"Sambor Prei Kuk",
+				"Kampot",
+				"Kratie",
+				"Stung Treng",
+				"Pursat",
+				"Takeo",
+				"Kampong Cham",
+				"Kampong Chhnang",
+				"Svay Rieng",
+				"Prey Veng",
+				"Kandal",
+				"Pailin",
+				"Bavet",
+				"Sihanoukville",
+				"Kep",
+				"Banlung",
+				"Sen Monorom",
+				"Anlong Veng"
 			};
 		}
 	}

@@ -640,16 +640,38 @@ namespace CivOne
 			if (TauCetiEscalationTurn > 0 && !ProbeDispatched)
 				TauCetiEscalationTurn = Math.Max(TauCetiEscalationTurn, (uint)(_gameTurn + 5));
 			CityNames    = g.CityNames;
-			// Extend CityNames if this save pre-dates a civilization addition (e.g. Olvir).
+			// A NameId is an index into the flattened list of every civilization's names, so
+			// it only means anything against the layout it was written for. Extending the
+			// array was enough while civilizations were only ever appended (e.g. Olvir), but
+			// the per-civ blocks have since grown from 16 names to 40, which moves every
+			// block after the first. Adopt the current layout and translate the saved ids by
+			// NAME, so cities keep the names they had on the map while new cities draw from
+			// the layout the reserved-block guard in Game.CityNameId is built against.
+			int[]? nameIdMap = null;
 			{
 				string[] canonical = Common.AllCityNames.ToArray();
-				if (CityNames.Length < canonical.Length)
+				if (!CityNames.SequenceEqual(canonical))
 				{
-					var extended = new string[canonical.Length];
-					CityNames.CopyTo(extended, 0);
-					for (int i = CityNames.Length; i < canonical.Length; i++)
-						extended[i] = canonical[i];
-					CityNames = extended;
+					var lookup = new Dictionary<string, int>();
+					for (int i = canonical.Length - 1; i >= 0; i--) lookup[canonical[i]] = i;
+					var merged = new List<string>(canonical);
+					nameIdMap = new int[CityNames.Length];
+					for (int i = 0; i < CityNames.Length; i++)
+					{
+						string saved = CityNames[i];
+						// A renamed city is stored by overwriting its entry in this array, so a
+						// saved name need not appear in the canonical list at all (CIVIL3.cos has
+						// "Michaelsburg" where Brundisium used to be). Keep those, appended past
+						// the canonical blocks — dropping them would rename the player's cities.
+						if (!lookup.TryGetValue(saved, out int j))
+						{
+							j = merged.Count;
+							merged.Add(saved);
+							lookup[saved] = j;
+						}
+						nameIdMap[i] = j;
+					}
+					CityNames = merged.ToArray();
 				}
 			}
 			HumanPlayer  = _players[g.HumanPlayer];
@@ -670,7 +692,8 @@ namespace CivOne
 				{
 					X             = cd.X,
 					Y             = cd.Y,
-					NameId        = cd.NameId,
+					NameId        = (nameIdMap is not null && cd.NameId >= 0 && cd.NameId < nameIdMap.Length)
+					                ? nameIdMap[cd.NameId] : cd.NameId,
 					OriginalOwner = (byte)(cd.OriginalOwner ?? cd.Owner),
 					Size          = (byte)cd.Size,
 					Food          = cd.Food,

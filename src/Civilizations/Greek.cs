@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Knossos",
 				"Troy",
 				"Pergamon",
-				"Miletos"
+				"Miletos",
+				"Thebes",
+				"Olympia",
+				"Megara",
+				"Chalcis",
+				"Thermopylae",
+				"Marathon",
+				"Plataea",
+				"Larissa",
+				"Ambracia",
+				"Naupactus",
+				"Elis",
+				"Mantinea",
+				"Tegea",
+				"Sicyon",
+				"Epidaurus",
+				"Aegina",
+				"Naxos",
+				"Samos",
+				"Chios",
+				"Lesbos",
+				"Halicarnassus",
+				"Cnidus",
+				"Abdera",
+				"Amphipolis"
 			};
 		}
 	}

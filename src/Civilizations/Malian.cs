@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Mopti",
 				"Ségou",
 				"Nioro",
-				"Kayes"
+				"Kayes",
+				"Wagadou",
+				"Tadmekka",
+				"Takrur",
+				"Jenne-Jeno",
+				"Bandiagara",
+				"Douentza",
+				"Hombori",
+				"Ansongo",
+				"Menaka",
+				"Goundam",
+				"Niafunke",
+				"Tenenkou",
+				"Macina",
+				"Bougouni",
+				"Koutiala",
+				"San",
+				"Kita",
+				"Markala",
+				"Yelimane",
+				"Bafoulabe",
+				"Kolokani",
+				"Dioila",
+				"Banamba",
+				"Sokolo"
 			};
 		}
 	}

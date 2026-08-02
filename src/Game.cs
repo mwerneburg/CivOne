@@ -1615,16 +1615,42 @@ namespace CivOne
 			GameTask.Enqueue(Turn.End());
 		}
 
+		// Names belonging to the barbarians and the story factions, as a flat index mask over
+		// CityNames. An ordinary civilization that outgrows its own 16 names falls through to
+		// the shared pool in index order, and the old guard for that pool was a single
+		// threshold ("below the last block") — which walled off Skynet alone, purely because
+		// Skynet sorts last. Everything else reserved sat below the line, so a Roman city
+		// forty names deep was named Vel'Thara. Exclude by owner instead of by position.
+		private static bool[]? _reservedName;
+		private static bool ReservedName(int index)
+		{
+			if (_reservedName is null)
+			{
+				var mask = new List<bool>();
+				foreach (ICivilization c in Common.Civilizations)
+				{
+					bool reserved = c is Civilizations.Barbarian or Civilizations.Olvir
+					             or Civilizations.TheOthers or Civilizations.TheThing
+					             or Civilizations.Skynet;
+					for (int i = 0; i < c.CityNames.Length; i++) mask.Add(reserved);
+				}
+				_reservedName = mask.ToArray();
+			}
+			return index < _reservedName.Length && _reservedName[index];
+		}
+
 		internal int CityNameId(Player player)
 		{
 			ICivilization civilization = player.Civilization;
 			ICivilization[] civilizations = Common.Civilizations;
 			int startIndex = Enumerable.Range(1, civilization.Id - 1).Sum(i => civilizations[i].CityNames.Length);
-			int spareIndex = Enumerable.Range(1, Common.Civilizations.Length - 1).Sum(i => civilizations[i].CityNames.Length);
+			// A reserved civilization keeps first claim on its own block (the OrderBy below)
+			// but may still borrow from the shared pool if it outgrows it.
+			bool ownNamesAreReserved = ReservedName(startIndex);
 			int[] used = _cities.Select(c => c.NameId).ToArray();
 			int[] available = Enumerable.Range(0, CityNames.Length)
 				.Where(i => !used.Contains(i))
-				.Where(i => civilization is Civilizations.Olvir || i < spareIndex)
+				.Where(i => ownNamesAreReserved || !ReservedName(i))
 				.OrderBy(i => (i >= startIndex && i < startIndex + civilization.CityNames.Length) ? 0 : 1)
 				.ThenBy(i => i)
 				.ToArray();

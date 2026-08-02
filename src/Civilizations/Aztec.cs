@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Tlaxcala",
 				"Xaltocan",
 				"Xicalango",
-				"Zumpanco"
+				"Zumpanco",
+				"Texcoco",
+				"Tlatelolco",
+				"Cholula",
+				"Teotihuacan",
+				"Tula",
+				"Malinalco",
+				"Xochimilco",
+				"Coyoacan",
+				"Azcapotzalco",
+				"Tlacopan",
+				"Culhuacan",
+				"Huexotla",
+				"Chalco",
+				"Amecameca",
+				"Otumba",
+				"Tepeyac",
+				"Tenayuca",
+				"Cuauhtitlan",
+				"Tultitlan",
+				"Ecatepec",
+				"Tlalmanalco",
+				"Xochicalco",
+				"Cuernavaca",
+				"Tepoztlan"
 			};
 		}
 	}

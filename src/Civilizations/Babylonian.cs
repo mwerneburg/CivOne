@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Izibia",
 				"Nimrud",
 				"Arbela",
-				"Zamua"
+				"Zamua",
+				"Lagash",
+				"Umma",
+				"Larsa",
+				"Isin",
+				"Mari",
+				"Sippar",
+				"Borsippa",
+				"Girsu",
+				"Adab",
+				"Ur",
+				"Dilbat",
+				"Kutha",
+				"Opis",
+				"Terqa",
+				"Harran",
+				"Carchemish",
+				"Dur-Sharrukin",
+				"Kalhu",
+				"Til-Barsip",
+				"Ekallatum",
+				"Eshnunna",
+				"Tuttul",
+				"Nuzi",
+				"Hatra"
 			};
 		}
 	}

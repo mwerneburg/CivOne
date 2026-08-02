@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Cincinnati",
 				"Dallas",
 				"Los Angeles",
-				"Las Vegas"
+				"Las Vegas",
+				"Seattle",
+				"San Francisco",
+				"Portland",
+				"Phoenix",
+				"Houston",
+				"Miami",
+				"Cleveland",
+				"Pittsburgh",
+				"Milwaukee",
+				"Kansas City",
+				"Minneapolis",
+				"Charleston",
+				"Savannah",
+				"Richmond",
+				"Albuquerque",
+				"Salt Lake City",
+				"Sacramento",
+				"Omaha",
+				"Nashville",
+				"Memphis",
+				"Louisville",
+				"Indianapolis",
+				"Providence",
+				"Hartford"
 			};
 		}
 	}

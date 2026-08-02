@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Jerusalem",
 				"Seleucia",
 				"Ravenna",
-				"Artaxata"
+				"Artaxata",
+				"Neapolis",
+				"Capua",
+				"Pompeii",
+				"Ostia",
+				"Mediolanum",
+				"Aquileia",
+				"Verona",
+				"Genua",
+				"Tarentum",
+				"Rhegium",
+				"Messana",
+				"Panormus",
+				"Lugdunum",
+				"Massilia",
+				"Narbo",
+				"Tarraco",
+				"Corduba",
+				"Gades",
+				"Londinium",
+				"Eboracum",
+				"Colonia",
+				"Vindobona",
+				"Sirmium",
+				"Thessalonica"
 			};
 		}
 	}

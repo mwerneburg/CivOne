@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Ahvaz",
 				"Qazvin",
 				"Ardeshir",
-				"Rayy"
+				"Rayy",
+				"Bam",
+				"Sistan",
+				"Zahedan",
+				"Bandar Abbas",
+				"Bushehr",
+				"Abadan",
+				"Khorramabad",
+				"Sanandaj",
+				"Kermanshah",
+				"Zanjan",
+				"Semnan",
+				"Damghan",
+				"Gorgan",
+				"Sari",
+				"Rasht",
+				"Ardabil",
+				"Maragheh",
+				"Urmia",
+				"Khoy",
+				"Saveh",
+				"Arak",
+				"Borujerd",
+				"Dezful",
+				"Shushtar"
 			};
 		}
 	}

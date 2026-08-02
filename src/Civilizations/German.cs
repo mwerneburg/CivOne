@@ -35,7 +35,31 @@ namespace CivOne.Civilizations
 				"Salzburg",
 				"Konigsberg",
 				"Dortmund",
-				"Brandenburg"
+				"Brandenburg",
+				"Dresden",
+				"Augsburg",
+				"Mainz",
+				"Trier",
+				"Worms",
+				"Speyer",
+				"Regensburg",
+				"Ulm",
+				"Kiel",
+				"Lubeck",
+				"Rostock",
+				"Magdeburg",
+				"Erfurt",
+				"Weimar",
+				"Jena",
+				"Halle",
+				"Kassel",
+				"Aachen",
+				"Dusseldorf",
+				"Essen",
+				"Freiburg",
+				"Wurzburg",
+				"Bamberg",
+				"Passau"
 			};
 		}
 	}
