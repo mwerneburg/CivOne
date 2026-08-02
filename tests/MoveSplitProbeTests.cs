@@ -57,6 +57,39 @@ namespace CivOne.Tests
 			Assert.Contains(TurnMetrics.Buckets(), b => b.Key.StartsWith("site:") && b.Calls > 0);
 		}
 
+		// Diplomats were the top move cost in the 2026-08-02 run (3.19s/turn). Both halves
+		// of the split must fire, or the next run answers nothing: dip:Target without
+		// dip:FirstStep would mean the A* probes never ran, and neither firing would mean
+		// IdleRetryTurn turned the unit away before the targeting block.
+		[Fact]
+		public void MovingADiplomat_RecordsBothHalvesOfTheTargetingSplit()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			for (int y = 22; y <= 28; y++)
+			for (int x = 38; x <= 48; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player[] ps = Game.Instance.Players
+				.Where(p => p is not null && Game.Instance.PlayerNumber(p) != 0
+				         && p != Game.Instance.HumanPlayer).ToArray();
+			Player mine = ps[0], theirs = ps[1];
+			mine.Explore(42, 25, range: 10);
+			Game.Instance.AddCity(mine, 0, 40, 25);
+			Game.Instance.AddCity(theirs, 1, 45, 25);
+			// Adjacent to the foreign city: IdleRetryTurn declines to defer a unit standing
+			// beside one, so the move reaches the targeting block whatever the turn number.
+			IUnit dip = Game.Instance.CreateUnit(UnitType.Diplomat, 44, 25,
+				Game.Instance.PlayerNumber(mine))!;
+			Sim.ClearTasks();
+			TurnMetrics.Reset();
+
+			AI.Instance(mine).Move(dip);
+
+			Assert.Contains(TurnMetrics.Buckets(), b => b.Key == "dip:Target" && b.Calls == 1);
+			Assert.Contains(TurnMetrics.Buckets(), b => b.Key == "dip:FirstStep" && b.Calls > 0);
+		}
+
 		// The global-tick probes must actually fire, or a 50-turn run reports nothing and
 		// the `other_ms` question stays open for another evening.
 		[Fact]
