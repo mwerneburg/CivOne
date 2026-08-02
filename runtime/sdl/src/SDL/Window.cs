@@ -107,13 +107,24 @@ namespace CivOne
 
 					if (!_redraw)
 					{
+						// TEMPORARY probe: the other half of the `other_ms` question. A turn's
+						// wall clock counts these sleeps exactly like work, so a loop that
+						// spends its time waiting looks identical in the log to one grinding
+						// through AI. Strip with the rest of the move_split probes.
+						long __idle = CivOne.TurnMetrics.Now;
 						Wait(IdleWaitMs);
+						CivOne.TurnMetrics.AddBucket("tick:LoopIdle", __idle);
 						continue;
 					}
 
 					SDL_RenderPresent(_renderer);
 					_redraw = false;
-					if (FrameCapMs > 0) Wait(FrameCapMs);
+					if (FrameCapMs > 0)
+					{
+						long __cap = CivOne.TurnMetrics.Now;
+						Wait(FrameCapMs);
+						CivOne.TurnMetrics.AddBucket("tick:FrameCap", __cap);
+					}
 				}
 			}
 

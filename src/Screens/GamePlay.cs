@@ -318,6 +318,17 @@ namespace CivOne.Screens
 		{
 			if (Cursor == MouseCursor.None) return true;
 
+			// The menu bar is checked BEFORE the GoTo cancel below, not after.
+			//
+			// "Cancel an active GoTo on any click" swallowed the click that cancelled it,
+			// including clicks on the menu bar — so with a unit under GoTo orders the first
+			// click on GAME did nothing at all, and only the second click opened a menu.
+			// Cancelling a movement order is a MAP interaction; the menu bar is not the map.
+			if (args.Y < 8 && (_gameMenu is null || !_gameMenu.KeepOpen))
+			{
+				return _menuBar.MouseDown(args);
+			}
+
 			// Cancel an active GoTo order on any click.
 			if (Game.CurrentPlayer == Human && Game.ActiveUnit is not null && !Game.ActiveUnit.Goto.IsEmpty)
 			{

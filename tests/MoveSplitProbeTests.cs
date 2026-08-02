@@ -57,6 +57,23 @@ namespace CivOne.Tests
 			Assert.Contains(TurnMetrics.Buckets(), b => b.Key.StartsWith("site:") && b.Calls > 0);
 		}
 
+		// The global-tick probes must actually fire, or a 50-turn run reports nothing and
+		// the `other_ms` question stays open for another evening.
+		[Fact]
+		public void TheWarmingScanProbe_Emits()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			TurnMetrics.Reset();
+
+			// The most important of the tick probes, and the one testable without fighting
+			// the per-turn Reset: every read of WarmingIndicator is a full-map scan, and
+			// SideBar.DrawDemographics does one on roughly every other tick all game.
+			int _ = Game.Instance.WarmingIndicator;
+
+			Assert.Contains(TurnMetrics.Buckets(),
+				b => b.Key == "tick:WarmingIndicatorScan" && b.Calls == 1);
+		}
+
 		// Reset runs at every turn wrap; a bucket that kept counting across turns would
 		// make every reading cumulative and the whole log useless.
 		[Fact]

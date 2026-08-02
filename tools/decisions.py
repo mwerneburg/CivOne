@@ -55,6 +55,10 @@ def stream(path, game=None, types=None):
     """
     if game == "all":
         game = None
+    wanted = None
+    if game and "," in game:
+        wanted = {g.strip() for g in game.split(",") if g.strip()}
+        game = None
     bad = 0
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -65,6 +69,8 @@ def stream(path, game=None, types=None):
                 rec = json.loads(line)
             except ValueError:
                 bad += 1
+                continue
+            if wanted is not None and rec.get("game_id") not in wanted:
                 continue
             if game and rec.get("game_id") != game:
                 continue
@@ -283,7 +289,10 @@ def main():
                     choices=sorted(REPORTS) + ["all", "selftest"])
     ap.add_argument("--log", help="path to decisions.jsonl")
     ap.add_argument("-g", "--game",
-                    help="game_id, or 'all' to span every resume (default: the last one)")
+                    help="game_id, a comma-separated list of them, or 'all' for every id "
+                         "in the file (default: the last one). Use the LIST form for one "
+                         "played game: 'all' also sweeps in older games at the same turn "
+                         "numbers, and the turn-dedupe then silently blends them.")
     args = ap.parse_args()
 
     if args.report == "selftest":

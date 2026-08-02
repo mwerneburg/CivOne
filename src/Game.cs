@@ -678,8 +678,10 @@ namespace CivOne
 				//
 				// Same scaling as the threshold below, so the classic board is unchanged
 				// (scale == 1 there) and the ratios between indicator and trigger hold.
+				long __wi = TurnMetrics.Now;
 				int scale = Math.Max(1, Map.WIDTH * Map.HEIGHT / 4000);
 				int n = Map.AllTiles().Count(t => t.Pollution);
+				TurnMetrics.AddBucket("tick:WarmingIndicatorScan", __wi);
 				if (n == 0) return 0;
 				if (n <= 1 * scale) return 1;
 				if (n <= 3 * scale) return 2;
@@ -809,7 +811,7 @@ namespace CivOne
 			if (++_currentPlayer >= _players.Count)
 			{
 				_currentPlayer = 0;
-				HandleGlobalWarming();
+				Tick("GlobalWarming", HandleGlobalWarming);
 
 				// Recompute continent topology if any tile flipped land<->ocean this
 				// round (global warming drowning coastline, settlers terraforming).
@@ -1354,11 +1356,11 @@ namespace CivOne
 				}
 
 				// The Thing: advance the outbreak clocks (South Pole Expedition curse).
-				ProcessThingOutbreaks();
+				Tick("ThingOutbreaks", ProcessThingOutbreaks);
 
 				// Cultural defection: disorderly frontier towns may choose a more
 				// admired civilization's flag.
-				ProcessCultureDefections();
+				Tick("CultureDefections", ProcessCultureDefections);
 
 				// Gozira falls: the rampage ends when the kaiju is destroyed.
 				if (GoziraState == 1 && !_units.Any(u => u is Units.Gozira))
@@ -1385,29 +1387,32 @@ namespace CivOne
 				ProcessGreyGoo();
 
 				// The King in Yellow: cures, contagion, abandoned routes.
-				ProcessKingInYellow();
+				Tick("KingInYellow", ProcessKingInYellow);
 
 				// Newton's anomaly: gifts and thefts from other whens.
-				ProcessAnomaly();
+				Tick("Anomaly", ProcessAnomaly);
 
 				// The Visitations: the beacon over the Pyramids, four thousand years.
-				ProcessVisitations();
+				Tick("Visitations", ProcessVisitations);
 
 				// The stone door: the tithe while the Guardian stands; shut when it falls.
-				ProcessStoneDoor();
+				Tick("StoneDoor", ProcessStoneDoor);
 
 				// The Other Voice: true prophecies for the Oracle's keeper.
-				ProcessOracleVoice();
+				Tick("OracleVoice", ProcessOracleVoice);
 
 				// Strategic resource camps: occupation changes the flag.
-				ProcessResourceCamps();
+				Tick("ResourceCamps", ProcessResourceCamps);
 
 				// Skynet: the fifth Neural Lab in the world wakes the machines.
-				CheckSkynet();
+				Tick("Skynet", CheckSkynet);
 
-				IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
-				foreach (City city in disasterCities)
-					city.Disaster();
+				Tick("Disasters", () =>
+				{
+					IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
+					foreach (City city in disasterCities)
+						city.Disaster();
+				});
 
 				// Hurricanes/typhoons: ONE storm in the world at most, and no more often than
 				// every five game years.
@@ -1427,6 +1432,7 @@ namespace CivOne
 				// not favour whoever appears first in the list.
 				int currentYear = Common.TurnToYear(_gameTurn);
 				if (currentYear - LastHurricaneYear >= HurricaneCooldownYears)
+				Tick("Hurricanes", () =>
 				{
 					// WarmingIndicator scans the whole map, so compute it once.
 					int hurricaneWarming = WarmingIndicator;
@@ -1436,7 +1442,7 @@ namespace CivOne
 						LastHurricaneYear = currentYear;
 						break;
 					}
-				}
+				});
 
 				// Barbarian population cap: spawns used to accumulate without limit (127
 				// units by the late game — collectively larger than any AI army), pinning
@@ -2735,6 +2741,21 @@ namespace CivOne
 		// promised them — "halves the population of a city ... the ground it touches is
 		// left POLLUTED" — and the code only ever destroyed units. Same shape as the
 		// pollution yield penalty: a documented consequence that was never implemented.
+		// TEMPORARY (2026-08-02) — attribution for the `other_ms` remainder, which is
+		// wall-clock time in a turn that is inside NO measured phase: not the task queue,
+		// not a screen update, not render/autosave/score. It runs at ~34% of a late turn
+		// and nothing in the log says what it is. The two candidates want opposite fixes:
+		// real work in the once-per-round global tick below, or the SDL loop simply
+		// SLEEPING (IdleWaitMs) and having it counted as elapsed time.
+		//
+		// Strip with the rest of the move_split probes.
+		private void Tick(string name, Action body)
+		{
+			long t = TurnMetrics.Now;
+			try { body(); }
+			finally { TurnMetrics.AddBucket("tick:" + name, t); }
+		}
+
 		internal void ApplyNuclearStrike(int cx, int cy, Player detonator)
 		{
 			foreach (ITile tile in Map.QueryMapPart(cx - 1, cy - 1, 3, 3))
