@@ -1828,10 +1828,26 @@ namespace CivOne
 			// settler would ever touch one. Swamp yields 1 food; drained it is grassland at
 			// 2, and can then be irrigated again for 3.
 			bool conversion = tile is Swamp || tile is Jungle || tile is Forest;
+			// `x.City is null` — the missing clause, and the third time this file's own
+			// warning has come true: the rule was stated here independently of the order
+			// that enforces it (Settlers.BuildIrrigation:476) and drifted.
+			//
+			// A CITY TILE IS NOT A WATER SOURCE. The order refuses one; this predicate
+			// accepted one. So every tile whose only cardinal water was a city — a city
+			// founded on a river, or on ground that was irrigated before it was built —
+			// looked farmable to the AI and was rejected on arrival. On a developed map
+			// that is a large share of the countryside: the human sees "This tile has no
+			// water source" dozens of times a round, and an AI settler, which gets no
+			// message at all, silently burns its turn and comes back tomorrow.
+			//
+			// TileExtensions.AllowIrrigation states this correctly and has NO callers.
+			// Not adopted wholesale here because it also admits Hills, which this
+			// predicate has always excluded — that difference is real and separate.
 			bool irrigation = !tile.Mine && !tile.Irrigation
 				&& (conversion
 				    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
-				        && tile.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y)))));
+				        && tile.CrossTiles().Any(x => x.City is null
+				            && (x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))))));
 			bool mine = (tile is Mountains || tile is Hills) && !tile.Mine && !tile.Irrigation;
 
 			// Mirror Settlers.BuildRoad's eligibility checks: a brand-new road on a River tile
