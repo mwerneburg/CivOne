@@ -311,7 +311,14 @@ namespace CivOne.Units
 			else if (moveTarget.Units.Any(u => u.Owner != Owner))
 				Player.DeclareWar(Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner));
 
-			if (!moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City is not null && moveTarget.City.Owner != Owner)
+			// `this is not Nuclear` first, because this chain is checked IN ORDER and the
+			// first match returns. A missile aimed at an UNDEFENDED city matched here — as a
+			// would-be occupier — was asked "are you a land unit?", and was refused with
+			// "Only land units can capture a city" before anything checked what it actually
+			// was. The Nuclear branch below never got a look in, so a nuke could destroy a
+			// garrison but not an empty city, which is exactly backwards.
+			if (this is not Nuclear
+			    && !moveTarget.Units.Any(u => u.Owner != Owner) && moveTarget.City is not null && moveTarget.City.Owner != Owner)
 			{
 				// An empty enemy city. Only land units can walk in and take it; air and sea
 				// units are refused. The refusal was reported as ERROR/OCCUPY ("that tile is
@@ -424,22 +431,11 @@ namespace CivOne.Units
 				}
 
 				Show nukeShow = Show.EventArt("nuclearbombdetonation", "Nuclear bomb detonated!");
-				byte detonator = Owner;
-				nukeShow.Done += (s, a) =>
-				{
-					foreach (ITile tile in Map.QueryMapPart(X + relX - 1, Y + relY - 1, 3, 3))
-					{
-						// Gozira is immune — radiation is a meal, not a weapon.
-						foreach (IUnit victim in tile.Units.Where(u => u is not Gozira).ToArray())
-						{
-							Game.DisbandUnit(victim);
-						}
-					}
-					// A strike touching grey goo sterilizes the whole connected region.
-					Game.SterilizeGoo(X + relX, Y + relY);
-					// The Manhattan Project planted the egg; the first detonation wakes it.
-					Game.AwakenGozira(Game.GetPlayer(detonator));
-				};
+				// Captured, not read from X/Y inside the handler: the missile does not move
+				// in this branch today, but a closure that depends on that is a trap.
+				int blastX = X + relX, blastY = Y + relY;
+				Player detonator = Game.GetPlayer(Owner);
+				nukeShow.Done += (s, a) => Game.ApplyNuclearStrike(blastX, blastY, detonator);
 				GameTask.Enqueue(nukeShow);
 			}
 			else if (AttackOutcome(this, Map[X, Y][relX, relY]))

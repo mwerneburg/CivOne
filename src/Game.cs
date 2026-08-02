@@ -2698,6 +2698,48 @@ namespace CivOne
 
 		// A nuclear strike sterilizes the entire connected goo region it touches —
 		// the one time the game rewards nuking your own land. The fallout stays.
+		// Everything a nuclear detonation does at (cx,cy). Lifted out of BaseUnit.Confront
+		// so it can be tested: there it lived inside the Done handler of the detonation
+		// EventArt screen, and headless that screen never closes, so nothing about a strike
+		// could be asserted at all.
+		//
+		// Two of these three effects are new (2026-08-02). The Civilopedia has always
+		// promised them — "halves the population of a city ... the ground it touches is
+		// left POLLUTED" — and the code only ever destroyed units. Same shape as the
+		// pollution yield penalty: a documented consequence that was never implemented.
+		internal void ApplyNuclearStrike(int cx, int cy, Player detonator)
+		{
+			foreach (ITile tile in Map.QueryMapPart(cx - 1, cy - 1, 3, 3))
+			{
+				if (tile is null) continue;
+
+				// Gozira is immune — radiation is a meal, not a weapon.
+				foreach (IUnit victim in tile.Units.Where(u => u is not Units.Gozira).ToArray())
+					DisbandUnit(victim);
+
+				// Fallout. Same exclusions the ordinary pollution roll uses
+				// (City.ExecutePollution): never ocean, never the city tile itself.
+				// City Walls and the Great Wall do NOT stop this — they are masonry.
+				if (!tile.IsOcean && tile.City is null)
+					tile.Pollution = true;
+			}
+
+			// Half the population, floored at 1. Civ 1 halves rather than razes, and a
+			// missile that could erase a size-1 town outright would make late-game AI
+			// nuking a map-clearing weapon rather than a siege one.
+			City struck = Map[cx, cy]?.City;
+			if (struck is not null && struck.Size > 1)
+			{
+				struck.Size = (byte)Math.Max(1, struck.Size / 2);
+				struck.InvalidateCache();
+			}
+
+			// A strike touching grey goo sterilizes the whole connected region.
+			SterilizeGoo(cx, cy);
+			// The Manhattan Project planted the egg; the first detonation wakes it.
+			AwakenGozira(detonator);
+		}
+
 		internal void SterilizeGoo(int cx, int cy)
 		{
 			var queue = new Queue<(int x, int y)>(

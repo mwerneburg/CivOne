@@ -153,6 +153,39 @@ namespace CivOne.Tests
 			return (int)Game.Instance.GameTurn;
 		}
 
+		// Type names of everything currently queued. For tests that need to know WHICH
+		// task an action produced — a refusal enqueues a Message, an accepted move
+		// enqueues a MoveUnit — when the task's own effects run in a screen callback
+		// that cannot complete without a renderer.
+		public static string[] PendingTaskTypes()
+		{
+			var list = (System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+			var names = new System.Collections.Generic.List<string>();
+			foreach (object? t in list) if (t is not null) names.Add(t.GetType().Name);
+			return names.ToArray();
+		}
+
+		// Pump the task queue until it drains, dropping anything that parks.
+		//
+		// Needed by any test that asserts on an effect which runs in a screen task's Done
+		// handler — a nuclear detonation, a city capture, a disaster. Headless there is no
+		// renderer to close the screen, so the task sits at the head of the queue forever
+		// and the effect never fires. Same trick RunTurns uses, exposed for tests that
+		// drive a single action rather than whole turns.
+		public static void Settle(int budget = 5000)
+		{
+			int stuck = 0;
+			while (GameTask.Any() && budget-- > 0)
+			{
+				if (!GameTask.Update())
+				{
+					if (++stuck >= 50) { DropCurrentTask(); stuck = 0; }
+				}
+				else stuck = 0;
+			}
+		}
+
 		// Discard the task at the head of the queue — see RunTurns.
 		private static void DropCurrentTask()
 		{
