@@ -3350,7 +3350,35 @@ namespace CivOne
 				// owe 3 Diplomats — consumed on use, rebuilt forever — which made Diplomat
 				// the #1 AI production item ahead of Settlers. Tiny civs have better uses
 				// for their shields than espionage.
-				int diplomatCap  = Math.Min(Player.Cities.Length, Math.Max(3, Player.Cities.Length / 2));
+				//
+				// CEILING added 2026-08-02. One per two cities is a pool that scales with the
+				// empire, and the whole premise of that — "diplomats are consumed on use, so
+				// keep a larger steady-state pool" — is contradicted by the saves. They are
+				// NOT being consumed: a 2200 AD game held 190 alive world-wide (against 199
+				// Armor), and the current game spent 123 production decisions, 4.7% of all
+				// output, on them. A 30-city civ owed 15 agents and simply accumulated them.
+				//
+				// Espionage is opportunistic and local — an agent is only worth anything near
+				// a foreign city it can reach — so the useful pool is a handful, not a fixed
+				// fraction of the empire. Six is already generous against a consumption rate
+				// of approximately zero.
+				//
+				// A/B'd on seeds 101/202/303. The DIVISOR is the whole effect and it is a step,
+				// not a dial: /4-capped-6 and /3-capped-8 are byte-identical, and /2-capped-12
+				// is byte-identical to the old /2-capped-by-city-count. So anything at or below
+				// cities/3 buys the change and anything at cities/2 does not.
+				//
+				// What the change buys, aggregated over the three seeds: mined tiles 29 -> 58,
+				// overseas cities 1 -> 5, hulls 3 -> 8, cities 88 -> 89, advances 456 -> 458.
+				// What it costs: improved land 43% -> 38% average, almost all of it seed 303
+				// (42 -> 31), as the freed shields go to hulls and expansion rather than
+				// settlers (20 -> 12 on seed 101). That is a genuine trade and not a free win —
+				// it converts idle espionage into ships and overseas cities at the price of
+				// some irrigation. Taken deliberately, because colonies were the thing missing.
+				// If a long run shows the countryside going threadbare again, this divisor is
+				// the first thing to put back to /2.
+				int diplomatCap  = Math.Min(Player.Cities.Length,
+				                            Math.Max(2, Math.Min(6, Player.Cities.Length / 4)));
 				if (ownDiplomats < diplomatCap)
 					Consider(new Diplomat());
 			}
