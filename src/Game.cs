@@ -115,6 +115,34 @@ namespace CivOne
 		private long _turnClock;
 		internal readonly HashSet<byte> HumanStartedWars = new();
 
+		// ── Senate grievances ────────────────────────────────────────────────
+		// Hostile diplomat acts each civ has committed against the human: sabotage and
+		// incited revolt. Under an elected government the Senate blocks the human from
+		// starting a war (BaseUnit.Confront), which meant a Democracy could be dismantled
+		// building by building with no constitutional way to answer — a diplomat war you
+		// are forbidden to fight back in.
+		//
+		// At ProvocationThreshold the Senate convenes, and thereafter that civ is no
+		// longer shielded by the veto: the Senate will not start a war for you, but it
+		// will not protect a persistent aggressor either.
+		internal const int ProvocationThreshold = 3;
+		internal readonly Dictionary<byte, int> Provocations = new();
+
+		// True once the given civ has crossed the threshold — the veto no longer covers it.
+		internal bool IsProvocateur(byte playerNumber)
+			=> Provocations.TryGetValue(playerNumber, out int n) && n >= ProvocationThreshold;
+
+		// Record one hostile act and report whether THIS act crossed the line, so the
+		// caller can convene the hearing exactly once.
+		internal bool RecordProvocation(Player aggressor)
+		{
+			if (aggressor is null || aggressor == HumanPlayer) return false;
+			byte num = PlayerNumber(aggressor);
+			Provocations.TryGetValue(num, out int n);
+			Provocations[num] = ++n;
+			return n == ProvocationThreshold;
+		}
+
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
 		internal byte GoziraState;
 

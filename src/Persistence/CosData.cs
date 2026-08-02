@@ -68,6 +68,10 @@ namespace CivOne.Persistence
 		// numbers of wars the human started (defensive wars don't break the streak).
 		public uint EconStreak { get; set; }
 		public int[] HumanStartedWars { get; set; } = null!;
+		// Hostile diplomat acts (sabotage, incite) committed against the HUMAN, as
+		// { playerNumber, count } pairs. Null on saves written before the Senate
+		// grievance rule existed, which the loader treats as "no grievances".
+		public List<int[]> Provocations { get; set; } = null!;
 		// Gozira: 0 = egg sleeps, 1 = rampaging, 2 = slain.
 		public int GoziraState { get; set; }
 		// Leviathan: 0 = deep is quiet, 1 = hunting, 2 = slain.

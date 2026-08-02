@@ -298,7 +298,12 @@ namespace CivOne.Units
 				    : moveTarget.Units.Any(u => u.Owner != Owner)
 				        ? Game.GetPlayer(moveTarget.Units.First(u => u.Owner != Owner).Owner)
 				        : null;
-				if (targetOwner is not null && targetOwner != Player && !Player.IsAtWar(targetOwner) && targetOwner.Civilization is not Barbarian)
+				// ...unless that civ has already crossed the provocation threshold. The Senate
+				// refuses to START a war for you; it does not go on shielding a civ whose
+				// diplomats have been dismantling your cities. See Game.RecordProvocation.
+				if (targetOwner is not null && targetOwner != Player && !Player.IsAtWar(targetOwner)
+				    && targetOwner.Civilization is not Barbarian
+				    && !Game.IsProvocateur(Game.PlayerNumber(targetOwner)))
 				{
 					GameTask.Enqueue(Message.Error("-- Civilization Note --", "The Senate has", "blocked your attack!"));
 					Movement = null;

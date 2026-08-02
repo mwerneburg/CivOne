@@ -132,6 +132,12 @@ namespace CivOne.Units
 						// back. Under authoritarian rule there is no Senate: just the spy report.
 						// Inserted FIRST so the rebellion art (inserted next, thus on top of the
 						// LIFO queue) plays before it.
+						// Inciting a city counts toward the same tally: it is the gravest act a
+						// diplomat can commit, and a civ that does it repeatedly should stop
+						// being shielded by our Senate. The hearing below is the incite-specific
+						// one, so no second dialog is convened here.
+						if (humanVictim) Game.RecordProvocation(Player);
+
 						if (humanVictim && Human.RepublicDemocratic && System.Linq.Enumerable.Contains(Game.GetCities(), target))
 							GameTask.Insert(Show.IncitedCityResponse(target, Player));
 						else if (humanVictim || Player == Human)
@@ -165,6 +171,11 @@ namespace CivOne.Units
 					else if (target.Player == Human)
 					{
 						GameTask.Enqueue(Tasks.Show.DiplomatSabotage(target, this));
+						// A single sabotage is an incident; a pattern of them is a campaign,
+						// and under an elected government the human cannot answer a campaign
+						// without the Senate. See Game.RecordProvocation.
+						if (Game.RecordProvocation(Player) && Human.RepublicDemocratic)
+							GameTask.Enqueue(Tasks.Show.SenateGrievanceResponse(Player));
 					}
 					else
 					{

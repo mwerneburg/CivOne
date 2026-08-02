@@ -299,6 +299,9 @@ namespace CivOne
 					HumanStartedWars        = HumanStartedWars.Count > 0
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
+					Provocations            = Provocations.Count > 0
+					                          ? Provocations.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
+					                          : null!,
 					GoziraState             = GoziraState,
 					LeviathanState          = LeviathanState,
 					DoorState               = DoorState,
@@ -556,6 +559,10 @@ namespace CivOne
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)
 						HumanStartedWars.Add((byte)n);
+			if (g.Provocations is not null)
+				foreach (int[] pair in g.Provocations)
+					if (pair.Length == 2 && pair[0] > 0 && pair[0] < _players.Count)
+						Provocations[(byte)pair[0]] = pair[1];
 			GoziraState = (byte)g.GoziraState;
 			LeviathanState = (byte)g.LeviathanState;
 			DoorState = (byte)g.DoorState;
