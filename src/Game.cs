@@ -634,11 +634,28 @@ namespace CivOne
 		{
 			get
 			{
+				// The sibling of the HandleGlobalWarming bug below, and missed when that one
+				// was fixed: 1/3/5 are absolute tile counts taken from Civ 1's fixed 80x50
+				// board. On a 320x200 map SIX polluted tiles out of 64000 pinned this at 4,
+				// the maximum, from roughly the first industrial city onward — while the
+				// warming mechanic itself, correctly area-scaled, needs 128 tiles to fire.
+				// The two halves of the same system disagreed by a factor of twenty.
+				//
+				// And this is NOT just the advisor's colour. HurricaneCheck (City.cs:2366)
+				// takes this number directly: strike chance is 1+warming percent, and the
+				// catastrophic threshold is 100 - warming*7, which the comment there
+				// explicitly reserves as "the price of a polluted planet". At a pinned 4
+				// that is five times the storm rate and ~28% super-typhoons, on a world
+				// with six smoking tiles.
+				//
+				// Same scaling as the threshold below, so the classic board is unchanged
+				// (scale == 1 there) and the ratios between indicator and trigger hold.
+				int scale = Math.Max(1, Map.WIDTH * Map.HEIGHT / 4000);
 				int n = Map.AllTiles().Count(t => t.Pollution);
 				if (n == 0) return 0;
-				if (n == 1) return 1;
-				if (n <= 3) return 2;
-				if (n <= 5) return 3;
+				if (n <= 1 * scale) return 1;
+				if (n <= 3 * scale) return 2;
+				if (n <= 5 * scale) return 3;
 				return 4;
 			}
 		}

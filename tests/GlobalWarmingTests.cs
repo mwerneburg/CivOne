@@ -66,6 +66,64 @@ namespace CivOne.Tests
 			Assert.Equal(1, g.GlobalWarmingCount);
 		}
 
+		// ── WarmingIndicator ─────────────────────────────────────────────────
+		//
+		// The indicator is not decoration: HurricaneCheck reads it for both strike
+		// chance (1+warming %) and the catastrophic threshold (100 - warming*7).
+		// Pinned at 4 it means five times the storms and ~28% super-typhoons.
+
+		// Six smoking tiles on a 64000-tile world used to pin the alarm at maximum.
+		[Fact]
+		public void OnALargeMap_AFewPollutedTilesDoNotPinTheAlarm()
+		{
+			Sim.NewGame(width: 320, height: 200);
+			Assert.Equal(6, Pollute(6));
+
+			Assert.True(Game.Instance.WarmingIndicator < 4,
+				$"6 of 64000 tiles should not be maximum alarm; got {Game.Instance.WarmingIndicator}");
+		}
+
+		// It must still reach maximum on a world that has genuinely earned it — above
+		// 5/8 of the warming trigger, which is 80 tiles on this map.
+		[Fact]
+		public void OnALargeMap_AFilthyWorldStillReachesMaximumAlarm()
+		{
+			Sim.NewGame(width: 320, height: 200);
+			int filthy = 5 * 320 * 200 / 4000 + 20;            // 100
+			Assert.True(Pollute(filthy) >= filthy, "map should have enough land to pollute");
+
+			Assert.Equal(4, Game.Instance.WarmingIndicator);
+		}
+
+		// A clean world reads clean, whatever the map size — warming 0 is what makes
+		// catastrophic storms impossible, so this is the floor the design relies on.
+		[Fact]
+		public void ACleanWorld_ReadsZeroOnEveryMapSize()
+		{
+			Sim.NewGame(width: 320, height: 200);
+			Assert.Equal(0, Game.Instance.WarmingIndicator);
+
+			Sim.NewGame(width: 80, height: 50);
+			Assert.Equal(0, Game.Instance.WarmingIndicator);
+		}
+
+		// Classic board unchanged: the original 1/3/5 steps, scale == 1.
+		[Fact]
+		public void OnAStandardMap_TheOriginalAlarmStepsAreUnchanged()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Assert.Equal(1, Pollute(1));
+			Assert.Equal(1, Game.Instance.WarmingIndicator);
+
+			Sim.NewGame(width: 80, height: 50);
+			Assert.Equal(3, Pollute(3));
+			Assert.Equal(2, Game.Instance.WarmingIndicator);
+
+			Sim.NewGame(width: 80, height: 50);
+			Assert.Equal(6, Pollute(6));
+			Assert.Equal(4, Game.Instance.WarmingIndicator);
+		}
+
 		// The small-map behaviour Civ 1 had must be unchanged: 8 tiles on 80x50 warms.
 		[Fact]
 		public void OnAStandardMap_TheOriginalThresholdIsUnchanged()
