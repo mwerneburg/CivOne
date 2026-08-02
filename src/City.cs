@@ -259,6 +259,23 @@ namespace CivOne
 
 		// ── tile yield methods ──────────────────────────────────────────────────
 
+		// Civ 1's pollution penalty, which did not survive into this implementation. A
+		// polluted tile yields HALF of everything, rounded down.
+		//
+		// Every other strand of the pollution system was here and correct — generation,
+		// the 20-unit tolerance, unhappiness, global warming, the settler cleanup orders —
+		// but nothing ever read tile.Pollution when computing output. Outside the code
+		// that sets it, the flag had four uses in the whole codebase: two save paths, the
+		// map overlay, and the warming count. So smog cost a city nothing it could feel,
+		// which is why AI empires grew fat under blankets of it and why cleaning up was
+		// pure altruism toward a global warming counter.
+		//
+		// Applied LAST, after irrigation, mines, railroads, wonders and Olvir bonuses, so
+		// it halves the tile's actual yield rather than its base terrain — the improvements
+		// on a poisoned tile are worth less too, which is the point of the rule.
+		private static int Polluted(ITile tile, int output)
+			=> tile.Pollution ? output / 2 : output;
+
 		internal int FoodValue(ITile tile)
 		{
 			// Grey goo is dead ground: nothing grows, nothing is mined, nothing moves.
@@ -282,7 +299,7 @@ namespace CivOne
 			if (tile.IsOcean && HasBuilding<SeaPlatform>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirF))
 				output += OlvirFoodBonus(olvirF);
-			return output;
+			return Polluted(tile, output);
 		}
 
 		internal int ShieldValue(ITile tile)
@@ -308,7 +325,7 @@ namespace CivOne
 			if (tile.IsOcean && !isCenter && HasBuilding<SeaPlatform>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirS))
 				output += OlvirShieldBonus(olvirS);
-			return output;
+			return Polluted(tile, output);
 		}
 
 		private int ShieldRaw => (int)(_cachedShieldRaw ??= ResourceTiles.Sum(t => ShieldValue(t)));
@@ -361,7 +378,7 @@ namespace CivOne
 			if (output > 0 && HasWonder<Colossus>() && !Game.WonderObsolete<Colossus>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirT))
 				output += OlvirTradeBonus(olvirT);
-			return output;
+			return Polluted(tile, output);
 		}
 
 		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)));
