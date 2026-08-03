@@ -315,7 +315,7 @@ namespace CivOne.Screens
 			int rateY = py + mapPanelH + ColGap;
 			int rateH = BodyY + BodyH - rateY;
 			if (rateH < 14) return;
-			this.DrawCassettePanel(px, rateY, pw, rateH, "RATES");
+			this.DrawCassettePanel(px, rateY, pw, rateH, "TRADE");
 
 			int taxRate = _city.Player?.TaxesRate   ?? 0;
 			int luxRate = _city.Player?.LuxuriesRate ?? 0;
@@ -325,17 +325,20 @@ namespace CivOne.Screens
 			int rowW = pw - 8;
 			int rowY = rateY + 8;
 
-			(string label, int rate, byte color)[] rows =
+			// The rate is the empire slider; the output is what THIS city yields, so
+			// cycling a specialist visibly moves its own row by 2.
+			(string label, int rate, int output, byte color)[] rows =
 			{
-				("TAX",     taxRate * 10, CassetteTheme.PHOS_DIM),
-				("SCIENCE", sciRate * 10, CassetteTheme.OK),
-				("LUXURY",  luxRate * 10, CassetteTheme.CYAN),
+				("TAX",     taxRate * 10, _city.Taxes,     CassetteTheme.PHOS_DIM),
+				("SCIENCE", sciRate * 10, _city.Science,   CassetteTheme.OK),
+				("LUXURY",  luxRate * 10, _city.Luxuries,  CassetteTheme.CYAN),
 			};
-			foreach (var (label, rate, color) in rows)
+			foreach (var (label, rate, output, color) in rows)
 			{
 				if (rowY + fh0 > rateY + rateH - 13) break;
-				this.DrawText(label,      0, CassetteTheme.INK_MID, rowX,        rowY);
-				this.DrawText($"{rate}%", 0, color,                  rowX + rowW, rowY, TextAlign.Right);
+				this.DrawText(label,        0, CassetteTheme.INK_MID, rowX,             rowY);
+				this.DrawText($"{rate}%",   0, CassetteTheme.INK_LOW, rowX + rowW - 22, rowY, TextAlign.Right);
+				this.DrawText($"{output}",  0, color,                 rowX + rowW,      rowY, TextAlign.Right);
 				rowY += fh0 + 1;
 			}
 

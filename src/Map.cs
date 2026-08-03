@@ -472,7 +472,14 @@ namespace CivOne
 		
 		public IEnumerable<ITile> ContinentTiles(int continentId) => AllTiles().Where(t => t.ContinentId == continentId);
 		
-		public IEnumerable<City> ContentCities(int continentId) => ContinentTiles(continentId).Where(x => x.City is not null).Select(x => x.City).ToArray();
+		// Walk the city list, not the map. Same set — a city is on the continent its own
+		// tile is on — but this is O(cities) instead of O(map tiles). The old form scanned
+		// all 64,000 tiles of a 320x200 board, and ComputeCitizens calls it twice per city
+		// per turn (J.S. Bach and Michelangelo), which was ~57M tile visits a turn at 443
+		// cities and by far the largest cost in the game. Left lazy: every caller uses
+		// Any(), so the scan now short-circuits as well.
+		public IEnumerable<City> ContentCities(int continentId) =>
+			Game.Instance.GetCities().Where(c => c.Tile is not null && c.Tile.ContinentId == continentId);
 		
 		public ITile this[int x, int y]
 		{
