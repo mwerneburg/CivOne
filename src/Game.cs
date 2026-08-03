@@ -3012,6 +3012,53 @@ namespace CivOne
 				.Any(c => c.ResourceTiles.Any(t => ResourceAt(t) == resource));
 		}
 
+		// Camp output: a remote camp ships its tile's shields to its owner's nearest
+		// city, at any distance. Until now a camp produced nothing at all — it only
+		// unlocked the resource, so a Coal camp removed the Factory penalty but the
+		// hills it sat on were simply wasted.
+		//
+		// Assignment is rebuilt at most once a turn: it costs O(camps x cities), which
+		// is nothing at the ~50 camps a long game reaches, but it is read once per city
+		// per turn and must not be recomputed there. A change in camp COUNT rebuilds
+		// immediately so a newly finished camp pays out the same turn; a change of
+		// OWNER at the same count (a captured camp) or a newly founded city that is
+		// now the closest one takes effect on the next turn roll, which is soon enough
+		// for a supply line.
+		private Dictionary<City, int>? _campShields;
+		private ushort _campShieldsTurn = ushort.MaxValue;
+		private int _campShieldsCount = -1;
+
+		internal int CampShields(City city)
+		{
+			if (_campShields is null || _campShieldsTurn != GameTurn || _campShieldsCount != ResourceCamps.Count)
+			{
+				_campShields = new Dictionary<City, int>();
+				_campShieldsTurn = GameTurn;
+				_campShieldsCount = ResourceCamps.Count;
+
+				foreach (var kv in ResourceCamps)
+				{
+					ITile tile = Map[kv.Key.x, kv.Key.y];
+					if (tile is null || tile.Shield <= 0) continue;
+
+					City? nearest = null;
+					int best = int.MaxValue;
+					foreach (City c in _cities)
+					{
+						if (c.Owner != kv.Value || c.Size == 0) continue;
+						int d = Common.DistanceToTile(kv.Key.x, kv.Key.y, c.X, c.Y);
+						if (d >= best) continue;
+						best = d;
+						nearest = c;
+					}
+					if (nearest is null) continue;   // owner has no cities left
+					_campShields.TryGetValue(nearest, out int running);
+					_campShields[nearest] = running + tile.Shield;
+				}
+			}
+			return _campShields.TryGetValue(city, out int shields) ? shields : 0;
+		}
+
 		// Camps change hands by occupation: any unit standing on a rival's camp
 		// at turn's end takes it — flags on mines, not ashes. A camp swallowed
 		// by a new city is absorbed (the city works the tile directly).

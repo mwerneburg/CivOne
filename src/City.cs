@@ -328,7 +328,10 @@ namespace CivOne
 			return Polluted(tile, output);
 		}
 
-		private int ShieldRaw => (int)(_cachedShieldRaw ??= ResourceTiles.Sum(t => ShieldValue(t)));
+		// Worked tiles, plus anything shipped in from a remote camp (Game.CampShields).
+		// Camp shields join the raw total, so a Factory multiplies them like any other.
+		private int ShieldRaw => (int)(_cachedShieldRaw ??=
+			ResourceTiles.Sum(t => ShieldValue(t)) + Game.Instance.CampShields(this));
 
 		internal int ShieldTotal
 		{
