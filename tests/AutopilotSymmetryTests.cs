@@ -50,6 +50,18 @@ namespace CivOne.Tests
 			return (ai, humanCity, rivalCity);
 		}
 
+		// IdleRetryTurn defers most idle units to their own turn in eight. Ask which turn
+		// this unit is due on rather than recomputing the key — the key has changed once
+		// already (it was per-tile, which bunched whole city garrisons onto one turn).
+		private static void AdvanceToThisUnitsRetryTurn(Player owner, IUnit unit)
+		{
+			for (ushort t = 0; t < 8; t++)
+			{
+				Game.Instance.GameTurn = t;
+				if (!AI.Instance(owner).TestIdleRetryDeferred(unit)) return;
+			}
+		}
+
 		// AI.Move both sets Goto and moves the unit, so a reused diplomat carries position and
 		// order state into the next decision. Each call gets a fresh one on the start tile.
 		private static (int X, int Y) TargetOf(Player ai)
@@ -57,8 +69,7 @@ namespace CivOne.Tests
 			Game g = Game.Instance;
 			IUnit dip = g.CreateUnit(UnitType.Diplomat, 42, 25, g.PlayerNumber(ai))!;
 			dip.MovesLeft = dip.Move;
-			// IdleRetryTurn defers most idle units; align the turn so this one is processed.
-			g.GameTurn = (ushort)((dip.X + dip.Y) & 7);
+			AdvanceToThisUnitsRetryTurn(ai, dip);
 			AI.Instance(ai).Move(dip);
 			var target = (dip.Goto.X, dip.Goto.Y);
 			if (g.GetUnits().Contains(dip)) g.DisbandUnit(dip);

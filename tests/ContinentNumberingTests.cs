@@ -190,7 +190,12 @@ namespace CivOne.Tests
 			City target = g.AddCity(theirs, 1, 35, 21)!;
 			IUnit dip = g.CreateUnit(UnitType.Diplomat, 33, 21, g.PlayerNumber(mine))!;
 			dip.MovesLeft = dip.Move;
-			g.GameTurn = (ushort)((dip.X + dip.Y) & 7);
+			// IdleRetryTurn defers most idle units to their own turn in eight; ask which one.
+			for (ushort t = 0; t < 8; t++)
+			{
+				g.GameTurn = t;
+				if (!AI.Instance(mine).TestIdleRetryDeferred(dip)) break;
+			}
 			Sim.ClearTasks();
 
 			AI.Instance(mine).Move(dip);

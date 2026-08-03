@@ -2128,6 +2128,10 @@ namespace CivOne
 		// turn). A parked unit does not move, so (X + Y) is a stable per-unit stagger:
 		// each one looks again on its own turn in eight, and the fleet spreads its probing
 		// across the cycle instead of all re-deciding at once.
+		// Test seam: IdleRetryTurn is private and the stagger is the only thing worth
+		// asserting on. Returns true when the unit is deferred this turn.
+		internal bool TestIdleRetryDeferred(IUnit unit) => IdleRetryTurn(unit);
+
 		private bool IdleRetryTurn(IUnit unit)
 		{
 			if (!unit.Goto.IsEmpty) return false;
@@ -2141,7 +2145,15 @@ namespace CivOne
 			        .Any(t => t is not null && t.City is not null && t.City.Owner != unit.Owner))
 				return false;
 
-			return ((unit.X + unit.Y) & 7) != (Game.GameTurn & 7);
+			// Stagger per UNIT, not per tile. (X + Y) looked like a per-unit key but it is a
+			// per-TILE one: every idle unit parked in the same city shares it, so a city
+			// holding thirty idle caravans re-probed all thirty on the same turn. Measured at
+			// turn 708 of the 2026-08-03 run — 14.3s of an 18.5s turn was pathfinding, and
+			// every spike landed on GameTurn & 7 == 4 while the other seven residues ran
+			// 0.4-0.6s. The identity hash is stable for the unit's lifetime and spreads
+			// evenly however the fleet is stacked. It does not survive save/load, which only
+			// means a unit re-draws its slot in the cycle — harmless either way.
+			return (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(unit) & 7) != (Game.GameTurn & 7);
 		}
 
 		// ── colonisation ──────────────────────────────────────────────────────
