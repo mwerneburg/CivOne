@@ -765,18 +765,20 @@ namespace CivOne
 				if (_continentSeenTurn == (int)Game.Instance.GameTurn) return _continentSeenFraction;
 				_continentSeenTurn = (int)Game.Instance.GameTurn;
 
-				// ContinentId 15 is the "misc" bucket every tiny island on the map shares,
-				// so it is not a landmass — admitting it here made "my home continent"
-				// mean "every islet on the planet", the fraction could never reach 0.95,
-				// and the civ built Explorers for the rest of the game. Global warming
-				// fragmentation puts plenty of cities on those tiles. A civ living
-				// entirely on islands has nothing to walk to anyway, so treat it as fully
-				// explored rather than sending it looking.
+				// Map.MiscContinent is the "misc" bucket, so it is not a landmass — admitting
+				// it here made "my home continent" mean "every islet on the planet", the
+				// fraction could never reach 0.95, and the civ built Explorers for the rest of
+				// the game. A civ living entirely on misc tiles has nothing to walk to anyway,
+				// so treat it as fully explored rather than sending it looking.
+				//
+				// Far rarer since the continent cap went from 14 to 254: an island that gets a
+				// real id now counts as a home continent and is explored properly, which is the
+				// point — see Map.MiscContinent.
 				HashSet<byte> home = new HashSet<byte>();
 				foreach (City c in Cities)
 				{
 					ITile? ct = Map.Instance[c.X, c.Y];
-					if (ct is not null && ct.ContinentId >= 1 && ct.ContinentId <= 14)
+					if (ct is not null && Map.NamedContinent(ct.ContinentId))
 						home.Add(ct.ContinentId);
 				}
 				if (home.Count == 0) return _continentSeenFraction = 1.0;

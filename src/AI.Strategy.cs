@@ -1518,7 +1518,7 @@ namespace CivOne
 		// Explorer had in the Canaries, and ~80 failed searches a turn were still
 		// showing in the timing log after that one was fixed.
 		// The "misc" bucket every landmass past the 14 named ones is folded into.
-		private const byte MISC_CONTINENT = 15;
+		private const byte MISC_CONTINENT = Map.MiscContinent;
 
 		private static bool LandReachable(IUnit unit, ITile tile)
 		{
@@ -1711,7 +1711,7 @@ namespace CivOne
 			int w = Map.WIDTH, h = Map.HEIGHT;
 			ITile? best = null;
 			int bestScore = int.MinValue;
-			byte from = boat.Tile?.ContinentId ?? 15;
+			byte from = boat.Tile?.ContinentId ?? MISC_CONTINENT;
 
 			for (int dy = -range; dy <= range; dy++)
 			for (int dx = -range; dx <= range; dx++)
@@ -1725,7 +1725,7 @@ namespace CivOne
 				// Must be coast — the boat has to reach it.
 				if (!tile.GetBorderTiles().Any(b => b is not null && b.IsOcean)) continue;
 				// Somewhere we could not already have walked.
-				if (from >= 1 && from <= 14 && tile.ContinentId == from) continue;
+				if (Map.NamedContinent(from) && tile.ContinentId == from) continue;
 				if (Game.GetCities().Any(c => c.Size > 0 && Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 
 				// Every viable candidate goes into the register, not just the winner — the
@@ -2005,7 +2005,7 @@ namespace CivOne
 			    .Where(id => id >= 1 && id <= 14));
 			bool reachable(City c) => ownContinents.Count == 0
 			    || (c.Tile is not null
-			        && c.Tile.ContinentId >= 1 && c.Tile.ContinentId <= 14
+			        && Map.NamedContinent(c.Tile.ContinentId)
 			        && ownContinents.Contains(c.Tile.ContinentId));
 
 			var candidates = Game.GetCities()
@@ -2366,8 +2366,8 @@ namespace CivOne
 			if (unit is Diplomat)
 			{
 				if (IdleRetryTurn(unit)) { unit.SkipTurn(); return; }
-				byte myContinent = unit.Tile?.ContinentId ?? 15;
-				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
+				byte myContinent = unit.Tile?.ContinentId ?? MISC_CONTINENT;
+				bool sameContinent(City c) => Map.NamedContinent(myContinent) && c.Tile is not null && c.Tile.ContinentId == myContinent;
 
 				bool FirstStepReachable(City c)
 				{
@@ -2457,8 +2457,8 @@ namespace CivOne
 				// No own-city fallback: walking an AI Caravan into its own city does nothing
 				// (CaravanChoice is human-only at Caravan.cs:100-103); the unit would idle
 				// on arrival and block its build slot. SkipTurn at home is better.
-				byte myContinent = unit.Tile?.ContinentId ?? 15;
-				bool sameContinent(City c) => myContinent != 15 && c.Tile is not null && c.Tile.ContinentId == myContinent;
+				byte myContinent = unit.Tile?.ContinentId ?? MISC_CONTINENT;
+				bool sameContinent(City c) => Map.NamedContinent(myContinent) && c.Tile is not null && c.Tile.ContinentId == myContinent;
 
 				bool FirstStepReachable(City c)
 				{
@@ -2547,7 +2547,7 @@ namespace CivOne
 					    && _attackTarget.Tile is not null
 					    && !Player.Cities.Any(oc => oc.Tile is not null
 					                              && oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
-					                              && oc.Tile.ContinentId >= 1 && oc.Tile.ContinentId <= 14);
+					                              && Map.NamedContinent(oc.Tile.ContinentId));
 					bool targetStale = _attackTarget is null
 					    || _attackTarget.Tile is null
 					    || _attackTarget.Size <= 0

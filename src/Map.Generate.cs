@@ -918,15 +918,16 @@ namespace CivOne
 
 			// Clear all IDs first
 			foreach (ITile tile in AllTiles())
-				tile.ContinentId = 15;
+				tile.ContinentId = MiscContinent;
 
-			// Assign IDs 1–14 to the 14 largest land regions; everything else stays 15
+			// Number every land region by descending size, up to the byte's capacity.
+			// See Map.MiscContinent for why this used to stop at 14 and why it no longer does.
 			var landRegions = regions
 				.Where(r => !r[0].IsOcean)
 				.OrderByDescending(r => r.Count)
 				.ToList();
 
-			for (int i = 0; i < Math.Min(14, landRegions.Count); i++)
+			for (int i = 0; i < Math.Min(MiscContinent - 1, landRegions.Count); i++)
 			{
 				byte id = (byte)(i + 1);
 				foreach (ITile tile in landRegions[i])
@@ -942,7 +943,7 @@ namespace CivOne
 			var continentSizes = new Dictionary<byte, int>();
 			foreach (ITile tile in AllTiles())
 			{
-				if (tile.IsOcean || tile.ContinentId == 15) continue;
+				if (tile.IsOcean || !NamedContinent(tile.ContinentId)) continue;
 				if (!continentSizes.ContainsKey(tile.ContinentId))
 					continentSizes[tile.ContinentId] = 0;
 				continentSizes[tile.ContinentId]++;

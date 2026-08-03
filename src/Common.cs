@@ -354,8 +354,8 @@ namespace CivOne
 				ITile src = map[sx, sy];
 				ITile dst = map[gx, gy];
 				if (src is not null && dst is not null
-				    && src.ContinentId >= 1 && src.ContinentId <= 14
-				    && dst.ContinentId >= 1 && dst.ContinentId <= 14
+				    && Map.NamedContinent(src.ContinentId)
+				    && Map.NamedContinent(dst.ContinentId)
 				    && src.ContinentId != dst.ContinentId)
 					return null;
 			}

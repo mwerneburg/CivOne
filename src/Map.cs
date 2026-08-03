@@ -374,6 +374,24 @@ namespace CivOne
 		
 		internal static bool TileIsType(ITile tile, params Terrain[] terrain) => terrain.Any(x => tile.Type == x);
 
+		// ContinentId space: 0 = unset (a freshly constructed tile before assignment),
+		// 1..254 = a real landmass numbered by descending size, 255 = "misc".
+		//
+		// This was 1..14 with 15 as misc — Civ 1's fixed 80x50 map has nothing like fourteen
+		// meaningful landmasses, so the cap never bound. On 320x200 it left dozens of islands
+		// unnumbered, and unnumbered means invisible to anything that reasons about land
+		// reachability: AI land-attack targeting skipped those cities entirely, and a Diplomat
+		// or Caravan standing on one could never pick a target at all, its own island included.
+		// Observed as an unmolested size-11 city on an island while the mainland was overrun.
+		//
+		// ContinentId is a byte and is NOT persisted (recomputed on load), so widening the
+		// range costs nothing in save compatibility.
+		public const byte MiscContinent = 255;
+
+		// A landmass the game will reason about. Excludes both the unset default and misc,
+		// which is the distinction every call site needs and several used to spell by hand.
+		public static bool NamedContinent(byte id) => id != 0 && id != MiscContinent;
+
 		// Set when a tile flips between land and ocean. ContinentId is computed once
 		// by CalculateContinentSize and then stored on the tile — and ChangeTileType
 		// builds a NEW tile object without carrying it over, so any land/ocean flip
