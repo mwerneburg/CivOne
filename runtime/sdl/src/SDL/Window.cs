@@ -119,18 +119,19 @@ namespace CivOne
 
 					if (!_redraw)
 					{
-						// Never sleep while the game still has work queued.
+						// Sleep unless there is work READY to run.
 						//
-						// This loop slept IdleWaitMs on every iteration that produced no frame,
-						// including the thousands per turn where the task queue was full and
-						// simply pacing itself to the tick rate. SDL_Delay(1) actually costs
-						// ~1.14ms, and the probe measured EIGHT THOUSAND of them per turn:
-						// 9.1 seconds of a 31-second turn spent doing nothing at all, which
-						// was the whole of the unexplained `other_ms`.
+						// Two wrong answers preceded this one. Sleeping unconditionally cost
+						// ~8,000 SDL_Delay(1) calls per turn at ~1.14ms each — 9.1 seconds of a
+						// 31-second turn. Skipping the sleep whenever GameTask.Any() was true
+						// then replaced that with a free spin: the queue is non-empty for most
+						// of a turn while the tick clock paces it at 60 Hz, so the loop lapped
+						// ~417,000 times per turn to do ~4,000 useful ticks.
 						//
-						// A real sleep is still taken when the queue is genuinely empty, so an
-						// idle game does not spin a core.
-						if (CivOne.GameTask.Any()) continue;
+						// RuntimeHandler.WorkReady distinguishes the two: the tick clock has
+						// advanced, or we are fast-forwarding an unwatched AI turn (where
+						// spinning IS what we want, and no sleep should be taken).
+						if (CivOne.RuntimeHandler.WorkReady) continue;
 
 						long __idle = CivOne.TurnMetrics.Now;
 						Wait(IdleWaitMs);

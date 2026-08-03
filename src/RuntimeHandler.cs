@@ -54,6 +54,25 @@ namespace CivOne
 		}
 		private uint _gameTick = 0;
 
+		// True when calling OnUpdate right now would actually do something: either the 60 Hz
+		// tick clock has moved on, or we are fast-forwarding an unwatched turn and want to
+		// drain the queue as fast as the machine allows.
+		//
+		// The host loop uses this to decide whether it may sleep. Gating that on
+		// GameTask.Any() instead — "is there work queued" rather than "is there work ready" —
+		// made the loop free-spin for the whole of every turn: 113 million iterations across
+		// 271 turns, ~417,000 per turn, against roughly 4,000 that did anything. That spin
+		// was the `other_ms` remainder.
+		public static bool WorkReady
+		{
+			get
+			{
+				RuntimeHandler h = _instance;
+				if (h is null) return false;
+				return h._gameTick < h.TickWatch || h.FastForwarding;
+			}
+		}
+
 		private bool Update()
 		{
 			long __q = TurnMetrics.Now;
