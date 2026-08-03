@@ -392,6 +392,14 @@ namespace CivOne
 		// which is the distinction every call site needs and several used to spell by hand.
 		public static bool NamedContinent(byte id) => id != 0 && id != MiscContinent;
 
+		// Water counterpart of MiscContinent / NamedContinent. A ship's reachability
+		// question ("can I sail there at all") is the same question a land unit answers
+		// for free from ContinentId, and answering it with A* costs a full flood of the
+		// ocean when the answer is no — measured at 29ms against 28us for a successful
+		// path. These give sea units the same one-byte oracle.
+		public const byte MiscOcean = 255;
+		public static bool NamedOcean(byte id) => id != 0 && id != MiscOcean;
+
 		// Set when a tile flips between land and ocean. ContinentId is computed once
 		// by CalculateContinentSize and then stored on the tile — and ChangeTileType
 		// builds a NEW tile object without carrying it over, so any land/ocean flip

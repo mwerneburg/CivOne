@@ -105,6 +105,7 @@ namespace CivOne.Tiles
 		public int Y { get; private set; }
 		public bool Special { get; protected set; }
 		public byte ContinentId { get; set; }
+		public byte OceanId { get; set; }
 		public byte LandValue { get; set; }
 		public byte LandScore
 		{

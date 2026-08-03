@@ -359,6 +359,21 @@ namespace CivOne
 				    && src.ContinentId != dst.ContinentId)
 					return null;
 			}
+			// Same oracle for ships, and it matters far more here: a land unit that cannot
+			// reach its target usually fails fast against a coastline, but an unreachable
+			// sea target makes A* expand the WHOLE connected ocean before conceding — 29ms
+			// against 28us for a route that exists. Enclosed seas and lakes are common on
+			// the Earth maps, so this is not a rare case. See Map.NumberWaterBodies.
+			else if (unit.Class == UnitClass.Water)
+			{
+				ITile src = map[sx, sy];
+				ITile dst = map[gx, gy];
+				if (src is not null && dst is not null
+				    && Map.NamedOcean(src.OceanId)
+				    && Map.NamedOcean(dst.OceanId)
+				    && src.OceanId != dst.OceanId)
+					return null;
+			}
 
 			var gScore = new Dictionary<int, int>();
 			var cameFrom = new Dictionary<int, int>();

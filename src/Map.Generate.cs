@@ -949,6 +949,85 @@ namespace CivOne
 				foreach (ITile tile in landRegions[i])
 					tile.ContinentId = id;
 			}
+
+			NumberWaterBodies();
+		}
+
+		// The water counterpart of the land numbering above, and it exists for the same
+		// reason: GotoStepInner short-circuits an impossible route to "no path" instead of
+		// searching for it. A sea unit had no such oracle, so every unreachable target cost
+		// a full flood of the ocean — measured at 29ms against 28us for a route that exists,
+		// and it is why a Frigate move averaged 178ms.
+		//
+		// Two things this fill must get right, both learned the hard way from the land one:
+		//
+		//   8-connected, because ships step diagonally like everything else. A 4-connected
+		//   fill would split two seas meeting at a corner and the planner would refuse a
+		//   legal crossing.
+		//
+		//   Cities count as water. A ship enters a friendly port, so a coastal city adjacent
+		//   to two seas is a canal joining them. Including EVERY city (not just our own, not
+		//   just coastal ones) can only OVER-merge, and over-merging is safe: the short
+		//   circuit only ever returns an early NO, so a body that is too generous just means
+		//   A* runs exactly as it does today. Under-merging would refuse a legal route, which
+		//   is the bug we are not willing to ship. An inland city forms its own one-tile body
+		//   and is never asked about.
+		// Founding a city can MERGE two water bodies (a coastal city is a canal), which is
+		// the one direction that matters: a stale split would refuse a legal route. Losing
+		// one only over-merges, which is harmless, but recompute both ways to keep the
+		// oracle sharp. Water-only, and only for coastal tiles — an inland city cannot
+		// join two seas, and a full CalculateContinentSize here would be wasteful.
+		internal void RecalculateWaterBodies() => NumberWaterBodies();
+
+		private void NumberWaterBodies()
+		{
+			bool Sailable(int x, int y) => _tiles[x, y].IsOcean || _tiles[x, y].City is not null;
+
+			foreach (ITile tile in AllTiles())
+				tile.OceanId = MiscOcean;
+
+			var regions = new List<List<ITile>>();
+			var visited = new bool[WIDTH, HEIGHT];
+			(int dx, int dy)[] neighbours =
+			{
+				(0,-1), (0,1), (-1,0), (1,0),
+				(-1,-1), (1,-1), (-1,1), (1,1)
+			};
+
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (visited[x, y] || !Sailable(x, y)) continue;
+
+				var region = new List<ITile>();
+				var queue = new Queue<(int x, int y)>();
+				queue.Enqueue((x, y));
+				visited[x, y] = true;
+
+				while (queue.Count > 0)
+				{
+					var (cx, cy) = queue.Dequeue();
+					region.Add(_tiles[cx, cy]);
+					foreach (var (dx, dy) in neighbours)
+					{
+						int nx = (cx + dx + WIDTH) % WIDTH;
+						int ny = cy + dy;
+						if (ny < 0 || ny >= HEIGHT) continue;
+						if (visited[nx, ny] || !Sailable(nx, ny)) continue;
+						visited[nx, ny] = true;
+						queue.Enqueue((nx, ny));
+					}
+				}
+				regions.Add(region);
+			}
+
+			regions.Sort((a, b) => b.Count.CompareTo(a.Count));
+			for (int i = 0; i < Math.Min(MiscOcean - 1, regions.Count); i++)
+			{
+				byte id = (byte)(i + 1);
+				foreach (ITile tile in regions[i])
+					tile.OceanId = id;
+			}
 		}
 		
 		private void CreateMountainRanges()

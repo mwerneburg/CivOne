@@ -21,6 +21,9 @@ namespace CivOne.Tiles
 		Terrain Type { get; }
 		bool Special { get; }
 		byte ContinentId { get; set; }
+		// Reachability id for SEA units, the water counterpart of ContinentId. See
+		// Map.CalculateContinentSize for why cities are part of the water fill.
+		byte OceanId { get; set; }
 		byte LandValue { get; set; }
 		byte LandScore { get; }
 		byte Movement { get; }

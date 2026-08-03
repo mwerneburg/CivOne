@@ -1712,6 +1712,7 @@ namespace CivOne
 			}
 			_cities.Add(city);
 			InvalidateBuiltWonders();
+			RefreshWaterBodiesIfCoastal(x, y);
 			Game.UpdateResources(city.Tile);
 			if (Game.Started)
 				_replayData.Add(new ReplayData.CityBuilt(_gameTurn, city.Owner, _cities.Count - 1, nameId, x, y));
@@ -1742,9 +1743,22 @@ namespace CivOne
 			}
 			_cities.Remove(city);
 			InvalidateBuiltWonders();
+			int wasX = city.X, wasY = city.Y;
 			city.X = 255;
 			city.Y = 255;
 			city.Owner = 0;
+			RefreshWaterBodiesIfCoastal(wasX, wasY);
+		}
+
+		// A city counts as sailable water (ships enter friendly ports), so gaining or
+		// losing a COASTAL one changes which seas connect. Inland cities cannot, so they
+		// skip the work — this runs a few hundred times a game, not every turn.
+		private static void RefreshWaterBodiesIfCoastal(int x, int y)
+		{
+			ITile tile = Map.Instance[x, y];
+			if (tile is null) return;
+			if (!tile.IsOcean && !tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)) return;
+			Map.Instance.RecalculateWaterBodies();
 		}
 		
 		internal City? GetCity(int x, int y)
