@@ -1755,11 +1755,7 @@ namespace CivOne
 		// 13x13 and then, on failure, 33x33 = 1089 tiles with a SiteSuitability call
 		// each, so it is the leading suspect for the 25 ms unit move.
 		internal ITile? BestSettleSite(IUnit settlers)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16); }
-			finally { TurnMetrics.AddBucket("site:BestSettleSite", __p); }
-		}
+			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
 
 		private ITile? BestSettleSiteWithin(IUnit settlers, int radius)
 		{
@@ -1900,12 +1896,7 @@ namespace CivOne
 
 		private enum Pass { Farm, Mine, Rail }
 
-		internal ITile? BestImproveSite(IUnit settlers)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestImproveSiteInner(settlers); }
-			finally { TurnMetrics.AddBucket("site:BestImproveSite", __p); }
-		}
+		internal ITile? BestImproveSite(IUnit settlers) => BestImproveSiteInner(settlers);
 
 		private ITile? BestImproveSiteInner(IUnit settlers)
 		{
@@ -2079,12 +2070,7 @@ namespace CivOne
 		// parked in or beside one of our coastal cities. Returns its tile, which the settler
 		// walks onto to board. Nothing else in the AI ever put a settler on a ship, which is
 		// why overseas colonisation only happened via the Longboat and therefore never.
-		private ITile? BoardingTile(IUnit settler)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BoardingTileInner(settler); }
-			finally { TurnMetrics.AddBucket("site:BoardingTile", __p); }
-		}
+		private ITile? BoardingTile(IUnit settler) => BoardingTileInner(settler);
 
 		private ITile? BoardingTileInner(IUnit settler)
 		{
@@ -2371,13 +2357,6 @@ namespace CivOne
 
 				bool FirstStepReachable(City c)
 				{
-					long __fs = TurnMetrics.Now;
-					try { return FirstStepReachableInner(c); }
-					finally { TurnMetrics.AddBucket("dip:FirstStep", __fs); }
-				}
-
-				bool FirstStepReachableInner(City c)
-				{
 					ITile? step = Common.GotoStep(unit, c.X, c.Y);
 					if (step is null) return false;
 					// When the first step IS the target city, the Diplomat is adjacent and the step
@@ -2406,14 +2385,6 @@ namespace CivOne
 				// the nearest few — a diplomat only wants a near target, and if the closest
 				// handful are all unreachable, farther ones on the same blocked landmass are too.
 				const int MaxProbes = 4;
-				// Temporary probe (goes with the rest of the instrumentation). The 2026-08-02
-				// run put Diplomats at the top of the move cost — 19,701 moves over 99 turns at
-				// 16 ms each, 3.19 s/turn — and this block holds the only two candidates: the
-				// four A* probes (dip:FirstStep, timed separately inside FirstStepReachable) and
-				// the two full Game.GetCities() scan-and-sorts that wrap them. dip:Target minus
-				// dip:FirstStep is the scan; dip:Target's own call count says how many moves get
-				// this far at all, since IdleRetryTurn should be turning 7 in 8 away above.
-				long __dt = TurnMetrics.Now;
 				City target =
 					// Espionage priority: the human's cities — but NEVER our own. When the
 					// human is on Autopilot the acting Player IS the human, so without the
@@ -2432,7 +2403,6 @@ namespace CivOne
 					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 					    .Take(MaxProbes)
 					    .FirstOrDefault(FirstStepReachable);
-				TurnMetrics.AddBucket("dip:Target", __dt);
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				// Sentry rather than SkipTurn, for the reason spelled out at the Caravan
 				// below: a diplomat with no reachable target re-ran four full A* searches
@@ -3615,12 +3585,7 @@ namespace CivOne
 
 		// ── exploration helpers ───────────────────────────────────────────────
 
-		internal ITile? BestExploreTile(IUnit unit)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestExploreTileInner(unit); }
-			finally { TurnMetrics.AddBucket("site:BestExploreTile", __p); }
-		}
+		internal ITile? BestExploreTile(IUnit unit) => BestExploreTileInner(unit);
 
 		private ITile? BestExploreTileInner(IUnit unit)
 		{

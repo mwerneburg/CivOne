@@ -1265,9 +1265,20 @@ namespace CivOne
 
 		private void ExecutePollution()
 		{
-			if (!GeneratePollution()) return;
+			// TEMPORARY (2026-08-03) — city:ExecutePollution measured 3.2 ms per city per
+			// turn (592 s of a 103-minute run) and could not be reproduced synthetically:
+			// SmokeStacks, Tile.City and CityRadius are all 22 us or less in a test world.
+			// The difference must be that test cities are not industrialised, so
+			// GeneratePollution short-circuits and the tile scan below never runs. These
+			// two buckets settle which half it is on a real board.
+			long __gp = TurnMetrics.Now;
+			bool polluting = GeneratePollution();
+			TurnMetrics.AddBucket("city:PollutionGen", __gp);
+			if (!polluting) return;
 
+			long __pp = TurnMetrics.Now;
 			var candidates = CityTiles.Where(t => !t.Pollution && t.City is null && !t.IsOcean).ToList();
+			TurnMetrics.AddBucket("city:PollutionPick", __pp);
 			if (candidates.Count == 0) return;
 
 			candidates[Common.Random.Next(candidates.Count)].Pollution = true;
@@ -1327,13 +1338,8 @@ namespace CivOne
 			// round across ~480 cities, and has never been broken down. These four cover the
 			// stages that touch tiles or recompute yields; whatever they do not account for is
 			// city_turn_ms minus their sum, which is the rest of this method.
-			long __ic = TurnMetrics.Now;
 			InvalidateCache();
-			TurnMetrics.AddBucket("city:InvalidateCache", __ic);
-
-			long __ur = TurnMetrics.Now;
 			UpdateResources();
-			TurnMetrics.AddBucket("city:UpdateResources", __ur);
 
 			long __ep = TurnMetrics.Now;
 			ExecutePollution();

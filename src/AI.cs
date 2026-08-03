@@ -71,7 +71,6 @@ namespace CivOne
 		{
 			if (_pollutionBacklogTurn == Game.GameTurn) return _pollutionBacklog;
 
-			long __p = TurnMetrics.Now;
 			const int R = 3;                       // must match the old predicate's <= 3
 			var seen = new HashSet<int>();
 			int n = 0;
@@ -89,7 +88,6 @@ namespace CivOne
 
 			_pollutionBacklogTurn = Game.GameTurn;
 			_pollutionBacklog = n;
-			TurnMetrics.AddBucket("settler:PollutionBacklog", __p);
 			return n;
 		}
 

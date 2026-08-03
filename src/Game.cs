@@ -692,10 +692,8 @@ namespace CivOne
 				// once). Same reasoning as AI.PollutionBacklog.
 				if (_warmingIndicatorTurn == _gameTurn) return _warmingIndicator;
 
-				long __wi = TurnMetrics.Now;
 				int scale = Math.Max(1, Map.WIDTH * Map.HEIGHT / 4000);
 				int n = Map.AllTiles().Count(t => t.Pollution);
-				TurnMetrics.AddBucket("tick:WarmingIndicatorScan", __wi);
 				int level = n == 0        ? 0
 				          : n <= 1 * scale ? 1
 				          : n <= 3 * scale ? 2
