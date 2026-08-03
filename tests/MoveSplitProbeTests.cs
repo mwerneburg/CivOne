@@ -33,6 +33,19 @@ namespace CivOne.Tests
 			return (p, u);
 		}
 
+		// The settler site scans are restored and are now the largest unattributed cost,
+		// so at least one must fire — this catches a probe wrapped around a dead method.
+		[Fact]
+		public void MovingASettler_RecordsAtLeastOneSiteScan()
+		{
+			var (owner, unit) = AUnitOnGrass();
+			TurnMetrics.Reset();
+
+			AI.Instance(owner).Move(unit);
+
+			Assert.Contains(TurnMetrics.Buckets(), b => b.Key.StartsWith("site:") && b.Calls > 0);
+		}
+
 		[Fact]
 		public void MovingAUnit_RecordsItUnderItsOwnType()
 		{

@@ -131,7 +131,13 @@ namespace CivOne
 		// Autopilot inside Options would otherwise immediately untoggle it.
 		private uint _autopilotDwell = 0;
 		private IScreen? _autopilotLastTop = null;
-		private const uint AUTOPILOT_DWELL_TICKS = 30;  // ~0.5s at the 60-tick rate
+		// How long an auto-dismissable screen sits before autopilot presses Enter. This was
+		// 30 ticks (~0.5s), which the 2088 AD run showed costs 2.15s of a 12.3s turn in the
+		// pace: buckets — the queue held by Message, Show and ImprovementBuilt while nobody
+		// reads them. It only ever applies to autopilot (AutopilotTick returns early
+		// otherwise), so no human ever loses reading time to this. Kept non-zero so a
+		// watched autopilot run is still followable and the screen actually gets drawn.
+		private const uint AUTOPILOT_DWELL_TICKS = 6;   // ~0.1s at the 60-tick rate
 
 		// Screens where pressing Enter would be a user-initiated action (toggling an option,
 		// confirming a save, picking a menu entry) — never auto-dismiss these. Identification
