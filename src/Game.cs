@@ -1096,6 +1096,16 @@ namespace CivOne
 					{
 						byte hnum = PlayerNumber(HumanPlayer);
 						int humanOut = GrossOutput(HumanPlayer);
+						// Deliberate asymmetry with econRivals above: the story factions are NOT
+						// rivals you must bind by tribute or trade, but whatever economic value
+						// sits under the Registry IS part of the world you must out-earn. An
+						// occupied world has no commercial hegemon. This is not an oversight —
+						// do not propagate the TheOthers/TheThing/Skynet exclusion down here.
+						//
+						// It resolves itself: the Owners empty cities rather than run them, so
+						// once humanity throws them off they hit Cities.Length == 0, count as
+						// destroyed, and drop out of this sum. The streak resets on every break,
+						// so a liberated world can start a fresh 20 turns and win properly.
 						int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
 							.Sum(GrossOutput);
 						bool share = humanOut > 0 && humanOut * 2 > worldOut;
