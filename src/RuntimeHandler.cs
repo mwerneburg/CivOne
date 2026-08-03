@@ -213,8 +213,23 @@ namespace CivOne
 		// the existing fast-forward path already does for unwatched turns.
 		private const uint MAX_TICK_BACKLOG = 120;
 
+		// TEMPORARY (2026-08-03) — which task type the 60 Hz pacing wait is spent on.
+		//
+		// tick:LoopIdle is 7,085 sleeps a turn, 8.25s, a quarter of the whole turn, and it is
+		// the loop correctly waiting because FastForwarding is false. FastForwarding needs the
+		// task AT THE HEAD OF THE QUEUE to carry [Fast], and only Turn and MoveUnit do — but
+		// which of the other eight is actually holding the queue is unknown, and marking the
+		// wrong one [Fast] risks blurring past something a player needs to see. This attributes
+		// the wall time between updates to the task that was waiting, so the next run names it.
+		private long _lastUpdateStamp;
+
 		private void OnUpdate(object sender, UpdateEventArgs args)
 		{
+			long previousUpdate = _lastUpdateStamp;
+			_lastUpdateStamp = TurnMetrics.Now;
+			if (previousUpdate != 0 && GameTask.Any() && !FastForwarding)
+				TurnMetrics.AddBucket("pace:" + GameTask.CurrentName, previousUpdate);
+
 			// Always run at least one tick so the game cannot stall, then keep going
 			// only while inside the budget.
 			Stopwatch tickBudget = Stopwatch.StartNew();

@@ -293,9 +293,24 @@ namespace CivOne
 		// True when the human player has broken away from the pack: 2× the cities or 2× the
 		// score of the strongest AI.  8-city floor on the city check so it doesn't fire in
 		// the early expansion phase before civs have had a chance to settle.
+		// The human the AI plays ASYMMETRICALLY against — null when nobody is at the controls.
+		//
+		// Three behaviours single the human out: diplomats put their cities at the head of the
+		// espionage queue, ConsiderDiplomacy aims every demand (tribute, war threat, "cede this
+		// city") at them and at nobody else, and HumanIsDominant steers attacks their way. That
+		// is difficulty design for a played game. In an unattended run it means thirteen civs
+		// dogpile one, and the human slot was the ONLY civ to collapse in four consecutive
+		// autoplay games — 10 cities at turn 100 down to none by turn 700 while every other civ
+		// grew monotonically.
+		//
+		// Read live rather than latched at load: a play-tester who stops autopilot to look
+		// around is the human again on the very next decision, and hands back on resume.
+		// Settings.Autopilot is session-only and always starts off (Settings.cs:237).
+		private static Player? HumanOpponent => Settings.Instance.Autopilot ? null : Human;
+
 		private bool HumanIsDominant()
 		{
-			Player human = Human;
+			Player human = HumanOpponent;
 			if (human is null || human.IsDestroyed()) return false;
 
 			Player[] aiPlayers = Game.Players
@@ -1079,7 +1094,10 @@ namespace CivOne
 
 			if (Player.IsDestroyed()) return;
 
-			Player human = Human;
+			// HumanOpponent, not Human: this whole channel is human-directed (there is no
+			// AI-to-AI equivalent), so under autopilot every civ aims its tribute demands and
+			// cede-city ultimatums at the one unattended player.
+			Player human = HumanOpponent;
 			if (human is null || human == Player || human.IsDestroyed()) return;
 
 			// Only approach if we've spotted at least one of their cities
@@ -1997,7 +2015,7 @@ namespace CivOne
 			             && reachable(c));
 
 			// When the human is dominant and we're at war with them, hit their cities first.
-			Player human = Human;
+			Player human = HumanOpponent;
 			if (HumanIsDominant() && human is not null && Player.IsAtWar(human))
 			{
 				City humanCity = candidates
@@ -2376,7 +2394,10 @@ namespace CivOne
 					return true;
 				}
 
-				Player human = Human;
+				// HumanOpponent, not Human: with nobody at the controls this clause yields
+				// nothing and the search falls straight through to the nearest foreign city,
+				// so espionage spreads across the world instead of converging on one civ.
+				Player human = HumanOpponent;
 				// FirstStepReachable runs a full A* per candidate, and a same-continent target
 				// with no real path (imperfect ContinentId, a chokepoint held by a peaceful
 				// neighbour) makes that A* explore the whole landmass before failing. Probing

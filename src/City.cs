@@ -1323,14 +1323,28 @@ namespace CivOne
 			//   7. Production completion — unit/building/wonder/SS part built when shields full.
 			// Reset cached tile yields so changes from the previous turn (irrigation,
 			// railroad, pollution) are reflected before any income is read this turn.
+			// TEMPORARY (2026-08-03) — city_turn is ~14ms per city per turn and 17-20% of the
+			// round across ~480 cities, and has never been broken down. These four cover the
+			// stages that touch tiles or recompute yields; whatever they do not account for is
+			// city_turn_ms minus their sum, which is the rest of this method.
+			long __ic = TurnMetrics.Now;
 			InvalidateCache();
+			TurnMetrics.AddBucket("city:InvalidateCache", __ic);
+
+			long __ur = TurnMetrics.Now;
 			UpdateResources();
+			TurnMetrics.AddBucket("city:UpdateResources", __ur);
+
+			long __ep = TurnMetrics.Now;
 			ExecutePollution();
+			TurnMetrics.AddBucket("city:ExecutePollution", __ep);
 
 			// Cache expensive per-city computations once for the whole turn.
+			long __in = TurnMetrics.Now;
 			int shieldIncome = ShieldIncome;
 			int foodIncome   = FoodIncome;
 			Citizen[] citizensSnapshot = Citizens.ToArray();
+			TurnMetrics.AddBucket("city:Income", __in);
 			int happyCit   = citizensSnapshot.Count(c => c == Citizen.HappyMale   || c == Citizen.HappyFemale);
 			int unhappyCit = citizensSnapshot.Count(c => c == Citizen.UnhappyMale || c == Citizen.UnhappyFemale);
 			int contentCit = citizensSnapshot.Count(c => c == Citizen.ContentMale || c == Citizen.ContentFemale);

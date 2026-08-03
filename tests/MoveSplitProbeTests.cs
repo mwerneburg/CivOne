@@ -107,6 +107,28 @@ namespace CivOne.Tests
 				b => b.Key == "tick:WarmingIndicatorScan" && b.Calls == 1);
 		}
 
+		// The city_turn breakdown: 17-20% of the round, ~14ms per city, never profiled. All
+		// four stages must register, or the run answers nothing about the second-largest
+		// unexplained block.
+		[Fact]
+		public void ACityTurn_RecordsItsStageBreakdown()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			Player p = g.Players.First(x => x is not null && g.PlayerNumber(x) != 0);
+			p.Explore(42, 25, range: 6);
+			City c = g.AddCity(p, 0, 42, 25)!;
+			c.Size = 4;
+			Sim.ClearTasks();
+			TurnMetrics.Reset();
+
+			c.NewTurn();
+
+			foreach (string stage in new[] { "city:InvalidateCache", "city:UpdateResources",
+			                                 "city:ExecutePollution", "city:Income" })
+				Assert.Contains(TurnMetrics.Buckets(), b => b.Key == stage && b.Calls == 1);
+		}
+
 		// Reset runs at every turn wrap; a bucket that kept counting across turns would
 		// make every reading cumulative and the whole log useless.
 		[Fact]

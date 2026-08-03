@@ -23,6 +23,10 @@ namespace CivOne
 		public static bool Any() => (_tasks.Count > 0);
 		public static bool Is<T>() where T : GameTask => (_currentTask is not null && _currentTask is T);
 		public static bool Fast => _currentTask is not null && Common.HasAttribute<Fast>(_currentTask);
+		// TEMPORARY (2026-08-03): names the task holding the queue, so the pacing probe in
+		// RuntimeHandler can say WHICH task type the 60 Hz wait is being spent on. Remove with
+		// the rest of the instrumentation.
+		internal static string CurrentName => _currentTask?.GetType().Name ?? "none";
 		public static int Count<T>() where T : GameTask => _tasks.Count(t => t is T);
 
 		private static void NextTask()
