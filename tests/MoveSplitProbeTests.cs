@@ -33,19 +33,6 @@ namespace CivOne.Tests
 			return (p, u);
 		}
 
-		// The settler site scans are restored and are now the largest unattributed cost,
-		// so at least one must fire — this catches a probe wrapped around a dead method.
-		[Fact]
-		public void MovingASettler_RecordsAtLeastOneSiteScan()
-		{
-			var (owner, unit) = AUnitOnGrass();
-			TurnMetrics.Reset();
-
-			AI.Instance(owner).Move(unit);
-
-			Assert.Contains(TurnMetrics.Buckets(), b => b.Key.StartsWith("site:") && b.Calls > 0);
-		}
-
 		[Fact]
 		public void MovingAUnit_RecordsItUnderItsOwnType()
 		{
@@ -55,28 +42,6 @@ namespace CivOne.Tests
 			AI.Instance(owner).Move(unit);
 
 			Assert.Contains(TurnMetrics.Buckets(), b => b.Key == "unit:Settlers" && b.Calls == 1);
-		}
-
-		// The city_turn breakdown. city:Income is answered (Map.ContentCities was scanning
-		// every tile on the board); city:ExecutePollution is not, and PollutionGen is the
-		// probe that should settle it — so both must register, or the run answers nothing.
-		[Fact]
-		public void ACityTurn_RecordsItsStageBreakdown()
-		{
-			Sim.NewGame(width: 80, height: 50);
-			Game g = Game.Instance;
-			Player p = g.Players.First(x => x is not null && g.PlayerNumber(x) != 0);
-			p.Explore(42, 25, range: 6);
-			City c = g.AddCity(p, 0, 42, 25)!;
-			c.Size = 4;
-			Sim.ClearTasks();
-			TurnMetrics.Reset();
-
-			c.NewTurn();
-
-			foreach (string stage in new[] { "city:ExecutePollution", "city:PollutionGen",
-			                                 "city:Income" })
-				Assert.Contains(TurnMetrics.Buckets(), b => b.Key == stage && b.Calls == 1);
 		}
 
 		// Reset runs at every turn wrap; a bucket that kept counting across turns would

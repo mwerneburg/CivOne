@@ -291,7 +291,16 @@ namespace CivOne.Units
 			// Any hostile act against another civ triggers a state of war.
 			// Democracy: the Senate blocks sneak attacks — the unit cannot initiate
 			// a new war, so only proceed if already at war with the target.
-			if (Human == Owner && Player.Government is Governments.Democracy)
+			// ...but not when the AI is steering this civ. The Senate veto is a HUMAN
+			// handicap: it exists so a democratic player must answer to their legislature.
+			// Under Autopilot the acting player IS the human slot, so without this clause
+			// the autopiloted civ is the only democracy in the world that cannot start a
+			// war — every AI civ attacks freely while it stands down. Same rule the
+			// difficulty handicap and the diplomat targeting already follow (City.cs
+			// "aiRun", AI.Strategy "HumanOpponent"), and it keeps autoplay runs
+			// representative of AI behaviour rather than of a crippled human slot.
+			if (Human == Owner && !Settings.Instance.Autopilot
+			    && Player.Government is Governments.Democracy)
 			{
 				Player? targetOwner = moveTarget.City is not null
 				    ? Game.GetPlayer(moveTarget.City.Owner)

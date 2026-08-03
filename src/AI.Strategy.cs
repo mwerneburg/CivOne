@@ -1754,16 +1754,8 @@ namespace CivOne
 		// TEMPORARY probe (2026-08-02) — see TurnMetrics.AddBucket. This one scans
 		// 13x13 and then, on failure, 33x33 = 1089 tiles with a SiteSuitability call
 		// each, so it is the leading suspect for the 25 ms unit move.
-		// TEMPORARY (2026-08-03) — restored. These were dropped as "quiet" when city:Income
-		// at 1265s dominated the table; with that gone unit:Settlers is the largest real
-		// work item in the game (802s, 8.7ms per move, and RISING from 4.8ms) and these two
-		// scans are the only candidates big enough to hold it.
 		internal ITile? BestSettleSite(IUnit settlers)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16); }
-			finally { TurnMetrics.AddBucket("site:BestSettleSite", __p); }
-		}
+			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
 
 		private ITile? BestSettleSiteWithin(IUnit settlers, int radius)
 		{
@@ -1904,12 +1896,7 @@ namespace CivOne
 
 		private enum Pass { Farm, Mine, Rail }
 
-		internal ITile? BestImproveSite(IUnit settlers)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestImproveSiteInner(settlers); }
-			finally { TurnMetrics.AddBucket("site:BestImproveSite", __p); }
-		}
+		internal ITile? BestImproveSite(IUnit settlers) => BestImproveSiteInner(settlers);
 
 		private ITile? BestImproveSiteInner(IUnit settlers)
 		{
@@ -3680,12 +3667,7 @@ namespace CivOne
 		// Targets are water (the ship has to be able to float there) chosen for how much
 		// fog they would lift. Coast counts double: a ship that reaches an unknown
 		// shoreline reveals a landmass, which is the thing worth knowing.
-		internal ITile? BestSeaExploreTile(IUnit unit)
-		{
-			long __p = TurnMetrics.Now;
-			try { return BestSeaExploreTileInner(unit); }
-			finally { TurnMetrics.AddBucket("site:BestSeaExploreTile", __p); }
-		}
+		internal ITile? BestSeaExploreTile(IUnit unit) => BestSeaExploreTileInner(unit);
 
 		private ITile? BestSeaExploreTileInner(IUnit unit)
 		{

@@ -76,6 +76,57 @@ namespace CivOne.Tests
 			return target;
 		}
 
+		// The Senate veto is the same asymmetry in the other direction. Under Democracy the
+		// human cannot start a war without the legislature's consent — a handicap that has
+		// no AI counterpart, so under autopilot the steered civ was the only democracy in
+		// the world that could not attack, while every AI civ attacked freely.
+		private static bool AttackWasVetoed(bool autopilot)
+		{
+			Sim.NewGame(width: 80, height: 50);
+			for (int y = 20; y <= 30; y++)
+			for (int x = 35; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Game g = Game.Instance;
+			Player human = g.HumanPlayer;
+			Player rival = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != human);
+			human.Government = new Governments.Democracy();
+			human.Explore(42, 25, range: 12);
+			g.AddCity(rival, 0, 43, 25);
+			Assert.False(human.IsAtWar(rival));   // no war yet: the veto's precondition
+
+			IUnit soldier = g.CreateUnit(UnitType.Militia, 42, 25, g.PlayerNumber(human))!;
+			soldier.MovesLeft = soldier.Move;
+			Sim.ClearTasks();
+
+			// Observe the OUTCOME, not MoveTo's return value: a human unit's move is a
+			// visible animation that never completes headless, so MoveTo reports false
+			// either way. The veto returns before DeclareWar, so "did war break out" is
+			// both the real question and the only clean signal.
+			Settings.Instance.Autopilot = autopilot;
+			try
+			{
+				soldier.MoveTo(1, 0);
+				return !human.IsAtWar(rival);
+			}
+			finally { Settings.Instance.Autopilot = false; }
+		}
+
+		// A person at the controls still answers to their Senate. This is the constraint.
+		[Fact]
+		public void WithAPlayerAtTheControls_TheSenateStillBlocksTheAttack()
+		{
+			Assert.True(AttackWasVetoed(autopilot: false));
+		}
+
+		// Under autopilot the AI is driving, so it gets the AI's terms.
+		[Fact]
+		public void UnderAutopilot_TheSenateDoesNotBlockTheAttack()
+		{
+			Assert.False(AttackWasVetoed(autopilot: true));
+		}
+
 		// Autopilot ON: the diplomat must not single out the human.
 		[Fact]
 		public void UnderAutopilot_DiplomatsDoNotPreferTheHumansCities()
