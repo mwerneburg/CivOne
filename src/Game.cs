@@ -2819,7 +2819,7 @@ namespace CivOne
 			// Half the population, floored at 1. Civ 1 halves rather than razes, and a
 			// missile that could erase a size-1 town outright would make late-game AI
 			// nuking a map-clearing weapon rather than a siege one.
-			City struck = Map[cx, cy]?.City;
+			City? struck = Map[cx, cy]?.City;
 			if (struck is not null && struck.Size > 1)
 			{
 				struck.Size = (byte)Math.Max(1, struck.Size / 2);

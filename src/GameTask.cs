@@ -22,7 +22,24 @@ namespace CivOne
 
 		public static bool Any() => (_tasks.Count > 0);
 		public static bool Is<T>() where T : GameTask => (_currentTask is not null && _currentTask is T);
-		public static bool Fast => _currentTask is not null && Common.HasAttribute<Fast>(_currentTask);
+		// Between two tasks _currentTask is null (Finish clears it) while the queue is still
+		// full, and the very next Update() call starts the one at the head. Judging Fast only
+		// by _currentTask made that gap read as "not fast", so the host loop dropped out of
+		// fast-forward and paced the transition at 60 Hz — measured at 518,654 transitions over
+		// 381 turns, ~1,361 per turn at ~3.6ms each: 4.9 seconds of a 13-second turn, the
+		// largest single cost in the game and more than every named task type combined.
+		//
+		// Falling back to the head of the queue is exactly as conservative as before: it asks
+		// the same question of the task that is about to run, so a Show or a Message still
+		// stops the fast-forward before it is displayed.
+		public static bool Fast
+		{
+			get
+			{
+				GameTask? task = _currentTask ?? (_tasks.Count > 0 ? _tasks[0] : null);
+				return task is not null && Common.HasAttribute<Fast>(task);
+			}
+		}
 		// TEMPORARY (2026-08-03): names the task holding the queue, so the pacing probe in
 		// RuntimeHandler can say WHICH task type the 60 Hz wait is being spent on. Remove with
 		// the rest of the instrumentation.
