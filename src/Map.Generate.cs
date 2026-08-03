@@ -899,8 +899,24 @@ namespace CivOne
 					var (cx, cy) = queue.Dequeue();
 					region.Add(_tiles[cx, cy]);
 
-					// 4-connected neighbours; X wraps, Y clamps
-					(int dx, int dy)[] neighbours = { (0,-1), (0,1), (-1,0), (1,0) };
+					// 8-connected neighbours; X wraps, Y clamps.
+					//
+					// Must match how units actually move (Common.GotoStepInner steps to all
+					// eight neighbours), because a ContinentId is used as a REACHABILITY claim:
+					// GotoStepInner short-circuits to "no path" when source and destination
+					// carry different named ids. With a 4-connected fill, two landmasses meeting
+					// only at a corner got different ids while a land unit could walk straight
+					// across the diagonal — so the planner refused a route that was legal.
+					//
+					// Latent while small islands were all lumped into the misc bucket (the
+					// short-circuit needs BOTH ends named), and exposed the moment every island
+					// got a real id. Diagonally touching landmasses are one continent because a
+					// unit can walk between them; genuinely sea-separated ones still are not.
+					(int dx, int dy)[] neighbours =
+					{
+						(0,-1), (0,1), (-1,0), (1,0),
+						(-1,-1), (1,-1), (-1,1), (1,1)
+					};
 					foreach (var (dx, dy) in neighbours)
 					{
 						int nx = (cx + dx + WIDTH) % WIDTH;

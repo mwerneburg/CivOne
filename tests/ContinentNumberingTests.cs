@@ -66,6 +66,57 @@ namespace CivOne.Tests
 			Assert.Equal(20, ids.Count);
 		}
 
+		// A ContinentId is a REACHABILITY claim: GotoStepInner short-circuits to "no path" when
+		// the two ends carry different named ids. So the flood fill has to agree with how units
+		// move, and units move to all eight neighbours.
+		//
+		// With a 4-connected fill, two landmasses meeting at a corner got different ids while a
+		// land unit could walk straight across the diagonal — the planner refused a legal route.
+		// Latent while small islands sat in the misc bucket (the short-circuit needs BOTH ends
+		// named) and exposed the moment every island got a real id.
+		[Fact]
+		public void LandmassesTouchingDiagonally_AreOneContinent()
+		{
+			DrownTheWorld();
+			Land(10, 10, 5, 5);      // x10-14, y10-14
+			Land(15, 15, 5, 5);      // x15-19, y15-19 — meets the first only at (14,14)/(15,15)
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Assert.Equal(Map.Instance[12, 12].ContinentId, Map.Instance[17, 17].ContinentId);
+		}
+
+		// ...and the planner must actually route across that corner, which is the behaviour the
+		// id was standing in for.
+		[Fact]
+		public void AUnitCanPathAcrossADiagonalLandBridge()
+		{
+			DrownTheWorld();
+			Land(10, 10, 5, 5);
+			Land(15, 15, 5, 5);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Game g = Game.Instance;
+			Player p = g.Players.First(x => x is not null && g.PlayerNumber(x) != 0
+			                             && x != g.HumanPlayer);
+			p.Explore(15, 15, range: 15);
+			IUnit u = g.CreateUnit(UnitType.Militia, 12, 12, g.PlayerNumber(p))!;
+
+			Assert.NotNull(Common.GotoStep(u, 17, 17));
+		}
+
+		// The other half: a genuine sea gap must still separate them, or the fix has gone too
+		// far and every island in a cluster becomes one continent.
+		[Fact]
+		public void LandmassesSeparatedByOcean_StayDistinct()
+		{
+			DrownTheWorld();
+			Land(10, 10, 5, 5);      // ends at x14
+			Land(17, 15, 5, 5);      // starts at x17 — a clear tile of ocean between them
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Assert.NotEqual(Map.Instance[12, 12].ContinentId, Map.Instance[19, 17].ContinentId);
+		}
+
 		// A small island must get its own id, distinct from the mainland — not be lumped in,
 		// and not be left misc. This is the Taiwan case.
 		[Fact]
