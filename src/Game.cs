@@ -556,16 +556,27 @@ namespace CivOne
 				GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", $"by {destroyedBy.NamePlural}!"));
 		}
 		
+		// NOTE: 0 is the Barbarians (see the _players comment at the top of this file), and
+		// it is ALSO what this returns when the player is not in the game at all. Those two
+		// are indistinguishable here, so a stale Player reference silently reads as the
+		// Barbarians — it is how Player.Cities once matched barbarian cities for a detached
+		// player, and how SetAdvanceOrigin used to attribute granted techs to civ 15.
+		// Callers that must tell the difference use TryGetPlayerNumber.
 		internal byte PlayerNumber(Player player)
+			=> TryGetPlayerNumber(player, out byte number) ? number : (byte)0;
+
+		// The honest form: false when this Player belongs to no game, which is not the same
+		// answer as "the Barbarians".
+		internal bool TryGetPlayerNumber(Player player, out byte number)
 		{
 			byte i = 0;
 			foreach (Player p in _players)
 			{
-				if (p == player)
-					return i;
+				if (ReferenceEquals(p, player)) { number = i; return true; }
 				i++;
 			}
-			return 0;
+			number = 0;
+			return false;
 		}
 
 		// Contract: callers pass a valid player number, so this is treated as non-null.

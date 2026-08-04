@@ -981,7 +981,24 @@ namespace CivOne
 
 		private void NumberWaterBodies()
 		{
-			bool Sailable(int x, int y) => _tiles[x, y].IsOcean || _tiles[x, y].City is not null;
+			// Snapshot city positions ONCE. ITile.City is Game.GetCity(x,y), a linear LINQ
+			// scan over every city in the world — and Sailable is evaluated for every tile
+			// and again for each of its eight neighbours. That made this O(map x cities x 9):
+			// ~244 million operations per call at 64,000 tiles and 424 cities, called on every
+			// coastal city founded or destroyed. It pinned a late-game turn at 100% CPU for
+			// minutes. This is O(cities + map).
+			// Null-guarded: this also runs during map generation, before any Game exists.
+			// ITile.City was `Game?.GetCity(...)` and quietly handled that; a bare
+			// Game.Instance here hangs generation instead.
+			var hasCity = new bool[WIDTH, HEIGHT];
+			if (Game.Instance is not null)
+			{
+				foreach (City c in Game.Instance.GetCities())
+					if (c.Size > 0 && c.X >= 0 && c.X < WIDTH && c.Y >= 0 && c.Y < HEIGHT)
+						hasCity[c.X, c.Y] = true;
+			}
+
+			bool Sailable(int x, int y) => _tiles[x, y].IsOcean || hasCity[x, y];
 
 			foreach (ITile tile in AllTiles())
 				tile.OceanId = MiscOcean;

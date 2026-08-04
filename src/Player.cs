@@ -970,8 +970,14 @@ namespace CivOne
 		public static explicit operator Player(byte playerNumber) => Game.GetPlayer(playerNumber);
 		public static explicit operator byte(Player player) => Game.PlayerNumber(player);
 		
-		public static bool operator ==(Player? p1, byte p2) => p1 is not null && Game.PlayerNumber(p1) == p2;
-		public static bool operator !=(Player? p1, byte p2) => p1 is null || Game.PlayerNumber(p1) != p2;
+		// A Player that belongs to no game equals NO player number — not 0. Game.PlayerNumber
+		// cannot say that (it returns 0 for both "the Barbarians" and "not found"), so these
+		// go through the Try form. Without it a detached Player compared equal to 0, and
+		// since Cities filters on `this == c.Owner`, it inherited the Barbarians' cities.
+		public static bool operator ==(Player? p1, byte p2)
+			=> p1 is not null && Game.TryGetPlayerNumber(p1, out byte n) && n == p2;
+		public static bool operator !=(Player? p1, byte p2)
+			=> p1 is null || !Game.TryGetPlayerNumber(p1, out byte n) || n != p2;
 		
 		public Player(ICivilization civilization, string? customLeaderName = null, string? customTribeName = null, string? customTribeNamePlural = null)
 		{
