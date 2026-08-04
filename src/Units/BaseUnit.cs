@@ -291,16 +291,19 @@ namespace CivOne.Units
 			// Any hostile act against another civ triggers a state of war.
 			// Democracy: the Senate blocks sneak attacks — the unit cannot initiate
 			// a new war, so only proceed if already at war with the target.
-			// ...but not when the AI is steering this civ. The Senate veto is a HUMAN
-			// handicap: it exists so a democratic player must answer to their legislature.
-			// Under Autopilot the acting player IS the human slot, so without this clause
-			// the autopiloted civ is the only democracy in the world that cannot start a
-			// war — every AI civ attacks freely while it stands down. Same rule the
-			// difficulty handicap and the diplomat targeting already follow (City.cs
-			// "aiRun", AI.Strategy "HumanOpponent"), and it keeps autoplay runs
-			// representative of AI behaviour rather than of a crippled human slot.
-			if (Human == Owner && !Settings.Instance.Autopilot
-			    && Player.Government is Governments.Democracy)
+			// NOTE (2026-08-04): an Autopilot exemption belongs here and was briefly added —
+			// the veto is a HUMAN handicap, so under Autopilot the steered civ was the only
+			// democracy in the world that could not start a war, exactly the asymmetry that
+			// City.cs "aiRun" and AI.Strategy "HumanOpponent" already correct for.
+			//
+			// REVERTED pending a bisect. Two consecutive long runs stalled in the late game
+			// (100% CPU, no turn completing, no decisions logged), and this was the only
+			// change of the three in flight that alters what the game DOES rather than how
+			// fast: it lets the autopiloted civ enter combat it was previously forbidden to
+			// start. The water fill (10.1ms at 320x200) and the global ticks (microseconds)
+			// were both measured and cleared; camp shields only touch city income. Restore
+			// this once the stall is understood — the asymmetry is real either way.
+			if (Human == Owner && Player.Government is Governments.Democracy)
 			{
 				Player? targetOwner = moveTarget.City is not null
 				    ? Game.GetPlayer(moveTarget.City.Owner)

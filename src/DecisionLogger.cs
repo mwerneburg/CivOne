@@ -233,10 +233,15 @@ namespace CivOne
 				// 24, not 12: at 12 the truncation silently dropped path:Hit (5us a call, so
 				// it never made the cut) and the aggregate read as a 12% cache hit rate when
 				// the true figure was ~84%. A cheap-but-frequent bucket is exactly the kind
-				// this list must not hide.
+				// this list must not hide. It has since hidden ship buckets too, which briefly
+				// read as "no ships are moving at all".
+				//
+				// 48 while Show/Message report per-SCREEN names (GameTask.ProbeName): that
+				// split turns two buckets into potentially dozens, and the whole point is to
+				// find the one that is misbehaving — truncating it away would defeat the probe.
 				KV("move_split",      string.Join(" ", TurnMetrics.Buckets()
 					.Where(b => b.Ms >= 1)
-					.Take(24)
+					.Take(48)
 					.Select(b => $"{b.Key}={(int)b.Ms}/{b.Calls}"))),
 			}));
 		}

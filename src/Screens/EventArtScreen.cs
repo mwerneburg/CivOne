@@ -20,6 +20,11 @@ namespace CivOne.Screens
 	internal class EventArtScreen : BaseScreen
 	{
 		private readonly string _caption;
+
+		// Which event this art is for ("welovethekingday", "pollution", ...). The screen is
+		// shared by a dozen unrelated events, so anything that wants to purge ONE kind from
+		// the task queue needs to tell them apart — see Show.DropAllWeLovePresidentDay.
+		internal string? ArtKey { get; }
 		private readonly byte[] _rawRgba = null!;
 		private readonly int _rawW, _rawH;
 		private byte[,] _indices = null!;
@@ -109,9 +114,10 @@ namespace CivOne.Screens
 		public override bool KeyDown(KeyboardEventArgs args)  { Destroy(); return true; }
 		public override bool MouseDown(ScreenEventArgs args) { Destroy(); return true; }
 
-		internal EventArtScreen(string artPath, string caption)
+		internal EventArtScreen(string artPath, string caption, string? artKey = null)
 		{
 			_caption = caption;
+			ArtKey = artKey;
 			OnResize += (s, e) => _update = true;
 
 			using Palette pal = BuildPalette();

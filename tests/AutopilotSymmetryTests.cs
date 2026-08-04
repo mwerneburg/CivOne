@@ -113,18 +113,21 @@ namespace CivOne.Tests
 			finally { Settings.Instance.Autopilot = false; }
 		}
 
-		// A person at the controls still answers to their Senate. This is the constraint.
+		// Both cases currently block, because the Autopilot exemption is REVERTED pending a
+		// stall bisect (see the note at BaseUnit.cs Confront). These assert what the code
+		// does today rather than what it should do, so the revert cannot rot unnoticed: when
+		// the exemption is restored, the autopilot case flips to false and this test must be
+		// updated deliberately.
 		[Fact]
-		public void WithAPlayerAtTheControls_TheSenateStillBlocksTheAttack()
+		public void WithAPlayerAtTheControls_TheSenateBlocksTheAttack()
 		{
 			Assert.True(AttackWasVetoed(autopilot: false));
 		}
 
-		// Under autopilot the AI is driving, so it gets the AI's terms.
 		[Fact]
-		public void UnderAutopilot_TheSenateDoesNotBlockTheAttack()
+		public void UnderAutopilot_TheSenateAlsoBlocks_PendingTheStallBisect()
 		{
-			Assert.False(AttackWasVetoed(autopilot: true));
+			Assert.True(AttackWasVetoed(autopilot: true));
 		}
 
 		// Autopilot ON: the diplomat must not single out the human.

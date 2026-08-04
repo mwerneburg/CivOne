@@ -19,6 +19,9 @@ namespace CivOne.Tasks
 	{
 		private readonly IScreen _screen;
 
+		// TEMPORARY (2026-08-04) — see GameTask.ProbeName.
+		internal override string ProbeName => "Message:" + _screen.GetType().Name;
+
 		private void ClosedMessage(object sender, EventArgs args) => EndTask();
 
 		public override void Run()

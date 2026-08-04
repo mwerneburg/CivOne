@@ -25,6 +25,9 @@ namespace CivOne.Tasks
 	{
 		private readonly IScreen _screen;
 
+		// TEMPORARY (2026-08-04) — see GameTask.ProbeName.
+		internal override string ProbeName => "Show:" + _screen.GetType().Name;
+
 		public void Closed(object sender, EventArgs args) => EndTask();
 
 		public override void Run()
@@ -33,9 +36,17 @@ namespace CivOne.Tasks
 			Common.AddScreen(_screen);
 		}
 
+		// There are TWO implementations of this notification: WeLovePresidentDayCity builds a
+		// WeLovePresidentDayScreen, and City.NewTurn enqueues Show.EventArt instead. This
+		// purge only named the first, so it could never match the one the game actually
+		// queues — a pile-up guard pointed at the wrong target. Matching on the art KEY, not
+		// on EventArtScreen itself, because that screen also carries pollution, global
+		// warming, city capture and a dozen other events that must not be dropped with it.
 		internal static void DropAllWeLovePresidentDay()
 		{
-			RemoveQueued(t => t is Show s && s._screen is WeLovePresidentDayScreen);
+			RemoveQueued(t => t is Show s
+				&& (s._screen is WeLovePresidentDayScreen
+				 || (s._screen is EventArtScreen e && e.ArtKey == "welovethekingday")));
 		}
 
 		public static Show Empty => new Show(Overlay.Empty);
@@ -240,7 +251,7 @@ namespace CivOne.Tasks
 		public static Show Screen(IScreen screen) => new Show(screen);
 
 		internal static Show EventArt(string key, string caption)
-			=> new Show(new EventArtScreen(EventArtScreen.FindPath(key)!, caption));
+			=> new Show(new EventArtScreen(EventArtScreen.FindPath(key)!, caption, key));
 
 		private Show(IScreen screen)
 		{

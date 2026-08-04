@@ -739,6 +739,15 @@ namespace CivOne
 				InvalidateBuiltWonders();
 			}
 
+			// Water bodies depend on where the cities are — a coastal city is sailable, so a
+			// port adjoining two seas joins them. CalculateContinentSize ran ~300 lines above,
+			// before any city existed, so that pass saw none of them: a canal city's merge was
+			// lost and the planner would refuse a legal sea route on every LOADED game until
+			// something else happened to trigger a recompute. Water-only; the land continent
+			// ids from the earlier pass are correct and the cities above were built against
+			// them. See Map.NumberWaterBodies.
+			Map.Instance.RecalculateWaterBodies(_cities);
+
 			// Restore trade routes now that all cities exist
 			for (int ci = 0; ci < (cos.Cities?.Count ?? 0); ci++)
 			{

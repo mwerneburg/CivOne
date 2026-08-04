@@ -88,5 +88,26 @@ namespace CivOne.Tests
 
 			Assert.Equal(Map.Instance[40, 21].OceanId, Map.Instance[port.X, port.Y].OceanId);
 		}
+	
+		// The gap in the tests above: they all run on 80x50. The real board is 320x200 —
+		// 16x the tiles — and that is where the stalls appeared.
+		[Fact(Skip = "sizing probe; remove -Skip to run")]
+		public void MeasureAtRealMapSize()
+		{
+			Sim.NewGame(width: 320, height: 200);
+			var sw = new Stopwatch();
+
+			sw.Restart();
+			for (int i = 0; i < 10; i++) Map.Instance.RecalculateWaterBodies();
+			double water = sw.Elapsed.TotalMilliseconds / 10;
+
+			sw.Restart();
+			for (int i = 0; i < 10; i++) Map.Instance.CalculateContinentSize();
+			double both = sw.Elapsed.TotalMilliseconds / 10;
+
+			// Measured 2026-08-04: NumberWaterBodies 10.1ms, CalculateContinentSize 25.3ms.
+			// Kept so the next person does not have to wonder whether the real board differs.
+			Assert.True(water < 200 && both < 400, $"NumberWaterBodies={water:F1}ms CalculateContinentSize={both:F1}ms");
+		}
 	}
 }

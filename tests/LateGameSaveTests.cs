@@ -11,6 +11,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CivOne;
+using CivOne.Tiles;
 
 namespace CivOne.Tests
 {
@@ -77,6 +78,34 @@ namespace CivOne.Tests
 			Game.Instance.SaveCos(second);
 
 			Assert.Equal(File.ReadAllText(first), File.ReadAllText(second));
+		}
+	
+		// Water bodies are derived, not saved, and they depend on where the cities are: a
+		// coastal city is sailable, so a port adjoining two seas joins them. The load path
+		// computed them ~300 lines before any city was restored, so every loaded game saw a
+		// world with no ports in it — the under-merge direction, where the planner refuses a
+		// legal sea route. This checks a real save's coastal cities are in a water body.
+		[Fact]
+		public void ALoadedSave_PutsItsCoastalCitiesInAWaterBody()
+		{
+			Sim.EnsureRuntime();
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(FixturePath("CIVIL3.cos")), "rich late-game save should load");
+
+			City[] coastal = Game.Instance.GetCities()
+				.Where(c => c.Tile is not null
+				         && c.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean))
+				.ToArray();
+			Assert.NotEmpty(coastal);
+
+			// Every port must carry the id of the water it touches, not the misc bucket.
+			foreach (City c in coastal)
+			{
+				ITile sea = c.Tile!.GetBorderTiles().First(t => t is not null && t.IsOcean);
+				Assert.True(Map.NamedOcean(Map.Instance[c.X, c.Y].OceanId),
+					$"port {c.Name} at ({c.X},{c.Y}) is not in any water body");
+				Assert.Equal(sea.OceanId, Map.Instance[c.X, c.Y].OceanId);
+			}
 		}
 	}
 }

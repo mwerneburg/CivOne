@@ -43,7 +43,14 @@ namespace CivOne
 		// TEMPORARY (2026-08-03): names the task holding the queue, so the pacing probe in
 		// RuntimeHandler can say WHICH task type the 60 Hz wait is being spent on. Remove with
 		// the rest of the instrumentation.
-		internal static string CurrentName => _currentTask?.GetType().Name ?? "none";
+		//
+		// Refined 2026-08-04: "Show" and "Message" are not answers — nearly every notification
+		// in the game is one of those two, and from turn 714 (2164 AD) of the 8253c1ed run
+		// pace:Show went from ~400ms a turn to a 1500ms floor with 7000ms spikes and never
+		// came back down. Tasks that put up a screen now report WHICH screen, so the next run
+		// names the culprit instead of the category.
+		internal virtual string ProbeName => GetType().Name;
+		internal static string CurrentName => _currentTask?.ProbeName ?? "none";
 		public static int Count<T>() where T : GameTask => _tasks.Count(t => t is T);
 
 		private static void NextTask()

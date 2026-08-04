@@ -977,9 +977,12 @@ namespace CivOne
 		// one only over-merges, which is harmless, but recompute both ways to keep the
 		// oracle sharp. Water-only, and only for coastal tiles — an inland city cannot
 		// join two seas, and a full CalculateContinentSize here would be wasteful.
-		internal void RecalculateWaterBodies() => NumberWaterBodies();
+		// `cities` is explicit because the save loader runs INSIDE the Game constructor,
+		// before Game.Instance is assigned — reaching for the static there silently sees the
+		// previous game, or none, and every port drops out of the fill.
+		internal void RecalculateWaterBodies(IEnumerable<City>? cities = null) => NumberWaterBodies(cities);
 
-		private void NumberWaterBodies()
+		private void NumberWaterBodies(IEnumerable<City>? cities = null)
 		{
 			// Snapshot city positions ONCE. ITile.City is Game.GetCity(x,y), a linear LINQ
 			// scan over every city in the world — and Sailable is evaluated for every tile
@@ -991,9 +994,10 @@ namespace CivOne
 			// ITile.City was `Game?.GetCity(...)` and quietly handled that; a bare
 			// Game.Instance here hangs generation instead.
 			var hasCity = new bool[WIDTH, HEIGHT];
-			if (Game.Instance is not null)
+			IEnumerable<City>? source = cities ?? Game.Instance?.GetCities();
+			if (source is not null)
 			{
-				foreach (City c in Game.Instance.GetCities())
+				foreach (City c in source)
 					if (c.Size > 0 && c.X >= 0 && c.X < WIDTH && c.Y >= 0 && c.Y < HEIGHT)
 						hasCity[c.X, c.Y] = true;
 			}
