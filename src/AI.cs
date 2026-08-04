@@ -35,6 +35,19 @@ namespace CivOne
 		private City? _attackTarget;
 
 		// War-state tracking for peace initiatives.
+		// Turns of appetite for a war the constitution forbids. A Republic or Democracy
+		// cannot declare war (AI.Strategy.ConsiderWar), cannot build attackers and cannot
+		// militarise — so a civ that climbs the government ladder is disarmed for good, and
+		// a world that develops peacefully stays that way. Measured across six games: three
+		// flatlined to 0% at-war by turn 300 and never recovered.
+		//
+		// This is the escape a human player has always had — revolt to a war government when
+		// you want a war. While it is set, BestGovernment scores against Militarize, which
+		// puts Monarchy and Communism above the republics, and the existing revolt logic does
+		// the rest. It decays, so the civ climbs back afterwards.
+		private int _warAmbition     = 0;
+		internal bool WantsWarFooting => _warAmbition > 0;
+
 		private int _turnsAtWar      = 0;
 		private int _peacetimeCities = 0; // city count when we were last at peace
 		private int _lastTributeOfferTurn = -100; // turn of the last tribute offer to the human

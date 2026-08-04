@@ -796,6 +796,11 @@ namespace CivOne
 			if (stance == StrategyStance.Militarize
 			    && !Player.Cities.Any(c => NearHostiles(c.X, c.Y)))
 				stance = StrategyStance.Develop;
+
+			// A civ that has decided it wants a war rates its constitution as a war leader
+			// would, which is what puts Monarchy and Communism above the republics. Applied
+			// after the demotion above so it cannot be undone by it.
+			if (WantsWarFooting) stance = StrategyStance.Militarize;
 			int currentScore = GovernmentScore(Player.Government, stance);
 			return Player.AvailableGovernments
 			             .Where(g => GovernmentScore(g, stance) > currentScore)
@@ -1185,6 +1190,47 @@ namespace CivOne
 
 		// ── proactive war declaration ──────────────────────────────────────────
 
+		// A republic eyeing a weaker neighbour. Sets an appetite rather than acting: while it
+		// stands, BestGovernment prefers a war government, ConsiderGovernment revolts, and by
+		// the time the anarchy clears the civ is a Monarchy or a Communist state that CAN
+		// declare war. The appetite decays either way, so a civ that revolts and finds no war
+		// worth having climbs back to a republic afterwards.
+		//
+		// Deliberately hard to trigger: warlike leaders only, no enemy at the gates (tearing
+		// up the constitution mid-invasion is suicide), a neighbour we clearly outweigh, and
+		// a low roll. A world of civilised leaders still pacifies itself, which is the point
+		// of the government ladder — this stops it being the ONLY outcome.
+		private void ConsiderWarFooting()
+		{
+			if (_warAmbition > 0) return;
+
+			bool warMinded = Leader.Militarism == MilitarismLevel.Militaristic
+			              || Leader.Aggression == AggressionLevel.Aggressive;
+			if (!warMinded) return;
+
+			// Never revolt with hostiles already among our cities — the anarchy interregnum
+			// is the same trap ConsiderGovernment guards against.
+			if (Player.Cities.Any(c => NearHostiles(c.X, c.Y))) return;
+
+			// There must be a government worth revolting TO: one with no war weariness, that
+			// is not Anarchy and not the Despotism we climbed out of.
+			if (!Player.AvailableGovernments.Any(g => g.WarWeariness == 0
+			        && g is not Gov.Anarchy && g is not Gov.Despotism))
+				return;
+
+			// A tempting target. A republic has no army to compare (it never builds
+			// attackers), so weigh empires rather than militaries: a neighbour with half our
+			// cities or fewer is the one a warmonger talks himself into.
+			bool tempting = Game.Players.Any(p => p is not null && p != Player
+			        && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
+			        && !Player.IsAtWar(p) && IsNeighbor(p)
+			        && p.Cities.Length * 2 <= Player.Cities.Length
+			        && p.Cities.Length > 0);
+			if (!tempting) return;
+
+			if (Common.Random.Next(100) < 4) _warAmbition = 25;
+		}
+
 		internal void ConsiderWar()
 		{
 			// Barbarians use their own logic; governments in revolution are distracted
@@ -1361,8 +1407,15 @@ namespace CivOne
 
 			// ── Normal war logic below ───────────────────────────────────────────
 
-			// Republics and Democracies are blocked by their Senate from starting wars
-			if (Player.RepublicDemocratic) return;
+			// Republics and Democracies are blocked by their Senate from starting wars —
+			// but a civ that wants one badly enough can trade the Senate for it, which is
+			// the escape a human player has always had. See ConsiderWarFooting.
+			if (_warAmbition > 0) _warAmbition--;
+			if (Player.RepublicDemocratic)
+			{
+				ConsiderWarFooting();
+				return;
+			}
 
 			// Civilised non-aggressive leaders don't pick fights
 			if (Leader.Militarism == MilitarismLevel.Civilized
