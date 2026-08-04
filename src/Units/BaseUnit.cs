@@ -347,7 +347,10 @@ namespace CivOne.Units
 				// is reached only when the tile holds no enemy unit at all.
 				if (Class != UnitClass.Land)
 				{
-					GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/NOCAPTURE")));
+					// Owner only: an AI frigate bumping an empty enemy city is not the
+					// player's business, and there are a lot of frigates.
+					if (Human == Owner)
+						GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/NOCAPTURE")));
 					Movement = null;
 					return false;
 				}

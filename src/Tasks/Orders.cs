@@ -40,8 +40,16 @@ namespace CivOne.Tasks
 		private int _x, _y;
 		private Order _order;
 
+		// Only the owner hears why an order failed. The AI routes FoundCity, BuildRoad,
+		// BuildIrrigation and BuildMines through this class, and a failed order raised a
+		// popup for the PLAYER regardless of whose unit it was — 178,252 of them in one
+		// 750-turn game, the second-largest cost in it. Every other error site in the codebase
+		// already guards on ownership; this one was missed because it is one level of
+		// indirection away from the message.
 		private void Error(string error)
 		{
+			if (_unit is not null && Human != _unit.Owner) return;
+			if (_unit is null && _player is not null && _player != Human) return;
 			GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/{error}")));
 		}
 		
