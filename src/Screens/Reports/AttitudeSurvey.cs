@@ -121,7 +121,15 @@ namespace CivOne.Screens.Reports
 			{
 				City city = _cities[i];
 
-				this.DrawText($"{city.Name}:", FONT_ID, CassetteTheme.PHOS, OX + 16, y);
+				// Colour carries the city's mood, so the survey doubles as the at-a-glance
+				// list that used to arrive as one interrupting screen per city per turn:
+				// red for civil disorder, cold blue for a celebration, amber for the
+				// ordinary run of things. The two states are mutually exclusive by
+				// construction (City.NewTurn), so a city is never both.
+				byte nameColour = city.IsInDisorder ? CassetteTheme.ALERT
+				                : city.WasWeLoveKing ? CassetteTheme.CYAN
+				                : CassetteTheme.PHOS;
+				this.DrawText($"{city.Name}:", FONT_ID, nameColour, OX + 16, y);
 
 				int citizenStart = OX + ((i % 2 == 0) ? 72 : 76);
 				int citizenLimit = Width - BuildingPanelW - 4;

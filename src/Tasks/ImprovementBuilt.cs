@@ -77,6 +77,24 @@ namespace CivOne.Tasks
 				return;
 			}
 
+			// With animations OFF, an ordinary build is not news — it is bookkeeping, and one
+			// screen per completed building across a large empire is the bulk of what makes an
+			// autoplayed game unwatchable. Report it only when the player actually has
+			// something to decide or something to fix:
+			//
+			//   nothing queued        — the city is about to idle and wants an order
+			//   building a duplicate  — it has queued something it already owns, which is
+			//                           either a misclick or an AI bug, and is worth seeing
+			//
+			// WONDERS are exempt and always announced: they can be built once in the whole
+			// world, and they are the event a watcher most wants to catch.
+			bool isWonder = _improvement is IWonder;
+			if (!Game.Animations && !isWonder && !NeedsAnOrder())
+			{
+				EndTask();
+				return;
+			}
+
 			IScreen cityView;
 			if (_unitName is not null || !Game.Animations)
 			{
@@ -105,6 +123,18 @@ namespace CivOne.Tasks
 			}
 			cityView.Closed += ClosedCityView;
 			Common.AddScreen(cityView);
+		}
+
+		// True when the completed build leaves the city needing the player's attention.
+		private bool NeedsAnOrder()
+		{
+			if (_city.ProductionQueue.Count == 0) return true;
+			// Queued something it already has: a duplicate building, or a wonder that exists
+			// somewhere in the world. Either way the shields are about to be wasted.
+			IProduction next = _city.CurrentProduction;
+			if (next is IBuilding b && _city.HasBuilding(b.GetType())) return true;
+			if (next is IWonder w && Game.WonderBuilt(w)) return true;
+			return false;
 		}
 
 		public ImprovementBuilt(City city, IBuilding building)

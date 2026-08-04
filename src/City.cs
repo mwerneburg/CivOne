@@ -1344,9 +1344,14 @@ namespace CivOne
 				if (Common.Random.Next(20) == 1 && HasBuilding<Buildings.NuclearPlant>() && !Player.HasAdvance<Advances.FusionPower>())
 					ExecuteMeltdown();
 
+				// Every city in disorder joins this turn's digest, which Player.NewTurn reports
+				// once. The art screen survives only with animations on — a watcher who wants
+				// the spectacle still gets it; an empire in trouble is no longer unwatchable.
+				if (Player == Human) DisorderNotifications.Add(Name);
+
 				if (DisorderTurns == 0)
 				{
-					if (Player == Human)
+					if (Player == Human && Game.Animations)
 					{
 						GameTask.Insert(Show.EventArt("civilunrest0", $"Civil disorder in {Name}!"));
 					}
@@ -1354,8 +1359,9 @@ namespace CivOne
 				}
 				else
 				{
-					if (Player == Human)
-						GameTask.Insert(Message.Advisor(Advisor.Domestic, true, "Civil Disorder in", $"{Name}! Mayor", "flees in panic."));
+					// The "Mayor flees in panic" advisor used to fire EVERY turn a city stayed
+					// in disorder — the single noisiest notification in the game. The digest
+					// says the same thing once for the whole empire.
 
 					switch (DisorderTurns)
 					{
@@ -1435,7 +1441,11 @@ namespace CivOne
 							}
 						}
 					}
-					if (Human == Owner)
+					// Animations only. WLTKNotifications drives the sidebar panel
+					// (SideBar.DrawNotifications), which has been carrying this in parallel all
+					// along — so with animations off the celebration is still visible, it just
+					// stops interrupting once per celebrating city per turn.
+					if (Human == Owner && Game.Animations)
 						GameTask.Enqueue(Show.EventArt("welovethekingday", $"We Love the King Day in {Name}!"));
 					WLTKNotifications.Add(Name);
 				}

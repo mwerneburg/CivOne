@@ -876,6 +876,15 @@ namespace CivOne
 
 		public void NewTurn()
 		{
+			// The turn queue schedules this after every one of our cities has taken its turn
+			// (Game.cs enqueues Turn.New(city) for each, then Turn.New(CurrentPlayer)), so the
+			// disorder digest is complete by now. One report for the empire, not one per city.
+			if (IsHuman && DisorderNotifications.Cities.Count > 0)
+			{
+				GameTask.Enqueue(Message.Newspaper(null, DisorderNotifications.Summary()));
+				DisorderNotifications.Clear();
+			}
+
 			DistributeBondPool();
 
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))

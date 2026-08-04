@@ -373,6 +373,7 @@ namespace CivOne
 				_instance.RepickAiCityTiles();
 				_instance.ClearGhostWars();
 				WLTKNotifications.Clear();
+			DisorderNotifications.Clear();
 				DecisionLogger.BeginGame();
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
 				return true;
