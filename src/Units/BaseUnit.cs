@@ -291,19 +291,23 @@ namespace CivOne.Units
 			// Any hostile act against another civ triggers a state of war.
 			// Democracy: the Senate blocks sneak attacks — the unit cannot initiate
 			// a new war, so only proceed if already at war with the target.
-			// NOTE (2026-08-04): an Autopilot exemption belongs here and was briefly added —
-			// the veto is a HUMAN handicap, so under Autopilot the steered civ was the only
-			// democracy in the world that could not start a war, exactly the asymmetry that
-			// City.cs "aiRun" and AI.Strategy "HumanOpponent" already correct for.
+			// ...but not when the AI is steering this civ. The Senate veto is a HUMAN
+			// handicap: it exists so a democratic player must answer to their legislature.
+			// Under Autopilot the acting player IS the human slot, so without this clause the
+			// autopiloted civ is the only democracy in the world that cannot start a war —
+			// every AI civ attacks freely while it stands down. Same rule the difficulty
+			// handicap and the diplomat targeting already follow (City.cs "aiRun",
+			// AI.Strategy "HumanOpponent").
 			//
-			// REVERTED pending a bisect. Two consecutive long runs stalled in the late game
-			// (100% CPU, no turn completing, no decisions logged), and this was the only
-			// change of the three in flight that alters what the game DOES rather than how
-			// fast: it lets the autopiloted civ enter combat it was previously forbidden to
-			// start. The water fill (10.1ms at 320x200) and the global ticks (microseconds)
-			// were both measured and cleared; camp shields only touch city income. Restore
-			// this once the stall is understood — the asymmetry is real either way.
-			if (Human == Owner && Player.Government is Governments.Democracy)
+			// This was briefly reverted while bisecting a late-game stall, on the theory that
+			// letting the steered civ into combat it was previously forbidden might be the
+			// cause. It was not. The stall was the notification queue: per-city celebration
+			// and disorder screens piling up faster than autopilot could dismiss them. Once
+			// those were gated (City.cs, DisorderNotifications) the same save's worst turn
+			// past 714 fell from 23.7s to 5.9s and `other` from 11.2s to 1.0s, on the only
+			// save that had ever reproduced it. Restored.
+			if (Human == Owner && !Settings.Instance.Autopilot
+			    && Player.Government is Governments.Democracy)
 			{
 				Player? targetOwner = moveTarget.City is not null
 				    ? Game.GetPlayer(moveTarget.City.Owner)
