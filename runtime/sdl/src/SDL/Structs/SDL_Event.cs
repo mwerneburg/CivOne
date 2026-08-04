@@ -55,5 +55,22 @@ namespace CivOne
 			public int Y;
 			public uint Direction;
 		}
+
+		// Touchpad pinch/rotate. DDist is the fractional change in the distance between the
+		// fingers since the previous event (positive = spreading apart); X/Y are the gesture
+		// centroid in normalized (0..1) window coordinates.
+		[StructLayout(LayoutKind.Sequential)]
+		private unsafe struct SDL_MultiGestureEvent
+		{
+			public SDL_EventType Type;
+			public uint Timestamp;
+			public long TouchId;
+			public float DTheta;
+			public float DDist;
+			public float X;
+			public float Y;
+			public ushort NumFingers;
+			public ushort Padding;
+		}
 	}
 }

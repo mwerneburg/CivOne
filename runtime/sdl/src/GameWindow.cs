@@ -107,9 +107,7 @@ namespace CivOne
 					break;
 			}
 
-			if (args.Buttons == MouseButton.None)
-				return new ScreenEventArgs(x, y);
-			return new ScreenEventArgs(x, y, args.Buttons);
+			return args.Moved(x, y);
 		}
 
 		private void KeyDown(object sender, KeyboardEventArgs args)
@@ -179,10 +177,9 @@ namespace CivOne
 			{
 				PointF scaleF = GetScaleF();
 				GetBorders(out int offsetX, out int offsetY, out _, out _);
-				args = new ScreenEventArgs(
+				args = args.Moved(
 					args.X - (int)((float)offsetX / scaleF.X),
-					args.Y - (int)((float)offsetY / scaleF.Y),
-					args.Buttons, args.Modifier, args.WheelDelta);
+					args.Y - (int)((float)offsetY / scaleF.Y));
 			}
 			_runtime.InvokeMouseWheel(args);
 		}

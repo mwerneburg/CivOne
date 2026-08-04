@@ -64,6 +64,8 @@ resize_and_install "$SRC/NeuralLab.png"          "neural_lab.png"
 resize_and_install "$SRC/SeaPlatform.png"        "sea_platform.png"
 resize_and_install "$SRC/SurplusDepot.png"       "surplus_depot.png"
 resize_and_install "$SRC/Xenolab.png"            "xenolab.png"
+resize_and_install "$SRC/BreedingShrine.png"     "breeding_shrine.png"
+resize_and_install "$SRC/CascadeCathedral.png"   "cascade_cathedral.png"
 
 # Wonders
 resize_and_install "$SRC/FusionCore.png"              "fusion_core.png"

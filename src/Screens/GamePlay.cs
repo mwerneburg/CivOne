@@ -404,6 +404,27 @@ namespace CivOne.Screens
 			return _update;
 		}
 
+		// Wheel and trackpad gestures belong to the map. Without this override BaseScreen
+		// returned false for the whole screen and GameMap.MouseWheel was unreachable — the
+		// Ctrl+wheel zoom it implements had never once fired in a running game.
+		public override bool MouseWheel(ScreenEventArgs args)
+		{
+			if (Cursor == MouseCursor.None) return true;
+			if (args.Y < 8) return false;
+
+			if (_rightSideBar)
+			{
+				if (args.X > (Width - 80)) return false;
+				MouseArgsOffset(ref args, 0, 8);
+			}
+			else
+			{
+				if (args.X < 80) return false;
+				MouseArgsOffset(ref args, 80, 8);
+			}
+			return (_update = _gameMap.MouseWheel(args));
+		}
+
 		public override bool MouseMove(ScreenEventArgs args)
 		{
 			(int X, int Y)? previous = CursorTile;

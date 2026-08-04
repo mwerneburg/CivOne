@@ -36,6 +36,10 @@ namespace CivOne
 			SDL_MOUSEBUTTONUP,
 			SDL_MOUSEWHEEL,
 
+			// Touch gestures. Trackpad pinch arrives here on platforms that report the
+			// touchpad as a touch device (macOS); see Window.MouseEvent.HandleMultiGesture.
+			SDL_MULTIGESTURE = 0x802,
+
 			//
 			SDL_MAX = 0xFFFF
 		}

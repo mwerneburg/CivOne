@@ -419,6 +419,11 @@ namespace CivOne
 			+ (HasBuilding<UniversityBuilding>() ? 2 : 0)
 			+ (HasBuilding<Buildings.CivicMonument>() ? 3 : 0)
 			+ (Player.HasWonder<Wonders.TheInternet>() ? 1 : 0)
+			// The Olvir build none of the above — their production list is defender, granary,
+			// settlers, and their own infrastructure — so their culture was structurally
+			// pinned at zero, not excluded anywhere. These are the entries they can reach.
+			+ (HasBuilding<Buildings.BreedingShrine>() ? 2 : 0)
+			+ (HasBuilding<Buildings.CascadeCathedral>() ? 5 : 0)
 			+ Wonders.Sum(w => Game.WonderObsolete(w) ? 1 : 3);
 		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
 		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));

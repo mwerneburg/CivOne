@@ -547,6 +547,19 @@ namespace CivOne
 
 		private bool BuildingAvailable(IBuilding building)
 		{
+			// The Olvir brought their own religion with them. Gated by civilization rather
+			// than technology — the spawning rite is not a discovery, and no human city has
+			// any business raising one.
+			if (building is Buildings.IOlvirBuilding)
+			{
+				if (Civilization is not Civilizations.Olvir) return false;
+				// The cathedral is the shrine grown monumental: a colony plumbs a human
+				// cathedral only once it already has somewhere to spawn.
+				if (building is Buildings.CascadeCathedral
+				    && !Cities.Any(c => c.HasBuilding<Buildings.BreedingShrine>()))
+					return false;
+			}
+
 			if (building is Colosseum && !Game.Instance.Circuses)
 				return false;
 			if (building is CityWalls && !Game.Instance.Barricades)

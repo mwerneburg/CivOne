@@ -48,5 +48,7 @@ namespace CivOne.Enums
 		PoliceStation = 35,
 		Hospital = 36,
 		ResearchGrant = 37,
+		BreedingShrine = 38,
+		CascadeCathedral = 39,
 	}
 }

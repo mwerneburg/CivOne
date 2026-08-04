@@ -3049,6 +3049,12 @@ namespace CivOne
 				if (Player.HasAdvance<AquaticColonization>()
 				    && Game.GetUnits().Count(u => u.Owner == oid && u is HydroEngineer) < olvCities / 3 + 1)
 					Consider(new HydroEngineer());
+				// The spawning rite: a shrine in every colony, and in the older ones a
+				// human cathedral plumbed into a cascade. This is the only culture the
+				// Olvir can earn — nothing else on their production list scores any.
+				if (!city.HasBuilding<BreedingShrine>()) Consider(new BreedingShrine());
+				if (city.HasBuilding<BreedingShrine>() && city.Size >= 6
+				    && !city.HasBuilding<CascadeCathedral>()) Consider(new CascadeCathedral());
 				// Post-contact buildings that are thematically Olvir.
 				if (Player.HasAdvance<Xenobiology>()        && !city.HasBuilding<Xenolab>())        Consider(new Xenolab());
 				if (Player.HasAdvance<AquaticColonization>() && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean)

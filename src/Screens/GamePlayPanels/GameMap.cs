@@ -759,10 +759,36 @@ namespace CivOne.Screens.GamePlayPanels
 			return true;
 		}
 
+		// Ctrl held → zoom; otherwise pan, so a plain two-finger trackpad swipe scrolls the
+		// map instead of being swallowed.
+		public override bool MouseWheel(ScreenEventArgs args)
+			=> ZoomWheel(args) || PanWheel(args);
+
+		// One tile per wheel notch, in whichever axes the event carries. X wraps with the
+		// map, Y clamps at the poles — the same rule the keyboard scroll follows.
+		internal bool PanWheel(ScreenEventArgs args)
+		{
+			int relX = Math.Sign(args.WheelDeltaX);
+			int relY = -Math.Sign(args.WheelDelta);
+			if (relX == 0 && relY == 0) return false;
+
+			_x += relX;
+			while (_x < 0) _x += Map.WIDTH;
+			while (_x >= Map.WIDTH) _x -= Map.WIDTH;
+
+			_y += relY;
+			if (_y < 0) _y = 0;
+			while (_y + _tilesY > Map.HEIGHT) _y--;
+
+			_fullRedraw = true;
+			_update = true;
+			return true;
+		}
+
 		// Ctrl+wheel up = zoom in (smaller index → larger basis points), wheel down
 		// = zoom out. The cursor position is captured so SyncZoomState can keep the
 		// world tile under the cursor anchored across the zoom step.
-		public override bool MouseWheel(ScreenEventArgs args)
+		internal bool ZoomWheel(ScreenEventArgs args)
 		{
 			if ((args.Modifier & KeyModifier.Control) == 0) return false;
 

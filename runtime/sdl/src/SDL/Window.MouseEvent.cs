@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using System;
 using CivOne.Enums;
 using CivOne.Events;
 
@@ -70,10 +71,15 @@ namespace CivOne
 				CheckMouseButton(MouseButton.Right, buttonMask, 4);
 			}
 
-			// Dispatched by Window.cs:HandleEvent on SDL_MOUSEWHEEL. Captures wheel
-			// delta, modifier keys (for Ctrl+wheel zoom), and current mouse position
-			// (for cursor-focused zoom). The y delta is the scroll amount; we negate it
+			// Dispatched by Window.cs:HandleEvent on SDL_MOUSEWHEEL. Captures both wheel
+			// axes, modifier keys (for Ctrl+wheel zoom), and current mouse position
+			// (for cursor-focused zoom). The deltas are the scroll amounts; we negate both
 			// when the SDL_MOUSEWHEEL_FLIPPED flag is set so up always means "zoom in".
+			//
+			// Horizontal sign convention: X11 negates horizontal ticks before SDL sees them
+			// and Windows' WM_MOUSEHWHEEL is already positive-right, so left = negative and
+			// right = positive on both without per-platform correction. The user's OS-level
+			// "natural scrolling" setting flips both axes and is deliberately left alone.
 			private void HandleMouseWheel(SDL_MouseWheelEvent ev)
 			{
 				_ = SDL_GetMouseState(out int x, out int y);
@@ -81,10 +87,46 @@ namespace CivOne
 				MouseY = y;
 
 				int wheelDelta = ev.Y;
-				if (ev.Direction == SDL_MOUSEWHEEL_FLIPPED) wheelDelta = -wheelDelta;
+				int wheelDeltaX = ev.X;
+				if (ev.Direction == SDL_MOUSEWHEEL_FLIPPED)
+				{
+					wheelDelta = -wheelDelta;
+					wheelDeltaX = -wheelDeltaX;
+				}
 
 				KeyModifier modifier = ConvertModifier(SDL_GetModState());
-				OnMouseWheel?.Invoke(this, new ScreenEventArgs(x, y, MouseButton.None, modifier, wheelDelta));
+				OnMouseWheel?.Invoke(this, new ScreenEventArgs(x, y, MouseButton.None, modifier, wheelDelta, wheelDeltaX));
+			}
+
+			// Amount the fingers must spread or pinch, as a fraction of the screen diagonal,
+			// before one zoom step fires. SDL reports DDist in small fractional increments per
+			// event, so they accumulate until they cross this threshold.
+			private const float PinchZoomStepThreshold = 0.02f;
+			private float _pinchZoomAccumulator;
+
+			// A pinch becomes a synthetic Ctrl+wheel event centred on the gesture, which
+			// reuses the map's existing cursor-focused zoom path unchanged.
+			//
+			// SDL2 derives multi-gesture events from touch events only. macOS reports trackpad
+			// gestures as touch, so this fires there; Windows translates touchpad pinch into
+			// Ctrl+wheel itself, which lands in the normal path anyway. On X11 a touchpad is a
+			// pointer device with no touch class, and SDL2 does not implement Wayland's
+			// pointer-gestures protocol, so this handler is simply never called on Linux —
+			// Ctrl + two-finger scroll is the intended fallback there. Do not work around it.
+			private void HandleMultiGesture(SDL_MultiGestureEvent ev)
+			{
+				if (ev.NumFingers < 2) return;
+
+				_pinchZoomAccumulator += ev.DDist;
+				while (Math.Abs(_pinchZoomAccumulator) >= PinchZoomStepThreshold)
+				{
+					int wheelDelta = _pinchZoomAccumulator > 0 ? 1 : -1;
+					_pinchZoomAccumulator -= wheelDelta * PinchZoomStepThreshold;
+
+					int pixelX = (int)(ev.X * Width);
+					int pixelY = (int)(ev.Y * Height);
+					OnMouseWheel?.Invoke(this, new ScreenEventArgs(pixelX, pixelY, MouseButton.None, KeyModifier.Control, wheelDelta));
+				}
 			}
 		}
 	}
