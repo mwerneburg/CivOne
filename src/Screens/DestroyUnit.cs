@@ -108,18 +108,61 @@ namespace CivOne.Screens
 			}
 
 			_noiseCounter--;
-			if (_noiseCounter == 0)
-			{
-				IUnit[] units = (_unit.Tile.Units.Length > 1 && _unit.Tile.City is null && !_unit.Tile.Fortress && _stack)
-					? _unit.Tile.Units
-					: new[] { _unit };
-				foreach (IUnit unit in units)
-					Game.DisbandUnit(unit);
-				Common.GamePlay.RefreshMap();
-				Common.GamePlay.Update(gameTick);
-				Destroy();
-			}
+			if (_noiseCounter == 0) FinishAndDestroy(gameTick);
 
+			return true;
+		}
+
+		// The part that must happen whether or not a frame was ever drawn.
+		private void FinishAndDestroy(uint gameTick)
+		{
+			Kill(_unit, _stack);
+			Common.GamePlay.RefreshMap();
+			Common.GamePlay.Update(gameTick);
+			Destroy();
+		}
+
+		// Which units a death takes with it: a stack dies together in the open, but not in a
+		// city or a fortress. Shared so the no-animation path cannot drift from the animated
+		// one — this is the rule, not a rendering detail.
+		private static void Kill(IUnit unit, bool stack)
+		{
+			IUnit[] units = (unit.Tile.Units.Length > 1 && unit.Tile.City is null && !unit.Tile.Fortress && stack)
+				? unit.Tile.Units
+				: new[] { unit };
+			foreach (IUnit u in units)
+				Game.DisbandUnit(u);
+		}
+
+		// True when the player could actually watch this happen: the tile is explored AND
+		// inside the viewport. `onScreen` alone was not enough — it asks where the camera is,
+		// never what the player has discovered, so explosions played on fogged ground and
+		// announced battles the fog was supposed to hide.
+		internal static bool CanBeSeen(IUnit unit)
+		{
+			Player? human = Game.Instance?.HumanPlayer;
+			if (human is null || !human.Visible(unit.X, unit.Y)) return false;
+			GamePlay? gamePlay = Common.GamePlay;
+			if (gamePlay is null) return false;
+
+			int xx = unit.X - gamePlay.X;
+			while (xx < 0) xx += Map.WIDTH;
+			while (xx >= Map.WIDTH) xx -= Map.WIDTH;
+			int yy = unit.Y - gamePlay.Y;
+			return xx < gamePlay.TilesX && yy >= 0 && yy < gamePlay.TilesY;
+		}
+
+		// Resolve a death nobody can watch, without queueing a screen at all.
+		//
+		// The animation is inserted for EVERY combat death in the world — BaseUnit.Confront
+		// does not ask whose war it is — and it ran its full ten-tick countdown regardless,
+		// drawing nothing. That was 8,789 paced samples in 32 turns of a war-heavy save.
+		// Returns true when it has handled the death and no screen is needed.
+		internal static bool ResolveIfUnseen(IUnit unit, bool stack)
+		{
+			if (Game.Animations && CanBeSeen(unit)) return false;
+			Kill(unit, stack);
+			Common.GamePlay?.RefreshMap();
 			return true;
 		}
 

@@ -460,7 +460,7 @@ namespace CivOne.Units
 				Movement!.Done += (s, a) =>
 				{
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
-					if (unit is not null)
+					if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true))
 					{
 						GameTask.Insert(Show.DestroyUnit(unit, true));
 					}
@@ -496,7 +496,8 @@ namespace CivOne.Units
 			{
 				Movement!.Done += (s, a) =>
 				{
-					GameTask.Insert(Show.DestroyUnit(this, false));
+					if (!Screens.DestroyUnit.ResolveIfUnseen(this, false))
+						GameTask.Insert(Show.DestroyUnit(this, false));
 					Movement = null;
 				};
 			}
