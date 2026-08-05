@@ -147,6 +147,26 @@ namespace CivOne.Screens.Reports
 					lastY = Math.Max(GraphTop, Math.Min(GraphBottom, lastY));
 				}
 
+				// End the line at NOW, not at the last snapshot.
+				//
+				// RecordScoreSnapshot runs once per turn, but the human's end-of-game
+				// AwardMilestone calls land AFTER it — so the final sample can be well below
+				// the score the player is actually shown. In a 2200 AD save the recorded value
+				// for the human was 7232 against a reported 8577, while every AI matched its
+				// snapshot to the point. The tip label has always printed the live score, so
+				// the number floated 1345 points clear of its own line and the two leaders
+				// appeared to be plotted in the wrong order.
+				if (lastX != int.MinValue)
+				{
+					int liveY = GraphBottom - (int)(players[pi].Score * pxPerScore);
+					liveY = Math.Max(GraphTop, Math.Min(GraphBottom, liveY));
+					if (liveY != lastY)
+					{
+						DrawLine(lastX, lastY, lastX, liveY, col);
+						lastY = liveY;
+					}
+				}
+
 				// Terminal dot (3×3) at the most recent visible data point
 				if (lastX != int.MinValue)
 				{

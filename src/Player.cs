@@ -637,6 +637,16 @@ namespace CivOne
 				if (Civilization is not Civilizations.TheThing) return false;
 				if (!HasAdvance<Advances.SpaceFlight>()) return false;
 			}
+			// ...and the story factions raise nothing else. Their AI production blocks never
+			// choose a wonder, but a CAPTURED city keeps the previous administration's queue —
+			// BaseUnit's changeOwner zeroes Shields and leaves the production standing. That is
+			// how the Registry came to be building a DOME COMPONENT in a 1900 AD game: the
+			// occupation inheriting humanity's defence against the occupation.
+			else if (Civilization is Civilizations.TheOthers or Civilizations.TheThing
+			                      or Civilizations.Skynet or Civilizations.Barbarian)
+			{
+				return false;
+			}
 
 			byte owner = (byte)this;
 			if (wonder is Wonders.IDomeComponent)

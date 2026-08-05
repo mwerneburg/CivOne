@@ -145,6 +145,7 @@ namespace CivOne.Screens
 				("Cursed Wonders",    () => Settings.CursedWonders, () => { Settings.CursedWonders = !Settings.CursedWonders; }),
 				("Power Saving",      () => Settings.PowerSaving, () => { Settings.PowerSaving  = !Settings.PowerSaving;  }),
 				("Autopilot",         () => Settings.Autopilot,   () => { Settings.Autopilot   = !Settings.Autopilot;   }),
+				("Watch Mode",        () => Settings.WatchMode,   () => { Settings.WatchMode   = !Settings.WatchMode;   }),
 				("Debug Menu",        () => Settings.DebugMenu,   () => { Settings.DebugMenu   = !Settings.DebugMenu;   }),
 			};
 		}

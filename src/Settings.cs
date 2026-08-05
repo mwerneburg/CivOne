@@ -44,6 +44,7 @@ namespace CivOne
 		private bool _cursedWonders = true;
 		private bool _powerSaving = false;
 		private bool _autopilot = false;
+		private bool _watchMode = false;
 		private bool _deityEnabled = false;
 		private bool _arrowHelper = false;
 		private bool _customMapSize = false;
@@ -243,6 +244,25 @@ namespace CivOne
 			set
 			{
 				_autopilot = value;
+				Common.ReloadSettings = true;
+			}
+		}
+
+		// Watch mode: run an autopilot game at a pace a person can follow.
+		//
+		// The perf work made a 750-turn game take ~26 minutes, which is faster than anyone can
+		// read. This turns off the two things that buy that speed — the fast-forward that skips
+		// frame pacing entirely for AI turns, and the 0.1s dwell on auto-dismissed screens —
+		// without touching either default. Nothing else changes: the same turns run, they are
+		// merely drawn and held long enough to see.
+		//
+		// Session-only, like Autopilot: a forgotten toggle must not make the next run crawl.
+		public bool WatchMode
+		{
+			get => _watchMode;
+			set
+			{
+				_watchMode = value;
 				Common.ReloadSettings = true;
 			}
 		}

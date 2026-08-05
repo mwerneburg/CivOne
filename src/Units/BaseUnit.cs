@@ -382,6 +382,21 @@ namespace CivOne.Units
 						}
 						capturedCity.Owner = Owner;
 						capturedCity.TechStolen = false;
+
+						// A story faction does not finish the previous administration's
+						// paperwork. Ordinary capture zeroes Shields but leaves the QUEUE
+						// standing, so an occupied city carries on building whatever it held —
+						// which is how the Registry came to be completing a Dome component,
+						// humanity's defence against the occupation, in a 1900 AD game.
+						// ExecuteOwnersLanding already did this for the landing itself; conquest
+						// is the path that was missed.
+						if (Game.GetPlayer(Owner).Civilization is Civilizations.TheOthers
+						                                       or Civilizations.TheThing
+						                                       or Civilizations.Skynet)
+						{
+							capturedCity.ClearProductionQueue();
+							capturedCity.SetProduction(new MechInf());
+						}
 						previousOwner.InvalidateCityCaches();
 						Game.GetPlayer(Owner).InvalidateCityCaches();
 						{

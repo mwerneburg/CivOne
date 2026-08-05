@@ -139,6 +139,13 @@ namespace CivOne
 		// watched autopilot run is still followable and the screen actually gets drawn.
 		private const uint AUTOPILOT_DWELL_TICKS = 6;   // ~0.1s at the 60-tick rate
 
+		// Watch mode holds each screen long enough to actually read it. 0.1s is right for an
+		// unattended run and useless for a watched one.
+		private const uint WATCH_DWELL_TICKS = 45;      // ~0.75s
+
+		private uint DwellTicks =>
+			Settings.WatchMode ? WATCH_DWELL_TICKS : AUTOPILOT_DWELL_TICKS;
+
 		// Screens where pressing Enter would be a user-initiated action (toggling an option,
 		// confirming a save, picking a menu entry) — never auto-dismiss these. Identification
 		// is by type-name suffix so it covers the GameOptions screen, the Civilopedia, the
@@ -178,7 +185,7 @@ namespace CivOne
 				_autopilotLastTop = top;
 				_autopilotDwell = 0;
 			}
-			if (++_autopilotDwell < AUTOPILOT_DWELL_TICKS) return;
+			if (++_autopilotDwell < DwellTicks) return;
 			_autopilotDwell = 0;
 
 			// Enter on GamePlay enqueues Turn.End when no unit is active (the path the
@@ -194,7 +201,11 @@ namespace CivOne
 		// message, a story screen, the human's own interactive turn — fast-forward stops
 		// and normal 60 Hz pacing resumes, so nothing that needs the player's eyes gets
 		// blurred past.
+		//
+		// Watch mode opts out entirely: fast-forward is precisely the thing that makes an
+		// autopilot game unwatchable, since it drops 60 Hz pacing for every AI turn.
 		private bool FastForwarding =>
+			!Settings.WatchMode &&
 			GameTask.Any() && GameTask.Fast && Game.Started &&
 			(Settings.Autopilot || !Game.Instance.CurrentPlayer.IsHuman);
 
