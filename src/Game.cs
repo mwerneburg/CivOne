@@ -1393,6 +1393,9 @@ namespace CivOne
 
 				// The Thing: advance the outbreak clocks (South Pole Expedition curse).
 				Tick("ThingOutbreaks", ProcessThingOutbreaks);
+				// ...and, once it holds enough of the world, the third act: it stops spreading
+				// and starts building the way off (ProcessThingAscension).
+				Tick("ThingAscension", ProcessThingAscension);
 
 				// Cultural defection: disorderly frontier towns may choose a more
 				// admired civilization's flag.
@@ -3422,6 +3425,15 @@ namespace CivOne
 			byte tnum = PlayerNumber(thing);
 			if (city.Owner == tnum || city.Size == 0) return;
 
+			// It takes what they knew along with what they were. The organism researches
+			// nothing of its own (AI.ChooseResearch declines for it) — every advance it holds
+			// came out of somebody it ate, which is also the only route to Space Flight and
+			// therefore to The Vessel.
+			Player victim = GetPlayer(city.Owner);
+			if (victim is not null && victim != thing)
+				foreach (IAdvance advance in victim.Advances.ToArray())
+					if (!thing.HasAdvance(advance)) thing.AddAdvance(advance, false);
+
 			// Units homed here elsewhere fight on unsupported; the garrison is
 			// assimilated where it stands, plus the organism itself.
 			foreach (IUnit unit in city.Units.ToArray())
@@ -3511,6 +3523,97 @@ namespace CivOne
 					GameTask.Enqueue(Message.Newspaper(null!, $"{lostName} is gone.",
 						"The silence that follows", "is total."));
 			}
+		}
+
+		// ── The Thing: the third act ────────────────────────────────────────
+
+		// Share of the world's cities the organism must hold before it stops eating and starts
+		// leaving, and the floor below which the share is meaningless on a small map.
+		private const int AscensionCityShare = 25;   // percent
+		private const int AscensionMinCities = 8;
+
+		// Turns between one city being stripped for biomass while The Vessel is built.
+		private const int DecayInterval = 3;
+
+		// True once the organism has turned from spreading to leaving. Not persisted: it is
+		// derived from the world, so a reloaded save recomputes it rather than trusting a flag.
+		internal bool ThingIsAscending { get; private set; }
+
+		private bool _thingAscensionAnnounced;
+
+		// internal so a test can drive the third act without playing three hundred turns.
+		internal void ProcessThingAscension()
+		{
+			Player? thing = _players.FirstOrDefault(p => p is not null && p.Civilization is Civilizations.TheThing);
+			if (thing is null || thing.IsDestroyed()) { ThingIsAscending = false; return; }
+
+			byte tnum = PlayerNumber(thing);
+			City[] held = _cities.Where(c => c.Owner == tnum && c.Size > 0).ToArray();
+			int living = _cities.Count(c => c.Size > 0);
+
+			// It leaves when it holds enough of the world AND has taken Space Flight off
+			// somebody. Both conditions, every turn — losing cities drops it back to spreading.
+			ThingIsAscending = held.Length >= AscensionMinCities
+			                && living > 0 && held.Length * 100 / living >= AscensionCityShare
+			                && thing.HasAdvance<Advances.SpaceFlight>();
+			if (!ThingIsAscending) return;
+
+			if (!_thingAscensionAnnounced)
+			{
+				_thingAscensionAnnounced = true;
+				GameTask.Enqueue(Message.Newspaper(null!, "It has stopped spreading.",
+					"Something is being built", "in the cities it took."));
+				Log($"The Thing begins the Ascension: {held.Length} of {living} cities");
+			}
+
+			// Every city works The Vessel. Only the top-production city can hold the wonder, so
+			// the rest feed the war — but they are all being consumed regardless.
+			City? yard = held.OrderByDescending(c => c.ShieldIncome).ThenBy(c => c.X).FirstOrDefault();
+			if (yard is not null && thing.ProductionAvailable(new Wonders.TheVessel())
+			    && yard.CurrentProduction is not Wonders.TheVessel)
+			{
+				yard.ClearProductionQueue();
+				yard.SetProduction(new Wonders.TheVessel());
+			}
+
+			// The cities are the material. One is stripped every few turns — a citizen and an
+			// improvement — so the countdown is visible on the map rather than only in a report.
+			if (_gameTurn % DecayInterval != 0) return;
+			City? strip = held.OrderByDescending(c => c.Size).ThenBy(c => c.X).FirstOrDefault(c => c != yard)
+			           ?? held.FirstOrDefault(c => c != yard);
+			if (strip is null || strip.Size <= 1) return;
+
+			strip.Size--;
+			IBuilding? lost = strip.Buildings.FirstOrDefault(b => b is not Buildings.Palace);
+			if (lost is not null) strip.RemoveBuilding(lost);
+		}
+
+		// The Vessel is finished. The organism leaves, and takes everything it held with it:
+		// its cities are razed, not handed on. If departure returned a working empire to the
+		// survivors then letting it win would be the best play available, which is precisely
+		// backwards — the only good outcome is still to break it before this happens.
+		internal void ExecuteThingDeparture(City vesselCity)
+		{
+			Player? thing = _players.FirstOrDefault(p => p is not null && p.Civilization is Civilizations.TheThing);
+			if (thing is null) return;
+			byte tnum = PlayerNumber(thing);
+
+			City[] held = _cities.Where(c => c.Owner == tnum && c.Size > 0).ToArray();
+			int razed = held.Length;
+
+			foreach (IUnit unit in GetUnits().Where(u => u.Owner == tnum).ToArray())
+				DisbandUnit(unit);
+			foreach (City c in held)
+				DestroyCity(c);
+
+			ThingOutbreaks.Clear();
+			ThingIsAscending = false;
+			_thingAscensionAnnounced = false;
+			thing.IsDestroyed();
+
+			Log($"The Thing departs from {vesselCity.Name}: {razed} cities razed");
+			GameTask.Enqueue(Message.Newspaper(null!, "It has gone.",
+				$"{razed} cities went with it.", "Nothing is left standing."));
 		}
 
 		private void SpawnOlvir()

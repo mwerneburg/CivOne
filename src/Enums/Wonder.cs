@@ -52,5 +52,6 @@ namespace CivOne.Enums
 		NanobotFactory           = 39,
 		TheInternet              = 40,
 		Stonehenge               = 41,
+		TheVessel                = 42,
 	}
 }

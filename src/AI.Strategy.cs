@@ -2942,6 +2942,11 @@ namespace CivOne
 			return PlanProductionInto(new List<IProduction>(), city, stance);
 		}
 
+		// Everything the city would consider this turn, in preference order. A test seam:
+		// asserting on CurrentProduction alone proves nothing about what a faction is WILLING
+		// to build, because a garrison outranks a wonder and hides it.
+		internal IProduction[] ProductionPlan(City city) => PlanProduction(city, GetStance()).ToArray();
+
 		// Does this building earn its upkeep in THIS city?
 		//
 		// Nothing in the AI consulted maintenance before this: grep TotalMaintenance
@@ -3024,6 +3029,43 @@ namespace CivOne
 				    && Player.ProductionAvailable(new Diplomat()))
 					Consider(new Diplomat());
 				if (plan.Count == 0) Consider(new Armor());
+				return plan;
+			}
+
+			// The Thing builds nothing civic. It had been falling through to the general path,
+			// which meant its top-production city chased the ordinary wonder list — an
+			// assimilating organism commissioning J.S. Bach's Cathedral, which is what a
+			// turn-750 save actually showed. It makes bodies, and in the third act, The Vessel.
+			if (Player.Civilization is TheThing)
+			{
+				// The Vessel is set directly on the shipyard city by Game.ProcessThingAscension,
+				// which picks it empire-wide; honour it here so the plan never overwrites it.
+				if (city.CurrentProduction is Wonders.TheVessel) { Consider(new Wonders.TheVessel()); return plan; }
+
+				if (Player.ProductionAvailable(new MechInf())) Consider(new MechInf());
+				if (Player.ProductionAvailable(new Armor()))   Consider(new Armor());
+				if (plan.Count == 0) Consider(new Militia());
+				return plan;
+			}
+
+			// Skynet researches — it is the one faction that ought to out-tech the world, and
+			// ChooseResearch deliberately leaves it alone. Its WONDERS are another matter: the
+			// general list had the network building cathedrals and suffrage movements. Only
+			// machine work, and only from the top production city as for anyone else.
+			if (Player.Civilization is Skynet)
+			{
+				IWonder[] machineWork =
+				{
+					new NanobotFactory(), new ManhattanProject(), new FusionCore(),
+					new InterstellarProbe(), new HumanGenomeProject(),
+				};
+				if (IsTopProductionCity(city))
+					foreach (IWonder w in machineWork)
+						if (!Game.WonderBuilt(w) && Player.ProductionAvailable(w)) { Consider(w); break; }
+
+				if (Player.ProductionAvailable(new HoverTank())) Consider(new HoverTank());
+				if (Player.ProductionAvailable(new Armor()))     Consider(new Armor());
+				if (plan.Count == 0) Consider(new Militia());
 				return plan;
 			}
 

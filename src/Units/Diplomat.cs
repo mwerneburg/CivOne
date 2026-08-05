@@ -25,14 +25,48 @@ namespace CivOne.Units
 			return gold >= InciteCost(cityToIncice) && !cityToIncice.HasBuilding<Palace>();
 		}
 
+		// What a city is worth to the civ that would lose it. Civ 1 priced a size-1 hamlet and
+		// a wonder-bearing metropolis identically: only the OWNER'S TREASURY entered, and an AI
+		// treasury is usually near empty, so any distant city went for (0 + 1000) / 19 = 52 gold
+		// regardless of what had been built in it. These put the city itself in the price.
+		private const int WorthPerCitizen  = 200;
+		private const int WorthPerBuilding = 300;
+		private const int WorthPerWonder   = 2000;
+
+		// How firmly the owner holds the place, as a percentage on top of that worth. Two things
+		// tighten a grip: proximity to the seat of government, and an empire substantial enough
+		// that defecting means joining a rival rather than escaping a doomed one.
+		//
+		// Distance modulates the GRIP, not the worth. Civ 1 divided the entire price by distance,
+		// which is why a remote city was pocket change — but a wonder twenty tiles from the
+		// palace is still a wonder. The frontier should be easier to turn, not worthless.
+		private const int GripAtTheGates   = 600;   // divided by (distance + 3)
+		private const int GripPerCity      = 5;
+		private const int GripMaxFromCities = 200;
+
 		public static int InciteCost(City cityToIncite)
 		{
-			City capital = cityToIncite.Player.Cities.Where(c => c.HasBuilding(new Palace())).FirstOrDefault();
+			Player owner = cityToIncite.Player;
+			City[] cities = owner.Cities;
+			City capital = cities.Where(c => c.HasBuilding(new Palace())).FirstOrDefault();
 
 			int distance = capital is null ? 16 : cityToIncite.Tile.DistanceTo(capital);
-			
-			int cost = (cityToIncite.Player.Gold + 1000) / (distance + 3);
 
+			// A quarter of the treasury: Civ 1 used the owner's gold as the whole price, which
+			// meant a broke AI sold anything. It belongs in the reckoning, but not as the bulk.
+			int worth = (WorthPerCitizen  * cityToIncite.Size)
+			          + (WorthPerBuilding * cityToIncite.Buildings.Length)
+			          + (WorthPerWonder   * cityToIncite.Wonders.Length)
+			          + (owner.Gold / 4);
+
+			int grip = 100
+			         + (GripAtTheGates / (distance + 3))
+			         + Math.Min(GripMaxFromCities, GripPerCity * cities.Length);
+
+			int cost = worth * grip / 100;
+
+			// A city already rioting is halfway to revolt — the player's lever for making an
+			// expensive target affordable, and the reason unrest is worth engineering first.
 			if (cityToIncite.IsInDisorder) cost /= 2;
 			return Math.Max(1, cost);
 		}

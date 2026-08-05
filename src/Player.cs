@@ -616,6 +616,15 @@ namespace CivOne
 			if (wonder is Wonders.InterstellarProbe && !Game.Instance.SETISignalReceived)
 				return false;
 
+			// The Vessel belongs to the organism alone, and only once it has taken Space Flight
+			// off someone it assimilated — it inherits knowledge, it does not discover any. A
+			// world that never reaches for space never hands it the way out.
+			if (wonder is Wonders.TheVessel)
+			{
+				if (Civilization is not Civilizations.TheThing) return false;
+				if (!HasAdvance<Advances.SpaceFlight>()) return false;
+			}
+
 			byte owner = (byte)this;
 			if (wonder is Wonders.IDomeComponent)
 			{

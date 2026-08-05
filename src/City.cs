@@ -1697,6 +1697,14 @@ namespace CivOne
 						AddWonder(wonder);
 						Game.Instance.AddReplayEvent(new ReplayData.WonderBuilt(Game.GameTurn, Owner, (wonder as ICivilopedia).Name, X, Y));
 						var impTask = new ImprovementBuilt(this, wonder);
+						// The Vessel finishing is the end of the organism, not an improvement to
+						// its empire: it leaves and razes everything it held, this city included.
+						// Queued after the art so the announcement plays before the map empties.
+						if (wonder is Wonders.TheVessel)
+						{
+							Game g = Game.Instance;
+							impTask.Done += (s, a) => g.ExecuteThingDeparture(this);
+						}
 						if (wonder is Wonders.SouthPoleExpedition)
 						{
 							// Whoever builds the wonder brings back the curse: the anomaly can

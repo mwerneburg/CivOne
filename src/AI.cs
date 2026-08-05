@@ -815,6 +815,15 @@ namespace CivOne
 			// The horde has no laboratories. See ConsiderGovernment for the companion gate.
 			if (Player.Civilization is Civilizations.Barbarian) return;
 
+			// The organism does not study. Every advance it holds was taken off a city it
+			// assimilated (Game.InfectCity), which is the only route by which it ever reaches
+			// Space Flight and therefore The Vessel.
+			if (Player.Civilization is Civilizations.TheThing) return;
+
+			// The Registry landed knowing everything bar FutureTech (Game.ExecuteOwnersLanding),
+			// so this only ever picked the one advance left. Nothing to choose.
+			if (Player.Civilization is Civilizations.TheOthers) return;
+
 			IAdvance[] available = Player.AvailableResearch.ToArray();
 			if (available.Length == 0) return;
 
