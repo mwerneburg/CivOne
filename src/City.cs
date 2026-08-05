@@ -1060,6 +1060,11 @@ namespace CivOne
 					unhappyCount -= 2;
 				}
 				if (HasBuilding<Colosseum>()) unhappyCount -= 3;
+				// The Olvir religion. The shrine is a temple's worth of peace to a people
+				// whose whole civilisation is a spawning cycle; the cathedral is that grown
+				// monumental, and rates with a human Cathedral rather than a Temple.
+				if (HasBuilding<Buildings.BreedingShrine>()) unhappyCount -= 1;
+				if (HasBuilding<Buildings.CascadeCathedral>()) unhappyCount -= 4;
 				if (HasBuilding<Hospital>()) unhappyCount -= 2;
 				if (HasBuilding<ExchangeCenter>()) unhappyCount -= 1;
 				if (HasBuilding<NeuralLab>()) unhappyCount -= 1;

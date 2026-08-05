@@ -192,7 +192,20 @@ namespace CivOne
 			Cities.Sum(c => c.Wonders.Length) * 4 +  // 4 pts per wonder
 			_futureTechs * 5 +                       // 5 pts per future tech
 			ExplorationCredits / 10 +                // 1 pt per 10 tiles first explored
+			ColonyCredits +                          // the refugee fleet, scored on its spread
 			_milestoneScore;                         // narrative milestone bonuses
+
+		// The Olvir came here to survive, not to raise monuments. They build no wonders and
+		// research little, so every other term in Score reads a thirty-five-city diaspora
+		// spanning the globe as a failure — which is how one finished a 750-turn game with a
+		// score nobody could take seriously. Their achievement IS the spread.
+		//
+		// Computed rather than banked into _milestoneScore: that field is for one-off narrative
+		// awards, and a standing count recomputed from the world can never drift from it — lose
+		// colonies and the standing falls, which is correct.
+		private const int PointsPerColony = 8;
+		private int ColonyCredits =>
+			_civilization is Civilizations.Olvir ? Cities.Length * PointsPerColony : 0;
 
 		public short Gold
 		{
