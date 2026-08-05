@@ -204,5 +204,110 @@ namespace CivOne.Tests
 				"the island itself must be numbered, or this tests nothing");
 			Assert.Equal((target.X, target.Y), (dip.Goto.X, dip.Goto.Y));
 		}
+
+		// ── the AI consumers (migrated 2026-08-05) ───────────────────────────
+		//
+		// The generator was raised to 254 but four AI sites kept testing `id >= 1 && id <= 14`,
+		// with one expression left half-migrated: the old filter four lines above a call to
+		// Map.NamedContinent. That combination is worse than the original bug. Before, every
+		// island really did share the misc id, so "cannot tell, so allow" was honest. After,
+		// two different islands hold DISTINCT ids — and the old test called both "unknown",
+		// discarded that, and allowed a land march across open water.
+
+		// An archipelago of twenty, so the smaller islands are numbered ABOVE 14. That is the
+		// whole point: with only a handful of landmasses every id lands inside the old 1-14
+		// window and the stale test gives the right answer by luck. The bug needs high ids.
+		private static (int x, int y)[] AnArchipelago()
+		{
+			DrownTheWorld();
+			var seeds = new List<(int x, int y)>();
+			for (int i = 0; i < 20; i++)
+			{
+				int x = 4 + (i % 10) * 7, y = 6 + (i / 10) * 10;
+				Land(x, y, 3, 3);
+				seeds.Add((x + 1, y + 1));
+			}
+			Map.Instance.RecalculateContinentsIfDirty();
+			return seeds.ToArray();
+		}
+
+		// Two islands the generator numbered separately are not the same ground.
+		[Fact]
+		public void TwoSeparatelyNumberedIslandsAreNotWalkableBetween()
+		{
+			var seeds = AnArchipelago();
+			// Two islands BOTH numbered above the old cap — the case that used to fall through
+			// to "both unknown, cannot tell, so allow".
+			var high = seeds.Where(s => Map.Instance[s.x, s.y].ContinentId > 14).Take(2).ToArray();
+			Assert.True(high.Length == 2, "need two islands numbered above the old 14 cap");
+
+			Game g = Game.Instance;
+			IUnit unit = g.CreateUnit(UnitType.Militia, high[0].x, high[0].y, 1)!;
+			ITile there = Map.Instance[high[1].x, high[1].y];
+
+			Assert.NotEqual(Map.Instance[high[0].x, high[0].y].ContinentId, there.ContinentId);
+			Assert.False(AI.LandReachable(unit, there),
+				"distinct landmasses, whatever their id numbers");
+		}
+
+		// The other half: a high-numbered island stays walkable within itself. Without this the
+		// "fix" could just refuse everything and still pass the test above.
+		[Fact]
+		public void TheSameHighNumberedIslandStaysWalkable()
+		{
+			var seeds = AnArchipelago();
+			var high = seeds.First(s => Map.Instance[s.x, s.y].ContinentId > 14);
+
+			Game g = Game.Instance;
+			IUnit unit = g.CreateUnit(UnitType.Militia, high.x, high.y, 1)!;
+			Assert.True(AI.LandReachable(unit, Map.Instance[high.x + 1, high.y]),
+				"same landmass, one walk");
+		}
+
+		// A high-numbered island against one of the fourteen largest. This case gave the right
+		// answer under the old test too, but by accident — the mismatch branch happened to agree.
+		[Fact]
+		public void AnIslandAndAMainlandAreNotWalkableBetween()
+		{
+			var seeds = AnArchipelago();
+			Land(40, 30, 20, 15);                      // a mainland, comfortably the largest
+			Map.Instance.RecalculateContinentsIfDirty();
+			var high = seeds.First(s => Map.Instance[s.x, s.y].ContinentId > 14);
+
+			Game g = Game.Instance;
+			IUnit unit = g.CreateUnit(UnitType.Militia, 45, 35, 1)!;
+			Assert.True(Map.Instance[45, 35].ContinentId <= 14, "the mainland should rank low");
+			Assert.False(AI.LandReachable(unit, Map.Instance[high.x, high.y]));
+		}
+
+		// The genuinely unknowable case must still permit: unnumbered ground says nothing
+		// either way, and refusing there would strand units that can in fact walk.
+		[Fact]
+		public void UnnumberedGroundIsStillPermitted()
+		{
+			DrownTheWorld();
+			Land(10, 20, 5, 3);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Game g = Game.Instance;
+			IUnit unit = g.CreateUnit(UnitType.Militia, 10, 21, 1)!;
+			Map.Instance[10, 21].ContinentId = Map.MiscContinent;
+			Map.Instance[14, 21].ContinentId = Map.MiscContinent;
+
+			Assert.True(AI.LandReachable(unit, Map.Instance[14, 21]));
+		}
+
+		// The predicate itself, since five call sites now lean on it. 15 is the load-bearing
+		// value: it was the old sentinel and is now an ordinary island.
+		[Fact]
+		public void NamedContinentSpansTheWholeRange()
+		{
+			Assert.False(Map.NamedContinent(0), "0 is not a landmass");
+			Assert.False(Map.NamedContinent(Map.MiscContinent), "the misc bucket is not a landmass");
+			Assert.True(Map.NamedContinent(1));
+			Assert.True(Map.NamedContinent(14));
+			Assert.True(Map.NamedContinent(15), "15 was the old sentinel; it is now a real island");
+			Assert.True(Map.NamedContinent(254), "the last numberable region");
+		}
 	}
 }

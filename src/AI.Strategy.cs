@@ -1573,14 +1573,22 @@ namespace CivOne
 		// The "misc" bucket every landmass past the 14 named ones is folded into.
 		private const byte MISC_CONTINENT = Map.MiscContinent;
 
-		private static bool LandReachable(IUnit unit, ITile tile)
+		// internal for test: the island cases below are pure logic on two continent ids,
+		// and reproducing them through settler targeting would take a whole world.
+		internal static bool LandReachable(IUnit unit, ITile tile)
 		{
 			byte from = unit.Tile?.ContinentId ?? MISC_CONTINENT;
 			byte to   = tile.ContinentId;
 
 			// Both on named landmasses: reachable only if it is the SAME one.
-			bool fromKnown = from >= 1 && from <= 14;
-			bool toKnown   = to   >= 1 && to   <= 14;
+			//
+			// Map.NamedContinent, not a hardcoded 1-14: the generator now numbers every land
+			// region up to 254 (Map.MiscContinent = 255), so two DIFFERENT islands hold
+			// distinct ids. Under the old test both failed "known" and fell through to the
+			// permissive "both misc, cannot tell" branch below — a land route allowed across
+			// open water, using information the map already had.
+			bool fromKnown = Map.NamedContinent(from);
+			bool toKnown   = Map.NamedContinent(to);
 			if (fromKnown && toKnown) return from == to;
 
 			// The misc bucket is genuinely ambiguous only against ITSELF: two different
@@ -1726,7 +1734,7 @@ namespace CivOne
 			{
 				if (!StillViable(site)) continue;
 				// Somewhere we could not simply have walked.
-				if (from >= 1 && from <= 14 && site.Continent == from) continue;
+				if (Map.NamedContinent(from) && site.Continent == from) continue;
 				if (Common.GotoStep(boat, site.X, site.Y) is null) continue;   // no sailable route
 				site.Claimant = boat;
 				return Map[site.X, site.Y];
@@ -2046,7 +2054,7 @@ namespace CivOne
 			var ownContinents = new HashSet<byte>(Player.Cities
 			    .Where(oc => oc.Tile is not null)
 			    .Select(oc => oc.Tile.ContinentId)
-			    .Where(id => id >= 1 && id <= 14));
+			    .Where(Map.NamedContinent));
 			bool reachable(City c) => ownContinents.Count == 0
 			    || (c.Tile is not null
 			        && Map.NamedContinent(c.Tile.ContinentId)
@@ -3717,7 +3725,7 @@ namespace CivOne
 			// identical tile every turn: an explorer that races to the coast facing the
 			// islet and then appears to park there forever.
 			byte myContinent = unit.Tile?.ContinentId ?? MISC_CONTINENT;
-			bool KnownContinent(byte id) => id >= 1 && id <= 14;
+			bool KnownContinent(byte id) => Map.NamedContinent(id);
 
 			for (int dy = -8; dy <= 8; dy++)
 			for (int dx = -8; dx <= 8; dx++)
