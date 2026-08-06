@@ -577,7 +577,8 @@ namespace CivOne
 
 			// The kaiju is not yours. It is nobody's. Neither is the thing in the
 			// sea, nor the one standing in the stones.
-			if (unit is Units.Gozira || unit is Units.Leviathan || unit is Units.HengeGuardian)
+			if (unit is Units.Gozira || unit is Units.Leviathan || unit is Units.HengeGuardian
+			 || unit is Units.Harvester)
 				return false;
 			
 			// Determine if the unit requires a tech

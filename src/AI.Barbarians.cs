@@ -39,6 +39,16 @@ namespace CivOne
 				return;
 			}
 
+			// A Harvester is machinery, not a raider: the generic barbarian land AI would
+			// send it off to sack a city, which is the one thing it has no interest in.
+			// It works the water it is standing beside and walks to the next when that is
+			// dry (Game.ProcessScavengerExtraction drives the walking and the draining).
+			if (unit is Harvester)
+			{
+				unit.Fortify = true;
+				return;
+			}
+
 			switch (unit.Class)
 			{
 				case UnitClass.Water:

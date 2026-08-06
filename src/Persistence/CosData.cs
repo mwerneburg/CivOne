@@ -77,6 +77,9 @@ namespace CivOne.Persistence
 		// people. Absent in saves written before the mechanic existed, which reads as
 		// "nobody is under condemnation" and is the correct answer for those games.
 		public List<int[]> NuclearPariah { get; set; } = null!;
+
+		// Turn on which the Scavenger harvest ends; 0 or absent means no harvest is running.
+		public int ScavengerExtractionUntil { get; set; }
 		// Gozira: 0 = egg sleeps, 1 = rampaging, 2 = slain.
 		public int GoziraState { get; set; }
 		// Leviathan: 0 = deep is quiet, 1 = hunting, 2 = slain.

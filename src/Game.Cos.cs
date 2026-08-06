@@ -302,6 +302,7 @@ namespace CivOne
 					Provocations            = Provocations.Count > 0
 					                          ? Provocations.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
 					                          : null!,
+					ScavengerExtractionUntil = (int)ScavengerExtractionUntil,
 					NuclearPariah           = NuclearPariah.Count > 0
 					                          ? NuclearPariah.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
 					                          : null!,
@@ -567,6 +568,7 @@ namespace CivOne
 				foreach (int[] pair in g.Provocations)
 					if (pair.Length == 2 && pair[0] > 0 && pair[0] < _players.Count)
 						Provocations[(byte)pair[0]] = pair[1];
+			ScavengerExtractionUntil = (uint)Math.Max(0, g.ScavengerExtractionUntil);
 			if (g.NuclearPariah is not null)
 				foreach (int[] pair in g.NuclearPariah)
 					if (pair.Length == 2 && pair[0] >= 0 && pair[0] < _players.Count && pair[1] > 0)

@@ -180,4 +180,7 @@ resize_and_install_event "$SRC/Visitations.png"           "Visitations.png"
 resize_and_install_event "$SRC/StonehengePortal.png"      "TheDoor.png"
 resize_and_install_event "$SRC/OtherVoice.png"            "OtherVoice.png"
 
+resize_and_install_event "$SRC/ScavengerContact.png"         "ScavengerContact.png"
+resize_and_install_event "$SRC/ScavengerExtraction.png"      "ScavengerExtraction.png"
+
 echo "Done."

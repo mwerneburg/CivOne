@@ -60,5 +60,9 @@ namespace CivOne.Enums
 		// Sea-going settler: sails, puts ashore, founds a city. The answer to civs
 		// that start on islands or behind a strait and can never expand by land.
 		Longboat = 36,
+		// Scavenger extraction craft — never producible, barbarian-owned. Put down by the
+		// harvest (Game.ArriveScavengers), it drains the water it stands beside and moves on.
+		// Killing them is the only counterplay: no harvesters, no extraction.
+		Harvester = 37,
 	}
 }

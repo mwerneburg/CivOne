@@ -143,6 +143,156 @@ namespace CivOne
 			return n == ProvocationThreshold;
 		}
 
+		// ── the Scavengers ──────────────────────────────────────────────────
+
+		// Flat, and deliberately independent of the character score: see SelectVisitorArchetype.
+		internal const int ScavengerChancePercent = 20;
+
+		// Water tiles drained per extraction pass, and how often a pass runs. Batched rather
+		// than per-turn because every drain changes land/ocean topology, and the water-body
+		// renumbering behind that is an O(map) flood — one recompute per pass, not per tile.
+		private const int DrainPerPass = 3;
+		private const int DrainInterval = 3;
+
+		// True while the harvest is running. Saved as a turn so it survives a reload.
+		internal uint ScavengerExtractionUntil;
+		internal bool ScavengersExtracting => ScavengerExtractionUntil > _gameTurn;
+
+		// Turn a single water tile into exposed seabed. The one place the conversion happens,
+		// so the rules below hold everywhere:
+		//   - never under a city (matching the warming flood, which spares cities, and which
+		//     also settles what happens to a floating city founded on ocean)
+		//   - any ship standing on it is lost, the mirror of the flood disbanding land units
+		//     on tiles that become sea
+		//   - topology is marked dirty; the caller renumbers once per batch
+		internal bool DrainTile(int x, int y)
+		{
+			ITile tile = Map[x, y];
+			if (tile is null || !tile.IsOcean || tile.City is not null) return false;
+
+			foreach (IUnit u in GetUnits(x, y).ToArray())
+				DisbandUnit(u);
+
+			Map.Instance.ChangeTileType(x, y, Terrain.SaltFlat);
+			return true;
+		}
+
+		// Lakes first, and on purpose. A lake is enclosed, so draining one cannot sever a
+		// strait or split a sea in two and strand a fleet — and Concepts/Lakes says their
+		// fresh water is what lets adjacent land be irrigated "even far inland from any
+		// river". Take the lake and the irrigation around it has nothing behind it: an inland
+		// breadbasket goes brown. Large, legible, and entirely local.
+		internal int DrainNextLakeTiles(int budget)
+		{
+			var lake = new List<(int x, int y)>();
+			for (int y = 0; y < Map.HEIGHT && lake.Count == 0; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+			{
+				if (!Map.Instance.IsFreshwaterAt(x, y)) continue;
+				if (!Map[x, y].IsOcean) continue;   // the flag marks the lake's own tiles
+				if (Map[x, y].City is not null) continue;
+				lake.Add((x, y));
+				if (lake.Count >= budget) break;
+			}
+
+			int drained = 0;
+			foreach (var (x, y) in lake)
+				if (DrainTile(x, y)) drained++;
+			return drained;
+		}
+
+		// How long the harvest runs before they have what they came for and go.
+		private const int ExtractionDuration = 120;
+
+		// The moon first. It is the overture, not a mechanic of its own — and it reuses the
+		// sea-level-rise pass from HandleGlobalWarming verbatim, because that code already
+		// knows how to drown coastline and has been exercised for months.
+		//
+		// The shape is the point: the sea comes for your cities ONCE, and then spends the rest
+		// of the arc abandoning them. Surge, then drought.
+		internal void ArriveScavengers()
+		{
+			string gameDate = GameYear;
+			RecordTransmission("ScavengerArrival", gameDate);
+
+			string? contact = Screens.EventArtScreen.FindPath("ScavengerContact");
+			if (contact is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(contact, "UNANNOUNCED CONTACT")));
+
+			GameTask.Enqueue(Message.Newspaper(null!, "The moon is coming apart.",
+				"Something is taking it", "for the mass."));
+
+			// The debris and the tide: one catastrophic surge, then the water starts going the
+			// other way. GlobalWarmingCount drives the severity of the existing flood pass.
+			GlobalWarmingCount++;
+			HandleGlobalWarming();
+
+			string? extraction = Screens.EventArtScreen.FindPath("ScavengerExtraction");
+			if (extraction is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(extraction, "EXTRACTION ACTIVE")));
+
+			ScavengerExtractionUntil = (uint)(_gameTurn + ExtractionDuration);
+			int craft = LandHarvesters(HarvestersToLand);
+			Log($"Scavengers arrive: {craft} harvesters, extraction until turn {ScavengerExtractionUntil}");
+		}
+
+		private const int HarvestersToLand = 6;
+
+		// Put the craft down on dry land beside fresh water, spread out. On land rather than on
+		// the lake itself for two reasons: an army has to be able to reach them, and a craft
+		// standing on water it is about to drain would be destroying its own footing.
+		private int LandHarvesters(int count)
+		{
+			var sites = new List<(int x, int y)>();
+			for (int y = 1; y < Map.HEIGHT - 1 && sites.Count < count; y++)
+			for (int x = 1; x < Map.WIDTH - 1; x++)
+			{
+				ITile tile = Map[x, y];
+				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				if (!tile.GetBorderTiles().Any(b => b is not null && Map.Instance.IsFreshwaterAt(b.X, b.Y)))
+					continue;
+				// Not on top of each other: the harvest should read as spread across a world.
+				if (sites.Any(s => TileDistance(s.x, s.y, x, y) < 6)) continue;
+				sites.Add((x, y));
+				if (sites.Count >= count) break;
+			}
+
+			foreach (var (x, y) in sites)
+			{
+				IUnit? craft = CreateUnit(UnitType.Harvester, x, y, 0);   // barbarian slot, like the kaiju
+				if (craft is not null) craft.Fortify = true;
+			}
+			return sites.Count;
+		}
+
+		// Every harvester standing on the map. The extraction is theirs, not the clock's:
+		// destroy them all and the water stops leaving, which is the whole counterplay.
+		internal IUnit[] Harvesters()
+			=> _units.Where(u => u is Units.Harvester).ToArray();
+
+		internal void ProcessScavengerExtraction()
+		{
+			if (!ScavengersExtracting) return;
+			if (_gameTurn % DrainInterval != 0) return;
+
+			// No craft, no harvest. The clock is how long they intend to stay; the harvesters
+			// are what actually does the work, so killing them ends it early.
+			int craft = Harvesters().Length;
+			if (craft == 0) return;
+
+			int drained = DrainNextLakeTiles(Math.Min(DrainPerPass, craft));
+			if (drained == 0) return;
+
+			// One renumbering for the batch: draining changes what is water, and the water-body
+			// ids are the reachability oracle every sea move consults.
+			Map.Instance.RecalculateContinentsIfDirty();
+			Map.Instance.RecalculateWaterBodies(_cities);
+
+			Log($"Scavenger extraction: {drained} water tiles drained");
+			GameTask.Enqueue(Message.Newspaper(null!, "The water is going.",
+				$"{drained} leagues of lake", "gone in a night."));
+		}
+
 		// ── nuclear pariah ──────────────────────────────────────────────────
 
 		// Player number -> turns remaining under universal condemnation for using a nuclear
@@ -1098,6 +1248,14 @@ namespace CivOne
 						return;
 					}
 
+					// The Scavengers are indifferent: no ultimatum, no claim, no judgement. They
+					// break the moon for the mass, put down craft, and start pumping.
+					if (VisitorType == VisitorArchetype.Scavengers)
+					{
+						ArriveScavengers();
+						return;
+					}
+
 					// Refugees (Olvir) — and, until their own arcs are built, the other archetypes
 					// fall through to the peaceful-settlement path.
 					bool probeWasSent = (ProbeInterimPhase == 4);
@@ -1508,6 +1666,8 @@ namespace CivOne
 				// ...and, once it holds enough of the world, the third act: it stops spreading
 				// and starts building the way off (ProcessThingAscension).
 				Tick("ThingAscension", ProcessThingAscension);
+				// The Scavengers: lakes and seas going into orbit, a batch at a time.
+				Tick("ScavengerExtraction", ProcessScavengerExtraction);
 				// The world's memory of a mushroom cloud, counting down.
 				Tick("NuclearPariah", () =>
 				{
@@ -1954,6 +2114,7 @@ namespace CivOne
 				case UnitType.Gozira: unit = new Gozira(); break;
 				case UnitType.Leviathan: unit = new Leviathan(); break;
 				case UnitType.HengeGuardian: unit = new HengeGuardian(); break;
+				case UnitType.Harvester: unit = new Harvester(); break;
 				case UnitType.Longboat: unit = new Longboat(); break;
 				default: return null;
 			}
@@ -2329,6 +2490,14 @@ namespace CivOne
 			if (pRefugees > 0.80) pRefugees = 0.80;
 
 			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length);
+
+			// The Scavengers are drawn BEFORE the character split and at a flat rate, because
+			// they are the one outcome your conduct cannot influence. Refugees and Owners are
+			// both judgements — of a species worth joining or worth reclaiming. The Scavengers
+			// are not judging anything. They want the water, and a democracy's water is the
+			// same as a despotism's.
+			if (Common.Random.Next(100) < ScavengerChancePercent)
+				return VisitorArchetype.Scavengers;
 
 			return Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
 				? VisitorArchetype.Refugees

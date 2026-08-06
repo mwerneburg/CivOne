@@ -16,5 +16,6 @@ namespace CivOne.Enums
 		Refugees   = 2,  // damaged, seeking a new home — will settle and trade
 		Evaluators = 3,  // former human-built AI — judging whether humanity should continue
 		Conquerors = 4,  // Attila's lineage, returned in force
+		Scavengers = 5,  // indifferent: here for the water and the ore, and they will leave
 	}
 }
