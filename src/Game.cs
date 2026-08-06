@@ -1332,9 +1332,21 @@ namespace CivOne
 						// Text before art: the report builds to "artificial origin probable",
 						// then the picture confirms it. Swapped from original art-first order.
 						GameTask.Enqueue(Show.Screen(new Screens.ProbeInterimTransmission(gameDate, phase)));
+						// The probe sees whoever is actually coming. VisitorType is drawn at the
+						// SETI signal, well before dispatch, so it is settled by phase 3. The
+						// Owners do not pose for a portrait: they shoot the camera.
 						if (phase == 3)
-							GameTask.Enqueue(Show.Screen(new EventArtScreen(
-								EventArtScreen.FindPath("OlvirInSpace")!, "VISUAL CONTACT — TAU CETI")));
+						{
+							(string art, string caption) = VisitorType switch
+							{
+								VisitorArchetype.Owners     => ("OthersIntercept",  "CONTACT LOST — TAU CETI"),
+								VisitorArchetype.Scavengers => ("ScavengerContact", "VISUAL CONTACT — TAU CETI"),
+								_                           => ("OlvirInSpace",     "VISUAL CONTACT — TAU CETI"),
+							};
+							string? path = EventArtScreen.FindPath(art) ?? EventArtScreen.FindPath("OlvirInSpace");
+							if (path is not null)
+								GameTask.Enqueue(Show.Screen(new EventArtScreen(path, caption)));
+						}
 					}
 					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
 					{

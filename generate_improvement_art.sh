@@ -161,6 +161,7 @@ resize_and_install_event "$SRC/SpaceshipLaunched.png"     "spaceshiplaunched.png
 resize_and_install_event "$SRC/WeLoveTheKingDay.png"      "welovethekingday.png"
 # Owners invasion arc — keys are CamelCase (EventArtScreen.FindPath matches the exact name)
 resize_and_install_event "$SRC/TheOthersArrive.png"       "TheOthersArrive.png"
+resize_and_install_event "$SRC/OthersIntercept.png"       "OthersIntercept.png"
 resize_and_install_event "$SRC/Repossession.png"          "Repossession.png"
 # South Pole Expedition curse
 resize_and_install_event "$SRC/TheThing.png"              "TheThing.png"
