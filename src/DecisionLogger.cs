@@ -272,16 +272,21 @@ namespace CivOne
 		// The visitor draw happens once per game and decides its whole ending, so the
 		// inputs are worth recording — a run that ends in invasion should be able to
 		// say how close it came to the other outcome.
-		internal static void LogVisitorDraw(double character, double pRefugees, int nations)
+		internal static void LogVisitorDraw(double character, double pRefugees, int nations,
+			double larder, double pScavengers)
 		{
 			if (!_active) return;
 			Enqueue(Fmt(new[] {
-				KV("type",       "visitor_draw"),
-				KV("game_id",    _gameId),
-				KV("turn",       Game.Instance?.GameTurn ?? 0),
-				KV("character",  Math.Round(character, 2)),
-				KV("p_refugees", Math.Round(pRefugees, 2)),
-				KV("nations",    nations),
+				KV("type",         "visitor_draw"),
+				KV("game_id",      _gameId),
+				KV("turn",         Game.Instance?.GameTurn ?? 0),
+				KV("character",    Math.Round(character, 2)),
+				KV("p_refugees",   Math.Round(pRefugees, 2)),
+				KV("nations",      nations),
+				// What the Scavengers are actually reading: how much of the world's resource
+				// is still lying about untouched. Nothing to do with character.
+				KV("larder",       Math.Round(larder, 2)),
+				KV("p_scavengers", Math.Round(pScavengers, 2)),
 			}));
 		}
 

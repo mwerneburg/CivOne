@@ -103,7 +103,10 @@ namespace CivOne.Tiles
 		
 		public int X { get; private set; }
 		public int Y { get; private set; }
-		public bool Special { get; protected set; }
+		// Internal setter so a strategic resource can be TAKEN. Nothing in normal play removes
+		// a special — they are fixed at generation — but a Scavenger harvester empties the seam
+		// and moves on (Game.StripSpecial). ITile keeps it read-only.
+		public bool Special { get; internal set; }
 		public byte ContinentId { get; set; }
 		public byte OceanId { get; set; }
 		public byte LandValue { get; set; }

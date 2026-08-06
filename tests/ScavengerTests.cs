@@ -353,6 +353,165 @@ namespace CivOne.Tests
 				t => t.Type == Terrain.SaltFlat && t.Y < 20);
 		}
 
+		// ── the seams ───────────────────────────────────────────────────────
+
+		// Strategic resources are derived from tile specials (Game.ResourceAt), so emptying the
+		// seam removes the Coal — and the production a city or camp was drawing from it.
+		[Fact]
+		public void AHarvesterTakesTheCoal()
+		{
+			Game g = AWorld();
+			Map.Instance.ChangeTileType(30, 30, Terrain.Hills);
+			((CivOne.Tiles.BaseTile)Map.Instance[30, 30]).Special = true;
+			Assert.Equal(StrategicResource.Coal, Game.ResourceAt(Map.Instance[30, 30]));
+
+			Assert.True(g.StripSpecial(30, 30));
+
+			Assert.Equal(StrategicResource.None, Game.ResourceAt(Map.Instance[30, 30]));
+			Assert.Equal(Terrain.Hills, Map.Instance[30, 30].Type);   // still a hill, just an ordinary one
+		}
+
+		// A camp on a stripped seam has nothing left to ship.
+		[Fact]
+		public void StrippingASeamClosesTheCampOnIt()
+		{
+			Game g = AWorld();
+			Map.Instance.ChangeTileType(30, 30, Terrain.Hills);
+			((CivOne.Tiles.BaseTile)Map.Instance[30, 30]).Special = true;
+			g.ResourceCamps[(30, 30)] = 1;
+
+			g.StripSpecial(30, 30);
+
+			Assert.DoesNotContain(g.ResourceCamps.Keys, k => k == (30, 30));
+		}
+
+		// Ordinary terrain has nothing to take: only Iron, Coal and Oil count.
+		[Fact]
+		public void ThereIsNothingToTakeFromGrass()
+		{
+			Game g = AWorld();
+			Map.Instance.ChangeTileType(30, 30, Terrain.Grassland1);
+
+			Assert.False(g.StripSpecial(30, 30));
+		}
+
+		// ── walking ─────────────────────────────────────────────────────────
+
+		// A craft with nothing left in reach moves on, which is what makes them a front rather
+		// than six fixed nuisances — and what gives a player time to march on them.
+		[Fact]
+		public void AHarvesterWalksOnWhenItsSiteIsEmpty()
+		{
+			Game g = AWorld();
+			// All land, one lake far away: nothing to work where it stands.
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(60, 30, Terrain.Ocean);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Map.Instance.ComputeFreshwaterLakes();
+
+			g.ScavengerExtractionUntil = 400;
+			IUnit craft = g.CreateUnit(UnitType.Harvester, 20, 30, 0)!;
+			int startX = craft.X;
+			g.GameTurn = 30;
+
+			g.ProcessScavengerExtraction();
+
+			Assert.True(craft.X > startX, $"the craft should have walked toward the water ({craft.X} vs {startX})");
+		}
+
+		// It works what it is standing beside before it goes anywhere.
+		[Fact]
+		public void AHarvesterWorksItsSiteBeforeMovingOn()
+		{
+			Game g = AWorld();
+			ALake(40, 25);
+			g.ScavengerExtractionUntil = 400;
+			IUnit craft = g.CreateUnit(UnitType.Harvester, 39, 25, 0)!;
+			int x = craft.X, y = craft.Y;
+			g.GameTurn = 30;
+
+			g.ProcessScavengerExtraction();
+
+			Assert.Equal((x, y), (craft.X, craft.Y));
+			Assert.Equal(Terrain.SaltFlat, Map.Instance[40, 25].Type);
+		}
+
+		// They walk the shoreline; they do not invade.
+		[Fact]
+		public void AHarvesterNeverWalksIntoACity()
+		{
+			Game g = AWorld();
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(60, 30, Terrain.Ocean);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player p = g.HumanPlayer;
+			p.Explore(21, 30, range: 2);
+			g.AddCity(p, 0, 21, 30);
+			g.ScavengerExtractionUntil = 400;
+			IUnit craft = g.CreateUnit(UnitType.Harvester, 20, 30, 0)!;
+			g.GameTurn = 30;
+
+			g.ProcessScavengerExtraction();
+
+			Assert.NotEqual((21, 30), (craft.X, craft.Y));
+		}
+
+		// ── what draws them ─────────────────────────────────────────────────
+
+		// The design question: the Scavengers read the LARDER, not the character. An untouched
+		// world is a full pantry; a settled, worked one is picked over. That runs opposite to
+		// the Refugees/Owners axis, where conduct is everything.
+		[Fact]
+		public void AnUntouchedWorldIsAFullerLarderThanAWorkedOne()
+		{
+			Game g = AWorld();
+			// Seams nobody is near.
+			for (int i = 0; i < 12; i++)
+			{
+				Map.Instance.ChangeTileType(10 + i * 4, 40, Terrain.Hills);
+				((CivOne.Tiles.BaseTile)Map.Instance[10 + i * 4, 40]).Special = true;
+			}
+			double wild = g.LarderScore();
+
+			// Now work them: a camp on each.
+			for (int i = 0; i < 12; i++) g.ResourceCamps[(10 + i * 4, 40)] = 1;
+			double worked = g.LarderScore();
+
+			Assert.True(worked < wild,
+				$"a worked world must read as a poorer target ({worked:0.00} vs {wild:0.00})");
+		}
+
+		// A drained world is a poorer target than a wet one — so a previous harvest, or a run
+		// of global warming, changes the odds for the next visitor.
+		[Fact]
+		public void ADrainedWorldIsAPoorerTarget()
+		{
+			Game g = AWorld();
+			double wet = g.LarderScore();
+
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+				if (Map.Instance[x, y].IsOcean) Map.Instance.ChangeTileType(x, y, Terrain.SaltFlat);
+			double dry = g.LarderScore();
+
+			Assert.True(dry < wet, $"an emptied world must read as poorer ({dry:0.00} vs {wet:0.00})");
+		}
+
+		// Never zero and never certain: a draw a perfect player can drive to impossible stops
+		// being a threat and becomes a checklist.
+		[Fact]
+		public void TheLarderIsAlwaysWithinBounds()
+		{
+			Game g = AWorld();
+			double larder = g.LarderScore();
+			Assert.InRange(larder, 0.0, 1.0);
+		}
+
 		// ── the arrival ─────────────────────────────────────────────────────
 
 		// The moon is the overture: one catastrophic surge from the debris and the tide, then

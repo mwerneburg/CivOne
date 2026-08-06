@@ -145,9 +145,6 @@ namespace CivOne
 
 		// ── the Scavengers ──────────────────────────────────────────────────
 
-		// Flat, and deliberately independent of the character score: see SelectVisitorArchetype.
-		internal const int ScavengerChancePercent = 20;
-
 		// Water tiles drained per extraction pass, and how often a pass runs. Batched rather
 		// than per-turn because every drain changes land/ocean topology, and the water-body
 		// renumbering behind that is an O(map) flood — one recompute per pass, not per tile.
@@ -314,6 +311,72 @@ namespace CivOne
 			return drained;
 		}
 
+		// Take the seam. Strategic resources are derived from tile specials (ResourceAt), so
+		// emptying one removes the Iron, Coal or Oil that came with it — and with it any
+		// production bonus a city or camp was drawing. The tile keeps its terrain: a stripped
+		// hill is still a hill, just an ordinary one.
+		internal bool StripSpecial(int x, int y)
+		{
+			ITile tile = Map[x, y];
+			if (tile is null || !tile.Special) return false;
+			if (ResourceAt(tile) == StrategicResource.None) return false;
+
+			StrategicResource taken = ResourceAt(tile);
+			((Tiles.BaseTile)tile).Special = false;
+			ResourceCamps.Remove((x, y));
+			InvalidateCitiesAt(x, y);
+
+			if (Map[x, y].City?.Player == HumanPlayer || _cities.Any(c =>
+				c.Player == HumanPlayer && TileDistance(c.X, c.Y, x, y) <= 2))
+				GameTask.Enqueue(Message.Newspaper(null!, $"The {taken} is gone.",
+					"They took the seam", "and the hill with it."));
+			return true;
+		}
+
+		// A harvester works what it can reach: the water it stands beside, and the seams under
+		// its feet. Returns true if it found anything to do, which is what tells the caller
+		// whether to walk it on to the next site.
+		private bool WorkSite(IUnit craft)
+		{
+			bool did = false;
+			if (StripSpecial(craft.X, craft.Y)) did = true;
+			foreach (ITile b in Map[craft.X, craft.Y].GetBorderTiles().ToArray())
+			{
+				if (b is null) continue;
+				if (StripSpecial(b.X, b.Y)) did = true;
+				if (b.IsOcean && b.City is null && DrainTile(b.X, b.Y)) did = true;
+			}
+			return did;
+		}
+
+		// ...and when there is nothing left within reach, it walks. Toward the nearest water or
+		// unworked seam, one tile a turn, which is what makes them a moving front rather than
+		// six fixed nuisances — and what gives a player time to march on them.
+		private void WalkHarvester(IUnit craft)
+		{
+			int bestDist = int.MaxValue, bx = craft.X, by = craft.Y;
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+			{
+				ITile tile = Map[x, y];
+				if (tile is null) continue;
+				bool worth = (tile.IsOcean && tile.City is null)
+				          || ResourceAt(tile) != StrategicResource.None;
+				if (!worth) continue;
+				int d = TileDistance(craft.X, craft.Y, x, y);
+				if (d == 0 || d >= bestDist) continue;
+				bestDist = d; bx = x; by = y;
+			}
+			if (bestDist == int.MaxValue) return;
+
+			int dx = Math.Sign(bx - craft.X), dy = Math.Sign(by - craft.Y);
+			ITile step = Map[craft.X + dx, craft.Y + dy];
+			// Land only, and never onto a city: they walk the shoreline, they do not invade.
+			if (step is null || step.IsOcean || step.City is not null) return;
+			craft.X = (byte)step.X;
+			craft.Y = (byte)step.Y;
+		}
+
 		internal void ProcessScavengerExtraction()
 		{
 			if (!ScavengersExtracting) return;
@@ -323,6 +386,12 @@ namespace CivOne
 			// are what actually does the work, so killing them ends it early.
 			int craft = Harvesters().Length;
 			if (craft == 0) return;
+
+			// Each craft works its own site first — the seams under it and the water beside it —
+			// and walks on when there is nothing left within reach. This is what makes them a
+			// moving front rather than six fixed nuisances.
+			foreach (IUnit unit in Harvesters())
+				if (!WorkSite(unit)) WalkHarvester(unit);
 
 			int budget = Math.Min(DrainPerPass, craft);
 
@@ -2549,19 +2618,77 @@ namespace CivOne
 			if (pRefugees < 0.20) pRefugees = 0.20;
 			if (pRefugees > 0.80) pRefugees = 0.80;
 
-			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length);
+			// The Scavengers are drawn FIRST and on a completely different reading.
+			//
+			// Refugees and Owners are both judgements of a species — worth joining, or worth
+			// reclaiming — so both come off the character score. The Scavengers are not judging
+			// anybody. They are reading the LARDER: how much of this world's resource is still
+			// lying about untouched, and how much water there is to lift. A democracy's coal is
+			// the same as a despotism's.
+			//
+			// That makes them the one archetype your virtue cannot ward off, and the incentive
+			// runs opposite to the other two: settling and working your land is what makes the
+			// planet a poor target. A wide quiet wilderness is a full pantry.
+			double larder = LarderScore();
+			double pScavengers = ScavengerFloor + larder * ScavengerLarderWeight;
+			if (pScavengers > ScavengerCeiling) pScavengers = ScavengerCeiling;
 
-			// The Scavengers are drawn BEFORE the character split and at a flat rate, because
-			// they are the one outcome your conduct cannot influence. Refugees and Owners are
-			// both judgements — of a species worth joining or worth reclaiming. The Scavengers
-			// are not judging anything. They want the water, and a democracy's water is the
-			// same as a despotism's.
-			if (Common.Random.Next(100) < ScavengerChancePercent)
+			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length, larder, pScavengers);
+
+			if (Common.Random.Next(100) < (int)System.Math.Round(pScavengers * 100))
 				return VisitorArchetype.Scavengers;
 
 			return Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
 				? VisitorArchetype.Refugees
 				: VisitorArchetype.Owners;
+		}
+
+		// Never zero: something is always worth the trip, and a draw that a perfect player can
+		// drive to impossible stops being a threat and becomes a checklist.
+		private const double ScavengerFloor = 0.08;
+		private const double ScavengerLarderWeight = 0.34;
+		private const double ScavengerCeiling = 0.42;
+
+		// 0..1: how much of the world is still untouched pantry. Two halves, weighted equally.
+		//
+		//   minerals  the share of resource specials (Iron, Coal, Oil) that no city works and
+		//             no camp holds. Ore somebody is already digging is ore that has to be
+		//             taken off them; ore in an empty hill is simply there.
+		//   water     the share of the map that is still sea and lake, against the share a
+		//             generated world starts with. Their primary cargo, and the reason a
+		//             previous harvest — or a run of global warming — changes the odds.
+		internal double LarderScore()
+		{
+			int specials = 0, untouched = 0, water = 0, land = 0;
+
+			bool Worked(int x, int y)
+			{
+				if (ResourceCamps.ContainsKey((x, y))) return true;
+				foreach (City c in _cities)
+					if (c.Size > 0 && TileDistance(c.X, c.Y, x, y) <= 2) return true;
+				return false;
+			}
+
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+			{
+				ITile tile = Map[x, y];
+				if (tile is null) continue;
+				if (tile.IsOcean) { water++; continue; }
+				land++;
+				if (ResourceAt(tile) == StrategicResource.None) continue;
+				specials++;
+				if (!Worked(x, y)) untouched++;
+			}
+
+			double minerals = specials > 0 ? (double)untouched / specials : 0.5;
+			int total = water + land;
+			double wet = total > 0 ? (double)water / total : 0;
+			// Against a nominal 60% ocean world: wetter than that reads as a full tank, drier
+			// as a picked-over one.
+			double waterShare = Math.Min(1.0, wet / 0.60);
+
+			return (minerals + waterShare) / 2.0;
 		}
 
 		// The Owners arrival forks on whether the planetary defence dome was built.
