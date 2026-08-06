@@ -1725,6 +1725,7 @@ namespace CivOne
 					Map[x, y].Road = true;
 			}
 			_cities.Add(city);
+			BumpCityRoster();
 			InvalidateBuiltWonders();
 			RefreshWaterBodiesIfCoastal(x, y);
 			Game.UpdateResources(city.Tile);
@@ -1756,6 +1757,7 @@ namespace CivOne
 				_units.Remove(unit);
 			}
 			_cities.Remove(city);
+			BumpCityRoster();
 			InvalidateBuiltWonders();
 			int wasX = city.X, wasY = city.Y;
 			city.X = 255;
@@ -1884,7 +1886,20 @@ namespace CivOne
 			}
 		}
 
+		// Bumped whenever the set of cities, or who owns one, changes. Player.Cities caches
+		// against it: that property was recomputed from scratch on every single access —
+		// GetCities().ToArray() (543 elements late-game) then a Where().ToArray() on top, with
+		// the owner test going through the Player==byte operator and its player-table lookup.
+		// It is read from 109 sites, 70 of them in the AI, several per unit move.
+		private int _cityRosterVersion;
+		internal int CityRosterVersion => _cityRosterVersion;
+		internal void BumpCityRoster() => _cityRosterVersion++;
+
 		public City[] GetCities() => _cities.ToArray();
+
+		// Non-allocating read-only view of the units, the counterpart of CitiesList. Same
+		// contract: callers must not mutate the unit list while enumerating.
+		internal IReadOnlyList<IUnit> UnitsList => _units;
 
 		// Non-allocating read-only view for hot paths (City.InvalidTile runs this thousands
 		// of times per turn — GetCities().ToArray() there was a major late-game allocation

@@ -163,7 +163,40 @@ namespace CivOne
 
 		public bool IsHuman => (Game.Instance.HumanPlayer == this);
 
-		public City[] Cities => Game.Instance.GetCities().Where(c => this == c.Owner && c.Size > 0).ToArray();
+		// Cached against Game.CityRosterVersion, which moves only when a city is founded,
+		// destroyed, or changes hands.
+		//
+		// This used to be recomputed on EVERY access: GetCities() allocating a fresh array of
+		// every city in the world (543 of them in a turn-750 game), a Where().ToArray() on top,
+		// and an owner test going through the Player==byte operator — which does a player-table
+		// lookup per city. It is read from 109 sites, 70 of them in the AI and several per unit
+		// move, which is how a 25-second turn was 74% "ai_move" with pathfinding at only 4%.
+		private City[]? _citiesCache;
+		private int _citiesCacheVersion = -1;
+
+		public City[] Cities
+		{
+			get
+			{
+				Game game = Game.Instance;
+				if (_citiesCache is not null && _citiesCacheVersion == game.CityRosterVersion)
+					return _citiesCache;
+
+				// The player number once, not once per city.
+				if (!Game.TryGetPlayerNumber(this, out byte me))
+					return _citiesCache = System.Array.Empty<City>();
+
+				var owned = new List<City>();
+				IReadOnlyList<City> all = game.CitiesList;
+				for (int i = 0; i < all.Count; i++)
+				{
+					City c = all[i];
+					if (c.Owner == me && c.Size > 0) owned.Add(c);
+				}
+				_citiesCacheVersion = game.CityRosterVersion;
+				return _citiesCache = owned.ToArray();
+			}
+		}
 
 		public int Population => Cities.Sum(c => c.Population);
 

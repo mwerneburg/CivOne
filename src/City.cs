@@ -51,6 +51,7 @@ namespace CivOne
 						other.RemoveTradeRoutesTo(this);
 					_tradeRoutes.Clear();
 				}
+				if (_owner != value && Game.Started) Game.Instance.BumpCityRoster();
 				_owner = value;
 				ResetResourceTiles();
 				InvalidateCache();
@@ -68,6 +69,9 @@ namespace CivOne
 			{
 				if (X == 255 || Y == 255) return;
 
+				// Player.Cities filters on Size > 0, so a crossing of zero changes the roster
+				// even when no city is added, destroyed or handed over.
+				if (Game.Started && (_size == 0) != (value == 0)) Game.Instance.BumpCityRoster();
 				_size = value;
 				InvalidateCache();
 				if (_size == 0)
