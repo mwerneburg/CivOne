@@ -1,62 +1,64 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Project-specific rules for CivOne. General "write less code" discipline lives in the
+ponytail plugin; general "don't overstep" discipline is in Claude Code's own prompt.
+What follows is only what those two can't know.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+**Bias toward verification over speed, and toward less code over more.** If a simpler
+approach exists — or the thing being asked for already exists — say so before building.
 
-## 1. Think Before Coding
+## 1. Surgical changes
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+Touch only what you must. Don't improve adjacent code, don't refactor what isn't
+broken, and remove only the orphans your own change created.
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+Unrelated dead code gets mentioned, not deleted. This overrides ponytail's "deletion
+over addition": here, unfamiliar code is usually load-bearing for an arc you haven't
+read.
 
-## 2. Simplicity First
+## 2. Verify the test fails without the fix
 
-**Minimum code that solves the problem. Nothing speculative.**
+A passing test proves nothing until you've watched it fail. Toggle the fix off, confirm
+the *exact expected* test fails, restore. Report which tests the negative check killed.
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+This is not ceremony — tests here have repeatedly passed against unfixed code because
+something incidental agreed with the rule: a row-major scan reaching the right tile by
+luck; a size-12 city falling into disorder, and disorder halves the incite price,
+masking the comparison the test existed to make. Green suites hid both.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+Corollary: a missing asset degrades **silently** — `FindPath` returns null, a fallback
+plays, nobody notices for a week. New event art, tile art and portraits get a
+file-exists test (`LeaderPortraitTests`, `ProbeContactArtTests`).
 
-## 3. Surgical Changes
+Ponytail's "ONE runnable check, no frameworks" is the floor for new logic, not a
+ceiling. This project has a real suite and it stays that way.
 
-**Touch only what you must. Clean up only your own mess.**
+For multi-step work, state the plan first — one line per step with its check.
 
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+## Build and test
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+Environment (also in `build.sh`, which builds and runs the game):
 
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+```bash
+export PATH=$PATH:/opt/homebrew/bin/dotnet
+export DOTNET_ROOT=/opt/homebrew/Cellar/dotnet/10.0.300/libexec
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+Both projects must build clean — the core is `netstandard2.0` (so no `init`
+accessors) and the SDL runtime is `net10.0`, so a change can compile in one and
+break the other:
 
+```bash
+dotnet build CivOne.csproj -v q
+dotnet build runtime/sdl/CivOne.SDL.csproj -v q
+```
+
+Tests are ~5 min; `AutoplayHarness` runs hour-long games, so exclude it:
+
+```bash
+dotnet test tests/CivOne.Tests.csproj --filter "FullyQualifiedName!~Autoplay"
+```
+
+## Git
+
+The user handles all commits and pushes. Never run `git commit` or `git push`.
