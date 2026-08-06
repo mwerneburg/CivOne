@@ -3440,6 +3440,20 @@ namespace CivOne
 			byte tnum = PlayerNumber(thing);
 			if (city.Owner == tnum || city.Size == 0) return;
 
+			// A Hospital holds the line. In the film the blood test was worked out in an
+			// afternoon by one man with a hot wire — the organism is only unstoppable where
+			// there is no medicine to meet it. This is absolute rather than a chance: an
+			// outbreak that spreads to two cities a time needs a hard firebreak to be
+			// containable at all, and a Hospital in each neighbour ends it.
+			if (city.HasBuilding<Buildings.Hospital>())
+			{
+				Log($"Thing outbreak refused by {city.Name}: hospital");
+				if (city.Player == HumanPlayer)
+					GameTask.Enqueue(Message.Newspaper(null!, $"{city.Name} holds.",
+						"The hospital knew", "what to look for."));
+				return;
+			}
+
 			// It takes what they knew along with what they were. The organism researches
 			// nothing of its own (AI.ChooseResearch declines for it) — every advance it holds
 			// came out of somebody it ate, which is also the only route to Space Flight and

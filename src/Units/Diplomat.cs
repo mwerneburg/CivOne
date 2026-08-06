@@ -81,9 +81,17 @@ namespace CivOne.Units
 			return possible[Common.Random.Next(possible.Count)];
 		}
 
+		// True when this city cannot be sabotaged at all. Checked at both call sites — the AI's
+		// mission dispatch in Confront and the player's own DiplomatSabotage screen — so the
+		// rule reads the same whichever direction the agent is travelling.
+		internal static bool SabotageProof(City city) => city.HasBuilding<Buildings.PoliceStation>();
+
 		public string Sabotage(City city)
 		{
 			Game.DisbandUnit(this);
+
+			// The police got there first. The agent is spent either way.
+			if (SabotageProof(city)) return $"agent held by {city.Name} police";
 
 			IList<IBuilding> buildings = city.Buildings.Where(b => (b.GetType() != typeof(Buildings.Palace))).ToList();
 
@@ -131,6 +139,19 @@ namespace CivOne.Units
 						Game.DisbandUnit(this);
 						if (target.Player == Human || Player == Human)
 							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} spy caught", $"in {target.Name}!"));
+						return true;
+					}
+
+					// A Police Station catches saboteurs outright — ordinary police work, which
+					// is what actually caught spies through the Cold War. Not a dice roll: it is
+					// the counterplay to a campaign of sabotage, and it has to be dependable
+					// enough to be worth building. The spy is lost, so a civ that keeps sending
+					// them keeps paying for them.
+					if (target.HasBuilding<Buildings.PoliceStation>())
+					{
+						Game.DisbandUnit(this);
+						if (target.Player == Human || Player == Human)
+							GameTask.Insert(Message.Spy("Spies report:", $"{Player.TribeName} agent held", $"by police in {target.Name}."));
 						return true;
 					}
 

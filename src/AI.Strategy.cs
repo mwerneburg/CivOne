@@ -3556,8 +3556,14 @@ namespace CivOne
 				// some irrigation. Taken deliberately, because colonies were the thing missing.
 				// If a long run shows the countryside going threadbare again, this divisor is
 				// the first thing to put back to /2.
+				// Ceiling lowered 6 -> 3 (2026-08-06). At 6 apiece across sixteen civs the world
+				// carried ~96 agents, and a diplomat is CONSUMED by its mission, so they were
+				// rebuilt and respent continuously: 48,643 diplomat moves in one 520-turn run,
+				// 35,434 of them ending in a sabotage of a human city — 68 per turn. That is not
+				// a spy game, it is a city being dismantled a building at a time by software.
+				// The Police Station is the counterplay; this is the volume.
 				int diplomatCap  = Math.Min(Player.Cities.Length,
-				                            Math.Max(2, Math.Min(6, Player.Cities.Length / 4)));
+				                            Math.Max(1, Math.Min(3, Player.Cities.Length / 6)));
 				if (ownDiplomats < diplomatCap)
 					Consider(new Diplomat());
 			}
