@@ -58,8 +58,9 @@ namespace CivOne.Tests
 				IWonder[] allowed = Reflect.GetWonders()
 					.Where(w => world.p.ProductionAvailable(w))
 					.ToArray();
-				// The Vessel is the one exception, and only the organism gets it.
-				Assert.All(allowed, w => Assert.True(w is TheVessel,
+				// The two faction missions are the only exceptions: The Vessel for the
+				// organism, The Reprocessor for the machines. Nobody gets the other's.
+				Assert.All(allowed, w => Assert.True(w is TheVessel or TheReprocessor,
 					$"{world.p.Civilization.Name} may build {(w as ICivilopedia)?.Name}"));
 			}
 		}

@@ -53,5 +53,6 @@ namespace CivOne.Enums
 		TheInternet              = 40,
 		Stonehenge               = 41,
 		TheVessel                = 42,
+		TheReprocessor           = 43,
 	}
 }

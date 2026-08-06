@@ -3062,8 +3062,10 @@ namespace CivOne
 			// machine work, and only from the top production city as for anyone else.
 			if (Player.Civilization is Skynet)
 			{
+				// The Reprocessor first: it is the mission, everything else is materiel.
 				IWonder[] machineWork =
 				{
+					new Wonders.TheReprocessor(),
 					new NanobotFactory(), new ManhattanProject(), new FusionCore(),
 					new InterstellarProbe(), new HumanGenomeProject(),
 				};

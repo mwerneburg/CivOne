@@ -125,7 +125,7 @@ namespace CivOne.Tests
 			IWonder[] wonders = plan.OfType<IWonder>().ToArray();
 
 			Assert.All(wonders, w => Assert.True(
-				w is NanobotFactory or ManhattanProject or FusionCore
+				w is TheReprocessor or NanobotFactory or ManhattanProject or FusionCore
 				  or InterstellarProbe or HumanGenomeProject,
 				$"the network considered {(w as ICivilopedia)?.Name}"));
 		}

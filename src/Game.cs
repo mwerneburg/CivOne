@@ -672,6 +672,44 @@ namespace CivOne
 		private int _warmingIndicator;
 		private uint _warmingIndicatorTurn = uint.MaxValue;
 
+		// ── The Reprocessor (Skynet's mission) ──────────────────────────────
+
+		// True while a LIVING Skynet still holds the city containing the Reprocessor. This is
+		// the reversibility: recomputed from the world every turn rather than latched at
+		// completion, so taking the city or destroying the machines stops the process on the
+		// spot. Cached per turn because WarmingIndicator reads it and is itself read ~457
+		// times a turn (see the note there) — same reasoning, same lifetime.
+		private bool _reprocessorActive;
+		private uint _reprocessorTurn = uint.MaxValue;
+
+		internal bool ReprocessorActive
+		{
+			get
+			{
+				if (_reprocessorTurn == _gameTurn) return _reprocessorActive;
+				bool active = false;
+				for (int i = 0; i < _cities.Count; i++)
+				{
+					City c = _cities[i];
+					if (c.Size == 0 || !c.HasWonder<Wonders.TheReprocessor>()) continue;
+					Player? holder = GetPlayer(c.Owner);
+					active = holder is not null
+					      && holder.Civilization is Civilizations.Skynet
+					      && !holder.IsDestroyed();
+					break;
+				}
+				_reprocessorTurn = _gameTurn;
+				return _reprocessorActive = active;
+			}
+		}
+
+		// How much the Reprocessor adds to the perceived state of the air, and how much sooner
+		// a warming event fires while it runs. The indicator floor is the important half: it
+		// drives HurricaneCheck directly, so the storms arrive even over a world that is not
+		// burning anything itself. Nobody is being attacked — the sky is simply being changed.
+		private const int ReprocessorWarmingFloor = 3;
+		private const int ReprocessorThresholdPercent = 50;   // warming fires at half the pollution
+
 		public int WarmingIndicator
 		{
 			get
@@ -710,6 +748,12 @@ namespace CivOne
 				          : n <= 3 * scale ? 2
 				          : n <= 5 * scale ? 3
 				          : 4;
+				// The machines are working the sky directly, so the air reads badly even where
+				// nothing is being burned. A floor, not an addition: a genuinely filthy world
+				// is already worse than this and keeps its own number.
+				if (ReprocessorActive && level < ReprocessorWarmingFloor)
+					level = ReprocessorWarmingFloor;
+
 				_warmingIndicatorTurn = _gameTurn;
 				_warmingIndicator = level;
 				return level;
@@ -727,6 +771,8 @@ namespace CivOne
 			// Anarchy) responsible; the icecaps were down to 0.3% of land and swamp had
 			// become the second-commonest terrain at 14.4%.
 			int threshold = (8 + (GlobalWarmingCount * 2)) * Map.WIDTH * Map.HEIGHT / 4000;
+			// While the Reprocessor runs, the same smoke goes twice as far.
+			if (ReprocessorActive) threshold = Math.Max(1, threshold * ReprocessorThresholdPercent / 100);
 			if (polluted < threshold) return;
 
 			GlobalWarmingCount++;

@@ -1714,6 +1714,13 @@ namespace CivOne
 							Game g = Game.Instance;
 							impTask.Done += (s, a) => g.ExecuteThingDeparture(this);
 						}
+						// The Reprocessor is world news: everyone who has to breathe should be
+						// told, because the counterplay is theirs to organise.
+						if (wonder is Wonders.TheReprocessor)
+						{
+							GameTask.Enqueue(Message.Newspaper(null!, "The sky is changing.",
+								$"The machines have lit", $"something in {Name}."));
+						}
 						if (wonder is Wonders.SouthPoleExpedition)
 						{
 							// Whoever builds the wonder brings back the curse: the anomaly can

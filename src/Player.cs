@@ -670,6 +670,17 @@ namespace CivOne
 				if (Civilization is not Civilizations.TheThing) return false;
 				if (!HasAdvance<Advances.SpaceFlight>()) return false;
 			}
+			// The Reprocessor is the machines' equivalent: their mission, and theirs alone.
+			//
+			// One chain, not two: chained off the Vessel check above rather than opening a new
+			// `if`, because the blanket ban below must only catch wonders that are NEITHER
+			// faction mission. A separate `if` here left the ban chained to the Reprocessor
+			// test, so The Vessel fell through it and the organism lost its own way off the
+			// planet — caught by ThingAscensionTests, which is what those exist for.
+			else if (wonder is Wonders.TheReprocessor)
+			{
+				if (Civilization is not Civilizations.Skynet) return false;
+			}
 			// ...and the story factions raise nothing else. Their AI production blocks never
 			// choose a wonder, but a CAPTURED city keeps the previous administration's queue —
 			// BaseUnit's changeOwner zeroes Shields and leaves the production standing. That is
