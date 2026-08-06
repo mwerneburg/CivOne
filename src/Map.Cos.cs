@@ -60,6 +60,12 @@ namespace CivOne
 					case Enums.Terrain.Mountains:  code = 13; break;
 					case Enums.Terrain.Desert:     code = 14; break;
 					case Enums.Terrain.Arctic:     code = 15; break;
+					// 16, not one of the free low codes: 0/4/5/8 are unassigned in Civ 1's
+					// original MAP encoding rather than guaranteed meaningless, and there is a
+					// whole byte available. Anything unrecognised still falls back to Ocean —
+					// which is exactly why a new terrain MUST be given a case here. Salt flats
+					// silently saving as Ocean would refill the sea the Scavengers drained.
+					case Enums.Terrain.SaltFlat:   code = 16; break;
 					default:                       code =  1; break; // Ocean
 				}
 				terrain[y * WIDTH + x] = code;
@@ -124,6 +130,7 @@ namespace CivOne
 					case 13: tile = new Mountains (x, y, special); break;
 					case 14: tile = new Desert    (x, y, special); break;
 					case 15: tile = new Arctic    (x, y, special); break;
+					case 16: tile = new SaltFlat  (x, y, special); break;
 					default: tile = new Ocean     (x, y, special); break;
 				}
 				_tiles[x, y] = tile;

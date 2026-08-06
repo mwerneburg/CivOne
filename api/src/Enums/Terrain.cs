@@ -31,5 +31,8 @@ namespace CivOne.Enums
 		Ocean = 10,
 		River = 11,
 		Grassland2 = 12,
+		// Exposed seabed. Never generated — only created by draining water away, so it appears
+		// mid-game or not at all. See CivOne.Tiles.SaltFlat.
+		SaltFlat = 13,
 	}
 }

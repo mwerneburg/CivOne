@@ -125,7 +125,13 @@ namespace CivOne
 				Terrain t = _tiles[x, y].Type;
 				return !_tiles[x, y].IsOcean
 					&& t != Terrain.River && !_freshwater[x, y]
-					&& t != Terrain.Mountains && t != Terrain.Arctic;
+					&& t != Terrain.Mountains && t != Terrain.Arctic
+					// A salt flat is drained seabed and must stay dry. These retrofits plant
+					// oases on land with no water in range, and a fresh salt pan is the driest
+					// ground on the map — so without this exclusion, draining a sea would
+					// spontaneously grow RIVERS across the seabed on the next load. Found by
+					// the round-trip test, which got back River where it had saved SaltFlat.
+					&& t != Terrain.SaltFlat;
 			}
 
 			// Seed multi-source BFS from every water tile.
@@ -235,7 +241,13 @@ namespace CivOne
 				Terrain t = _tiles[x, y].Type;
 				return !_tiles[x, y].IsOcean
 					&& t != Terrain.River && !_freshwater[x, y]
-					&& t != Terrain.Mountains && t != Terrain.Arctic;
+					&& t != Terrain.Mountains && t != Terrain.Arctic
+					// A salt flat is drained seabed and must stay dry. These retrofits plant
+					// oases on land with no water in range, and a fresh salt pan is the driest
+					// ground on the map — so without this exclusion, draining a sea would
+					// spontaneously grow RIVERS across the seabed on the next load. Found by
+					// the round-trip test, which got back River where it had saved SaltFlat.
+					&& t != Terrain.SaltFlat;
 			}
 
 			// Multi-source BFS distance fields. Both seed only their source tiles, so
@@ -456,6 +468,7 @@ namespace CivOne
 				case Terrain.Desert: _tiles[x, y] = new Desert(x, y, special); break;
 				case Terrain.Arctic: _tiles[x, y] = new Arctic(x, y, special); break;
 				case Terrain.Ocean: _tiles[x, y] = new Ocean(x, y, special); break;
+				case Terrain.SaltFlat: _tiles[x, y] = new SaltFlat(x, y, special); break;
 			}
 			_tiles[x, y].Road = road;
 			_tiles[x, y].RailRoad = railRoad;

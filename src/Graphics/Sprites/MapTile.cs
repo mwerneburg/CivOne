@@ -164,6 +164,7 @@ namespace CivOne.Graphics.Sprites
 				{
 					case Terrain.Arctic: return Free.Arctic;
 					case Terrain.Desert: return Free.Desert;
+					case Terrain.SaltFlat: return Free.SaltFlat;
 					case Terrain.Forest: return Free.Forest;
 					case Terrain.Grassland1:
 					case Terrain.Grassland2: return Free.Grassland;

@@ -36,6 +36,7 @@ namespace CivOne.Graphics
 				case Terrain.Swamp:      return CassetteTheme.PHOS_FAINT;
 				case Terrain.Tundra:     return CassetteTheme.INK_HIGH;
 				case Terrain.Arctic:     return CassetteTheme.WHITE;
+				case Terrain.SaltFlat:   return CassetteTheme.INK_HIGH;   // pale, and unmistakably not sea
 				default:                 return CassetteTheme.BG3;
 			}
 		}

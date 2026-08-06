@@ -156,6 +156,21 @@ namespace CivOne.Graphics
 			}
 		}
 
+		// Exposed seabed. Falls back to Desert's own art when [salt_flat] is absent, rather
+		// than to noise: a missing section should read as "dry ground of some kind", never as
+		// a coloured smear the player has to decode.
+		public Bytemap SaltFlat
+		{
+			get
+			{
+				byte[]? loaded = TryLoadTile("salt_flat");
+				if (loaded is not null)
+					return new Bytemap(16, 16).FromByteArray(loaded);
+
+				return Desert;
+			}
+		}
+
 		public Bytemap Forest
 		{
 			get
@@ -1420,6 +1435,7 @@ namespace CivOne.Graphics
 				Terrain.Arctic => Arctic,
 				Terrain.Tundra => Tundra,
 				Terrain.Desert => Desert,
+				Terrain.SaltFlat => SaltFlat,
 				Terrain.Forest => Forest,
 				Terrain.Mountains => Mountains,
 				Terrain.Jungle => Jungle,
