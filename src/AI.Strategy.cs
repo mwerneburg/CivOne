@@ -1096,6 +1096,10 @@ namespace CivOne
 			if (Player.Civilization is Olvir) return; // refugees seek coexistence, not negotiation
 			if (Player.Civilization is TheOthers or TheThing or Skynet) return; // the Registry does not take meetings; the Thing has nothing to say; the network does not answer
 			if (Player.Government is Governments.Anarchy) return;
+			// Nobody talks to a civ that has just used a nuclear weapon on people. Every
+			// channel closes for the duration — no gifts, no tribute, no terms.
+			if (Game.Instance.IsNuclearPariah(Player)
+			 || Game.Instance.IsNuclearPariah(Game.Instance.HumanPlayer)) return;
 
 			if (Player.IsDestroyed()) return;
 
@@ -1266,6 +1270,7 @@ namespace CivOne
 				    .Where(p => p != Player && !p.IsDestroyed()
 				             && Game.PlayerNumber(p) != 0
 				             && !(p.Civilization is TheOthers or TheThing or Skynet) // the Registry takes cities, not gold; the Thing takes people; the network takes all
+				             && !Game.Instance.IsNuclearPariah(p)   // you do not buy off a pariah
 				             && Player.IsAtWar(p)
 				             && Player.HasEmbassy(p)
 				             && ownPower * 2 < MilitaryScore(p))
@@ -1310,7 +1315,8 @@ namespace CivOne
 				Player[] aiEnemies = Game.Players
 				    .Where(p => p != Player && !p.IsDestroyed() && !p.IsHuman
 				             && Game.PlayerNumber(p) != 0 && Player.IsAtWar(p)
-				             && !(p.Civilization is TheOthers or TheThing or Skynet)) // no peace with the manifest's author, the ice, or the network
+				             && !(p.Civilization is TheOthers or TheThing or Skynet) // no peace with the manifest's author, the ice, or the network
+				             && !Game.Instance.IsNuclearPariah(p))  // ...nor with a civ under condemnation
 				    .ToArray();
 
 				if (aiEnemies.Length > 0)

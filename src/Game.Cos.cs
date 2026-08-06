@@ -302,6 +302,9 @@ namespace CivOne
 					Provocations            = Provocations.Count > 0
 					                          ? Provocations.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
 					                          : null!,
+					NuclearPariah           = NuclearPariah.Count > 0
+					                          ? NuclearPariah.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
+					                          : null!,
 					GoziraState             = GoziraState,
 					LeviathanState          = LeviathanState,
 					DoorState               = DoorState,
@@ -564,6 +567,10 @@ namespace CivOne
 				foreach (int[] pair in g.Provocations)
 					if (pair.Length == 2 && pair[0] > 0 && pair[0] < _players.Count)
 						Provocations[(byte)pair[0]] = pair[1];
+			if (g.NuclearPariah is not null)
+				foreach (int[] pair in g.NuclearPariah)
+					if (pair.Length == 2 && pair[0] >= 0 && pair[0] < _players.Count && pair[1] > 0)
+						NuclearPariah[(byte)pair[0]] = pair[1];
 			GoziraState = (byte)g.GoziraState;
 			LeviathanState = (byte)g.LeviathanState;
 			DoorState = (byte)g.DoorState;

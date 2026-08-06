@@ -143,6 +143,72 @@ namespace CivOne
 			return n == ProvocationThreshold;
 		}
 
+		// ── nuclear pariah ──────────────────────────────────────────────────
+
+		// Player number -> turns remaining under universal condemnation for using a nuclear
+		// weapon on people. Ticked in Game.NewTurn. The counterpart the diplomacy model never
+		// had: _attitudeBonus is a goodwill timer with no opposite sign, so a civ could buy
+		// friendship but never earn a grudge, and nothing anywhere recorded what the HUMAN did
+		// (RecordProvocation returns false for HumanPlayer by design).
+		internal readonly Dictionary<byte, int> NuclearPariah = new();
+
+		internal const int PariahTurns = 20;
+		// A world with a forum to condemn you in condemns you for twice as long.
+		internal const int PariahTurnsWithUN = 40;
+
+		internal bool IsNuclearPariah(Player? player)
+			=> player is not null
+			&& TryGetPlayerNumber(player, out byte n)
+			&& NuclearPariah.TryGetValue(n, out int t) && t > 0;
+
+		// The organism, the Registry and the machines are not people, and the barbarians keep
+		// no embassies. A strike on any of them is pest control and costs nothing.
+		private static bool IsPeople(Player? p)
+			=> p is not null && p.Civilization is not (Civilizations.TheThing
+			                                        or Civilizations.TheOthers
+			                                        or Civilizations.Skynet
+			                                        or Civilizations.Barbarian);
+
+		// A nuclear weapon used on people. Every civilization that keeps embassies cuts the
+		// detonator off: trade routes severed, treaties torn up, pacts ended, goodwill spent.
+		// Being already at war is no excuse and no exemption — nukes is nukes.
+		internal void CondemnNuclearStrike(Player detonator, Player? victim)
+		{
+			if (detonator is null || !IsPeople(victim)) return;
+
+			bool un = WonderBuilt<Wonders.UnitedNations>();
+			byte dnum = PlayerNumber(detonator);
+			NuclearPariah[dnum] = un ? PariahTurnsWithUN : PariahTurns;
+
+			foreach (Player witness in _players.Where(p => p is not null && p != detonator))
+			{
+				if (!IsPeople(witness)) continue;   // the factions do not hold hearings
+
+				// Goodwill bought with gifts does not survive a mushroom cloud.
+				witness.SetAttitudeBonus(detonator, 0);
+				detonator.SetAttitudeBonus(witness, 0);
+				// Alliances end.
+				witness.SetDefensePact(detonator, 0);
+				detonator.SetDefensePact(witness, 0);
+				// Diplomatic ties are broken: no treaty survives, whatever its remaining term.
+				witness.SetPeaceTreaty(detonator, 0);
+				detonator.SetPeaceTreaty(witness, 0);
+
+				// And the trade stops.
+				byte wnum = PlayerNumber(witness);
+				foreach (City c in _cities.Where(c => c.Owner == wnum))
+					c.RemoveTradeRoutesTo(detonator);
+				foreach (City c in _cities.Where(c => c.Owner == dnum))
+					c.RemoveTradeRoutesTo(witness);
+			}
+
+			Log($"Nuclear condemnation: {detonator.TribeName} shunned for "
+			  + $"{NuclearPariah[dnum]} turns (UN {un})");
+			GameTask.Enqueue(Message.Newspaper(null!,
+				un ? "The Assembly condemns" : "The world turns away",
+				$"the {detonator.TribeNamePlural}.", "Every door is shut."));
+		}
+
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.
 		internal byte GoziraState;
 
@@ -1442,6 +1508,19 @@ namespace CivOne
 				// ...and, once it holds enough of the world, the third act: it stops spreading
 				// and starts building the way off (ProcessThingAscension).
 				Tick("ThingAscension", ProcessThingAscension);
+				// The world's memory of a mushroom cloud, counting down.
+				Tick("NuclearPariah", () =>
+				{
+					foreach (byte k in NuclearPariah.Keys.ToArray())
+						if (--NuclearPariah[k] <= 0)
+						{
+							NuclearPariah.Remove(k);
+							Player? forgiven = k < _players.Count ? _players[k] : null;
+							if (forgiven is not null)
+								GameTask.Enqueue(Message.Newspaper(null!, "Contact is restored",
+									$"with the {forgiven.TribeNamePlural}.", "Nothing is forgotten."));
+						}
+				});
 
 				// Cultural defection: disorderly frontier towns may choose a more
 				// admired civilization's flag.
@@ -2898,13 +2977,18 @@ namespace CivOne
 
 		internal void ApplyNuclearStrike(int cx, int cy, Player detonator)
 		{
+			Player? victimOnTile = null;
 			foreach (ITile tile in Map.QueryMapPart(cx - 1, cy - 1, 3, 3))
 			{
 				if (tile is null) continue;
 
 				// Gozira is immune — radiation is a meal, not a weapon.
 				foreach (IUnit victim in tile.Units.Where(u => u is not Units.Gozira).ToArray())
+				{
+					if (victimOnTile is null && victim.Owner != PlayerNumber(detonator))
+						victimOnTile = GetPlayer(victim.Owner);
 					DisbandUnit(victim);
+				}
 
 				// Fallout. Same exclusions the ordinary pollution roll uses
 				// (City.ExecutePollution): never ocean, never the city tile itself.
@@ -2922,6 +3006,11 @@ namespace CivOne
 				struck.Size = (byte)Math.Max(1, struck.Size / 2);
 				struck.InvalidateCache();
 			}
+
+			// The world notices. Read the victim from the struck city where there is one, and
+			// otherwise from whoever owned what was standing on the tile — a strike on a stack
+			// in the field is no less an atrocity than one on a city.
+			CondemnNuclearStrike(detonator, struck?.Player ?? victimOnTile);
 
 			// A strike touching grey goo sterilizes the whole connected region.
 			SterilizeGoo(cx, cy);

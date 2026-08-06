@@ -72,6 +72,11 @@ namespace CivOne.Persistence
 		// { playerNumber, count } pairs. Null on saves written before the Senate
 		// grievance rule existed, which the loader treats as "no grievances".
 		public List<int[]> Provocations { get; set; } = null!;
+
+		// [playerNumber, turnsRemaining] — universal condemnation for a nuclear strike on
+		// people. Absent in saves written before the mechanic existed, which reads as
+		// "nobody is under condemnation" and is the correct answer for those games.
+		public List<int[]> NuclearPariah { get; set; } = null!;
 		// Gozira: 0 = egg sleeps, 1 = rampaging, 2 = slain.
 		public int GoziraState { get; set; }
 		// Leviathan: 0 = deep is quiet, 1 = hunting, 2 = slain.
