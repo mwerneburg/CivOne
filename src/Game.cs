@@ -270,6 +270,50 @@ namespace CivOne
 		internal IUnit[] Harvesters()
 			=> _units.Where(u => u is Units.Harvester).ToArray();
 
+		// The sea, once the lakes are gone.
+		//
+		// Shallow-first, and never at random: only ocean tiles that already touch land are
+		// eligible, so the shoreline RECEDES rather than the sea going moth-eaten. Tiles beside
+		// ground that is already drained are taken first, which makes the bite widen from where
+		// the harvesters started instead of nibbling everywhere at once.
+		//
+		// This is where the hazards live. Draining a tile can split one sea into two or close a
+		// strait, and water-body ids are a reachability oracle, not decoration: every sea move
+		// consults them. The caller renumbers after the batch, after which GotoStep correctly
+		// short-circuits an impossible route to "no path" — cheaply, which is the whole reason
+		// that oracle exists. A fleet left in a landlocked puddle is stranded, and that is the
+		// right answer rather than a bug: the water it sailed on is in orbit.
+		internal int DrainNextCoastTiles(int budget)
+		{
+			var beside = new List<(int x, int y)>();   // ocean touching ground already taken
+			var shore  = new List<(int x, int y)>();   // ocean touching any land
+
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+			{
+				ITile tile = Map[x, y];
+				if (tile is null || !tile.IsOcean || tile.City is not null) continue;
+
+				bool touchesLand = false, touchesSalt = false;
+				foreach (ITile b in tile.GetBorderTiles())
+				{
+					if (b is null || b.IsOcean) continue;
+					touchesLand = true;
+					if (b.Type == Terrain.SaltFlat) { touchesSalt = true; break; }
+				}
+				if (!touchesLand) continue;
+				(touchesSalt ? beside : shore).Add((x, y));
+			}
+
+			int drained = 0;
+			foreach (var (x, y) in beside.Concat(shore))
+			{
+				if (drained >= budget) break;
+				if (DrainTile(x, y)) drained++;
+			}
+			return drained;
+		}
+
 		internal void ProcessScavengerExtraction()
 		{
 			if (!ScavengersExtracting) return;
@@ -280,17 +324,33 @@ namespace CivOne
 			int craft = Harvesters().Length;
 			if (craft == 0) return;
 
-			int drained = DrainNextLakeTiles(Math.Min(DrainPerPass, craft));
+			int budget = Math.Min(DrainPerPass, craft);
+
+			// Fresh water first — it is what they can lift cheapest, and a lake is enclosed, so
+			// nothing can be stranded by taking one. Only when the lakes are gone does the sea
+			// start receding.
+			int drained = DrainNextLakeTiles(budget);
+			bool lakes = drained > 0;
+			if (drained < budget) drained += DrainNextCoastTiles(budget - drained);
 			if (drained == 0) return;
 
 			// One renumbering for the batch: draining changes what is water, and the water-body
-			// ids are the reachability oracle every sea move consults.
+			// ids are the reachability oracle every sea move consults. Doing this per tile
+			// rather than per batch would be an O(map) flood three times a pass.
 			Map.Instance.RecalculateContinentsIfDirty();
 			Map.Instance.RecalculateWaterBodies(_cities);
 
-			Log($"Scavenger extraction: {drained} water tiles drained");
-			GameTask.Enqueue(Message.Newspaper(null!, "The water is going.",
-				$"{drained} leagues of lake", "gone in a night."));
+			// A port that has just lost its sea is a different city: its ocean tiles are worth
+			// nothing now, and the cached food and trade behind them are stale.
+			foreach (City c in _cities)
+				c.InvalidateCache();
+
+			Log($"Scavenger extraction: {drained} water tiles drained ({(lakes ? "lakes" : "coast")})");
+			GameTask.Enqueue(lakes
+				? Message.Newspaper(null!, "The water is going.",
+					$"{drained} leagues of lake", "gone in a night.")
+				: Message.Newspaper(null!, "The tide went out.",
+					"It has not come back.", "The coast is moving."));
 		}
 
 		// ── nuclear pariah ──────────────────────────────────────────────────

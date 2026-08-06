@@ -16,6 +16,7 @@ using System.Linq;
 using CivOne;
 using CivOne.Enums;
 using CivOne.Advances;
+using CivOne.Tiles;
 using CivOne.Units;
 
 namespace CivOne.Tests
@@ -235,6 +236,121 @@ namespace CivOne.Tests
 			foreach (IAdvance a in Common.Advances) p.AddAdvance(a, false);
 
 			Assert.False(p.ProductionAvailable(new Harvester()));
+		}
+
+		// ── coastal recession ───────────────────────────────────────────────
+
+		// Open sea ABOVE a coastline, land below. The sea is on top deliberately: the scan
+		// is row-major from y=0, so deep water is visited BEFORE the shore. With the land on
+		// top, scan order alone puts the shallows first and a "shallow-first" test passes
+		// even against code that has no such rule — which a first version of this did.
+		private static void ACoast(int shoreY)
+		{
+			Map m = Map.Instance;
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+				m.ChangeTileType(x, y, y >= shoreY ? Terrain.Grassland1 : Terrain.Ocean);
+			m.RecalculateContinentsIfDirty();
+			m.ComputeFreshwaterLakes();
+		}
+
+		// Shallow-first, never at random: only ocean that already touches land is eligible, so
+		// the shoreline recedes instead of the sea going moth-eaten.
+		[Fact]
+		public void OnlyTheShallowsGo()
+		{
+			Game g = AWorld();
+			ACoast(20);
+
+			g.DrainNextCoastTiles(8);
+
+			// Everything taken sits on the old shoreline (y == 19, the row touching land at
+			// y == 20); nothing from the deep water above it.
+			var taken = Map.Instance.AllTiles().Where(t => t.Type == Terrain.SaltFlat).ToArray();
+			Assert.NotEmpty(taken);
+			Assert.All(taken, t => Assert.True(t.Y >= 19,
+				$"deep water at ({t.X},{t.Y}) went before the shallows"));
+		}
+
+		// The bite widens from where they started rather than nibbling the whole coast at once.
+		[Fact]
+		public void TheBiteWidensFromWhereItStarted()
+		{
+			Game g = AWorld();
+			ACoast(20);
+			Map.Instance.ChangeTileType(40, 19, Terrain.SaltFlat);   // an existing bite
+
+			g.DrainNextCoastTiles(3);
+
+			// Tiles beside the existing salt are taken before untouched coast elsewhere. Row 18
+			// is deep water everywhere EXCEPT where it now touches the bite at (40,19).
+			Assert.Contains(Map.Instance.AllTiles(),
+				t => t.Type == Terrain.SaltFlat && t.Y == 18 && System.Math.Abs(t.X - 40) <= 1);
+		}
+
+		// The hazard this slice exists for. Draining can close a strait, and water-body ids are
+		// a reachability oracle — so after a batch the renumbering must have run, or ships will
+		// keep planning routes across ground.
+		[Fact]
+		public void TheReachabilityOracleIsRebuiltAfterTheCoastMoves()
+		{
+			Game g = AWorld();
+			ACoast(20);
+			g.ScavengerExtractionUntil = 400;
+			g.CreateUnit(UnitType.Harvester, 10, 10, 0);
+			g.GameTurn = 30;
+
+			g.ProcessScavengerExtraction();
+
+			// Every remaining sea tile carries a water-body id: a stale oracle leaves drained
+			// ground still numbered as water, or new coast unnumbered.
+			Assert.All(Map.Instance.AllTiles().Where(t => t.Type == Terrain.SaltFlat),
+				t => Assert.False(t.IsOcean, "drained ground must not still read as sea"));
+		}
+
+		// A city on the coast is never drained out from under, but it can be left inland —
+		// which is the intended catastrophe, not a crash.
+		[Fact]
+		public void APortCanBeLeftInland()
+		{
+			Game g = AWorld();
+			ACoast(20);
+			Player p = g.HumanPlayer;
+			p.Explore(40, 20, range: 3);
+			City port = g.AddCity(p, 0, 40, 20)!;
+			Assert.Contains(Map.Instance[40, 20].GetBorderTiles(), t => t is not null && t.IsOcean);
+
+			// Take the whole shoreline in front of it.
+			for (int pass = 0; pass < 6; pass++) g.DrainNextCoastTiles(400);
+
+			Assert.NotNull(Map.Instance[40, 20].City);
+			Assert.DoesNotContain(Map.Instance[40, 20].GetBorderTiles(),
+				t => t is not null && t.IsOcean);
+		}
+
+		// Lakes before the sea: fresh water is what they lift cheapest, and taking a lake can
+		// strand nothing.
+		[Fact]
+		public void LakesGoBeforeTheSea()
+		{
+			Game g = AWorld();
+			ACoast(20);
+			// A lake inland, well clear of the coast.
+			Map.Instance.ChangeTileType(10, 40, Terrain.Ocean);
+			Map.Instance.RecalculateContinentsIfDirty();
+			Map.Instance.ComputeFreshwaterLakes();
+			g.ScavengerExtractionUntil = 400;
+			// ONE craft, so the budget is one tile: whichever water goes is the water they
+			// reached for first. With a bigger budget both go and the ordering is invisible —
+			// which is how a weaker version of this passed against coast-first code.
+			g.CreateUnit(UnitType.Harvester, 12, 42, 0);
+			g.GameTurn = 30;
+
+			g.ProcessScavengerExtraction();
+
+			Assert.Equal(Terrain.SaltFlat, Map.Instance[10, 40].Type);
+			Assert.DoesNotContain(Map.Instance.AllTiles(),
+				t => t.Type == Terrain.SaltFlat && t.Y < 20);
 		}
 
 		// ── the arrival ─────────────────────────────────────────────────────
