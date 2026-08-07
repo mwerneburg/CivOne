@@ -441,7 +441,7 @@ namespace CivOne
 		// what makes it easy to march on.
 		private const int WalkHorizon = 12;
 
-		private void WalkHarvester(IUnit craft)
+		internal void WalkHarvester(IUnit craft)
 		{
 			// Keep the OFFSET, not the tile's coordinates: Map[] wraps horizontally, so a tile
 			// found just west of a craft near x=0 reports x=319, and signing the raw difference
@@ -450,7 +450,18 @@ namespace CivOne
 			bool found = false;
 			for (int r = 1; r <= WalkHorizon && !found; r++)
 			{
-				for (int dy = -r; dy <= r && !found; dy++)
+				// Take the BEST tile in the ring, not the first one seen. Every tile on a ring
+				// is the same Chebyshev distance away, so first-wins made the scan order the
+				// tiebreak — dy from -r, dx from -r, meaning the north-west corner beat water
+				// lying due east at four fifths the actual distance. On an east coast the
+				// northern tiles are land so the first hit was the sea anyway and the craft
+				// walked the shore; on a west coast the north-west corner is sea and won every
+				// single turn, which is the fleet that marched off into the empty north-west.
+				//
+				// Squared Euclidean ranks within the ring: it prefers the orthogonal tiles over
+				// the corners, which is the real distance the craft has to cover.
+				int bestD2 = int.MaxValue, ties = 0;
+				for (int dy = -r; dy <= r; dy++)
 				for (int dx = -r; dx <= r; dx++)
 				{
 					if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;   // ring edge only
@@ -461,9 +472,14 @@ namespace CivOne
 					bool worth = (tile.IsOcean && tile.City is null)
 					          || ResourceAt(tile) != StrategicResource.None;
 					if (!worth) continue;
+
+					int d2 = dx * dx + dy * dy;
+					if (d2 > bestD2) continue;
+					if (d2 < bestD2) { bestD2 = d2; ties = 0; }
+					// Reservoir pick among equals, so a genuine tie does not become a heading.
+					if (Common.Random.Next(++ties) != 0) continue;
 					stepX = Math.Sign(dx); stepY = Math.Sign(dy);
 					found = true;
-					break;
 				}
 			}
 			if (!found) return;
