@@ -1762,16 +1762,25 @@ namespace CivOne
 					                + sharedCities * 25                                      // an Olvir home made among ours
 					                + sharedWorks * 5;                                        // and ground we reshaped together
 					HumanPlayer.AwardMilestone(coexistence);
-					Log($"Coexistence: {sharedCities}/{olvir?.Cities.Length ?? 0} Olvir cities and "
+
+					// The backstop is gated on SETISignalReceived alone, so EVERY archetype that
+					// leaves the player alive at 2200 lands here — the Scavengers when they have
+					// drunk their fill and gone, and the Owners when the landing was survived but
+					// never thrown off. Only the Olvir ending is actually coexistence; the rest is
+					// having outlasted whatever came. Naming them all "Coexistence" congratulated
+					// the player on a friendship they never had.
+					string ending = VisitorType == VisitorArchetype.Refugees ? "Coexistence" : "Endurance";
+
+					Log($"{ending}: {sharedCities}/{olvir?.Cities.Length ?? 0} Olvir cities and "
 					  + $"{sharedWorks}/{OlvirImprovements.Count} improvements within {ShareRadius} tiles — award {coexistence}");
 
-					DecisionLogger.EndGame(HumanPlayer.Score, "Coexistence", humanWon: true, turns: _gameTurn);
-					int coexFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Coexistence");
+					DecisionLogger.EndGame(HumanPlayer.Score, ending, humanWon: true, turns: _gameTurn);
+					int coexFame = EndSequence.SaveAndGetIndex(HumanPlayer, ending);
 					GameTask.Enqueue(Message.Newspaper(null!, "The year is 2200.",
 						(olvir?.Cities.Length ?? 0) > 0 ? "Two species share one Earth." : "Earth endures, alone.",
 						$"Your score: {HumanPlayer.Score}"));
 					GameTask coexFt;
-					GameTask.Enqueue(coexFt = Show.Screen(new FinalScore("Coexistence")));
+					GameTask.Enqueue(coexFt = Show.Screen(new FinalScore(ending)));
 					coexFt.Done += (s, a) => EndSequence.ChainAfterFinal(coexFame, () => Runtime.Quit());
 					return;
 				}
@@ -2535,8 +2544,9 @@ namespace CivOne
 			return Math.Max(dx, Math.Abs(y1 - y2));
 		}
 
-		// Test/dev override: set CIVONE_VISITOR=Owners|Refugees|Evaluators|Conquerors to force
-		// which Tau Ceti archetype arrives. Dynamic, quality-based selection is still TODO.
+		// Test/dev override: set CIVONE_VISITOR to force which Tau Ceti archetype arrives —
+		// Owners | Refugees | Scavengers | Evaluators | Conquerors. Parsed off the enum, so
+		// any archetype added there is forceable without touching this.
 		private static VisitorArchetype? VisitorOverride()
 		{
 			string? v = System.Environment.GetEnvironmentVariable("CIVONE_VISITOR");
@@ -2645,14 +2655,18 @@ namespace CivOne
 			double pScavengers = ScavengerFloor + larder * ScavengerLarderWeight;
 			if (pScavengers > ScavengerCeiling) pScavengers = ScavengerCeiling;
 
-			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length, larder, pScavengers);
+			// Roll first, log after. Logging the probabilities alone made the draw unauditable:
+			// the outcome had to be inferred from the ending, and the 2200 backstop reports
+			// "Coexistence" for every archetype, so the inference was wrong.
+			VisitorArchetype chosen =
+				Common.Random.Next(100) < (int)System.Math.Round(pScavengers * 100)
+					? VisitorArchetype.Scavengers
+					: Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
+						? VisitorArchetype.Refugees
+						: VisitorArchetype.Owners;
 
-			if (Common.Random.Next(100) < (int)System.Math.Round(pScavengers * 100))
-				return VisitorArchetype.Scavengers;
-
-			return Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
-				? VisitorArchetype.Refugees
-				: VisitorArchetype.Owners;
+			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length, larder, pScavengers, chosen.ToString());
+			return chosen;
 		}
 
 		// Never zero: something is always worth the trip, and a draw that a perfect player can

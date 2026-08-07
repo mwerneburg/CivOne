@@ -273,7 +273,7 @@ namespace CivOne
 		// inputs are worth recording — a run that ends in invasion should be able to
 		// say how close it came to the other outcome.
 		internal static void LogVisitorDraw(double character, double pRefugees, int nations,
-			double larder, double pScavengers)
+			double larder, double pScavengers, string chosen)
 		{
 			if (!_active) return;
 			Enqueue(Fmt(new[] {
@@ -287,6 +287,8 @@ namespace CivOne
 				// is still lying about untouched. Nothing to do with character.
 				KV("larder",       Math.Round(larder, 2)),
 				KV("p_scavengers", Math.Round(pScavengers, 2)),
+				// Who actually came. Without this the log records only the odds.
+				KV("chosen",       chosen),
 			}));
 		}
 
