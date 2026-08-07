@@ -2049,6 +2049,51 @@ namespace CivOne
 
 		// ── attack staging ────────────────────────────────────────────────────────
 
+		// ── hunting loose monsters ────────────────────────────────────────────────
+		//
+		// PickAttackTarget returns a CITY, and nothing anywhere in the AI says "there is a
+		// thing standing in our fields, go kill it". The only response to barbarians was
+		// defensive — a hostile within 3 tiles of a city earns a second defender — so
+		// barbarian-owned megafauna were untouchable by anybody but a human player. In the
+		// 1892 AD run six Scavenger harvesters drank a world dry across 120 turns and not one
+		// AI civ moved on them; the same immunity covered the kaiju and the Henge Guardian.
+		//
+		// Local threat, local answer. This deliberately does NOT put the empire on a war
+		// footing (barbarians still don't count in NearHostiles, for the reasons written
+		// there) and it is stance-independent: a civ clears monsters off its own ground
+		// whatever its grand strategy says.
+		private const int HuntRadius = 8;
+
+		// The barbarian-owned things that are worth walking out to kill. All of them are
+		// unbuildable and answer to nobody's diplomacy, which is what separates them from an
+		// ordinary raiding party — a raid moves on, these do not.
+		internal static bool IsMegafauna(IUnit u)
+			=> u is Units.Harvester || u is Units.Gozira
+			|| u is Units.Leviathan || u is Units.HengeGuardian;
+
+		internal IUnit? HuntQuarry(IUnit hunter)
+		{
+			if (hunter.Attack == 0) return null;
+			City[] cities = Player.Cities;
+			if (cities.Length == 0) return null;
+
+			return Game.GetUnits()
+				.Where(u => u.Owner == 0 && IsMegafauna(u))
+				// Only what this unit can plausibly beat. Feeding Legions one at a time to a
+				// defence-6 harvester is worse for the civ than ignoring it, and it is how an
+				// AI empties its army into a wall. Gozira (defence 24) is nobody's quarry,
+				// which is correct: it is a catastrophe, not a boss fight.
+				.Where(u => hunter.Attack >= u.Defense)
+				// A land unit cannot reach something standing in the sea, and cannot walk to
+				// another continent — the engine has no naval transport AI.
+				.Where(u => !Map.Instance[u.X, u.Y].IsOcean
+				         && LandReachable(hunter, Map.Instance[u.X, u.Y]))
+				// Our ground, not a crusade: something has to be near a city of ours.
+				.Where(u => cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= HuntRadius))
+				.OrderBy(u => Common.DistanceToTile(hunter.X, hunter.Y, u.X, u.Y))
+				.FirstOrDefault();
+		}
+
 		private City PickAttackTarget()
 		{
 			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire.
@@ -2579,6 +2624,16 @@ namespace CivOne
 			// Offensive land units
 			if (unit.Role == UnitRole.LandAttack)
 			{
+				// Hunt loose monsters before considering anybody's cities. See HuntQuarry:
+				// the offensive AI targets cities and nothing else, so barbarian megafauna
+				// standing in a civ's own fields were untouchable by anyone but a human.
+				IUnit? quarry = HuntQuarry(unit);
+				if (quarry is not null)
+				{
+					unit.Goto = new Point(quarry.X, quarry.Y);
+					return;
+				}
+
 				if (stance == StrategyStance.Militarize)
 				{
 					// Validate or refresh the civ-wide attack target.
