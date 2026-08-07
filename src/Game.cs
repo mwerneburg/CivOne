@@ -195,8 +195,9 @@ namespace CivOne
 				lake.Add((x, y));
 			}
 
+			var craftAt = CraftPositions();
 			int drained = 0;
-			foreach (var (x, y) in lake.OrderBy(t => DistanceToNearestCraft(t.x, t.y)))
+			foreach (var (x, y) in lake.OrderBy(t => DistanceToNearestCraft(craftAt, t.x, t.y)))
 			{
 				if (drained >= budget) break;
 				if (DrainTile(x, y)) drained++;
@@ -253,8 +254,16 @@ namespace CivOne
 			  + $"extraction until turn {ScavengerExtractionUntil}");
 		}
 
-		private const int HarvestersToLand = 6;
-		private const int HarvestersUnderDome = 2;
+		// Sixty, not six. At six the harvest was a nuisance an empire could ignore: the AI hunt
+		// halved the damage on its own and the world lost 201 tiles out of 64,000. The Thing is
+		// an order of magnitude more frightening, and this is supposed to be the arc where the
+		// planet itself is the casualty.
+		//
+		// Damage scales with the count because WorkSite drains the water beside EACH craft
+		// every pass — the global drain budget below does not scale, and deliberately: that
+		// pass is the slow coastal recession, not the harvest.
+		private const int HarvestersToLand = 60;
+		private const int HarvestersUnderDome = 20;
 		private const int MinSiteSpacing = 6;
 
 		// How many craft get down and how long they stay. A seam, so the balance rule can be
@@ -313,16 +322,23 @@ namespace CivOne
 		// Chebyshev distance from a tile to the nearest craft, or int.MaxValue when none are
 		// left. The drainage passes sort by this so the water goes from where the craft are
 		// standing rather than from wherever a scan happens to start.
-		private int DistanceToNearestCraft(int x, int y)
+		// Takes the craft positions rather than calling Harvesters() itself: the drainage passes
+		// sort thousands of candidate tiles, and Harvesters() is a Where over every unit in the
+		// game. Called per tile that was O(tiles x units) per pass — invisible at six craft on a
+		// small map, ruinous at sixty on a live one.
+		private int DistanceToNearestCraft((int x, int y)[] craft, int x, int y)
 		{
 			int best = int.MaxValue;
-			foreach (IUnit u in Harvesters())
+			foreach (var c in craft)
 			{
-				int d = TileDistance(x, y, u.X, u.Y);
+				int d = TileDistance(x, y, c.x, c.y);
 				if (d < best) best = d;
 			}
 			return best;
 		}
+
+		private (int x, int y)[] CraftPositions()
+			=> Harvesters().Select(u => ((int)u.X, (int)u.Y)).ToArray();
 
 		// Every harvester standing on the map. The extraction is theirs, not the clock's:
 		// destroy them all and the water stops leaving, which is the whole counterplay.
@@ -364,9 +380,10 @@ namespace CivOne
 				(touchesSalt ? beside : shore).Add((x, y));
 			}
 
+			var craftAt = CraftPositions();
 			int drained = 0;
-			foreach (var (x, y) in beside.OrderBy(t => DistanceToNearestCraft(t.x, t.y))
-			              .Concat(shore.OrderBy(t => DistanceToNearestCraft(t.x, t.y))))
+			foreach (var (x, y) in beside.OrderBy(t => DistanceToNearestCraft(craftAt, t.x, t.y))
+			              .Concat(shore.OrderBy(t => DistanceToNearestCraft(craftAt, t.x, t.y))))
 			{
 				if (drained >= budget) break;
 				if (DrainTile(x, y)) drained++;
@@ -415,25 +432,43 @@ namespace CivOne
 		// ...and when there is nothing left within reach, it walks. Toward the nearest water or
 		// unworked seam, one tile a turn, which is what makes them a moving front rather than
 		// six fixed nuisances — and what gives a player time to march on them.
+		//
+		// Searched outward in rings and stopped at the first hit, rather than scanned over the
+		// whole map. The original swept all 64,000 tiles per craft per pass — tolerable at six
+		// craft and 3.8M tile reads per pass at sixty. A harvester only ever steps ONE tile, so
+		// anything past a short horizon cannot change this turn's decision; a craft with
+		// nothing inside the horizon has finished its neighbourhood and stands still, which is
+		// what makes it easy to march on.
+		private const int WalkHorizon = 12;
+
 		private void WalkHarvester(IUnit craft)
 		{
-			int bestDist = int.MaxValue, bx = craft.X, by = craft.Y;
-			for (int y = 0; y < Map.HEIGHT; y++)
-			for (int x = 0; x < Map.WIDTH; x++)
+			// Keep the OFFSET, not the tile's coordinates: Map[] wraps horizontally, so a tile
+			// found just west of a craft near x=0 reports x=319, and signing the raw difference
+			// would send it walking the long way round the world.
+			int stepX = 0, stepY = 0;
+			bool found = false;
+			for (int r = 1; r <= WalkHorizon && !found; r++)
 			{
-				ITile tile = Map[x, y];
-				if (tile is null) continue;
-				bool worth = (tile.IsOcean && tile.City is null)
-				          || ResourceAt(tile) != StrategicResource.None;
-				if (!worth) continue;
-				int d = TileDistance(craft.X, craft.Y, x, y);
-				if (d == 0 || d >= bestDist) continue;
-				bestDist = d; bx = x; by = y;
+				for (int dy = -r; dy <= r && !found; dy++)
+				for (int dx = -r; dx <= r; dx++)
+				{
+					if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;   // ring edge only
+					int y = craft.Y + dy;
+					if (y < 0 || y >= Map.HEIGHT) continue;
+					ITile tile = Map[craft.X + dx, y];
+					if (tile is null) continue;
+					bool worth = (tile.IsOcean && tile.City is null)
+					          || ResourceAt(tile) != StrategicResource.None;
+					if (!worth) continue;
+					stepX = Math.Sign(dx); stepY = Math.Sign(dy);
+					found = true;
+					break;
+				}
 			}
-			if (bestDist == int.MaxValue) return;
+			if (!found) return;
 
-			int dx = Math.Sign(bx - craft.X), dy = Math.Sign(by - craft.Y);
-			ITile step = Map[craft.X + dx, craft.Y + dy];
+			ITile step = Map[craft.X + stepX, craft.Y + stepY];
 			// Land only, and never onto a city: they walk the shoreline, they do not invade.
 			if (step is null || step.IsOcean || step.City is not null) return;
 			craft.X = (byte)step.X;

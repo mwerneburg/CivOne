@@ -29,6 +29,16 @@ namespace CivOne.Tests
 			return Game.Instance;
 		}
 
+		// Generated maps carry resource specials, and a seam is "worth walking to" exactly like
+		// water is. A walk test that does not clear them is really testing whichever of the two
+		// the generator happened to put nearer.
+		private static void NoSeamsAnywhere()
+		{
+			for (int y = 0; y < Map.HEIGHT; y++)
+			for (int x = 0; x < Map.WIDTH; x++)
+				if (Map.Instance[x, y] is CivOne.Tiles.BaseTile t) t.Special = false;
+		}
+
 		// A small enclosed body of water with land all round it: a lake.
 		private static (int x, int y)[] ALake(int x0, int y0)
 		{
@@ -407,7 +417,8 @@ namespace CivOne.Tests
 			for (int y = 0; y < Map.HEIGHT; y++)
 			for (int x = 0; x < Map.WIDTH; x++)
 				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
-			Map.Instance.ChangeTileType(60, 30, Terrain.Ocean);
+			Map.Instance.ChangeTileType(28, 30, Terrain.Ocean);   // inside the walk horizon
+			NoSeamsAnywhere();
 			Map.Instance.RecalculateContinentsIfDirty();
 			Map.Instance.ComputeFreshwaterLakes();
 
@@ -657,6 +668,64 @@ namespace CivOne.Tests
 			Assert.True(domed.craft > 0, "the dome blunts the harvest, it does not refuse it");
 			Assert.True(domed.craft < open.craft, "fewer craft reach the ground");
 			Assert.True(domed.duration < open.duration, "and they do not linger");
+		}
+
+		// ── the scale ───────────────────────────────────────────────────────
+
+		// Six craft was a nuisance an empire could ignore — the AI hunt halved the damage on
+		// its own and the world lost 201 tiles of 64,000. This is meant to be the arc where
+		// the planet is the casualty, so it is a fleet. The test is that the placement rules
+		// can actually seat one: greedy spacing on a map with limited fresh water will happily
+		// return four craft and no error.
+		[Fact]
+		public void TheHarvestLandsAFleetNotAPatrol()
+		{
+			Sim.NewGame(width: 160, height: 100);
+			Game g = Game.Instance;
+			for (int y = 10; y < 90; y += 8)
+			for (int x = 10; x < 150; x += 8)
+				ALake(x, y);
+
+			// Read the configured count, not a literal: a test that hard-codes 60 keeps passing
+			// when someone quietly drops the fleet back to six.
+			int wanted = Game.ScavengerPlan(domeHeld: false).craft;
+			Assert.True(wanted >= 40, $"the harvest is configured at {wanted} craft — that is a patrol");
+
+			int landed = g.LandHarvesters(wanted);
+
+			Assert.True(landed >= 40, $"only {landed} of {wanted} craft found a site; the fleet cannot be seated");
+		}
+
+		// The walk is bounded to a short horizon. A harvester steps ONE tile, so anything past
+		// the horizon cannot change this turn's decision — and the unbounded version swept all
+		// 64,000 tiles per craft per pass, which at sixty craft is 3.8M tile reads every pass.
+		//
+		// Observable consequence, which is what this asserts: a craft with nothing in reach
+		// stands still instead of setting off across the world. Under the old global scan it
+		// would march at distant water forever.
+		[Fact]
+		public void ACraftWithNothingInReachStandsStill()
+		{
+			Sim.NewGame(width: 160, height: 100);
+			Game g = Game.Instance;
+			Map m = Map.Instance;
+
+			// A wide dry continent, with the only water far outside the horizon.
+			for (int y = 20; y <= 80; y++)
+			for (int x = 20; x <= 140; x++)
+				m.ChangeTileType(x, y, Terrain.Desert);
+			NoSeamsAnywhere();
+			m.RecalculateContinentsIfDirty();
+			m.ComputeFreshwaterLakes();
+
+			IUnit craft = g.CreateUnit(UnitType.Harvester, 80, 50, 0)!;
+			int x0 = craft.X, y0 = craft.Y;
+
+			g.ScavengerExtractionUntil = (uint)(g.GameTurn + 60);
+			g.GameTurn = (ushort)(g.GameTurn + 3 - (g.GameTurn % 3));
+			g.ProcessScavengerExtraction();
+
+			Assert.Equal((x0, y0), (craft.X, craft.Y));
 		}
 	}
 }
