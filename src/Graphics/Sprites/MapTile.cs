@@ -152,6 +152,10 @@ namespace CivOne.Graphics.Sprites
 				return Free.Jungle;
 			if (typeof(T) == typeof(Desert))
 				return Free.Desert;
+			// Free art unconditionally, like every terrain above: terrain id 13 is ours, and
+			// the original TER257/SPRITES sheets have no row there to index into.
+			if (typeof(T) == typeof(SaltFlat))
+				return Free.SaltFlat;
 			if (typeof(T) == typeof(Arctic))
 				return Free.Arctic;
 			if (typeof(T) == typeof(Tundra))
@@ -449,6 +453,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISpriteCollection<Direction> Mountains = new CachedSpriteCollection<Direction>(GetTileLayer<Mountains>);
 		public static readonly ISpriteCollection<(Direction, Direction)> Ocean = new CachedSpriteCollection<(Direction, Direction)>(GetOceanLayer);
 		public static readonly ISpriteCollection<Direction> Plains = new CachedSpriteCollection<Direction>(GetTileLayer<Plains>);
+		public static readonly ISpriteCollection<Direction> SaltFlat = new CachedSpriteCollection<Direction>(GetTileLayer<SaltFlat>);
 		public static readonly ISpriteCollection<Direction> River = new CachedSpriteCollection<Direction>(GetRiverLayer);
 		// v2 rivers: keyed by (river mask, sea-mouth mask, variant cut). The creator
 		// falls back to the legacy layer if the needed section is missing mid-file.
@@ -583,6 +588,9 @@ namespace CivOne.Graphics.Sprites
 						return RiverOverlay[(directions, riverDirections, variant)];
 					}
 					return River[directions];
+				// Without this case a salt flat fell out of the switch to `return null` and drew
+				// as bare LandBase — the drained seabed was indistinguishable from grass.
+				case SaltFlat _: return SaltFlat[directions];
 				case Swamp _: return Swamp[directions];
 				case Tundra _: return Tundra[directions];
 			}
@@ -603,7 +611,7 @@ namespace CivOne.Graphics.Sprites
 				// base fields under every tile
 				LandBase, OceanBase, LakeBase,
 				// baseline terrain
-				Arctic, Desert, Forest, Grassland, Hills, Jungle, Mountains, Ocean, Plains, Swamp, Tundra,
+				Arctic, Desert, Forest, Grassland, Hills, Jungle, Mountains, Ocean, Plains, SaltFlat, Swamp, Tundra,
 				// rivers and lake shores
 				River, RiverOverlay, LakeShore,
 				// improvement overlays sourced from the tile files
