@@ -35,12 +35,36 @@ namespace CivOne
             DisbandStranded     // Unrecoverable stranding (rare)
         }
 
+        // Test seam: the resolution is what decides whether a settler keeps its target, and
+        // asserting on it directly beats standing up a blocked map and inferring from Goto.
+        internal bool TestKeepsTargetOnBlockedStep(IUnit unit)
+            => ResolveMovementFailure(unit, unit.Tile) == MovementFailureResolution.RetryNextTurn;
+
         private MovementFailureResolution ResolveMovementFailure(IUnit unit, ITile attemptedTarget)
         {
-            // Settlers: movement failure near cities usually means goal achieved or blocked
-            // Clear Goto and let reassign find new target on next turn.
+            // Settlers: keep the target across a blocked step, for a few tries.
+            //
+            // Clearing it on ANY failure is what let a settler oscillate. AssignMission re-picks
+            // from wherever the unit now stands, and the site scan is a +/-6 window CENTRED ON
+            // THE SETTLER taking the nearest eligible tile — so the window travels with the unit
+            // and the tile it just walked away from becomes nearest again. Walk out, get blocked
+            // by one of the fifteen hundred units on a late-game map, clear, re-pick the tile
+            // behind you, walk back, repeat. That is the pair of settlers shuttling between
+            // Byblos and Leeds for the rest of the game.
+            //
+            // Bounded, because a permanently unreachable target must not stall the unit forever:
+            // after SettlerRetries consecutive failures we give up and let it choose afresh.
             if (unit is Settlers)
+            {
+                _settlerMisses.TryGetValue(unit, out int misses);
+                if (misses + 1 < SettlerRetries)
+                {
+                    _settlerMisses[unit] = misses + 1;
+                    return MovementFailureResolution.RetryNextTurn;
+                }
+                _settlerMisses.Remove(unit);
                 return MovementFailureResolution.ClearMissionWait;
+            }
 
             // Military units: if we're staging an assault and failed to advance,
             // stay put for reinforcements or wait for path to clear

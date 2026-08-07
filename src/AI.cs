@@ -34,6 +34,13 @@ namespace CivOne
 		// The city this civ is currently marshalling forces to attack.
 		private City? _attackTarget;
 
+		// Consecutive blocked steps per settler. See ResolveMovementFailure: a settler holds
+		// its target across a few failures rather than re-choosing from where it is standing,
+		// which is what stopped the shuttling. Entries are dropped when the unit gives up or
+		// dies; nothing here is persisted.
+		private const int SettlerRetries = 4;
+		private readonly System.Collections.Generic.Dictionary<IUnit, int> _settlerMisses = new();
+
 		// War-state tracking for peace initiatives.
 		// Turns of appetite for a war the constitution forbids. A Republic or Democracy
 		// cannot declare war (AI.Strategy.ConsiderWar), cannot build attackers and cannot

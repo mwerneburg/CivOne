@@ -2071,6 +2071,55 @@ namespace CivOne
 			=> u is Units.Harvester || u is Units.Gozira
 			|| u is Units.Leviathan || u is Units.HengeGuardian;
 
+		// A fortified unit is never offered to AI.Move at all — the unit-selection loop in
+		// Game.cs skips anything with Sentry or Fortify set — so it never reaches AssignMission
+		// and never reaches HuntQuarry. The AI fortifies attackers routinely: on a failed
+		// advance (HandleMovementFailure -> DisembarkAndFortify) and whenever an idle one is
+		// parked in an under-defended city.
+		//
+		// That is why the 1872 AD harvest went unopposed. The civs held 337 Armor — attack 10
+		// against a defence-6 harvester, every one an eligible hunter — and 39% of the damage
+		// fell within the hunt radius of a city. The hunt was not wrong; the hunters were
+		// asleep, and a sleeping unit cannot decide anything.
+		//
+		// So wake them, narrowly: only LandAttack units, only when there is something in reach
+		// they can actually beat. The general fortify behaviour is untouched, and a woken unit
+		// that finds nothing to do simply fortifies again.
+		// Once per player turn, before the unit loop runs.
+		internal void TurnStart()
+		{
+			// _settlerMisses keys are unit references, and settlers die. Drop the dead so a
+			// 750-turn game does not accumulate them.
+			if (_settlerMisses.Count > 0)
+			{
+				var live = new System.Collections.Generic.HashSet<IUnit>(Game.Instance.GetUnits());
+				foreach (IUnit gone in _settlerMisses.Keys.Where(u => !live.Contains(u)).ToArray())
+					_settlerMisses.Remove(gone);
+			}
+
+			WakeHunters();
+		}
+
+		internal void WakeHunters()
+		{
+			// Cheap exit for the ordinary case: no monsters anywhere, which is most of a game.
+			if (!Game.Instance.GetUnits().Any(u => u.Owner == 0 && IsMegafauna(u))) return;
+
+			byte own = Game.PlayerNumber(Player);
+			foreach (IUnit unit in Game.Instance.GetUnits()
+				.Where(u => u.Owner == own && u.Role == UnitRole.LandAttack && (u.Fortify || u.Sentry))
+				.ToArray())
+			{
+				if (HuntQuarry(unit) is null) continue;
+				// Busy, not Fortify = false. `Fortify` reads `_fortify || FortifyActive` but its
+				// setter only clears `_fortify`, so assigning false to a unit the AI fortified
+				// (which sets FortifyActive) leaves it fortified and the wake-up does nothing.
+				// The Busy setter is the one that clears all three flags.
+				unit.Busy = false;
+				unit.Goto = Point.Empty;   // AssignMission only runs on an idle unit
+			}
+		}
+
 		internal IUnit? HuntQuarry(IUnit hunter)
 		{
 			if (hunter.Attack == 0) return null;

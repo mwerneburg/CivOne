@@ -977,6 +977,8 @@ namespace CivOne
 
 			DistributeBondPool();
 
+			AI?.TurnStart();
+
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))
 			{
 				if (IsHuman)
