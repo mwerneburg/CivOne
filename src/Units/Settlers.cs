@@ -73,6 +73,10 @@ namespace CivOne.Units
 		public bool AutoClean { get; internal set; }
 		public bool AutoImprove { get; private set; }
 
+		// Test seam: auto-improve is switched on from the unit menu, which a headless test
+		// cannot reach.
+		internal void TestEnableAutoImprove() => AutoImprove = true;
+
 		internal bool IsTileClaimed(int tx, int ty) =>
 			Game.GetUnits().OfType<Settlers>().Any(s =>
 				s != this && s.Owner == Owner &&
@@ -291,8 +295,27 @@ namespace CivOne.Units
 			base.MovementDone(previousTile);
 			if (AutoClean && Map[X, Y].Pollution)
 				CleanPollution();
-			if (AutoImprove && IsBuildIdle() && AutoImproveTileNeedsWork(Map[X, Y]) && !IsTileWorkedByEnemy(X, Y))
-				ExecuteAutoImproveAt(Map[X, Y]);
+			if (AutoImprove && IsBuildIdle())
+			{
+				if (AutoImproveTileNeedsWork(Map[X, Y]) && !IsTileWorkedByEnemy(X, Y))
+					ExecuteAutoImproveAt(Map[X, Y]);
+
+				// Arrived (Goto is cleared on arrival, before this runs) and still idle: nothing
+				// here can be worked, so pick the next job now instead of blinking.
+				//
+				// Only NewTurn used to re-pick, and its only exit from auto-improve is the
+				// next==here branch of StartAutoImproveStep. A settler that walks to a tile it
+				// cannot work therefore sits there with AutoImprove still set — and if the
+				// player nudges it away before the next turn, NewTurn re-picks the same tile
+				// from the new position and walks it straight back. That is the settler that
+				// keeps returning to the same square to blink at it.
+				//
+				// This terminates: FindNextImprovementTile is deterministic for a fixed
+				// position, so if it hands back the tile we are standing on, StartAutoImproveStep
+				// takes the next==here branch, fails the same execute, and clears AutoImprove.
+				if (IsBuildIdle() && Goto.IsEmpty)
+					StartAutoImproveStep();
+			}
 			if (!RoadTo.IsEmpty)
 			{
 				Log($"[Settlers.MovementDone] RoadTo=({RoadTo.X},{RoadTo.Y}) now at ({X},{Y}) ML={MovesLeft}");
