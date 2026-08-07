@@ -527,5 +527,136 @@ namespace CivOne.Tests
 			Assert.True(g.GlobalWarmingCount > warmingBefore, "the tide came in once");
 			Assert.True(g.ScavengersExtracting, "...and then the pumps started");
 		}
+
+		// ── where they land ─────────────────────────────────────────────────
+
+		// The bug this test exists for, from the 1885 AD run: all six craft came down above
+		// y=24 on a 200-row map and every one of the 454 salt flats was in the top fifth of
+		// the world. LandHarvesters took the first qualifying tiles in scan order, and a
+		// row-major scan is not a neutral way to choose a place — it is a hard preference for
+		// the north pole. The arc happened where nobody lived.
+		//
+		// Ten equally good sites, five north and five south, and only six craft. Under scan
+		// order the south can never take more than one (the north's five are always consumed
+		// first). Twenty trials; the assertion is that the south is capable of taking three.
+		[Fact]
+		public void HarvestersDoNotAllLandInTheNorth()
+		{
+			int bestSouthern = 0;
+
+			for (int trial = 0; trial < 20 && bestSouthern < 3; trial++)
+			{
+				Game g = AWorld();
+				foreach (int x in new[] { 8, 24, 40, 56, 72 })
+				{
+					ALake(x, 6);    // northern band
+					ALake(x, 43);   // southern band
+				}
+
+				g.LandHarvesters(6);
+
+				int southern = g.Harvesters().Count(c => c.Y > 25);
+				if (southern > bestSouthern) bestSouthern = southern;
+			}
+
+			Assert.True(bestSouthern >= 3,
+				$"landing sites are still latitude-biased: the south never took more than {bestSouthern} of 6");
+		}
+
+		// Spacing survived the rewrite: random placement alone will happily drop two craft in
+		// the same valley, and the harvest should read as spread across a world.
+		[Fact]
+		public void HarvestersDoNotLandOnTopOfEachOther()
+		{
+			Game g = AWorld();
+			foreach (int x in new[] { 8, 24, 40, 56, 72 })
+			{
+				ALake(x, 6);
+				ALake(x, 43);
+			}
+
+			g.LandHarvesters(6);
+
+			IUnit[] craft = g.Harvesters();
+			foreach (IUnit a in craft)
+			foreach (IUnit b in craft)
+			{
+				if (ReferenceEquals(a, b)) continue;
+				int dx = System.Math.Abs(a.X - b.X), dy = System.Math.Abs(a.Y - b.Y);
+				Assert.True(System.Math.Max(dx, dy) >= 6, "two craft came down in the same valley");
+			}
+		}
+
+		// The water goes from where the craft are standing. Scan order used to decide which
+		// lake went, so the northernmost one always did however far it was from the harvest.
+		[Fact]
+		public void TheLakeNearestTheCraftDrainsFirst()
+		{
+			Game g = AWorld();
+			var near = ALake(60, 40);
+			var far  = ALake(10, 6);
+
+			g.LandHarvesters(1);
+			// Put the single craft beside the southern lake, whatever the draw gave us.
+			IUnit craft = g.Harvesters().First();
+			craft.X = 62; craft.Y = 40;
+
+			g.DrainNextLakeTiles(1);
+
+			Assert.Contains(near, t => Map.Instance[t.x, t.y].Type == Terrain.SaltFlat);
+			Assert.All(far, t => Assert.True(Map.Instance[t.x, t.y].IsOcean,
+				"the far lake should be untouched while the craft is nowhere near it"));
+		}
+
+		// ── the departure ───────────────────────────────────────────────────
+
+		// "Here for the water and the ore, and they will leave" is the archetype's whole
+		// promise, and nothing implemented the leaving: in the 1885 AD run four craft stood
+		// inert in the ice for 195 turns after the clock expired.
+		[Fact]
+		public void TheCraftLiftWhenTheClockRunsOut()
+		{
+			Game g = AWorld();
+			ALake(40, 25);
+			g.ArriveScavengers();
+			Assert.NotEmpty(g.Harvesters());
+
+			g.GameTurn = (ushort)(g.ScavengerExtractionUntil + 1);
+			g.ProcessScavengerExtraction();
+
+			Assert.Empty(g.Harvesters());
+		}
+
+		// The departure must not undo the counterplay: a harvest whose craft were all destroyed
+		// has nothing to lift, and the player earned that silence.
+		[Fact]
+		public void AHarvestThatWasKilledOffHasNothingToDepart()
+		{
+			Game g = AWorld();
+			ALake(40, 25);
+			g.ArriveScavengers();
+			foreach (IUnit craft in g.Harvesters()) g.DisbandUnit(craft);
+
+			g.GameTurn = (ushort)(g.ScavengerExtractionUntil + 1);
+			g.ProcessScavengerExtraction();   // must not throw, must find nothing
+
+			Assert.Empty(g.Harvesters());
+		}
+
+		// ── the dome ────────────────────────────────────────────────────────
+
+		// The dome was built to stop a fleet, not a work crew, so it cannot refuse the harvest —
+		// but it makes orbit expensive enough that fewer craft get down and they do not linger.
+		// Building the wrong defence beats building none, and loses to building the right one.
+		[Fact]
+		public void TheDomeThinsTheHarvestWithoutStoppingIt()
+		{
+			(int craft, int duration) open = Game.ScavengerPlan(domeHeld: false);
+			(int craft, int duration) domed = Game.ScavengerPlan(domeHeld: true);
+
+			Assert.True(domed.craft > 0, "the dome blunts the harvest, it does not refuse it");
+			Assert.True(domed.craft < open.craft, "fewer craft reach the ground");
+			Assert.True(domed.duration < open.duration, "and they do not linger");
+		}
 	}
 }

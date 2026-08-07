@@ -179,27 +179,34 @@ namespace CivOne
 		// fresh water is what lets adjacent land be irrigated "even far inland from any
 		// river". Take the lake and the irrigation around it has nothing behind it: an inland
 		// breadbasket goes brown. Large, legible, and entirely local.
+		//
+		// Nearest craft first. Scan order used to decide which lake went, which meant the
+		// northernmost one always did, however far it was from anything the harvesters were
+		// doing. The water should leave from where they are standing.
 		internal int DrainNextLakeTiles(int budget)
 		{
 			var lake = new List<(int x, int y)>();
-			for (int y = 0; y < Map.HEIGHT && lake.Count == 0; y++)
+			for (int y = 0; y < Map.HEIGHT; y++)
 			for (int x = 0; x < Map.WIDTH; x++)
 			{
 				if (!Map.Instance.IsFreshwaterAt(x, y)) continue;
 				if (!Map[x, y].IsOcean) continue;   // the flag marks the lake's own tiles
 				if (Map[x, y].City is not null) continue;
 				lake.Add((x, y));
-				if (lake.Count >= budget) break;
 			}
 
 			int drained = 0;
-			foreach (var (x, y) in lake)
+			foreach (var (x, y) in lake.OrderBy(t => DistanceToNearestCraft(t.x, t.y)))
+			{
+				if (drained >= budget) break;
 				if (DrainTile(x, y)) drained++;
+			}
 			return drained;
 		}
 
 		// How long the harvest runs before they have what they came for and go.
 		private const int ExtractionDuration = 120;
+		private const int ExtractionUnderDome = 60;
 
 		// The moon first. It is the overture, not a mechanic of its own — and it reuses the
 		// sea-level-rise pass from HandleGlobalWarming verbatim, because that code already
@@ -228,30 +235,71 @@ namespace CivOne
 			if (extraction is not null)
 				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(extraction, "EXTRACTION ACTIVE")));
 
-			ScavengerExtractionUntil = (uint)(_gameTurn + ExtractionDuration);
-			int craft = LandHarvesters(HarvestersToLand);
-			Log($"Scavengers arrive: {craft} harvesters, extraction until turn {ScavengerExtractionUntil}");
+			// The dome was built to stop a fleet, not a work crew — but a kinetic ring and a
+			// sensor net over the planet still make orbit expensive, so fewer craft get down
+			// and they do not linger. It blunts the harvest; it cannot refuse it. Building the
+			// wrong defence should be better than building none, and worse than building the
+			// right one.
+			bool domeHeld = DomeComplete;
+			(int toLand, int duration) = ScavengerPlan(domeHeld);
+
+			if (domeHeld)
+				GameTask.Enqueue(Message.Newspaper(null!, "The dome holds the line.",
+					"Most of the craft are turned back", "before they reach the ground."));
+
+			ScavengerExtractionUntil = (uint)(_gameTurn + duration);
+			int craft = LandHarvesters(toLand);
+			Log($"Scavengers arrive: {craft} harvesters (dome {(domeHeld ? "held" : "absent")}), "
+			  + $"extraction until turn {ScavengerExtractionUntil}");
 		}
 
 		private const int HarvestersToLand = 6;
+		private const int HarvestersUnderDome = 2;
+		private const int MinSiteSpacing = 6;
+
+		// How many craft get down and how long they stay. A seam, so the balance rule can be
+		// asserted without standing up five dome wonders.
+		internal static (int craft, int duration) ScavengerPlan(bool domeHeld)
+			=> domeHeld
+				? (HarvestersUnderDome, ExtractionUnderDome)
+				: (HarvestersToLand, ExtractionDuration);
 
 		// Put the craft down on dry land beside fresh water, spread out. On land rather than on
 		// the lake itself for two reasons: an army has to be able to reach them, and a craft
 		// standing on water it is about to drain would be destroying its own footing.
-		private int LandHarvesters(int count)
+		//
+		// Gather EVERY candidate and then choose at random. The first version took the first six
+		// qualifying tiles in scan order, which on a 320x200 map put all six in the first few
+		// rows that had fresh water — the arctic — and the entire arc happened where nobody
+		// lived. A row-major scan is not a neutral way to pick a place on a map; it is a strong
+		// preference for the north pole.
+		internal int LandHarvesters(int count)
 		{
-			var sites = new List<(int x, int y)>();
-			for (int y = 1; y < Map.HEIGHT - 1 && sites.Count < count; y++)
+			var candidates = new List<(int x, int y)>();
+			for (int y = 1; y < Map.HEIGHT - 1; y++)
 			for (int x = 1; x < Map.WIDTH - 1; x++)
 			{
 				ITile tile = Map[x, y];
 				if (tile is null || tile.IsOcean || tile.City is not null) continue;
 				if (!tile.GetBorderTiles().Any(b => b is not null && Map.Instance.IsFreshwaterAt(b.X, b.Y)))
 					continue;
-				// Not on top of each other: the harvest should read as spread across a world.
-				if (sites.Any(s => TileDistance(s.x, s.y, x, y) < 6)) continue;
-				sites.Add((x, y));
+				candidates.Add((x, y));
+			}
+
+			// Shuffle, then take greedily with a spacing rule: random placement alone will
+			// happily drop two craft in the same valley.
+			for (int i = candidates.Count - 1; i > 0; i--)
+			{
+				int j = Common.Random.Next(i + 1);
+				(candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+			}
+
+			var sites = new List<(int x, int y)>();
+			foreach (var c in candidates)
+			{
 				if (sites.Count >= count) break;
+				if (sites.Any(s => TileDistance(s.x, s.y, c.x, c.y) < MinSiteSpacing)) continue;
+				sites.Add(c);
 			}
 
 			foreach (var (x, y) in sites)
@@ -260,6 +308,20 @@ namespace CivOne
 				if (craft is not null) craft.Fortify = true;
 			}
 			return sites.Count;
+		}
+
+		// Chebyshev distance from a tile to the nearest craft, or int.MaxValue when none are
+		// left. The drainage passes sort by this so the water goes from where the craft are
+		// standing rather than from wherever a scan happens to start.
+		private int DistanceToNearestCraft(int x, int y)
+		{
+			int best = int.MaxValue;
+			foreach (IUnit u in Harvesters())
+			{
+				int d = TileDistance(x, y, u.X, u.Y);
+				if (d < best) best = d;
+			}
+			return best;
 		}
 
 		// Every harvester standing on the map. The extraction is theirs, not the clock's:
@@ -303,7 +365,8 @@ namespace CivOne
 			}
 
 			int drained = 0;
-			foreach (var (x, y) in beside.Concat(shore))
+			foreach (var (x, y) in beside.OrderBy(t => DistanceToNearestCraft(t.x, t.y))
+			              .Concat(shore.OrderBy(t => DistanceToNearestCraft(t.x, t.y))))
 			{
 				if (drained >= budget) break;
 				if (DrainTile(x, y)) drained++;
@@ -379,6 +442,24 @@ namespace CivOne
 
 		internal void ProcessScavengerExtraction()
 		{
+			// The clock has run out and craft are still standing: they have what they came for
+			// and they go. Self-limiting — once they lift there are no harvesters left to find,
+			// so this cannot fire twice, and a harvest whose craft were all destroyed never
+			// reaches it (there is nothing to depart, and the player earned that silence).
+			if (!ScavengersExtracting && ScavengerExtractionUntil > 0)
+			{
+				IUnit[] leaving = Harvesters();
+				if (leaving.Length > 0)
+				{
+					foreach (IUnit lifting in leaving) DisbandUnit(lifting);
+					RecordTransmission("ScavengerDeparture", GameYear);
+					GameTask.Enqueue(Message.Newspaper(null!, "The harvesters lift.",
+						"They took what they came for", "and did not say goodbye."));
+					Log($"Scavengers depart: {leaving.Length} harvesters lift at turn {_gameTurn}");
+				}
+				return;
+			}
+
 			if (!ScavengersExtracting) return;
 			if (_gameTurn % DrainInterval != 0) return;
 
