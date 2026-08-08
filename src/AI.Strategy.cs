@@ -391,6 +391,20 @@ namespace CivOne
 			return Math.Max(0, 10 - Player.TaxesRate - reserve);
 		}
 
+		// Citizen allocation, the tool the AI never had. See City.AutoAssignCitizens for what
+		// it does and why the luxury slider was not enough on its own.
+		//
+		// Runs from Player.NewTurn, which the turn queue schedules AFTER every one of our
+		// cities has taken its turn — so IsInDisorder is this turn's freshly computed answer
+		// rather than last turn's. A city fixed here is content when it is evaluated next
+		// turn, which resets DisorderTurns before it can reach the 3 that collapses a
+		// Republic or Democracy.
+		internal void ConsiderCitizens()
+		{
+			foreach (City city in Player.Cities)
+				city.AutoAssignCitizens();
+		}
+
 		internal void ConsiderSliders()
 		{
 			if (Player.IsDestroyed()) return;

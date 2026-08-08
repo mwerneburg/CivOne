@@ -230,6 +230,19 @@ namespace CivOne
 
 		private int FoodRaw => (int)(_cachedFoodRaw ??= ResourceTiles.Sum(t => FoodValue(t)));
 		internal int FoodIncome => (HasBuilding<Buildings.MassTransit>() ? (int)(FoodRaw * 1.2) : FoodRaw) - FoodCosts;
+
+		// Growth is capped and the food box is being filled for nothing: NewTurn still spends
+		// `Food -= FoodRequired` when the box fills, then skips the Size++. Stated once so the
+		// growth path and the AI's citizen pass cannot disagree about it — the settler shuttle
+		// was exactly that disagreement, twice over.
+		//
+		// `>=` rather than the growth path's original `== 7` / `== 12`: the We-Love-The-King
+		// path (City.cs:1436) already used `>=`, and a size-8 city with no aqueduct growing on
+		// past the cap is a bug in any reading. Reachable through a settler joining a size-7
+		// city, which adds more than one.
+		internal bool GrowthBlocked =>
+			   (Size >= 7  && !HasBuilding<Aqueduct>())
+			|| (Size >= 12 && !HasBuilding<SewerSystem>());
 		internal int FoodRequired => (Game.Started && Player.Civilization is Civilizations.Olvir)
 			? (int)(Size + 1) * 5
 			: (int)(Size + 1) * 10;
@@ -1114,6 +1127,119 @@ namespace CivOne
 				yield return _specialists[specialist++];
 			}
 		}
+		// ── AI citizen allocation ───────────────────────────────────────────────
+		//
+		// The AI had no specialists at all. ChangeSpecialist's only callers were the two
+		// human city-manager screens, and SetResourceTiles sorts purely by food/shield/trade
+		// with no happiness term — so an AI city always worked every tile it could reach, and
+		// entertainers appeared only as leftovers when the tiles ran out.
+		//
+		// That left the AI one lever against disorder, the luxury slider, which pays out of
+		// TRADE. Measured in the 2200 AD run: a rioting city at 70% luxuries earning 2
+		// luxury against 9 unhappy — one citizen upgraded. Three turns of that and
+		// Government.CollapsesInDisorder revolts the whole civ (City.cs:1402), after burning
+		// its Marketplace on turn 1 and its Bank or Cathedral on turn 2. Successive collapses.
+		//
+		// An entertainer pays twice where the slider pays once: specialists are excluded from
+		// the happy/unhappy tally outright (see ComputeCitizens), AND each adds 2 luxury. That
+		// works in a city with no trade at all, which is exactly the city that riots.
+		//
+		// Every step here is APPLIED THEN TESTED, and reverted if it made things worse. The
+		// alternative — predicting the outcome — means restating the happiness rules next to
+		// the code that implements them, and this file has been bitten by that kind of
+		// duplication repeatedly.
+		internal void AutoAssignCitizens()
+		{
+			if (Size == 0) return;
+
+			// 1. Put specialists back to work, one at a time, while it is safe to — the cure
+			//    has to be released when the disease goes, or an aqueduct never gets its
+			//    farmers back.
+			//
+			//    The revert below is a CHURN guard, not a correctness one, and the test suite
+			//    says so: deleting it fails nothing. Without it this releases every specialist
+			//    every turn and steps 2 and 3 immediately re-pull them, converging on the same
+			//    allocation after ~2xSize tile toggles per city per turn, each invalidating the
+			//    city cache. That is pure waste on a 500-city late game, which this project has
+			//    been bitten by before.
+			while (_specialists.Count > 0)
+			{
+				ITile idle = BestIdleTile();
+				if (idle is null) break;
+				SetResourceTile(idle);
+				if (IsInDisorder || (GrowthBlocked && FoodIncome > 0))
+				{
+					SetResourceTile(idle);   // toggles it back off
+					break;
+				}
+			}
+
+			// 2. Disorder: buy order with entertainers while the city can still feed itself.
+			//    A city starved into order has only traded one death for another.
+			while (IsInDisorder && PullWorkerToSpecialist(foodFirst: false)) { }
+
+			// 3. Growth capped: NewTurn spends the full food box and then skips the Size++,
+			//    so every surplus point is worked for and thrown away. Convert the food tiles
+			//    to specialists, who at least produce something, until the surplus is gone.
+			//    Food-heaviest first, because those are the tiles being wasted.
+			while (GrowthBlocked && FoodIncome > 0 && PullWorkerToSpecialist(foodFirst: true)) { }
+
+			// 4. Type them. Entertainers only where order actually needs one — the rest are
+			//    better as scientists, or taxmen when the treasury is thin. Same revert rule:
+			//    retype, and if the city riots for want of that entertainer's 2 luxury, put
+			//    it back.
+			Citizen preferred = Player.Gold < LeanTreasury ? Citizen.Taxman : Citizen.Scientist;
+			for (int i = 0; i < _specialists.Count; i++)
+			{
+				if (_specialists[i] != Citizen.Entertainer) { _specialists[i] = preferred; InvalidateCache(); continue; }
+				_specialists[i] = preferred;
+				InvalidateCache();
+				if (IsInDisorder)
+				{
+					_specialists[i] = Citizen.Entertainer;
+					InvalidateCache();
+				}
+			}
+		}
+
+		// Below this the AI would rather have coins than papers. A judgement call, not a
+		// derived number: it is roughly what a mid-game city costs to rush-buy out of trouble.
+		private const int LeanTreasury = 100;
+
+		// The tile an idle citizen would pick up, by the same ordering SetResourceTiles uses,
+		// so the citizen pass and the engine's own allocation cannot disagree about what a
+		// good tile is.
+		private ITile BestIdleTile() => CityTiles
+			.Where(t => !(t.X == X && t.Y == Y) && !OccupiedTile(t) && !_resourceTiles.Contains(t))
+			.OrderByDescending(t => FoodValue(t))
+			.ThenByDescending(t => ShieldValue(t))
+			.ThenByDescending(t => TradeValue(t))
+			.FirstOrDefault();
+
+		// Take the least valuable worked tile out of production, making its citizen a
+		// specialist. Returns false when there is nothing left to give up — no worked tiles,
+		// or giving one up would push the city into famine.
+		private bool PullWorkerToSpecialist(bool foodFirst)
+		{
+			ITile[] worked = _resourceTiles.ToArray();
+			if (worked.Length == 0) return false;
+
+			// foodFirst is for the growth cap, where the surplus itself is the waste, so the
+			// biggest food tile is the one worth abandoning. Otherwise give up the tile that
+			// contributes least of anything.
+			IEnumerable<ITile> order = foodFirst
+				? worked.OrderByDescending(t => FoodValue(t))
+				: worked.OrderBy(t => FoodValue(t) * 2 + ShieldValue(t) + TradeValue(t));
+
+			foreach (ITile tile in order)
+			{
+				SetResourceTile(tile);                       // worked -> specialist
+				if (FoodIncome >= 0) return true;
+				SetResourceTile(tile);                       // would starve; put it back
+			}
+			return false;
+		}
+
 		internal void ChangeSpecialist(int index)
 		{
 			while (_specialists.Count < (index + 1)) _specialists.Add(Citizen.Entertainer);
@@ -1495,15 +1621,7 @@ namespace CivOne
 				// Growth caps: no advisor message — it re-fired every time the food store
 				// refilled, spamming the turn. The City Manager's food storage view and the
 				// Aqueduct/Sewer entries in the build list carry the same information.
-				if (Size == 7 && !_buildings.Any(b => b.Id == (int)Building.Aqueduct))
-				{
-					// blocked: needs Aqueduct
-				}
-				else if (Size == 12 && !_buildings.Any(b => b.Id == (int)Building.SewerSystem))
-				{
-					// blocked: needs Sewer System
-				}
-				else
+				if (!GrowthBlocked)
 				{
 					Size++;
 				}
