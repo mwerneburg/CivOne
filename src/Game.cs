@@ -2232,7 +2232,16 @@ namespace CivOne
 		{
 			ICivilization civilization = player.Civilization;
 			ICivilization[] civilizations = Common.Civilizations;
-			int startIndex = Enumerable.Range(1, civilization.Id - 1).Sum(i => civilizations[i].CityNames.Length);
+			// Range(0, ...), not Range(1, ...). Common.Civilizations is ordered by Id and the
+			// ids run 1..29 with no gaps, so array index == Id - 1: the block before this civ
+			// is civilizations[0 .. Id-2]. Starting at 1 summed civilizations[1 .. Id-1] —
+			// every civ's own length in place of the Romans' — which cancels only while every
+			// list is the same length. All 24 playable civs carry exactly 40 names, so they
+			// were unaffected; the five that do not were each pointed into the PRECEDING civ's
+			// block. Measured before the fix: the Barbarians' window opened on "Moron" (a
+			// Mongol name), the Olvir on "Cannae" (Barbarian), The Thing on "Buffalo Creek"
+			// (Haudenosaunee), Skynet on "Custody" (The Others).
+			int startIndex = Enumerable.Range(0, civilization.Id - 1).Sum(i => civilizations[i].CityNames.Length);
 			// A reserved civilization keeps first claim on its own block (the OrderBy below)
 			// but may still borrow from the shared pool if it outgrows it.
 			bool ownNamesAreReserved = ReservedName(startIndex);

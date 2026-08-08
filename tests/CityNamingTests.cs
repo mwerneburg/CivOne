@@ -174,5 +174,36 @@ namespace CivOne.Tests
 			int shared = Common.Civilizations.Where(c => !IsReserved(c)).Sum(c => c.CityNames.Length);
 			Assert.True(shared >= 500, $"only {shared} unreserved names for a 472-city world");
 		}
+
+		// Every civ's name block starts where its own names actually begin.
+		//
+		// Game.CityNameId derived the offset by summing civilizations[1..Id-1] — each civ's
+		// OWN length standing in for the Romans' — which cancels only while every list is the
+		// same length. All 24 playable civs carry exactly 40 names and were unaffected; the
+		// five that do not were each pointed into the preceding civ's block. The Barbarians'
+		// window opened on "Moron", a Mongol name; The Thing's on "Buffalo Creek", which is
+		// Haudenosaunee.
+		//
+		// Asserted for EVERY civ rather than the five, so a future list of a different length
+		// cannot quietly reintroduce it.
+		[Fact]
+		public void EveryCivilizationsNameBlockStartsAtItsOwnNames()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			ICivilization[] civs = Common.Civilizations;
+			string[] all = Common.AllCityNames.ToArray();
+
+			int trueStart = 0;
+			foreach (ICivilization c in civs)
+			{
+				int computed = System.Linq.Enumerable
+					.Range(0, c.Id - 1).Sum(i => civs[i].CityNames.Length);
+				Assert.True(trueStart == computed,
+					$"{c.Name}: block starts at {trueStart} but the offset says {computed} " +
+					$"(\"{all[computed]}\")");
+				Assert.Equal(c.CityNames[0], all[trueStart]);
+				trueStart += c.CityNames.Length;
+			}
+		}
 	}
 }

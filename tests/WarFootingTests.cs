@@ -69,23 +69,23 @@ namespace CivOne.Tests
 		{
 			FreshHuman();
 			Settings.Instance.Autopilot = true;
-			Player germans = Game.Instance.Players.First(p => p.TribeNamePlural == "Germans");
+			Player franks = Game.Instance.Players.First(p => p.TribeNamePlural == "Franks");
 			Player rival = Game.Instance.Players.First(p => p.TribeNamePlural == "Babylonians");
-			Assert.Equal(AggressionLevel.Aggressive, germans.Civilization.Leader.Aggression);
+			Assert.Equal(AggressionLevel.Aggressive, franks.Civilization.Leader.Aggression);
 
-			City home = Game.Instance.AddCity(germans, 0, 40, 25)!;
+			City home = Game.Instance.AddCity(franks, 0, 40, 25)!;
 			Game.Instance.AddCity(rival, 0, 48, 25);          // a neighbour, inside 15 tiles
-			byte gid = Game.Instance.PlayerNumber(germans);
+			byte gid = Game.Instance.PlayerNumber(franks);
 			Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);   // out-guns them
-			Assert.False(Game.Instance.Players.Any(p => p != germans && germans.IsAtWar(p)),
+			Assert.False(Game.Instance.Players.Any(p => p != franks && franks.IsAtWar(p)),
 				"precondition: at peace with everyone");
-			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
+			Assert.Equal("Militarize", AI.Instance(franks).CurrentStanceName());
 
 			// One city, so the ceiling is three combat units. The fourth ends it.
 			for (int i = 0; i < 3; i++)
 				Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);
 
-			Assert.NotEqual("Militarize", AI.Instance(germans).CurrentStanceName());
+			Assert.NotEqual("Militarize", AI.Instance(franks).CurrentStanceName());
 		}
 
 		// Non-combat units are not an army: diplomats and caravans must not read as "armed
@@ -95,19 +95,19 @@ namespace CivOne.Tests
 		{
 			FreshHuman();
 			Settings.Instance.Autopilot = true;
-			Player germans = Game.Instance.Players.First(p => p.TribeNamePlural == "Germans");
+			Player franks = Game.Instance.Players.First(p => p.TribeNamePlural == "Franks");
 			Player rival = Game.Instance.Players.First(p => p.TribeNamePlural == "Babylonians");
 
-			City home = Game.Instance.AddCity(germans, 0, 40, 25)!;
+			City home = Game.Instance.AddCity(franks, 0, 40, 25)!;
 			Game.Instance.AddCity(rival, 0, 48, 25);
-			byte gid = Game.Instance.PlayerNumber(germans);
+			byte gid = Game.Instance.PlayerNumber(franks);
 			Game.Instance.CreateUnit(UnitType.Legion, home.X, home.Y, gid);
-			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
+			Assert.Equal("Militarize", AI.Instance(franks).CurrentStanceName());
 
 			for (int i = 0; i < 6; i++)
 				Game.Instance.CreateUnit(UnitType.Diplomat, home.X, home.Y, gid);
 
-			Assert.Equal("Militarize", AI.Instance(germans).CurrentStanceName());
+			Assert.Equal("Militarize", AI.Instance(franks).CurrentStanceName());
 		}
 
 		// Barbarians are a raiding nuisance, not a rival power. They hold no diplomacy and

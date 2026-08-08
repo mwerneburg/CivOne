@@ -46,5 +46,9 @@ namespace CivOne.Enums
 		TheOrganism,
 		TheNetwork,
 		Trotsky,
+		Charlemagne,
+		Edenshaw,
+		SepeTiaraju,
+		TeRauparaha,
 	}
 }

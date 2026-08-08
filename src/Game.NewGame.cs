@@ -36,14 +36,14 @@ namespace CivOne
 		{
 			{ Civilization.Romans,      ( 42.0,   12.0) },
 			{ Civilization.Babylonians, ( 33.0,   44.0) },
-			{ Civilization.Germans,     ( 51.0,   10.0) },
+			{ Civilization.Franks,      ( 50.8,    6.1) },   // Aachen
 			{ Civilization.Egyptians,   ( 26.0,   31.0) },
-			{ Civilization.Americans,   ( 39.0,  -98.0) },
+			{ Civilization.Haida,       ( 53.2, -132.0) },   // Haida Gwaii
 			{ Civilization.Greeks,      ( 38.0,   23.0) },
 			{ Civilization.Indians,     ( 22.0,   78.0) },
 			{ Civilization.Russians,    ( 55.0,   38.0) },
 			{ Civilization.Zulus,       (-29.0,   31.0) },
-			{ Civilization.French,      ( 47.0,    2.0) },
+			{ Civilization.Guarani,     (-25.3,  -57.6) },   // Asuncion, on the Parana
 			{ Civilization.Aztecs,      ( 19.0,  -99.0) },
 			{ Civilization.Chinese,     ( 35.0,  113.0) },
 			{ Civilization.English,     ( 52.0,   -1.0) },
@@ -58,7 +58,7 @@ namespace CivOne
 			{ Civilization.Arabs,       ( 24.5,   39.6) },
 			{ Civilization.Khmer,       ( 12.0,  105.0) },
 			{ Civilization.Malians,     ( 17.0,   -4.0) },
-			{ Civilization.Inca,        (-13.0,  -72.0) },
+			{ Civilization.Maori,       (-38.1,  176.2) },   // Rotorua, Aotearoa
 			{ Civilization.Ottomans,    ( 39.0,   35.0) },
 			{ Civilization.Ethiopians,  (  9.0,   39.0) },
 			{ Civilization.Iroquois,    ( 43.0,  -76.0) },
@@ -80,6 +80,36 @@ namespace CivOne
 		// Guarded on FixedStartPositions, so on a random map nothing is withheld.
 		internal static bool EarthMapExcludes(ICivilization civ) =>
 			Map.Instance.FixedStartPositions && EarthMapExcluded.Contains((Civilization)civ.Id);
+
+		// Which continent a civ belongs to, from its real-world centroid.
+		//
+		// Deliberately a lat/lon table and NOT Map.ContinentId. The flood-fill labels are
+		// topology, and at these resolutions the topology fuses: on the 80x50 Earth the
+		// Bering Strait and the Isthmus of Panama both close, so Eurasia, Africa and BOTH
+		// Americas come back as a single continent id. Measured across five seeds, a rule
+		// built on that guaranteed nothing — the Guarani were drawn in one game of five and
+		// the Haida in two. "Continent" here means what a player means by it.
+		private static string CivRegion(ICivilization civ, System.Collections.Generic.Dictionary<Civilization, (double lat, double lon)> centroids)
+		{
+			if (!centroids.TryGetValue((Civilization)civ.Id, out var c)) return "";
+			double lat = c.lat, lon = c.lon;
+			if (lat >= -48 && lat <= -9  && lon >= 112) return "Australasia";
+			if (lat >= 15  && lon >= -170 && lon <= -52) return "N.America";
+			if (lat <  15  && lon >= -82  && lon <= -34) return "S.America";
+			if (lat >= 36  && lon >= -11  && lon <= 40)  return "Europe";
+			if (lat <= 36  && lon >= -18  && lon <= 52)  return "Africa";
+			if (lon >= 40)                               return "Asia";
+			return "";
+		}
+
+		private readonly System.Collections.Generic.HashSet<string> _claimedRegions = new();
+
+		// Test seams: the centroid table and the region rule are what make the roster land
+		// where it was added to land, and both are private detail otherwise.
+		internal static (double lat, double lon) TestEarthCentroid(Civilization civ)
+			=> EarthCentroids.TryGetValue(civ, out var c) ? c : (0, 0);
+
+		internal static string TestCivRegion(ICivilization civ) => CivRegion(civ, EarthCentroids);
 
 		private void AddStartingUnits(byte player)
 		{
@@ -405,6 +435,13 @@ namespace CivOne
 					_players[i] = new Player(tribe, leaderName, tribeName, tribeNamePlural);
 					_players[i].Destroyed += PlayerDestroyed;
 					HumanPlayer = _players[i];
+					// The human's continent counts as claimed. Without this the slot loop
+					// `continue`s past it, so a human playing in Europe leaves Europe looking
+					// unclaimed — and slot 3, which holds the Franks AND the Guarani, then
+					// draws between them at random instead of taking South America. Measured
+					// over five seeds: the Guarani appeared in one game before this line.
+					if (CivRegion(tribe, EarthCentroids) is string humanRegion && humanRegion != "")
+						_claimedRegions.Add(humanRegion);
 					if (difficulty == 0)
 					{
 						// Chieftain starts with 50 Gold
@@ -456,8 +493,33 @@ namespace CivOne
 						.Where(civ => civ.PreferredPlayerNumber == i && Selectable(civ))
 						.ToArray();
 
+				// Continent coverage. Slots are drawn independently, so on an Earth map a
+				// whole landmass can go unrepresented by chance — and two of the pairings
+				// make that likely rather than unlucky: the Franks and Guarani share slot 3,
+				// so Europe and South America are a coin flip against each other, and the
+				// Haida share slot 5 with the Chinese.
+				//
+				// Greedy and map-driven rather than a hard-coded list of continents: a civ's
+				// landmass is whatever Map.ContinentId says at its own centroid, so this
+				// follows the map that actually shipped. Where a slot can cover a landmass
+				// nothing has claimed yet, it does; otherwise it draws as before, so on a
+				// random (non-Earth) map this changes nothing at all.
 				int r = Common.Random.Next(civs.Length);
-				
+				if (Map.FixedStartPositions)
+				{
+					ICivilization[] fresh = civs
+						.Where(c => CivRegion(c, EarthCentroids) is string reg && reg != ""
+						         && !_claimedRegions.Contains(reg))
+						.ToArray();
+					if (fresh.Length > 0)
+					{
+						ICivilization pick = fresh[Common.Random.Next(fresh.Length)];
+						r = System.Array.IndexOf(civs, pick);
+					}
+					if (CivRegion(civs[r], EarthCentroids) is string chosen && chosen != "")
+						_claimedRegions.Add(chosen);
+				}
+
 				_players[i] = new Player(civs[r]);
 				_players[i].Destroyed += PlayerDestroyed;
 				
