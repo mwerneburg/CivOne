@@ -1935,12 +1935,32 @@ namespace CivOne
 			// water source" dozens of times a round, and an AI settler, which gets no
 			// message at all, silently burns its turn and comes back tomorrow.
 			//
-			// TileExtensions.AllowIrrigation states this correctly and has NO callers.
-			// Not adopted wholesale here because it also admits Hills, which this
-			// predicate has always excluded — that difference is real and separate.
+			// HILLS ARE FARMABLE, and the AI could not see it. Settlers.BuildIrrigation
+			// accepts Hills, Hills.Food reads Irrigation (1 -> 2), the human's auto-improve
+			// admits them and TileExtensions.AllowIrrigation lists them — every path but this
+			// one, which is the only path an AI settler takes. So the AI could MINE a hill
+			// (mine, below, has always included them) and never farm one.
+			//
+			// Harmless while hills were 6.9% of land. After the relief-based Earth map made
+			// them 26.5%, it decided games. A hill yields 1 food and a citizen eats 2, so a
+			// city on hills is stuck the moment it outgrows its own centre tile: centre
+			// (auto-irrigated at founding, 2 food) plus two hills at 1 is 4 food for 4
+			// mouths, and it never grows again. Measured over 750 turns on the new map, the
+			// Khmer held 2 cities at mean size 1.9, the Japanese 1, the Persians none —
+			// while the Lakota and Russians, on flat ground, grew as they always had.
+			//
+			// The water-source requirement is kept and is what stops this going too far: a
+			// dry upland has no cardinal water and is still mine country. Only hills beside a
+			// river, lake or an already-irrigated tile become farmland — which is where
+			// people actually farm hills.
+			//
+			// DespotBlocksIrrigation already exempts Hills (their bonus is in ITile.Food, not
+			// the government-gated branch), so this works in the early game, which is the only
+			// part of it the strangled civs ever reached.
 			bool irrigation = !tile.Mine && !tile.Irrigation
 				&& (conversion
-				    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert)
+				    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert
+				         || tile is Hills)
 				        && tile.CrossTiles().Any(x => x.City is null
 				            && (x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))))));
 			bool mine = (tile is Mountains || tile is Hills) && !tile.Mine && !tile.Irrigation;
@@ -2071,7 +2091,15 @@ namespace CivOne
 				if (claimed.Contains((tx, ty))) continue;
 				if (!nearCities.Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) <= 2)) continue;
 				int d = Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
-				if (d < bestDist) { bestDist = d; best = tile; }
+				// Ties broken by what the finished tile is worth, not by scan order.
+				//
+				// This started mattering the moment hills became farm work: an irrigated hill
+				// is 2 food and NO shields, an irrigated plain is 2 food and 1 shield, so at
+				// equal distance the plain is strictly better. Distance alone let the hill win
+				// on nothing but its position in the row-major scan — the same trap as the
+				// Arctic harvester landings and the north-west harvester march.
+				if (d < bestDist || (d == bestDist && best is not null && tile.Shield > best.Shield))
+				{ bestDist = d; best = tile; }
 			}
 			}
 		}
@@ -4041,6 +4069,18 @@ namespace CivOne
 		// The distinction matters because of the despot rule below.
 		// `newRoad` distinguishes laying the FIRST road on a bare tile from upgrading one
 		// that already exists (road → railroad → transport tube). See the ordering below.
+		// Test seam: the irrigate-vs-mine arbitration is the half of hill farming that decides
+		// whether a starving city gets food or shields, and asserting on the choice beats
+		// inferring it from whichever order happened to be queued.
+		internal string TestSettlerPlanAt(IUnit unit)
+		{
+			TileWork work = WorkAvailable(unit.Tile);
+			int nearestOwn = Player.Cities.Length == 0 ? 255
+				: Player.Cities.Min(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y));
+			return ChooseSettlerImprovement(unit, work.Road, work.Irrigation, work.Mine,
+				nearestOwn, work.Conversion, work.NewRoad).ToString();
+		}
+
 		private SettlerImprovement ChooseSettlerImprovement(
 		    IUnit unit, bool validRoad, bool validIrrigation, bool validMine, int nearestOwnCity,
 		    bool conversion = false, bool newRoad = true)
