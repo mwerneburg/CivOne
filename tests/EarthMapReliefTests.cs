@@ -130,6 +130,33 @@ namespace CivOne.Tests
 			Assert.Equal(0.0, m.Share(Mountains, n, s, w, e));
 		}
 
+		// Map.ResolveEarthBin walks FIVE directories up from the executable to reach the repo's
+		// resources/ — tuned for runtime/sdl/bin/{Debug,Release}/net10.0/. That count is
+		// hard-coded arithmetic against a directory layout, and if either moves the source
+		// build silently stops finding the shipped map: it falls back to the user data
+		// directory, which is how a stale July copy shadowed the regenerated one for a whole
+		// autoplay run and the new mountains never appeared.
+		//
+		// Asserted here rather than through Map.EarthEpicPath because the test assembly lives
+		// at a different depth; what matters is that the arithmetic is right for the binary
+		// that ships.
+		[Theory]
+		[InlineData("Debug")]
+		[InlineData("Release")]
+		public void TheSourceBuildCanReachTheShippedMap(string configuration)
+		{
+			DirectoryInfo? root = new DirectoryInfo(System.AppContext.BaseDirectory);
+			while (root is not null && !File.Exists(Path.Combine(root.FullName, "CivOne.csproj")))
+				root = root.Parent;
+			if (root is null) return;
+
+			string exeDir = Path.Combine(root.FullName, "runtime", "sdl", "bin", configuration, "net10.0");
+			string resolved = Path.GetFullPath(Path.Combine(exeDir,
+				"..", "..", "..", "..", "..", "resources", "earth_epic.bin"));
+
+			Assert.True(File.Exists(resolved), $"five levels up from {exeDir} is not the map: {resolved}");
+		}
+
 		// Board-size independence. Relief is measured inside a tile, so it grows with the
 		// tile: applied unscaled, the same cuts gave the 80x50 board 23% mountains against
 		// Epic's 10%. Both boards must be playable worlds, not one world and one wall.

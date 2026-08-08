@@ -208,7 +208,11 @@ river_min_length=0      # 0 = engine default (3)
 		private void LoadEarth()
 		{
 			Map.ResetForPreview();
-			string path = Path.Combine(Settings.Instance.DataDirectory, "earth_epic.bin");
+			// Map.EarthEpicPath, not the data directory alone: this looked only where
+			// build_earth_map.py writes by DEFAULT, so the 'E' preview and the new-game menu
+			// (which goes through the resolver) could load two different worlds — and with no
+			// user copy present, the preview reported the shipped map as missing.
+			string path = Map.EarthEpicPath;
 			if (Map.Instance.LoadEarthBin(path))
 			{
 				_configStatus = $"Loaded {Path.GetFileName(path)}";
