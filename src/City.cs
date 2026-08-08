@@ -560,6 +560,12 @@ namespace CivOne
 			}
 		}
 
+		// What this city adds to (or takes from) the treasury each turn. The city screen
+		// showed shield upkeep but nothing about gold, so a player had no way to see which
+		// cities were paying for themselves until a building was sold to cover the debt.
+		// Matches the arithmetic at the two Player.Gold lines in NewTurn, disorder included.
+		internal short NetGold => (short)((IsInDisorder ? 0 : Taxes) - TotalMaintenance);
+
 		internal short TotalMaintenance
 		{
 			get
@@ -1651,10 +1657,23 @@ namespace CivOne
 			if (Food < 0)
 			{
 				Food = 0;
+				// Read the name AND the ownership before the decrement. Crossing zero calls
+				// DestroyCity, which sets Owner to 0 — so `Human == Owner` tested afterwards
+				// is false for the very case the player most needs to hear about. That is a
+				// pre-existing hole in the famine notice, not just the new line: a town that
+				// starved out of existence showed no famine art either.
+				string starved = Name;
+				bool lastCitizen = Size == 1;
+				bool mine = Human == Owner;
 				Size--;
-				if (Human == Owner)
+				if (mine)
 				{
-					GameTask.Enqueue(Show.EventArt("famine", $"Famine in {Name}!"));
+					GameTask.Enqueue(Show.EventArt("famine", $"Famine in {starved}!"));
+					// The famine art fires either way, but a city that starved out of
+					// existence said nothing more than one that lost a citizen.
+					if (lastCitizen)
+						GameTask.Enqueue(Message.Newspaper(null!, $"{starved} is gone.",
+							"The last of its people", "starved."));
 				}
 				if (Size == 0) return;
 			}
@@ -1782,7 +1801,23 @@ namespace CivOne
 					{
 						if (Size == 1 && Player.Cities.Length == 1) Size++;
 						if (Size > 1) unit.SetHome();
+						// A Settlers costs one population, so a size-1 city building one
+						// ceases to exist: Size-- crosses zero and the setter calls
+						// DestroyCity, which announces nothing. The AI is held back from
+						// this a few lines up; the human is deliberately NOT, because
+						// relocating a town's last citizens is a legitimate move. But it
+						// is only a move if you know you made it — the production was
+						// queued turns earlier, at a healthy size, and until now the town
+						// simply disappeared off the map with no message of any kind.
+						string abandoned = Name;
+						bool lastCitizens = Size == 1;
+						// Owner is read before the decrement for the same reason as the
+						// famine notice above: DestroyCity zeroes it on the way through.
+						bool mine = Human == Owner;
 						Size--;
+						if (lastCitizens && mine)
+							GameTask.Enqueue(Message.Newspaper(null!, $"{abandoned} abandoned.",
+								"Its last citizens left", "with the Settlers."));
 					}
 					else
 					{

@@ -964,6 +964,11 @@ namespace CivOne
 			BondPool = 0;
 		}
 
+		// Three turns of runway. Enough to notice, change the tax rate and see it work;
+		// short enough that a healthy empire never sees it.
+		private const int TreasuryWarningTurns = 3;
+		private bool _treasuryWarned;
+
 		public void NewTurn()
 		{
 			// The turn queue schedules this after every one of our cities has taken its turn
@@ -1045,6 +1050,30 @@ namespace CivOne
 					if (others.Count(p => p.HasAdvance(advance)) >= 2)
 						AddAdvance(advance, false);
 				}
+			}
+
+			// Insolvency is silent until it takes a building. City.cs:2285 sells the
+			// highest-maintenance improvement in any city whose bill the treasury cannot
+			// meet, and the only place the empire's income and upkeep appear is the LAST
+			// page of the Trade Report — so a slow drain shows up as a lost Sewer System
+			// and nothing else. Warn while there is still time to raise taxes.
+			//
+			// Latched, not repeated: it fires on the crossing and re-arms only once the
+			// treasury recovers, so a civ that lives poor is not nagged every turn.
+			if (IsHuman)
+			{
+				int upkeep = Cities.Sum(c => (int)c.TotalMaintenance);
+				if (upkeep > 0 && Gold < upkeep * TreasuryWarningTurns)
+				{
+					if (!_treasuryWarned)
+					{
+						_treasuryWarned = true;
+						GameTask.Enqueue(Message.Newspaper(null!, "Treasury running low.",
+							$"{Gold} gold against {upkeep} upkeep.",
+							"Buildings will be sold to cover it."));
+					}
+				}
+				else _treasuryWarned = false;
 			}
 
 			AI?.ConsiderGovernment();

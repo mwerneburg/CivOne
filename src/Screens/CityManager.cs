@@ -164,7 +164,7 @@ namespace CivOne.Screens
 			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 5 fields (each fh+4)
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int ph     = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
+			int ph     = 8 + 3 * meterH + 2 + 6 * fieldH + 4;
 			this.DrawCassettePanel(px, py, pw, ph, "RESOURCES");
 
 			int cx = px + 4;
@@ -208,6 +208,17 @@ namespace CivOne.Screens
 
 			// Upkeep field (shield costs)
 			this.DrawCassetteField("UPKEEP", $"{_city.ShieldCosts} SHLD", cx, cy, cw);
+			cy += fieldH;
+
+			// Treasury field (gold). The empire's balance sheet lives on the last page of the
+			// Trade Report; this is the per-city half of it, so "which city is bleeding me"
+			// is answerable without paging through a report.
+			int net = _city.NetGold;
+			byte netColor = net < 0 ? CassetteTheme.ALERT
+			              : net > 0 ? CassetteTheme.OK
+			                        : CassetteTheme.INK_MID;
+			this.DrawCassetteField("TREASURY", net >= 0 ? $"+{net} GOLD" : $"{net} GOLD",
+				cx, cy, cw, 0, netColor);
 			cy += fieldH;
 
 			// Pollution field
@@ -274,7 +285,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 6 * fieldH + 4;
 
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap;
@@ -302,7 +313,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 6 * fieldH + 4;
 			int tradePh     = TradePanelHeight(fh);
 
 			int px = ColLeftX;
@@ -632,7 +643,7 @@ namespace CivOne.Screens
 				int fh = Resources.GetFontHeight(0);
 				int fieldH = fh + 4;
 				int meterH = fh + 6;
-				int top = BodyY + 8 + 3 * meterH + 2 + 4 * fieldH;
+				int top = BodyY + 8 + 3 * meterH + 2 + 5 * fieldH;
 				return new Rectangle(ColLeftX + 4, top, ColLeftW - 8, fieldH);
 			}
 		}

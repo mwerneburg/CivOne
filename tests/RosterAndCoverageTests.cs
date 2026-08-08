@@ -85,7 +85,7 @@ namespace CivOne.Tests
 		// generates, which leaves FixedStartPositions false — and the coverage rule is
 		// deliberately inert there, so a test written against a generated map asserts
 		// nothing at all. The first draft of this did exactly that and passed green.
-		private static Game AnEarthGame(short seed)
+		private static Game AnEarthGame(short seed, int competition = 14)
 		{
 			Sim.EnsureRuntime();
 			Sim.ResetState();
@@ -119,7 +119,7 @@ namespace CivOne.Tests
 			Assert.True(Map.Instance.Ready, "Earth map did not finish loading");
 			var tribe = Common.Civilizations.First(c => c.PreferredPlayerNumber >= 1
 			                                         && c.PreferredPlayerNumber <= 7);
-			Game.CreateGame(0, 14, tribe, "Tester", "Test", "Testers");
+			Game.CreateGame(0, competition, tribe, "Tester", "Test", "Testers");
 			return Game.Instance;
 		}
 
@@ -145,6 +145,37 @@ namespace CivOne.Tests
 			int continents = RegionsCovered(g);
 
 			Assert.Equal(6, continents);   // N.America, S.America, Europe, Africa, Asia, Australasia
+		}
+
+		// EarthMapExcluded must hold at maximum competition too.
+		//
+		// Arabia is the reason that list exists: it paints as unbroken desert, and Medina sat
+		// at size 2 on zero food surplus for a whole game. But the Arabs own slot 11 outright,
+		// so once competition reaches 11 the slot empties, the extended refill finds nothing
+		// (every extended civ below it is already seated), and the last-resort fallback hands
+		// the slot straight back to them. Observed in a 17-civ play game: the Arabs seated,
+		// then eliminated at turn 56 holding one city.
+		[Theory]
+		[InlineData((short)1234)]
+		[InlineData((short)4321)]
+		[InlineData((short)999)]
+		public void AnExcludedCivIsNotReseatedAtFullCompetition(short seed)
+		{
+			Game g = AnEarthGame(seed, competition: 17);
+
+			Assert.DoesNotContain(g.Players.Where(p => p is not null),
+				p => p.Civilization is Civilizations.Arab);
+		}
+
+		// ...and the slots are still all filled. The exclusion must not be bought by leaving a
+		// hole: every slot is indexed directly throughout the engine.
+		[Fact]
+		public void FullCompetitionStillFillsEverySlot()
+		{
+			Game g = AnEarthGame(1234, competition: 17);
+			Player[] slots = g.Players.ToArray();
+			for (int i = 0; i <= 17; i++)
+				Assert.True(slots[i] is not null, $"slot {i} is empty");
 		}
 	}
 }

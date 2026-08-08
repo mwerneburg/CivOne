@@ -486,8 +486,35 @@ namespace CivOne
 						           && civ.PreferredPlayerNumber <= i)
 						.ToArray();
 				}
+				// Second refill: ANY unused civ, from any slot, that the Earth map allows.
+				//
+				// Without this the last resort below reseats the very civ EarthMapExcluded
+				// withheld. Arabia is the whole reason that list exists — it paints as
+				// unbroken desert, and Medina sat at size 2 on zero food surplus for a
+				// whole game — and the Arabs own slot 11 outright, so the moment competition
+				// reaches 11 the slot empties, the extended refill finds nothing (every
+				// extended civ below it is already seated), and the last resort hands the
+				// slot straight back to them. Seen in a 17-civ play game: the Arabs seated,
+				// then eliminated at turn 56 with one city, exactly as the exclusion note
+				// predicted.
+				//
+				// Any-slot seating is safe here for the same reason the extended refill is:
+				// only civs that never respawn are eligible, so nothing later writes to a
+				// slot it does not own.
+				if (civs.Length == 0)
+				{
+					var seated = new System.Collections.Generic.HashSet<int>(
+						_players.Where(p => p is not null).Select(p => (int)p.Civilization.Id));
+					civs = Common.Civilizations
+						.Where(civ => (int)civ.Id >= 17 && (int)civ.Id <= 26
+						           && Selectable(civ) && !EarthMapExcludes(civ)
+						           && !seated.Contains((int)civ.Id))
+						.ToArray();
+				}
+
 				// Last resort: never leave a slot null — every slot is indexed directly
-				// throughout the engine, and AddStartingUnits would throw on a hole.
+				// throughout the engine, and AddStartingUnits would throw on a hole. This
+				// can still reseat an excluded civ, but only when the alternative is a hole.
 				if (civs.Length == 0)
 					civs = Common.Civilizations
 						.Where(civ => civ.PreferredPlayerNumber == i && Selectable(civ))

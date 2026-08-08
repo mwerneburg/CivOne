@@ -166,6 +166,28 @@ namespace CivOne.Tests
 			return names.ToArray();
 		}
 
+		// Every line of text sitting in the queue, from any Message-carried screen that
+		// holds a string[] _message (Newspaper, AdvisorMessage, MessageBox...). Task TYPE
+		// is not enough when the thing under test is which of several notices fired —
+		// they are all `Message`. Headless there is no renderer to open them, so reading
+		// the queue is the only way to see what the player would have been told.
+		public static string[] PendingMessageLines()
+		{
+			var list = (System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+			var lines = new System.Collections.Generic.List<string>();
+			foreach (object? t in list)
+			{
+				if (t is null || t.GetType().Name != "Message") continue;
+				object? screen = t.GetType()
+					.GetField("_screen", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(t);
+				if (screen?.GetType()
+					.GetField("_message", BindingFlags.NonPublic | BindingFlags.Instance)
+					?.GetValue(screen) is string[] msg) lines.AddRange(msg);
+			}
+			return lines.ToArray();
+		}
+
 		// Pump the task queue until it drains, dropping anything that parks.
 		//
 		// Needed by any test that asserts on an effect which runs in a screen task's Done
