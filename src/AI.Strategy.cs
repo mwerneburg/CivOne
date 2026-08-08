@@ -1969,10 +1969,28 @@ namespace CivOne
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			byte ownId = Game.PlayerNumber(Player);
-			var claimed = new System.Collections.Generic.HashSet<(int, int)>(
-				Game.GetUnits().OfType<Settlers>()
-				    .Where(s => s != settlers && s.Owner == ownId && !s.Goto.IsEmpty)
-				    .Select(s => (s.Goto.X, s.Goto.Y)));
+			// Claimed is Settlers.IsTileClaimed's rule, and it has to be BOTH halves of it or
+			// this scan sends settlers to tiles the work gate will refuse.
+			//
+			// A settler that has ARRIVED and is building has an empty Goto — Goto clears on
+			// arrival — and it is Busy for the two to five turns the job takes. The old set
+			// only looked at Goto, so that tile stayed invisible here while IsTileClaimed
+			// (checked at AI.cs:376, and it tests `s.X == tx && s.Y == ty && s.Busy`) refused
+			// it. Meanwhile the tile still reads as work available, because irrigation does not
+			// land on the tile until the build completes.
+			//
+			// So every idle settler within six tiles was routed to ground already being worked,
+			// arrived, was refused, found the same tile is the nearest site again — now at
+			// distance 0, which the caller discards — and drifted home to start over. That is
+			// the pair racing between Byblos and Leeds, and it repeats for as long as the build
+			// lasts, which is why it is always several settlers at once.
+			var claimed = new System.Collections.Generic.HashSet<(int, int)>();
+			foreach (Settlers other in Game.GetUnits().OfType<Settlers>()
+			                               .Where(s => s != settlers && s.Owner == ownId))
+			{
+				if (!other.Goto.IsEmpty) claimed.Add((other.Goto.X, other.Goto.Y));
+				if (other.Busy) claimed.Add(((int)other.X, (int)other.Y));
+			}
 
 			// The city-proximity test below was an O(cities) scan run per tile, per pass —
 			// 169 tiles x 3 passes x every city the player owns, for every settler, every
