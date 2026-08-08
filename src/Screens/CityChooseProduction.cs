@@ -159,6 +159,14 @@ namespace CivOne.Screens
 				byte nameCol = sel ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_HIGH;
 				this.DrawText(name, 0, nameCol, px + 4, ry);
 
+				// The turn count on the right already carries the +50% for a missing
+				// material, which read as an unexplained price rise. Name the material.
+				// INK_MID, not ALERT: nothing here is forbidden, it just costs more.
+				StrategicResource missing = _city.MissingResource(item);
+				if (missing != StrategicResource.None)
+					this.DrawText($"NO {missing.ToString().ToUpper()}", 0, CassetteTheme.INK_MID,
+						px + 8 + Resources.GetTextSize(0, name).Width, ry);
+
 				int turns = TurnsFor(item);
 				string right = $"{turns}t";
 				if (item is IUnit u)

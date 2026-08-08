@@ -14,6 +14,7 @@ using CivOne;
 using CivOne.Enums;
 using CivOne.Governments;
 using CivOne.Tiles;
+using CivOne.Units;
 
 namespace CivOne.Tests
 {
@@ -82,6 +83,63 @@ namespace CivOne.Tests
 				if (new Mountains(bx * 4, by * 4, special: true).Special) kept++;
 
 			Assert.Equal(16, kept);
+		}
+
+		// The +50% for a missing material was silent: a Cannon read 60 shields instead
+		// of 40 and nothing anywhere said why. City.MissingResource is what the two
+		// production screens print, and it has to be the same test the price uses or the
+		// flag and the number drift apart.
+		[Fact]
+		public void ACityWithNoIronIsToldWhichMaterialItLacks()
+		{
+			var (g, human, city) = AnIronlessTown();
+
+			Assert.Equal(StrategicResource.Iron, city.MissingResource(new Cannon()));
+			Assert.Equal(60, city.ProductionCost(new Cannon()));   // 40 base, +50%
+		}
+
+		// ...and the flag clears the moment the empire holds the seam, by camp or by
+		// worked tile. Same predicate, so the price drops in the same step.
+		[Fact]
+		public void HoldingTheSeamClearsTheFlagAndThePrice()
+		{
+			var (g, human, city) = AnIronlessTown();
+			Map.Instance.ChangeTileType(50, 25, Terrain.Mountains);
+			((BaseTile)Map.Instance[50, 25]).Special = true;
+			g.ResourceCamps[(50, 25)] = g.PlayerNumber(human);
+
+			Assert.Equal(StrategicResource.None, city.MissingResource(new Cannon()));
+			Assert.Equal(40, city.ProductionCost(new Cannon()));
+		}
+
+		// The control: ancient production is deliberately ungated, and must never be
+		// flagged — a start with no iron in reach is not a spoiled start.
+		[Fact]
+		public void AnUngatedUnitIsNeverFlagged()
+		{
+			var (_, _, city) = AnIronlessTown();
+
+			Assert.Equal(StrategicResource.None, city.MissingResource(new Militia()));
+		}
+
+		private static (Game game, Player human, City city) AnIronlessTown()
+		{
+			Sim.NewGame(width: 80, height: 50, difficulty: 2);
+			Settings.Instance.Autopilot = false;
+			// No mountains and no hills anywhere near the town, so the empire holds
+			// nothing — the generated map otherwise decides the test's outcome.
+			for (int y = 15; y <= 35; y++)
+			for (int x = 20; x <= 60; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Game g = Game.Instance;
+			Player human = g.HumanPlayer;
+			human.Explore(40, 25, range: 20);
+			City c = g.AddCity(human, 0, 40, 25)!;
+			c.ResetResourceTiles();
+			Sim.ClearTasks();
+			return (g, human, c);
 		}
 
 		// City.TradeValue gave the mountain special a government trade bonus on top of

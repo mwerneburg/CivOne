@@ -896,11 +896,21 @@ namespace CivOne
 		// +50% shields. Never a wall, always a cost. Used by the completion
 		// check, rush-buy, and the city screens, so the higher target is
 		// visible wherever progress is shown.
+		// The material this city is short of for `production`, or None. The +50% below
+		// was invisible: a Cannon simply read 60 shields instead of 40, with nothing
+		// anywhere saying the empire has no iron. The production screens turn this into
+		// words; here it is one method so the flag and the price can never disagree.
+		internal StrategicResource MissingResource(IProduction production)
+		{
+			StrategicResource need = Game.RequiredResource(production);
+			return (need != StrategicResource.None && !Game.Instance.HasResource(Player, need))
+				? need : StrategicResource.None;
+		}
+
 		internal int ProductionCost(IProduction production)
 		{
 			int cost = (int)production.Price * 10;
-			StrategicResource need = Game.RequiredResource(production);
-			if (need != StrategicResource.None && !Game.Instance.HasResource(Player, need))
+			if (MissingResource(production) != StrategicResource.None)
 				cost += cost / 2;
 			return cost;
 		}

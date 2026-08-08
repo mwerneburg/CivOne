@@ -417,10 +417,25 @@ namespace CivOne.Screens
 			int fh0 = Resources.GetFontHeight(0);
 			int fh1 = Resources.GetFontHeight(1);
 
-			// Production name
+			// Production name, and the material the empire is short of for it — the
+			// meter below is silently 50% longer without it, which looks like the item
+			// simply costing more than the Civilopedia says.
 			string prodName = (_city.CurrentProduction as ICivilopedia)?.Name.ToUpper() ?? "???";
 			byte nameColor  = blink ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
-			this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
+			StrategicResource missing = _city.MissingResource(_city.CurrentProduction);
+			if (missing == StrategicResource.None)
+				this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
+			else
+			{
+				string flag = $"NO {missing.ToString().ToUpper()}";
+				// INK_MID, not ALERT: this is a notice, not a ban — the item is buildable.
+				this.DrawText(flag, 0, CassetteTheme.INK_MID, px + pw - 4, py + 8, TextAlign.Right);
+				// Both share one line, so the name gives way rather than run under the flag.
+				int room = pw - 12 - Resources.GetTextSize(0, flag).Width;
+				while (prodName.Length > 1 && Resources.GetTextSize(1, prodName).Width > room)
+					prodName = $"{prodName.Substring(0, prodName.Length - 2)}.";
+				this.DrawText(prodName, 1, nameColor, px + 4, py + 7);
+			}
 
 			// Progress meter
 			int prodCost    = _city.ProductionCost(_city.CurrentProduction);
