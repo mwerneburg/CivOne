@@ -1049,6 +1049,14 @@ namespace CivOne
 
 			AI?.ConsiderGovernment();
 			AI?.ConsiderCitizens();
+
+			// Player-side governors. Only reached when nothing else is driving this civ — under
+			// Autopilot the human's AI is non-null and ConsiderCitizens above already ran the
+			// full pass. Each city runs only what it was enrolled in, and a city enrolled in
+			// neither is not touched.
+			if (AI is null)
+				foreach (City city in Cities)
+					city.AutoAssignCitizens(city.GovernorOrder, city.GovernorGrowth);
 			AI?.ConsiderSliders();
 			AI?.ConsiderGarrisonUpkeep();
 			AI?.ConsiderDivestment();

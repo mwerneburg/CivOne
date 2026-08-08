@@ -32,6 +32,10 @@ namespace CivOne.Tests
 		private static (Game game, Player ai, City city) ACity(int size, bool temple = false, bool aqueduct = false)
 		{
 			Sim.NewGame(width: 80, height: 50);
+			// Stated, not inherited: under Autopilot the human's Player.AI is non-null and the
+			// full AI pass runs regardless of enrolment, so a leaked flag from an earlier test
+			// quietly inverts what these assert.
+			Settings.Instance.Autopilot = false;
 			for (int y = 15; y <= 35; y++)
 			for (int x = 20; x <= 60; x++)
 			{

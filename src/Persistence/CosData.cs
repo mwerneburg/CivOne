@@ -256,6 +256,10 @@ namespace CivOne.Persistence
 		public int?  DisorderTurns  { get; set; }
 		public bool? WasWeLoveKing  { get; set; }
 		public bool? TechStolen     { get; set; }
+		// Citizen governors the player enrolled this city in: bit 0 = order, bit 1 = growth.
+		// Null (absent) in every save written before governors existed, and in every AI city,
+		// which runs both regardless of the flags.
+		public int?  Governors      { get; set; }
 	}
 
 	public class CosTradeRoute

@@ -81,7 +81,8 @@ namespace CivOne
 					TradeRoutes    = tradeRoutes,
 					DisorderTurns  = city.DisorderTurns  > 0 ? (int?)city.DisorderTurns : null,
 					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null,
-					TechStolen     = city.TechStolen     ? (bool?)true : null
+					TechStolen     = city.TechStolen     ? (bool?)true : null,
+					Governors      = GovernorBits(city) is int bits and not 0 ? bits : null
 				});
 			}
 
@@ -743,6 +744,8 @@ namespace CivOne
 
 				city.DisorderTurns = cd.DisorderTurns ?? ((cd.WasInDisorder ?? false) ? 1 : 0);
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
+				city.GovernorOrder  = ((cd.Governors ?? 0) & 1) != 0;
+				city.GovernorGrowth = ((cd.Governors ?? 0) & 2) != 0;
 				city.LoadTechStolen(cd.TechStolen ?? false, GameTurn);
 				cityById[cd.Id] = city;
 				_cities.Add(city);
@@ -970,6 +973,11 @@ namespace CivOne
 			string rank = Common.DifficultyName(_difficulty);
 			return $"{rank} {human.LeaderName}, {human.TribeNamePlural} / {year}";
 		}
+
+		// Citizen governors as a bitfield: bit 0 = order, bit 1 = growth. Two booleans in one
+		// optional field, so a save from a game that never used them carries nothing extra.
+		private static int GovernorBits(City city)
+			=> (city.GovernorOrder ? 1 : 0) | (city.GovernorGrowth ? 2 : 0);
 
 		private static string PackFirstExplorer(byte[,] fe)
 		{

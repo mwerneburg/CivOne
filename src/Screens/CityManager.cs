@@ -161,10 +161,10 @@ namespace CivOne.Screens
 			int pw = ColLeftW;
 			int fh = Resources.GetFontHeight(0);
 
-			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 4 fields (each fh+4)
+			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 5 fields (each fh+4)
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int ph     = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
+			int ph     = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
 			this.DrawCassettePanel(px, py, pw, ph, "RESOURCES");
 
 			int cx = px + 4;
@@ -215,6 +215,51 @@ namespace CivOne.Screens
 			string pollVal = smokeStacks > 0 ? $"{smokeStacks} TONS" : "NONE";
 			byte pollColor = smokeStacks > 0 ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
 			this.DrawCassetteField("POLLUTION", pollVal, cx, cy, cw, 0, pollColor);
+			cy += fieldH;
+
+			// Governor field — click it, or press G, to cycle. Off by default and shown that
+			// way: this is the only thing on the screen that will move a citizen without being
+			// asked, so it says plainly whether it is armed.
+			bool ownCity = !_viewCity && _city.Player == Game.HumanPlayer;
+			string govVal = GovernorLabel(_city);
+			byte govColor = (_city.GovernorOrder || _city.GovernorGrowth)
+				? CassetteTheme.OK
+				: CassetteTheme.INK_MID;
+			this.DrawCassetteField("GOVERNOR", ownCity ? govVal : "OFF", cx, cy, cw, 0,
+				ownCity ? govColor : CassetteTheme.INK_LOW);
+		}
+
+		internal static string GovernorLabel(City city)
+			=> (city.GovernorOrder, city.GovernorGrowth) switch
+			{
+				(true,  true)  => "BOTH",
+				(true,  false) => "ORDER",
+				(false, true)  => "GROWTH",
+				_              => "OFF",
+			};
+
+		// OFF -> GROWTH -> ORDER -> BOTH -> OFF. One control rather than two, because the
+		// panel is a column of single-line fields and a four-step cycle reaches every
+		// combination in at most three presses.
+		//
+		// GROWTH comes first deliberately. "This city is capped at 7, stop farming for
+		// nothing" is a fact about the rules that a player can check at a glance. ORDER
+		// silently changes what a city PRODUCES to quell a malcontent, which is a strategy
+        // decision — so it is never what you get by tapping the control once.
+		private bool CycleGovernor()
+		{
+			if (_viewCity || _city.Player != Game.HumanPlayer) return true;
+			(bool order, bool growth) = (_city.GovernorOrder, _city.GovernorGrowth) switch
+			{
+				(false, false) => (false, true),
+				(false, true)  => (true,  false),
+				(true,  false) => (true,  true),
+				_              => (false, false),
+			};
+			_city.GovernorOrder  = order;
+			_city.GovernorGrowth = growth;
+			_update = true;
+			return true;
 		}
 
 		private int TradePanelHeight(int fh)
@@ -229,7 +274,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
 
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap;
@@ -257,7 +302,7 @@ namespace CivOne.Screens
 			int fh = Resources.GetFontHeight(0);
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 4 * fieldH + 4;
+			int resourcesPh = 8 + 3 * meterH + 2 + 5 * fieldH + 4;
 			int tradePh     = TradePanelHeight(fh);
 
 			int px = ColLeftX;
@@ -580,6 +625,17 @@ namespace CivOne.Screens
 				return new Rectangle(ColCenterX + ColCenterW - 72, rateY + rateH - 13, 34, 11);
 			}
 		}
+		private Rectangle GovernorRect
+		{
+			get
+			{
+				int fh = Resources.GetFontHeight(0);
+				int fieldH = fh + 4;
+				int meterH = fh + 6;
+				int top = BodyY + 8 + 3 * meterH + 2 + 4 * fieldH;
+				return new Rectangle(ColLeftX + 4, top, ColLeftW - 8, fieldH);
+			}
+		}
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
@@ -606,6 +662,7 @@ namespace CivOne.Screens
 				case 'B': if (!_viewCity) return OpenBuy();    break;
 				case 'C': if (!_viewCity) return OpenChange(); break;
 				case 'R': if (!_viewCity) return OpenRename(); break;
+				case 'G': if (!_viewCity) return CycleGovernor(); break;
 			}
 			CloseScreen();
 			return true;
@@ -628,6 +685,10 @@ namespace CivOne.Screens
 		public override bool MouseDown(ScreenEventArgs args)
 		{
 			_mouseDown = true;
+
+			// Governor field click → cycle
+			if (!_viewCity && GovernorRect.Contains(args.Location))
+				return CycleGovernor();
 
 			// City name click → rename
 			if (!_viewCity && RenameRect.Contains(args.Location)

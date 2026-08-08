@@ -95,7 +95,13 @@ namespace CivOne.Tests
 		public void ACivilisationOnTheSameGround_StillDevelops()
 		{
 			Sim.NewGame(width: 80, height: 50);
+			// try/finally, as AutopilotSymmetryTests does: Autopilot is a session-wide static,
+			// so leaving it on leaks into every test that runs after this one in the same
+			// process — it makes Player.AI non-null for the HUMAN, which silently changes what
+			// half the suite is testing. PlayerGovernorTests is where that finally showed up.
 			Settings.Instance.Autopilot = true;
+			try
+			{
 			int cx = 40, cy = 25;
 			for (int dy = -3; dy <= 3; dy++)
 			for (int dx = -3; dx <= 3; dx++)
@@ -115,6 +121,8 @@ namespace CivOne.Tests
 			bool onlyDefender = city.CurrentProduction is IUnit d && d.Role == UnitRole.Defense
 				&& city.ProductionQueue.Count == 0;
 			Assert.False(onlyDefender, "a real civ should plan more than a lone defender");
+			}
+			finally { Settings.Instance.Autopilot = false; }
 		}
 	}
 }

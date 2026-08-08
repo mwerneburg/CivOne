@@ -1027,7 +1027,18 @@ namespace CivOne
 			{
 				int penalty = Player.Government.WarWeariness;
 				if (Player.HasWonder<WomensSuffrage>()) penalty = Math.Max(0, penalty - 1);
-				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan) && !(u is Settlers) && (u.X != X || u.Y != Y));
+				// A unit is "away" only when it is in the FIELD. Garrison duty is free.
+				//
+				// This read `u.X != X || u.Y != Y` — not standing on THIS city's tile — so a
+				// Musketeer fortified in the city next door billed its home city 1 unhappy
+				// under Republic and 2 under Democracy. AI civs shuffle defenders between
+				// their own cities constantly, so every one of those moves quietly taxed a
+				// city somewhere else, and the citizen governor then spent food fixing a
+				// riot that nothing on the map explained. Measured on a size-10 Republic
+				// city with four Musketeers: 3 unhappy with them at home, 7 with them
+				// garrisoned six tiles away inside one of our own cities.
+				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan)
+				                                 && !(u is Settlers) && !InShelter(u));
 				unhappyCount += militaryAway * penalty;
 			}
 			else if (Player.Government.MartialLaw)
@@ -1148,9 +1159,22 @@ namespace CivOne
 		// alternative — predicting the outcome — means restating the happiness rules next to
 		// the code that implements them, and this file has been bitten by that kind of
 		// duplication repeatedly.
-		internal void AutoAssignCitizens()
+		// Which governors this city is enrolled in. AI cities run both unconditionally; a
+		// human's run only what the player switched on, per city, and default to neither.
+		//
+		// That default is load-bearing. Human cities get deliberate hands-off treatment
+		// everywhere else in this file — _resourceTiles is never refilled for a human because
+		// the gaps may be musicians the player placed on purpose — and a governor that ran by
+		// default would overwrite exactly those choices in cities nobody enrolled.
+		internal bool GovernorOrder  { get; set; }
+		internal bool GovernorGrowth { get; set; }
+
+		internal void AutoAssignCitizens() => AutoAssignCitizens(order: true, growth: true);
+
+		internal void AutoAssignCitizens(bool order, bool growth)
 		{
 			if (Size == 0) return;
+			if (!order && !growth) return;   // not enrolled: do not touch this city at all
 
 			// 1. Put specialists back to work, one at a time, while it is safe to — the cure
 			//    has to be released when the disease goes, or an aqueduct never gets its
@@ -1167,7 +1191,7 @@ namespace CivOne
 				ITile idle = BestIdleTile();
 				if (idle is null) break;
 				SetResourceTile(idle);
-				if (IsInDisorder || (GrowthBlocked && FoodIncome > 0))
+				if ((order && IsInDisorder) || (growth && GrowthBlocked && FoodIncome > 0))
 				{
 					SetResourceTile(idle);   // toggles it back off
 					break;
@@ -1176,18 +1200,24 @@ namespace CivOne
 
 			// 2. Disorder: buy order with entertainers while the city can still feed itself.
 			//    A city starved into order has only traded one death for another.
-			while (IsInDisorder && PullWorkerToSpecialist(foodFirst: false)) { }
+			while (order && IsInDisorder && PullWorkerToSpecialist(foodFirst: false)) { }
 
 			// 3. Growth capped: NewTurn spends the full food box and then skips the Size++,
 			//    so every surplus point is worked for and thrown away. Convert the food tiles
 			//    to specialists, who at least produce something, until the surplus is gone.
 			//    Food-heaviest first, because those are the tiles being wasted.
-			while (GrowthBlocked && FoodIncome > 0 && PullWorkerToSpecialist(foodFirst: true)) { }
+			while (growth && GrowthBlocked && FoodIncome > 0 && PullWorkerToSpecialist(foodFirst: true)) { }
 
 			// 4. Type them. Entertainers only where order actually needs one — the rest are
-			//    better as scientists, or taxmen when the treasury is thin. Same revert rule:
-			//    retype, and if the city riots for want of that entertainer's 2 luxury, put
-			//    it back.
+			//    better as scientists, or taxmen when the treasury is thin.
+			//
+			//    The revert here is NOT conditional on `order`, and that is the whole point.
+			//    An entertainer already holding a city together is not ours to spend just
+			//    because the player only asked for the growth governor: retyping it drops its
+			//    2 luxury and tips the city into disorder, so a player who enrolled a capped
+			//    city in GROWTH would find the governor had started a riot. Caught by the
+			//    negative check that conflated the two switches — the test passed because this
+			//    bug undid the conflation, which is a fine way to learn you have two.
 			Citizen preferred = Player.Gold < LeanTreasury ? Citizen.Taxman : Citizen.Scientist;
 			for (int i = 0; i < _specialists.Count; i++)
 			{
@@ -1205,6 +1235,20 @@ namespace CivOne
 		// Below this the AI would rather have coins than papers. A judgement call, not a
 		// derived number: it is roughly what a mid-game city costs to rush-buy out of trouble.
 		private const int LeanTreasury = 100;
+
+		// Shelter from Republic/Democracy war weariness: any city WE own, or any fortress.
+		//
+		// Civ 1 shelters only cities. Fortresses are included deliberately, so a Democracy can
+		// hold a border fort without its capital rioting — this game has no borders, so a
+		// fortress is the only forward position a peaceful government can maintain at all.
+		// An enemy city is not shelter: standing in someone else's streets is the field.
+		private bool InShelter(IUnit unit)
+		{
+			ITile tile = Map[unit.X, unit.Y];
+			if (tile is null) return false;
+			if (tile.City is not null) return tile.City.Owner == Owner;
+			return tile.Fortress;
+		}
 
 		// The tile an idle citizen would pick up, by the same ordering SetResourceTiles uses,
 		// so the citizen pass and the engine's own allocation cannot disagree about what a
