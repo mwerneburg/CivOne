@@ -16,9 +16,14 @@ Inputs:
   --sea-level N  Pixel value (0-255) below which a tile is Ocean. Default 1
                  (matches NASA SRTM-derived images where ocean = 0). Raise to
                  shrink land mass, e.g. --sea-level 5 to drop shallow shelves.
-  --hill-level N Pixel >= this becomes Hills. Default 60 (~75th percentile of
-                 land pixels on the SRTM topography image).
-  --mtn-level N  Pixel >= this becomes Mountains. Default 115 (~90th percentile).
+  --hill-relief N  Local relief within one tile (p95-p20 of the source pixels it
+                 covers, ocean excluded) at or above which it becomes Hills.
+                 Default 15 (~500 m). See DEFAULT_HILL_RELIEF for why rough ground
+                 is classified from relief and not from absolute height.
+  --mtn-relief N   Same, for Mountains. Default 41 (~1380 m) — the Scandes top out
+                 at 1378 m of relief, which is where that cut comes from.
+  --plateau-level N  Mean elevation that is Mountains whatever the relief, so high
+                 flat ground (Tibet) stays mountainous. Default 104 (~3500 m).
 
 Source data — any equirectangular elevation PNG works; recommended:
   - NASA Visible Earth "Topography 5400×2700"
@@ -30,9 +35,10 @@ None of these need an account; they're public domain / CC0.
 
 Terrain classification:
   pixel < sea-level                  → Ocean
-  pixel in mid range                 → biome by latitude band (see LAT_BANDS)
-  pixel high                         → Hills
-  pixel very high                    → Mountains
+  tile relief high                   → Hills
+  tile relief very high, or a very   → Mountains
+    high mean (a plateau)
+  otherwise                          → biome by latitude band (see LAT_BANDS)
   Plus a hand-tuned moisture mask    → forces Sahara/Arabia → Desert, Amazon
                                        → Jungle, etc., for plausibility.
 
@@ -61,6 +67,7 @@ Usage examples:
       --output ../resources/earth_standard.bin     # replaces the old MAP.PIC
   ./build_earth_map.py --elev topo.png --width 160 --height 100   # Huge size
   ./build_earth_map.py --elev topo.png --sea-level 100            # less land
+  ./build_earth_map.py --elev topo.png --mtn-relief 60            # gentler ranges
   ./build_earth_map.py --elev topo.png --lat-south -90 --no-warp  # old behaviour
 """
 
@@ -556,12 +563,58 @@ def carve_lake_polygon(grid: np.ndarray, polygon) -> int:
     return n_change
 
 # Elevation thresholds default to values tuned for the NASA Visible Earth
-# SRTM "Topography" 5400×2700 image. CLI flags --hill-level / --mtn-level
+# SRTM "Topography" 5400×2700 image. CLI flags --hill-relief / --mtn-relief
 # override them — see the docstring at the top of the file for how to pick
 # new ones for a different elevation source.
 DEFAULT_SEA_LEVEL  = 1
-DEFAULT_HILL_PIXEL = 60
-DEFAULT_MTN_PIXEL  = 115
+
+# Rough ground is classified from LOCAL RELIEF, not absolute height.
+#
+# The old rule thresholded a tile's MEAN elevation against values chosen as
+# percentiles of the source PIXELS — a category error, and a severe one. One output
+# tile averages ~17x11 source pixels (~100 km), so a range narrower than the tile is
+# averaged away with its own valleys. Calibrated against eleven named summits this
+# image is a clean linear DEM at 1 px = 33.6 m, which made the old constants:
+#
+#     --hill-level 60   a 100 km cell must AVERAGE 2020 m to be a hill
+#     --mtn-level 115   ...and 3870 m to be a mountain
+#
+# Nothing on Earth averages 3.9 km over 100 km except a plateau. So the shipped map
+# had Tibet at 60% mountains, and the Alps, Pyrenees, Zagros, Sierra Madre and
+# Scandes at exactly zero — with Scandinavia, the Appalachians and the Great
+# Dividing Range perfectly flat, no hills either.
+#
+# Relief is also the better model of what the terrain IS. Standing on the Tibetan
+# plateau you are at 4.5 km looking at flat ground; standing in the Appalachians you
+# are at 700 m surrounded by mountains. What makes ground rough to cross is how much
+# it goes up and down within sight, which is what these measure.
+#
+# PLATEAU_PIXEL keeps the genuinely-high flat ground mountainous anyway, so Tibet
+# does not become grassland on a technicality.
+DEFAULT_HILL_RELIEF   = 15    # ~500 m of relief inside one tile
+DEFAULT_MTN_RELIEF    = 41    # ~1380 m
+DEFAULT_PLATEAU_PIXEL = 104   # ~3500 m mean: high ground is mountains however flat
+
+# ...and those are defined at the 320x200 Epic board. Relief is measured inside one
+# tile, so it grows with the tile: an 80x50 tile covers sixteen times the ground and
+# is far likelier to contain a mountainside somewhere. Applied unscaled, the same
+# cuts turned the standard board into 23% mountains and 37% hills — three fifths of
+# it impassable — while Epic sat at 10/27.
+#
+# Topography is roughly self-affine, so relief scales as a power of tile width
+# rather than in proportion to it. RELIEF_SIZE_EXP was measured, not guessed: at
+# 0.35 the mountain share holds at 8.1 / 8.0 / 7.8 percent of land across
+# 320x200, 160x100 and 80x50. Hills still drift up (28 -> 34) because a coarse tile
+# is likelier to contain SOME roughness, and that is honest — a big tile really is
+# rougher ground.
+REFERENCE_TILES  = 320 * 200
+RELIEF_SIZE_EXP  = 0.35
+
+
+def relief_scale(width: int, height: int) -> float:
+    """Multiplier on the relief cuts for a board of this size (1.0 at Epic)."""
+    linear = (REFERENCE_TILES / float(width * height)) ** 0.5
+    return linear ** RELIEF_SIZE_EXP
 
 # ── latitude window + warp ───────────────────────────────────────────────────
 # The source image is equirectangular: every degree of latitude gets the same
@@ -785,6 +838,43 @@ def resample_rows(img: "Image.Image", width: int, height: int) -> np.ndarray:
     return out
 
 
+def resample_relief(img: "Image.Image", width: int, height: int, sea_level: int) -> np.ndarray:
+    """Local relief per output tile: p95 - p20 of the source pixels it covers.
+
+    Same row geometry as resample_rows, so the two grids stay in register — but no
+    width resize first, because a bilinear shrink averages exactly the variation
+    this is trying to measure.
+
+    Percentiles rather than max-min: a single stray pixel should not make a
+    mountain range, and DEM voids and coastal artefacts live in the tails.
+
+    OCEAN PIXELS ARE EXCLUDED. They are 0, so a block that is half sea and half
+    cliff reports the cliff's full height as relief and every steep coast becomes a
+    mountain range. Measured on the NASA image: 121 tiles flip their mountain
+    verdict on this alone, all of them in the fragmented Greenland and Canadian
+    Arctic coastlines. A block with almost no land in it has no relief worth
+    reporting, hence the minimum sample count."""
+    src_w, src_h = img.size
+    flat = np.array(img, dtype=np.float32)
+    out = np.zeros((height, width), dtype=np.float32)
+    colw = src_w / width
+    for y in range(height):
+        r0 = (90.0 - LAT_EDGES[y])     / 180.0 * src_h
+        r1 = (90.0 - LAT_EDGES[y + 1]) / 180.0 * src_h
+        a = max(0, min(src_h - 1, int(np.floor(r0))))
+        b = max(a + 1, min(src_h, int(np.ceil(r1))))
+        band = flat[a:b]
+        for x in range(width):
+            c0 = int(x * colw)
+            c1 = max(c0 + 1, int((x + 1) * colw))
+            block = band[:, c0:c1]
+            ground = block[block >= sea_level]
+            if ground.size < 4:
+                continue
+            out[y, x] = np.percentile(ground, 95) - np.percentile(ground, 20)
+    return out
+
+
 def clear_edge_land(grid: np.ndarray, rows: int) -> int:
     """Drown any land within `rows` of the top or bottom edge.
 
@@ -812,8 +902,14 @@ def main() -> int:
     ap.add_argument("--height", type=int, default=200)
     ap.add_argument("--output", default=str(default_output_path()))
     ap.add_argument("--sea-level",  type=int, default=DEFAULT_SEA_LEVEL)
-    ap.add_argument("--hill-level", type=int, default=DEFAULT_HILL_PIXEL)
-    ap.add_argument("--mtn-level",  type=int, default=DEFAULT_MTN_PIXEL)
+    ap.add_argument("--hill-relief", type=int, default=DEFAULT_HILL_RELIEF,
+                    help="relief within one tile (pixel units) at or above which it "
+                         "becomes Hills (default 15, ~500 m)")
+    ap.add_argument("--mtn-relief",  type=int, default=DEFAULT_MTN_RELIEF,
+                    help="relief at or above which it becomes Mountains (default 42, ~1400 m)")
+    ap.add_argument("--plateau-level", type=int, default=DEFAULT_PLATEAU_PIXEL,
+                    help="mean elevation that is Mountains regardless of relief, so high "
+                         "flat ground (Tibet) stays mountainous (default 104, ~3500 m)")
     ap.add_argument("--lat-north", type=float, default=DEFAULT_LAT_NORTH,
                     help="northern edge of the sampled window (default 90)")
     ap.add_argument("--lat-south", type=float, default=DEFAULT_LAT_SOUTH,
@@ -845,6 +941,12 @@ def main() -> int:
     img = Image.open(src).convert("L")
     print(f"input  {src} ({img.size[0]}x{img.size[1]})")
     arr = resample_rows(img, args.width, args.height)
+    rel = resample_relief(img, args.width, args.height, args.sea_level)
+    rscale = relief_scale(args.width, args.height)
+    hill_cut = args.hill_relief * rscale
+    mtn_cut  = args.mtn_relief  * rscale
+    print(f"relief cuts: hills >= {hill_cut:.0f}, mountains >= {mtn_cut:.0f} "
+          f"(x{rscale:.2f} for a {args.width}x{args.height} board)")
 
     jitter_lat, jitter_lon = build_jitter(args.width, args.height, args.edge_jitter)
 
@@ -855,11 +957,12 @@ def main() -> int:
         is_polar = abs(lat) >= 70.0
         for x in range(args.width):
             elev = int(arr[y, x])
+            relief = float(rel[y, x])
             if elev < args.sea_level:
                 code = OCEAN
-            elif elev >= args.mtn_level:
+            elif relief >= mtn_cut or elev >= args.plateau_level:
                 code = MTNS
-            elif elev >= args.hill_level:
+            elif relief >= hill_cut:
                 code = HILLS
             else:
                 # Jittered lookup only — the tile keeps its true latitude for the
