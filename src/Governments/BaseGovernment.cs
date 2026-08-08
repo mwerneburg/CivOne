@@ -34,7 +34,7 @@ namespace CivOne.Governments
 		// Extra trade on roaded grass/plains, ocean and river (Republic, Democracy).
 		public int TradeBonus { get; protected set; }
 
-		// Extra trade from special resources on Jungle/Mountains: 0 under Anarchy
+		// Extra trade from special resources on Jungle (gems): 0 under Anarchy
 		// and Despotism, 1 under Monarchy and Communism, 2 under Republic and
 		// Democracy — the old MonarchyCommunist / RepublicDemocratic split.
 		public int SpecialResourceTradeBonus { get; protected set; }

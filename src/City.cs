@@ -389,8 +389,10 @@ namespace CivOne
 					output += 1; // rivers are natural trade corridors regardless of government
 					output += Player.Government.TradeBonus;
 					break;
+				// Gems only. The mountain special is iron now, and pays in shields —
+				// leaving Mountains here gave it a government trade bonus on top of a
+				// base trade of zero, which is the old gold seam still charging rent.
 				case Terrain.Jungle:
-				case Terrain.Mountains:
 					if (!tile.Special) break;
 					output += Player.Government.SpecialResourceTradeBonus;
 					break;

@@ -79,11 +79,11 @@ namespace CivOne.Screens
 					ITile tile = startUnit.Tile[xx, yy];
 					switch (tile.Type)
 					{
-						case Terrain.Desert: text = (tile.Special ? "Oasis" : "Desert"); break;
+						case Terrain.Desert: text = (tile.Special ? "Oil" : "Desert"); break;
 						case Terrain.Plains: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Plains) : "Plains"); break;
 						case Terrain.Forest: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Forest) : "Desert"); break;
 						case Terrain.Hills: text = (tile.Special ? "Coal" : "Hills"); break;
-						case Terrain.Mountains: text = (tile.Special ? "Gold" : "Mountains"); break;
+						case Terrain.Mountains: text = (tile.Special ? "Iron" : "Mountains"); break;
 						case Terrain.Tundra: text = (tile.Special ? FaunaName(tile.ContinentId, Terrain.Tundra) : "Tundra"); break;
 						case Terrain.Arctic: text = (tile.Special ? "Seals" : "Arctic"); break;
 						case Terrain.Swamp: text = (tile.Special ? "Oil" : "Wetland"); break;

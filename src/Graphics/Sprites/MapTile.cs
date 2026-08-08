@@ -472,12 +472,12 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Hut = new CachedSprite(GetHut);
 		public static readonly ISprite Pollution = new CachedSprite(GetPollution);
 		public static readonly ISprite Seals = new CachedSprite(GetSpecial<Arctic>);
-		public static readonly ISprite Oasis = new CachedSprite(GetSpecial<Desert>);
+		public static readonly ISprite DesertOil = new CachedSprite(GetSpecial<Desert>);
 		public static readonly ISprite Game = new CachedSprite(GetSpecial<Forest>);
 		public static readonly ISprite Shield = new CachedSprite(GetSpecial<Grassland>);
 		public static readonly ISprite Coal = new CachedSprite(GetSpecial<Hills>);
 		public static readonly ISprite Gems = new CachedSprite(GetSpecial<Jungle>);
-		public static readonly ISprite Gold = new CachedSprite(GetSpecial<Mountains>);
+		public static readonly ISprite Iron = new CachedSprite(GetSpecial<Mountains>);
 		public static readonly ISprite Fish = new CachedSprite(GetSpecial<Ocean>);
 		public static readonly ISprite Horses = new CachedSprite(GetSpecial<Plains>);
 		public static readonly ISprite Oil = new CachedSprite(GetSpecial<Swamp>);
@@ -617,7 +617,7 @@ namespace CivOne.Graphics.Sprites
 				// improvement overlays sourced from the tile files
 				Irrigation, Mine, Fortress, Hut, Road, RailRoad, Pollution,
 				// special-resource sprites
-				Seals, Oasis, Game, Shield, Coal, Gems, Gold, Fish, Horses, Oil, TundraGame,
+				Seals, DesertOil, Game, Shield, Coal, Gems, Iron, Fish, Horses, Oil, TundraGame,
 			})
 				(o as ICached)?.Clear();
 		}
@@ -636,12 +636,12 @@ namespace CivOne.Graphics.Sprites
 			switch (tile)
 			{
 				case Arctic _: return Seals;
-				case Desert _: return Oasis;
+				case Desert _: return DesertOil;
 				case Forest _: return FaunaSprite(Terrain.Forest, tile.ContinentId);
 				case Grassland _: return Shield;
 				case Hills _: return Coal;
 				case Jungle _: return Gems;
-				case Mountains _: return Gold;
+				case Mountains _: return Iron;
 				case Ocean _: return Fish;
 				case Plains _: return FaunaSprite(Terrain.Plains, tile.ContinentId);
 				case Swamp _: return Oil;

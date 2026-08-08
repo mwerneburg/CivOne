@@ -16,8 +16,11 @@ namespace CivOne.Tiles
 		public override byte Movement => 3;
 		public override byte Defense => 6;
 		public override sbyte Food => 0;
-		public override sbyte Shield => (sbyte)(1 + (Mine ? 1 : 0));
-		public override sbyte Trade => (sbyte)(Special ? 5 : 0);
+		// The mountain special is IRON, not Civ 1's gold seam: it is the deposit
+		// Game.ResourceAt has always read off this tile, and it paid in trade, which
+		// no player could connect to cannon and ironclads. Ore pays in shields.
+		public override sbyte Shield => (sbyte)(1 + (Special ? 2 : 0) + (Mine ? 1 : 0));
+		public override sbyte Trade => 0;
 		public override sbyte IrrigationFoodBonus => -1;
 		public override byte IrrigationCost => 0;
 		public override sbyte MiningShieldBonus => -2;

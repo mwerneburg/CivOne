@@ -15,8 +15,12 @@ namespace CivOne.Tiles
 	{
 		public override byte Movement => 1;
 		public override byte Defense => 2;
-		public override sbyte Food => (sbyte)((Special ? 2 : 0) + (Irrigation ? 1 : 0));
-		public override sbyte Shield => (sbyte)(1 + (Mine ? 1 : 0));
+		// The desert special is OIL, not an oasis — same deposit Game.ResourceAt has
+		// always read here. So it pays in shields, and pays what wetland oil pays (4);
+		// the water it used to stand for is handled by the river oases that
+		// Map.EnsureFreshwaterReachability plants in dry interiors.
+		public override sbyte Food => (sbyte)(Irrigation ? 1 : 0);
+		public override sbyte Shield => (sbyte)(1 + (Special ? 3 : 0) + (Mine ? 1 : 0));
 		public override sbyte Trade => (sbyte)(Road || RailRoad ? 1 : 0);
 		public override sbyte IrrigationFoodBonus => -2;
 		public override byte IrrigationCost => 5;
@@ -27,6 +31,18 @@ namespace CivOne.Tiles
 		{
 			Type = Terrain.Desert;
 			Name = "Desert";
+			// Half of them. Map.TileIsSpecial plants one special per 4x4 block, which
+			// is right for a scattered oasis and far too much for an oilfield: the
+			// Sahara came out as continuous derricks. This is a second, orthogonal
+			// sieve over the same blocks, keeping a checkerboard half.
+			//
+			// It lives in the constructor, not at the call sites, because there are six
+			// places that build a Desert (generation, both loaders, ChangeTileType) and
+			// missing one would give the same tile a different answer depending on how
+			// it was made. And it must stay a pure function of (x,y): Special is
+			// recomputed from the coordinates on every load and every terrain change,
+			// so anything remembered rather than derived comes straight back.
+			if (special && ((x / 4) + (y / 4)) % 2 != 0) Special = false;
 		}
 		public Desert() : this(-1, -1, false)
 		{

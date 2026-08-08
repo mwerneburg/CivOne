@@ -26,7 +26,7 @@ namespace CivOne.Concepts
 			"",
 			"IRON in the mountains.",
 			"COAL in the hills.",
-			"OIL in desert and swamp.",
+			"OIL in desert and wetland.",
 			"",
 			"You hold a deposit when one of",
 			"your cities works its tile, or",
