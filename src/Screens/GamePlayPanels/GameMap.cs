@@ -528,6 +528,13 @@ namespace CivOne.Screens.GamePlayPanels
 					GameTask.Enqueue(Orders.BuildMines(Game.ActiveUnit));
 					break;
 				case 'P':
+					// MenuPillage has always declared its shortcut as uppercase "P" — the
+					// Orders menu has been printing Shift+P all along — but this handler
+					// ignored the modifier and pillaged on a bare 'p'. That also swallowed
+					// Clean Pollution, whose menu shortcut is the lowercase 'p'. Same guard
+					// as 'D' above; destructive orders stay behind Shift.
+					if (!args.Shift)
+						return ActivateUnitMenuShortcut("p");
 					Game.ActiveUnit.Pillage();
 					break;
 				case 'R':
@@ -550,9 +557,8 @@ namespace CivOne.Screens.GamePlayPanels
 						return (Game.ActiveUnit as BaseUnitSea)!.Unload();;
 					}
 					break;
-				case 'W':
-					GameTask.Enqueue(Orders.Wait(Game.ActiveUnit));
-					break;
+				// ('W' is not here: KeyDown above claims it for wake-next-sleeping-unit and
+				// always returns, so this case was unreachable. Wait is 'z'.)
 				// Settler terraform / auto actions: dispatch to the active unit's own
 				// menu item by its shortcut, so these stay in sync with the unit menu.
 				// (An inapplicable action is simply absent from MenuItems, so the key
@@ -567,6 +573,8 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'K':   // Thaw to Grassland
 				case 'Q':   // Build Canopy Array
 				case 'Y':   // Build Camp
+				case 'X':   // Auto-Clean Pollution
+				case 'Z':   // Wait
 					return ActivateUnitMenuShortcut(char.ToLower(args.KeyChar).ToString());
 			}
 

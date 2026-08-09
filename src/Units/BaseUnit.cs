@@ -957,7 +957,10 @@ namespace CivOne.Units
 		
 		protected MenuItem<int> MenuFortify() => MenuItem<int>.Create("Fortify").SetShortcut("f").OnSelect((s, a) => Fortify = true);
 		
-		protected MenuItem<int> MenuWait() => MenuItem<int>.Create("Wait").SetShortcut("w").OnSelect((s, a) => Game.UnitWait());
+		// 'z', not 'w': GameMap.KeyDown claims 'w' for waking the next sleeping unit — the
+		// key that walks an obsolete army one unit at a time for upgrading — and it returns
+		// before any unit order is dispatched. Tab still waits too.
+		protected MenuItem<int> MenuWait() => MenuItem<int>.Create("Wait").SetShortcut("z").OnSelect((s, a) => Game.UnitWait());
 		
 		protected MenuItem<int> MenuSentry() => MenuItem<int>.Create("Sentry").SetShortcut("s").OnSelect((s, a) => Sentry = true);
 		

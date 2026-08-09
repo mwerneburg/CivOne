@@ -903,9 +903,12 @@ namespace CivOne.Units
 				StartAutoImproveStep();
 			});
 
+		// 'x', not 'c': GameMap spends 'c' on centre-on-active-unit, a navigation key pressed
+		// constantly, and it never reached this order. The reflex keeps the letter; the order
+		// takes the spare one.
 		private MenuItem<int> MenuAutoCleanPollution() => MenuItem<int>
 			.Create("Auto-Clean Pollution")
-			.SetShortcut("c")
+			.SetShortcut("x")
 			.OnSelect((s, a) =>
 			{
 				AutoClean = true;
