@@ -566,6 +566,7 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'J':   // Plant Jungle
 				case 'K':   // Thaw to Grassland
 				case 'Q':   // Build Canopy Array
+				case 'Y':   // Build Camp
 					return ActivateUnitMenuShortcut(char.ToLower(args.KeyChar).ToString());
 			}
 
