@@ -354,6 +354,7 @@ river_min_length=0      # 0 = engine default (3)
 			show(Terrain.Plains,     "Plains");
 			show(Terrain.Desert,     "Desert");
 			show(Terrain.Hills,      "Hills");
+			show(Terrain.ForestedHills, "WdHills");
 			show(Terrain.Mountains,  "Mtns");
 			show(Terrain.Swamp,      "Swamp");
 			show(Terrain.Tundra,     "Tundra");

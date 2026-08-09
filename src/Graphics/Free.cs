@@ -384,6 +384,7 @@ namespace CivOne.Graphics
 				Terrain.Forest    => "special_forest",
 				Terrain.Plains    => "special_plains",
 				Terrain.Hills     => "special_hills",
+				Terrain.ForestedHills => "special_hills",
 				Terrain.Swamp     => "special_swamp",
 				Terrain.Arctic    => "special_arctic",
 				Terrain.Tundra    => "special_tundra",
@@ -801,6 +802,25 @@ namespace CivOne.Graphics
 		// Hills: single SW-NE ridge, 2px lit (OK/14) + 3px transparent hilltop + 2px shadow (INK_LOW/6)
 		// Standalone: ridge centered in tile (rows 1–12).
 		// Connected (directions != None): ridge extends to tile edges (rows 0–15) for visual continuity.
+		// Wooded slopes. No new art required and none invented: the hill relief with the
+		// forest canopy laid over it, which is what the terrain IS. A [forested_hills]
+		// section in free_tiles.txt overrides the composite wholesale when you want a
+		// drawn tile instead.
+		//
+		// Takes `directions` so wooded hills join the same connected-ridge run as bare
+		// ones — a forested hill in the middle of a range must not break the ridgeline.
+		public Bytemap ForestedHillTexture(Direction directions)
+		{
+			byte[]? loaded = TryLoadTile("forested_hills");
+			if (loaded is not null)
+				return new Bytemap(16, 16).FromByteArray(loaded);
+
+			Bytemap o = new Bytemap(16, 16);
+			o.AddLayer(HillTexture(directions), 0, 0);
+			o.AddLayer(Forest, 0, 0);
+			return o;
+		}
+
 		public Bytemap HillTexture(Direction directions)
 		{
 			string section = directions == None ? "hill_standalone" : "hill_connected";
@@ -1470,6 +1490,7 @@ namespace CivOne.Graphics
 				Terrain.Grassland1 or Terrain.Grassland2 => GrasslandTexture(),
 				Terrain.Plains => PlainsTexture(),
 				Terrain.Hills => HillTexture(Direction.None),
+				Terrain.ForestedHills => ForestedHillTexture(Direction.None),
 				_ => null,   // Ocean / River: base field only
 			};
 

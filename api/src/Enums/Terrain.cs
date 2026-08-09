@@ -34,5 +34,11 @@ namespace CivOne.Enums
 		// Exposed seabed. Never generated — only created by draining water away, so it appears
 		// mid-game or not at all. See CivOne.Tiles.SaltFlat.
 		SaltFlat = 13,
+		// Wooded slopes: the hill's defence and the forest's timber. Generated where hills
+		// meet woodland, and made or unmade by settlers (plant forest / chop). A terrain
+		// rather than a flag on Hills because the engine switches on this enum in a dozen
+		// places, every one of which would otherwise have to remember to ask.
+		// See CivOne.Tiles.ForestedHills.
+		ForestedHills = 14,
 	}
 }

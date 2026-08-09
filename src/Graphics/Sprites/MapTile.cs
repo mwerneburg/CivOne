@@ -142,6 +142,8 @@ namespace CivOne.Graphics.Sprites
 				return Free.GrasslandTexture();
 			if (typeof(T) == typeof(Hills))
 				return Free.HillTexture(directions);
+			if (typeof(T) == typeof(ForestedHills))
+				return Free.ForestedHillTexture(directions);
 			if (typeof(T) == typeof(Mountains))
 				return Free.Mountains;
 			if (typeof(T) == typeof(Swamp))
@@ -174,6 +176,7 @@ namespace CivOne.Graphics.Sprites
 					case Terrain.Grassland2: return Free.Grassland;
 					case Terrain.Jungle: return Free.Jungle;
 					case Terrain.Hills: return Free.Hills;
+					case Terrain.ForestedHills: return Free.ForestedHillTexture(Direction.None);
 					case Terrain.Mountains: return Free.Mountains;
 					case Terrain.Plains: return Free.Plains;
 					case Terrain.Swamp: return Free.Swamp;
@@ -202,6 +205,8 @@ namespace CivOne.Graphics.Sprites
 				return Free.Special(Terrain.Plains);
 			if (typeof(T) == typeof(Hills))
 				return Free.Special(Terrain.Hills);
+			if (typeof(T) == typeof(ForestedHills))
+				return Free.Special(Terrain.ForestedHills);
 			if (typeof(T) == typeof(Swamp))
 				return Free.Special(Terrain.Swamp);
 			if (typeof(T) == typeof(Arctic))
@@ -451,6 +456,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISpriteCollection<Direction> Forest = new CachedSpriteCollection<Direction>(GetTileLayer<Forest>);
 		public static readonly ISpriteCollection<Direction> Grassland = new CachedSpriteCollection<Direction>(GetTileLayer<Grassland>);
 		public static readonly ISpriteCollection<Direction> Hills = new CachedSpriteCollection<Direction>(GetTileLayer<Hills>);
+		public static readonly ISpriteCollection<Direction> ForestedHills = new CachedSpriteCollection<Direction>(GetTileLayer<ForestedHills>);
 		public static readonly ISpriteCollection<Direction> Jungle = new CachedSpriteCollection<Direction>(GetTileLayer<Jungle>);
 		public static readonly ISpriteCollection<Direction> Mountains = new CachedSpriteCollection<Direction>(GetTileLayer<Mountains>);
 		public static readonly ISpriteCollection<(Direction, Direction)> Ocean = new CachedSpriteCollection<(Direction, Direction)>(GetOceanLayer);
@@ -478,6 +484,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Game = new CachedSprite(GetSpecial<Forest>);
 		public static readonly ISprite Shield = new CachedSprite(GetSpecial<Grassland>);
 		public static readonly ISprite Coal = new CachedSprite(GetSpecial<Hills>);
+		public static readonly ISprite WoodedCoal = new CachedSprite(GetSpecial<ForestedHills>);
 		public static readonly ISprite Gems = new CachedSprite(GetSpecial<Jungle>);
 		public static readonly ISprite Iron = new CachedSprite(GetSpecial<Mountains>);
 		public static readonly ISprite Fish = new CachedSprite(GetSpecial<Ocean>);
@@ -575,6 +582,7 @@ namespace CivOne.Graphics.Sprites
 				case Forest _: return Forest[directions];
 				case Grassland _: return Grassland[directions];
 				case Hills _: return Hills[directions];
+				case ForestedHills _: return ForestedHills[directions];
 				case Jungle _: return Jungle[directions];
 				case Mountains _: return Mountains[directions];
 				case Ocean _:
@@ -614,13 +622,13 @@ namespace CivOne.Graphics.Sprites
 				// base fields under every tile
 				LandBase, OceanBase, LakeBase,
 				// baseline terrain
-				Arctic, Desert, Forest, Grassland, Hills, Jungle, Mountains, Ocean, Plains, SaltFlat, Swamp, Tundra,
+				Arctic, Desert, Forest, Grassland, Hills, ForestedHills, Jungle, Mountains, Ocean, Plains, SaltFlat, Swamp, Tundra,
 				// rivers and lake shores
 				River, RiverOverlay, LakeShore,
 				// improvement overlays sourced from the tile files
 				Irrigation, Mine, Fortress, Hut, Road, RailRoad, Pollution,
 				// special-resource sprites
-				Seals, DesertOil, Game, Shield, Coal, Gems, Iron, Fish, Horses, Oil, TundraGame, RiverGold,
+				Seals, DesertOil, Game, Shield, Coal, WoodedCoal, Gems, Iron, Fish, Horses, Oil, TundraGame, RiverGold,
 			})
 				(o as ICached)?.Clear();
 		}
@@ -646,6 +654,7 @@ namespace CivOne.Graphics.Sprites
 				case Forest _: return FaunaSprite(Terrain.Forest, tile.ContinentId);
 				case Grassland _: return Shield;
 				case Hills _: return Coal;
+				case ForestedHills _: return WoodedCoal;
 				case Jungle _: return Gems;
 				case Mountains _: return Iron;
 				case Ocean _: return Fish;

@@ -443,7 +443,7 @@ namespace CivOne.Units
 		{
 			if (!Game.CurrentPlayer.HasAdvance<Bioformatting>()) return false;
 			ITile tile = Map[X, Y];
-			if (!(tile is Plains || tile is Grassland || tile is Desert)) return false;
+			if (!(tile is Plains || tile is Grassland || tile is Desert || tile is Hills)) return false;
 			BuildingPlantForest = 5;
 			MovesLeft = 0; PartMoves = 0;
 			return true;
@@ -488,7 +488,11 @@ namespace CivOne.Units
 				return false;
 			}
 
-			if ((tile is Forest) || (tile is Jungle) || (tile is Swamp))
+			// ForestedHills belongs with the clearable terrain, not the irrigable: the order
+			// clears the trees back to bare Hills. Without it here the menu offered
+			// "Change to Hills" (TileExtensions.AllowChangeTerrain) and the order was then
+			// refused, which is worse than not offering it.
+			if ((tile is Forest) || (tile is Jungle) || (tile is Swamp) || (tile is ForestedHills))
 			{
 				BuildingIrrigation = 4;
 				MovesLeft = 0;
@@ -627,6 +631,15 @@ namespace CivOne.Units
 					Map.ChangeTileType(X, Y, Terrain.Plains);
 					Game.InvalidateCitiesAt(X, Y);
 				}
+				// Clearing wooded slopes leaves the slope. This is the only way to reach the
+				// mine on one — and on a coal seam it is the whole point of the terrain.
+				else if (Map[X, Y] is ForestedHills)
+				{
+					Map[X, Y].Irrigation = false;
+					Map[X, Y].Mine = false;
+					Map.ChangeTileType(X, Y, Terrain.Hills);
+					Game.InvalidateCitiesAt(X, Y);
+				}
 				else if ((Map[X, Y] is Jungle) || (Map[X, Y] is Swamp))
 				{
 					Map[X, Y].Irrigation = false;
@@ -723,7 +736,14 @@ namespace CivOne.Units
 			{
 				BuildingPlantForest--;
 				if (BuildingPlantForest > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.Forest); Game.InvalidateCitiesAt(X, Y); }
+				else
+				{
+					// Trees on a hill are wooded hills, not flat forest — planting must not
+					// flatten the ground it is planted on.
+					Terrain planted = Map[X, Y] is Hills ? Terrain.ForestedHills : Terrain.Forest;
+					Map[X, Y].Irrigation = false; Map[X, Y].Mine = false;
+					Map.ChangeTileType(X, Y, planted); Game.InvalidateCitiesAt(X, Y);
+				}
 			}
 			else if (BuildingPlantJungle > 0)
 			{
@@ -844,6 +864,7 @@ namespace CivOne.Units
 
 		private MenuItem<int> MenuBuildIrrigation() => MenuItem<int>
 			.Create((Map[X, Y] is Forest) ? "Change to Plains" :
+					(Map[X, Y] is ForestedHills) ? "Change to Hills" :
 					((Map[X, Y] is Jungle) || (Map[X, Y] is Swamp)) ? "Change to Grassland" :
 					"Build Irrigation")
 			.SetShortcut("i")

@@ -454,6 +454,12 @@ namespace CivOne.Screens
 					move = 2;
 					defense = 100;
 					break;
+				case Terrain.ForestedHills:
+					DrawTerrainTextValues(ref yy, "Forested Hills", "1", "2");
+					DrawTerrainTextValues(ref yy, "Coal", "1", "4");
+					move = 2;
+					defense = 100;
+					break;
 				case Terrain.Jungle:
 					DrawTerrainTextValues(ref yy, "Jungle", "1");
 					DrawTerrainTextValues(ref yy, "Gems", "1", null, "4%*");

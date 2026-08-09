@@ -1051,6 +1051,50 @@ namespace CivOne
 			}
 		}
 		
+		// Wooded slopes, where hills meet woodland. Run AFTER CreateMountainRanges so the
+		// ranges it raises are eligible, and before CreatePoles so the arctic rows are still
+		// arctic and cannot grow trees.
+		//
+		// The rule is adjacency, not latitude: a hill goes wooded only if it already touches
+		// forest or jungle, so wooded slopes appear at the edges of the world's woodlands and
+		// bare rock stays bare in the dry interiors. Two thirds of the eligible hills convert,
+		// which leaves enough bare hills beside them that a player still has mines to build.
+		//
+		// Chosen by position, NOT by Common.Random. A generation pass that draws from the
+		// shared stream shifts every random decision made after it — the harvester landing
+		// test, which re-seeds to a fixed value and is therefore exactly deterministic,
+		// failed on this and had nothing to do with harvesters. Same reason the desert oil
+		// sieve and river gold are positional: a new pass must not reshuffle the world
+		// behind every other seeded caller.
+		private void CreateForestedHills()
+		{
+			var wooded = new List<(int x, int y)>();
+			for (int y = 0; y < HEIGHT; y++)
+			for (int x = 0; x < WIDTH; x++)
+			{
+				if (_tiles[x, y].Type != Terrain.Hills) continue;
+				bool nearWoods = false;
+				for (int dy = -1; dy <= 1 && !nearWoods; dy++)
+				for (int dx = -1; dx <= 1 && !nearWoods; dx++)
+				{
+					if (dx == 0 && dy == 0) continue;
+					int nx = (x + dx + WIDTH) % WIDTH, ny = y + dy;
+					if (ny < 0 || ny >= HEIGHT) continue;
+					Terrain t = _tiles[nx, ny].Type;
+					if (t == Terrain.Forest || t == Terrain.Jungle) nearWoods = true;
+				}
+				// Two in three, on diagonal bands of period 3 — irregular enough under the
+				// adjacency filter that it never reads as a pattern.
+				if (nearWoods && (x + 2 * y) % 3 != 0) wooded.Add((x, y));
+			}
+
+			// Collected first, converted after: converting in place would let a hill that just
+			// went wooded seed its neighbour, and the whole range would carpet over.
+			foreach (var (x, y) in wooded)
+				_tiles[x, y] = new ForestedHills(x, y, TileIsSpecial(x, y));
+			Log("Map: {0} forested hills", wooded.Count);
+		}
+
 		private void CreateMountainRanges()
 		{
 			Log("Map: Creating mountain ranges");
@@ -1276,6 +1320,7 @@ namespace CivOne
 
 			CalculateContinentSize();
 			CreateMountainRanges();
+			CreateForestedHills();
 			CreatePoles();
 			ComputeFreshwaterLakes();
 			EnsureFreshwaterReachability();

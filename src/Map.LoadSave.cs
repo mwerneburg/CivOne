@@ -119,6 +119,11 @@ namespace CivOne
 						case Terrain.Grassland2: b = 10; break;
 						case Terrain.Jungle: b = 11; break;
 						case Terrain.Hills: b = 12; break;
+						// Civ 1's MAP format has no code for wooded slopes, and the default here is
+						// OCEAN — exporting a hill as sea would drown the continent. Degrade to bare
+						// Hills instead: lossy, but it is still a hill. (SaltFlat has the same hole
+						// and still falls through to Ocean; not touched here.)
+						case Terrain.ForestedHills: b = 12; break;
 						case Terrain.Mountains: b = 13; break;
 						case Terrain.Desert: b = 14; break;
 						case Terrain.Arctic: b = 15; break;

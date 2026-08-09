@@ -464,6 +464,7 @@ namespace CivOne
 				case Terrain.Grassland2: _tiles[x, y] = new Grassland(x, y); break;
 				case Terrain.Jungle: _tiles[x, y] = new Jungle(x, y, special); break;
 				case Terrain.Hills: _tiles[x, y] = new Hills(x, y, special); break;
+				case Terrain.ForestedHills: _tiles[x, y] = new ForestedHills(x, y, special); break;
 				case Terrain.Mountains: _tiles[x, y] = new Mountains(x, y, special); break;
 				case Terrain.Desert: _tiles[x, y] = new Desert(x, y, special); break;
 				case Terrain.Arctic: _tiles[x, y] = new Arctic(x, y, special); break;

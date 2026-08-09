@@ -166,7 +166,7 @@ namespace CivOne.Tiles
 
 		public static bool AllowChangeTerrain(this ITile tile)
 		{
-			return (tile is Forest || tile is Jungle || tile is Swamp);
+			return (tile is Forest || tile is Jungle || tile is Swamp || tile is ForestedHills);
 		}
 
 		public static IBitmap ToBitmap(this ITile[,] tiles, TileSettings? settings = null, Player? player = null)

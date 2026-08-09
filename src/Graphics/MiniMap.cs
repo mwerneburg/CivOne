@@ -32,6 +32,11 @@ namespace CivOne.Graphics
 				case Terrain.Plains:     return CassetteTheme.PHOS_GLOW;
 				case Terrain.Desert:     return CassetteTheme.PHOS;
 				case Terrain.Hills:      return CassetteTheme.INK_MID;
+				// Same tone as bare hills, on purpose. INK_LOW is already Mountains, and a
+				// range that changes colour where the treeline starts stops reading as a
+				// range. The minimap is for landform; Forest and Grassland already share
+				// a colour for the same reason.
+				case Terrain.ForestedHills: return CassetteTheme.INK_MID;
 				case Terrain.Mountains:  return CassetteTheme.INK_LOW;
 				case Terrain.Swamp:      return CassetteTheme.PHOS_FAINT;
 				case Terrain.Tundra:     return CassetteTheme.INK_HIGH;

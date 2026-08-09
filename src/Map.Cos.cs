@@ -66,6 +66,7 @@ namespace CivOne
 					// which is exactly why a new terrain MUST be given a case here. Salt flats
 					// silently saving as Ocean would refill the sea the Scavengers drained.
 					case Enums.Terrain.SaltFlat:   code = 16; break;
+					case Enums.Terrain.ForestedHills: code = 17; break;
 					default:                       code =  1; break; // Ocean
 				}
 				terrain[y * WIDTH + x] = code;
@@ -131,6 +132,7 @@ namespace CivOne
 					case 14: tile = new Desert    (x, y, special); break;
 					case 15: tile = new Arctic    (x, y, special); break;
 					case 16: tile = new SaltFlat  (x, y, special); break;
+					case 17: tile = new ForestedHills(x, y, special); break;
 					default: tile = new Ocean     (x, y, special); break;
 				}
 				_tiles[x, y] = tile;
