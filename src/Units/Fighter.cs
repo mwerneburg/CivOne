@@ -32,6 +32,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires FLIGHT.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Nothing else can intercept an",
 			"enemy BOMBER, so a civilization",

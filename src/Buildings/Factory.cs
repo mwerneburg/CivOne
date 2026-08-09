@@ -27,6 +27,7 @@ namespace CivOne.Buildings
 		private static readonly string[] _page2 =
 		{
 			"Requires INDUSTRIALIZATION.",
+			"Needs COAL: +50% shields without.",
 			"",
 			"Industry breeds POLLUTION. Expect",
 			"smoke on your tiles, and plan for",

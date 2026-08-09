@@ -24,6 +24,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires MASS PRODUCTION.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Deadly to transports and merchant",
 			"shipping, and dangerous even to",

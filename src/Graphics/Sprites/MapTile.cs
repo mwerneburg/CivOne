@@ -208,6 +208,8 @@ namespace CivOne.Graphics.Sprites
 				return Free.Special(Terrain.Arctic);
 			if (typeof(T) == typeof(Tundra))
 				return Free.Special(Terrain.Tundra);
+			if (typeof(T) == typeof(River))
+				return Free.Special(Terrain.River);
 			if (typeof(T) == typeof(Grassland))
 				return Free.HayBale();
 			return Free.Special(new T().Type);
@@ -482,6 +484,7 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISprite Horses = new CachedSprite(GetSpecial<Plains>);
 		public static readonly ISprite Oil = new CachedSprite(GetSpecial<Swamp>);
 		public static readonly ISprite TundraGame = new CachedSprite(GetSpecial<Tundra>);
+		public static readonly ISprite RiverGold = new CachedSprite(GetSpecial<River>);
 
 		public static Bytemap? LandCoastErosion(ITile tile)
 		{
@@ -617,7 +620,7 @@ namespace CivOne.Graphics.Sprites
 				// improvement overlays sourced from the tile files
 				Irrigation, Mine, Fortress, Hut, Road, RailRoad, Pollution,
 				// special-resource sprites
-				Seals, DesertOil, Game, Shield, Coal, Gems, Iron, Fish, Horses, Oil, TundraGame,
+				Seals, DesertOil, Game, Shield, Coal, Gems, Iron, Fish, Horses, Oil, TundraGame, RiverGold,
 			})
 				(o as ICached)?.Clear();
 		}
@@ -632,7 +635,10 @@ namespace CivOne.Graphics.Sprites
 
 		public static ISprite? TileSpecial(ITile tile)
 		{
-			if (tile is River || (!tile.Special && tile.Type != Terrain.Grassland2)) return null;
+			// Rivers carry gold on the map lattice, not on Special — which on a river is
+			// the (unrendered) river shield. Everything else keys off Special as before.
+			if (tile is River river) return river.Gold ? RiverGold : null;
+			if (!tile.Special && tile.Type != Terrain.Grassland2) return null;
 			switch (tile)
 			{
 				case Arctic _: return Seals;

@@ -28,6 +28,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires THE AUTOMOBILE.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Automobile also retires KNIGHTS.",
 			"The change from horse to engine",

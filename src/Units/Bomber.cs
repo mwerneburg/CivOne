@@ -32,6 +32,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires ADVANCED FLIGHT.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Bombers cannot take a city; they",
 			"only empty it. Send ARMOR or",

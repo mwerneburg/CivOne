@@ -27,6 +27,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires THE STEAM ENGINE.",
+			"Needs IRON: +50% shields without.",
 			"Made obsolete by COMBUSTION.",
 			"",
 			"Wooden fleets cannot answer it.",

@@ -24,6 +24,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires COMBUSTION.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Cruisers hunt SUBMARINES and",
 			"screen larger ships. They are the",

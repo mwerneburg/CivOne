@@ -24,6 +24,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires STEEL.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Enormously expensive. One is a",
 			"fleet in itself; two are a burden",

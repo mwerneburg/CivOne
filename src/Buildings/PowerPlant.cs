@@ -27,6 +27,7 @@ namespace CivOne.Buildings
 		private static readonly string[] _page2 =
 		{
 			"Requires REFINING.",
+			"Needs COAL: +50% shields without.",
 			"",
 			"The dirtiest of the three plants:",
 			"it does nothing to reduce",

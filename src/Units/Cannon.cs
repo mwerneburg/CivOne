@@ -27,6 +27,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires METALLURGY.",
+			"Needs IRON: +50% shields without.",
 			"Made obsolete by ROBOTICS.",
 			"",
 			"Still slow and still fragile.",

@@ -46,6 +46,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires ADVANCED FLIGHT.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"Almost defenceless for its cost",
 			"when caught alone; the aircraft",

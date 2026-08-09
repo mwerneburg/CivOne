@@ -89,7 +89,7 @@ namespace CivOne.Screens
 						case Terrain.Swamp: text = (tile.Special ? "Oil" : "Wetland"); break;
 						case Terrain.Jungle: text = (tile.Special ? "Gems" : "Jungle"); break;
 						case Terrain.Ocean: text = Map.Instance.IsFreshwaterAt(tile.X, tile.Y) ? "Lake" : (tile.Special ? "Fish" : "Ocean"); break;
-						case Terrain.River: text = "River"; break;
+						case Terrain.River: text = ((tile as Tiles.River)?.Gold == true ? "Gold" : "River"); break;
 						case Terrain.Grassland1:
 						case Terrain.Grassland2: text = "Grassland"; break;
 					}

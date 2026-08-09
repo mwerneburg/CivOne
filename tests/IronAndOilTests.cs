@@ -15,6 +15,7 @@ using CivOne.Enums;
 using CivOne.Governments;
 using CivOne.Tiles;
 using CivOne.Units;
+using System.Linq;
 
 namespace CivOne.Tests
 {
@@ -85,6 +86,67 @@ namespace CivOne.Tests
 			Assert.Equal(16, kept);
 		}
 
+		// Placer gold, on the standard 1-in-16 map lattice. It cannot use Special —
+		// that flag is the river shield, and BaseTile.AlternateSpecial sets it on HALF
+		// of every river, which would have minted a gold deposit under most of the
+		// world's capitals.
+		[Fact]
+		public void RiverGoldIsTheLatticeAndNotTheRiverShield()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			int rivers = 0, gold = 0, shield = 0;
+			foreach (ITile t in Map.Instance.AllTiles())
+			{
+				if (t is not Tiles.River r) continue;
+				rivers++;
+				if (r.Gold) gold++;
+				if (r.Special) shield++;
+			}
+
+			Assert.True(rivers > 100, $"scenario: only {rivers} river tiles to sample");
+			// The shield flag is half of them; the lattice is a small fraction. If gold
+			// were ever hung on Special these two would be the same number.
+			Assert.True(shield > rivers / 3, $"river shield on {shield} of {rivers}");
+			Assert.True(gold < rivers / 5, $"gold on {gold} of {rivers} — too common");
+			Assert.True(gold > 0, "scenario: no gold generated at all");
+		}
+
+		// A gold river reads 4 trade — jungle gems — not the mountain seam's old 5,
+		// because it brings the river's 2 food along with it. Everything else about the
+		// tile is unchanged.
+		[Fact]
+		public void AGoldRiverPaysFourTradeAndKeepsItsFood()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Tiles.River? seam = null, plain = null;
+			foreach (ITile t in Map.Instance.AllTiles())
+			{
+				if (t is not Tiles.River r) continue;
+				if (r.Gold) seam ??= r; else plain ??= r;
+			}
+
+			Assert.NotNull(seam);
+			Assert.NotNull(plain);
+			Assert.Equal(4, seam!.Trade);
+			Assert.Equal(1, plain!.Trade);
+			Assert.Equal(2, seam.Food);
+		}
+
+		// Derived from position, never stored: both loaders and ChangeTileType rebuild
+		// tiles from coordinates alone, so a remembered seam would move on reload.
+		[Fact]
+		public void AGoldSeamSurvivesBeingRebuilt()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Tiles.River seam = Map.Instance.AllTiles().OfType<Tiles.River>().First(r => r.Gold);
+			int x = seam.X, y = seam.Y;
+
+			Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(x, y, Terrain.River);
+
+			Assert.True(((Tiles.River)Map.Instance[x, y]).Gold);
+		}
+
 		// The +50% for a missing material was silent: a Cannon read 60 shields instead
 		// of 40 and nothing anywhere said why. City.MissingResource is what the two
 		// production screens print, and it has to be the same test the price uses or the
@@ -140,6 +202,41 @@ namespace CivOne.Tests
 			c.ResetResourceTiles();
 			Sim.ClearTasks();
 			return (g, human, c);
+		}
+
+		// Every gated item says so on its OWN page. The "Strategic Resources" concept
+		// page has always carried the full list, but nobody reads a concept page before
+		// building a Cannon — they read the Cannon page, which talked about Metallurgy
+		// and never mentioned iron.
+		//
+		// Driven off Game.RequiredResource rather than a hand-written list of thirteen,
+		// so the next unit added to the gate cannot ship without its line.
+		[Fact]
+		public void EveryGatedItemNamesItsMaterialOnItsOwnPage()
+		{
+			var missing = new System.Collections.Generic.List<string>();
+			int checkedItems = 0;
+			foreach (IProduction item in Reflect.GetProduction())
+			{
+				StrategicResource need = Game.RequiredResource(item);
+				if (need == StrategicResource.None) continue;
+				checkedItems++;
+
+				string material = need.ToString().ToUpper();
+				var pedia = (ICivilopedia)item;
+				// GetPageText lives on BaseUnit/BaseBuilding, not on ICivilopedia, so it
+				// has to be reached by reflection rather than through the interface.
+				var text = item.GetType().GetMethod("GetPageText");
+				bool named = false;
+				for (byte page = 1; page <= pedia.PageCount && !named; page++)
+					named = (text?.Invoke(item, new object[] { page }) as string[])
+						?.Any(l => l.Contains(material)) == true;
+
+				if (!named) missing.Add($"{pedia.Name} (needs {material})");
+			}
+
+			Assert.Equal(13, checkedItems);   // scenario: the gate still covers thirteen
+			Assert.Empty(missing);
 		}
 
 		// City.TradeValue gave the mountain special a government trade bonus on top of

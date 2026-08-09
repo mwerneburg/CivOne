@@ -485,7 +485,10 @@ namespace CivOne
 		
 		private int ModGrid(int x, int y) => (x % 4) * 4 + (y % 4);
 		
-		private bool TileIsSpecial(int x, int y)
+		// Internal, not private: River asks for it from its own constructor. The river
+		// gold deposit rides this lattice like every other special, rather than the
+		// half-of-all-rivers flag the river shield uses (BaseTile.AlternateSpecial).
+		internal bool TileIsSpecial(int x, int y)
 		{
 			if (y < 2 || y > (HEIGHT - 3)) return false;
 			return ModGrid(x, y) == ((x / 4) * 13 + (y / 4) * 11 + _terrainMasterWord) % 16;

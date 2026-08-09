@@ -387,6 +387,7 @@ namespace CivOne.Graphics
 				Terrain.Swamp     => "special_swamp",
 				Terrain.Arctic    => "special_arctic",
 				Terrain.Tundra    => "special_tundra",
+				Terrain.River     => "special_river",
 				_ => null
 			};
 			if (specialSection is not null)
@@ -398,6 +399,28 @@ namespace CivOne.Graphics
 
 			switch(type)
 			{
+				// Placer gold: three nuggets scattered in the bed.
+				// outline=5(BORDER) body=12(PHOS/gold) highlight=13(PHOS_GLOW)
+				case Terrain.River:
+					return new Bytemap(16, 16).FromByteArray(
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  5, 12, 13, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  5, 12, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  5, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  5,  5,  5,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 13, 12, 12,  5,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 12, 12, 12,  5,  0,  0,
+						0,  0,  0,  5,  5,  5,  0,  0,  0,  5,  5,  5,  5,  0,  0,  0,
+						0,  0,  5, 12, 13, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  5, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+					);
+
 				case Terrain.Ocean:
 					return new Bytemap(16, 16).FromByteArray(
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,

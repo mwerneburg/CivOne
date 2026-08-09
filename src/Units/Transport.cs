@@ -40,6 +40,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires INDUSTRIALIZATION.",
+			"Needs OIL: +50% shields without.",
 			"",
 			"A whole invasion fits in one hull,",
 			"and one lucky submarine can drown",

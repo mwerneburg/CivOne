@@ -27,6 +27,7 @@ namespace CivOne.Units
 		private static readonly string[] _page2 =
 		{
 			"Requires ROBOTICS.",
+			"Needs IRON: +50% shields without.",
 			"",
 			"Defenceless in the open, so pair",
 			"it with ARMOR or MECH. INF.",
