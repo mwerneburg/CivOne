@@ -1,47 +1,87 @@
 // CivOne tests
 //
-// The sidebar's demographics panel is 80px wide and shares its year line between the
-// date and the lamp (left) and the score (right). The score was first put on the
-// POPULATION line, where this test caught it overlapping by 2px at 500,000,000 people
-// and a four-digit score — reachable in a 750-turn game, and exactly the point at which
-// nobody wants to discover a layout bug. The year is a fixed seven characters, so the
-// slack there does not shrink as the game runs.
+// The sidebar is three stacked panels in a fixed 80x192 column, and their heights are three
+// separate constants that must agree: the minimap, the demographics box, and the game-info
+// panel below it. Growing the demographics box by a line to give the score its own row means
+// shrinking game-info by the same 8px and moving its layer offset — miss either and the
+// panels overlap or leave a gap, which no compiler catches.
+//
+// The score's earlier home was the YEAR line, right-aligned; this file caught it colliding
+// with a 500,000,000 population when it was tried on the population line before that.
 
+using System.Reflection;
 using CivOne;
 using CivOne.Graphics;
+using CivOne.Screens.GamePlayPanels;
 
 namespace CivOne.Tests
 {
 	public class SideBarLayoutTests
 	{
-		// SideBar.DrawDemographics: year left-aligned at x=2 with the research lamp laid in
-		// at 4 + yearWidth, score right-aligned at x=77, both font 0.
-		private const int LeftX = 2, RightX = 77, LampWidth = 12;
+		// DrawDemographics: score drawn left-aligned at x=2, baseline y=39, inside a panel
+		// 47 tall whose bottom border row is y=46.
+		private const int ScoreX = 2, ScoreY = 39, PanelHeight = 47, SideBarHeight = 192;
 
-		[Theory]
-		[InlineData("3980 BC", 0)]        // turn 1
-		[InlineData("1350 AD", 2075)]     // the Malian save this was asked for
-		[InlineData("2100 AD", 9999)]     // last turn, and a score no real game reaches
-		public void TheYearAndTheScoreShareTheirLineWithoutColliding(string year, int score)
+		private static Picture PanelOf(SideBar bar, string field)
+			=> (Picture)typeof(SideBar).GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(bar)!;
+
+		// The three panels tile the column exactly — no overlap, no dead strip.
+		[Fact]
+		public void ThePanelsFillTheSideBarExactly()
 		{
-			Sim.EnsureRuntime();
+			// A game, not just the runtime: the constructor draws the panels, and
+			// DrawDemographics reads the human player.
+			Sim.NewGame(width: 80, height: 50);
+			using (Palette palette = CassetteTheme.CreatePalette())
+			{
+				SideBar bar = new SideBar(palette);
 
-			int yearRight = 4 + Resources.Instance.GetTextSize(0, year).Width + LampWidth;
-			int scoreLeft = RightX - Resources.Instance.GetTextSize(0, $"{score}").Width;
+				int total = PanelOf(bar, "_miniMap").Height
+				          + PanelOf(bar, "_demographics").Height
+				          + PanelOf(bar, "_gameInfo").Height;
 
-			Assert.True(yearRight < scoreLeft,
-				$"year \"{year}\" and lamp end at {yearRight}, score {score} starts at {scoreLeft}");
+				Assert.Equal(SideBarHeight, total);
+				Assert.Equal(PanelHeight, PanelOf(bar, "_demographics").Height);
+			}
 		}
 
-		// ...and the population line it was moved OFF still has room for the widest
-		// population on its own, which is what the panel was designed for.
+		// The widest score any game reaches, plus its label, inside the 80px column.
+		[Theory]
+		[InlineData(0)]      // turn 1
+		[InlineData(2075)]   // the Malian save this was asked for
+		[InlineData(9999)]   // a score no real game reaches
+		public void TheScoreLineFitsTheColumn(int score)
+		{
+			Sim.EnsureRuntime();
+			int right = ScoreX + Resources.Instance.GetTextSize(0, $"{score} PTS").Width;
+
+			Assert.True(right <= 80, $"\"{score} PTS\" ends at {right}, past the 80px column");
+		}
+
+		// ...and sits above the panel's bottom border rather than under it. The height comes
+		// from the panel itself, not from the constant above: a score line drawn below a panel
+		// that was never grown is exactly the failure this is here for.
+		[Fact]
+		public void TheScoreLineSitsInsideThePanel()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			using (Palette palette = CassetteTheme.CreatePalette())
+			{
+				int height = PanelOf(new SideBar(palette), "_demographics").Height;
+				int bottom = ScoreY + Resources.Instance.GetTextSize(0, "9999 PTS").Height;
+
+				Assert.True(bottom <= height - 1, $"score line ends at {bottom}, border row is {height - 1}");
+			}
+		}
+
+		// The population line the score used to share still fits the widest population alone.
 		[Fact]
 		public void ThePopulationLineStillFitsTheWidestPopulation()
 		{
 			Sim.EnsureRuntime();
 			string popText = $"{Common.NumberSeperator(500_000_000)}#";
 
-			Assert.True(LeftX + Resources.Instance.GetTextSize(0, popText).Width <= 80,
+			Assert.True(ScoreX + Resources.Instance.GetTextSize(0, popText).Width <= 80,
 				$"\"{popText}\" overruns the 80px panel");
 		}
 	}

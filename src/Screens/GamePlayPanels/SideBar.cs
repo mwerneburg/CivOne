@@ -77,8 +77,8 @@ namespace CivOne.Screens.GamePlayPanels
 		private void DrawDemographics()
 		{
 			_demographics
-				.FillRectangle(0, 0, 80, 39, CassetteTheme.BG1)
-				.FillRectangle(0, 38, 80, 1, CassetteTheme.BORDER)
+				.FillRectangle(0, 0, 80, 47, CassetteTheme.BG1)
+				.FillRectangle(0, 46, 80, 1, CassetteTheme.BORDER)
 				.FillRectangle(3, 2, 74, 11, CassetteTheme.BG3)
 				.FillRectangle(3, 13, 74, 1, CassetteTheme.BORDER)
 				.AddScanlines();
@@ -97,15 +97,13 @@ namespace CivOne.Screens.GamePlayPanels
 			int stage = (int)Math.Floor(((double)Human.Science / Human.ScienceCost) * 4);
 			_demographics.AddLayer(Icons.Lamp(stage), 4 + width, 22);
 
-			// Score, right-aligned on the YEAR line. It lived only behind the F5
-			// demographics screen, which is a strange place for the number the whole game
-			// is played for. Not the population line: the year is a fixed seven characters
-			// where the population runs to "500,000,000#", which collides with a four-digit
-			// score at 80px wide (SideBarLayoutTests). PHOS_DIM so it reads as a second
-			// value on a shared line rather than competing with the date.
-			_demographics.DrawText($"{Human.Score}", 0, CassetteTheme.PHOS_DIM, 77, 23, TextAlign.Right);
-
 			_demographics.DrawText($"{Human.Gold}$ {Human.LuxuriesRate}.{Human.TaxesRate}.{Human.ScienceRate}", 0, CassetteTheme.INK_MID, 2, 31, TextAlign.Left);
+
+			// Score, on a line of its own — the panel grew by 8px for it. It first shared the
+			// year line, right-aligned, where it fit but sat close enough to the lamp to read
+			// as part of the date. Labelled, because a bare number in a box of gold and rates
+			// is ambiguous. PHOS_DIM: a standing total, not a value that changes this turn.
+			_demographics.DrawText($"{Human.Score} PTS", 0, CassetteTheme.PHOS_DIM, 2, 39, TextAlign.Left);
 
 			// Warming indicator: a small coloured dot in the bottom-right corner
 			int indicator = Game.WarmingIndicator;
@@ -305,7 +303,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 				this.AddLayer(_miniMap, 0, 0)
 					.AddLayer(_demographics, 0, 50)
-					.AddLayer(_gameInfo, 0, 89);
+					.AddLayer(_gameInfo, 0, 97);
 
 				_update = false;
 				return true;
@@ -349,15 +347,15 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			Bitmap = new Bytemap(80, height);
 			_gameInfo?.Dispose();
-			_gameInfo = new Picture(80, (height - 89), Palette);
+			_gameInfo = new Picture(80, (height - 97), Palette);
 			_update = true;
 		}
 
 		public SideBar(Palette palette) : base(80, 192)
 		{
 			_miniMap = new Picture(80, 50, palette);
-			_demographics = new Picture(80, 39, palette);
-			_gameInfo = new Picture(80, 103, palette);
+			_demographics = new Picture(80, 47, palette);
+			_gameInfo = new Picture(80, 95, palette);
 			
 			DrawMiniMap();
 			DrawDemographics();
@@ -366,7 +364,7 @@ namespace CivOne.Screens.GamePlayPanels
 			Palette = palette;
 			this.AddLayer(_miniMap, 0, 0)
 				.AddLayer(_demographics, 0, 50)
-				.AddLayer(_gameInfo, 0, 89);
+				.AddLayer(_gameInfo, 0, 97);
 		}
 
 		public override void Dispose()
