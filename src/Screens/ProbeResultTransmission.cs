@@ -44,6 +44,13 @@ namespace CivOne.Screens
 						">> MECHANISM: UNKNOWN. RANGE: WELL BEYOND EXPECTATION.",
 						">> INTERPRETATION: THE SOURCE FOUND THE PROBE INSUFFICIENT.",
 					};
+				case VisitorArchetype.Scavengers:
+					return new[]
+					{
+						">> LAST FRAME: PROBE STRUCK BY DEBRIS ON AN UNLIT VECTOR.",
+						">> NO TARGETING SIGNATURE. NO CHALLENGE. NO ACKNOWLEDGEMENT.",
+						">> INTERPRETATION: THE SOURCE DID NOT NOTICE THE PROBE.",
+					};
 				default: // Refugees / None
 					return new[]
 					{
@@ -79,6 +86,13 @@ namespace CivOne.Screens
 						">> PARTIAL SCAN: RECURSIVE SIGNAL BOUNCE DETECTED.",
 						">> SOURCE RESPONDED TO THE PROBE — WITH ANOTHER PROBE.",
 						">> HYPOTHESIS: SOURCE IS MEASURING OUR REACTION.",
+					};
+				case VisitorArchetype.Scavengers:
+					return new[]
+					{
+						">> PARTIAL SCAN: MASS DISTRIBUTION IS OVERWHELMINGLY TANKAGE.",
+						">> NO HABITAT RING. NO SIGNAL TRAFFIC BETWEEN HULLS.",
+						">> HYPOTHESIS: THIS IS NOT A FLEET. IT IS EQUIPMENT.",
 					};
 				default: // Refugees
 					return new[]
@@ -133,6 +147,20 @@ namespace CivOne.Screens
 						">> THEY HAVE BEEN WATCHING SINCE BEFORE THE SIGNAL.",
 						"",
 						"THE EVALUATION HAS ALREADY BEGUN.",
+					};
+				case VisitorArchetype.Scavengers:
+					return new[]
+					{
+						"VISITOR TYPE: IDENTIFIED.",
+						"",
+						">> HULL INVENTORY: EXTRACTION PLANT, STORAGE, LITTLE ELSE.",
+						">> COURSE HISTORY: ELEVEN SYSTEMS. NONE REVISITED.",
+						">> NO WEAPONS BEYOND WHAT CLEARS AN ORBIT.",
+						">> THEY ARE NOT COMING FOR US. THEY ARE COMING FOR THE WATER.",
+						">> WE ARE NOT AN ENEMY AND WE ARE NOT A PEOPLE.",
+						">> WE ARE WEATHER AT THE DIG SITE.",
+						"",
+						"THEY WILL TAKE WHAT THEY CAME FOR AND GO.",
 					};
 				default: // Refugees
 					return new[]
@@ -206,6 +234,16 @@ namespace CivOne.Screens
 						">> HUMANITY IS PERMITTED TO CONTINUE — FOR NOW.",
 						">> TERMS: THEY WILL OBSERVE. THEY WILL NOT INTERVENE.",
 						"   UNLESS WE GIVE THEM REASON TO.",
+					});
+					break;
+				case VisitorArchetype.Scavengers:
+					lines.AddRange(new[]
+					{
+						">> THEIR RESPONSE: AN AUTOMATED MANIFEST ACKNOWLEDGEMENT.",
+						">> NO GREETING. NO QUESTIONS. NO NEGOTIATOR ABOARD.",
+						">> WE WERE SENT A SCHEDULE: ARRIVAL WINDOW, EXTRACTION",
+						"   DURATION, DEPARTURE.",
+						">> THEY ARE NOT ASKING. THEY ARE INFORMING.",
 					});
 					break;
 				default: // Refugees

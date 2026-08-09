@@ -43,6 +43,12 @@ namespace CivOne.Screens
 					">> Distributed power profile revised upward significantly.",
 					">> Minimum coordinated sources estimated: 40. Not a single vessel.",
 				},
+				VisitorArchetype.Scavengers => new[]
+				{
+					"UPDATE — SIGNAL PATTERN:",
+					">> Emission profile is industrial: waste heat, no transmission.",
+					">> Whatever is aboard is running, not talking.",
+				},
 				_ => new[]
 				{
 					"UPDATE — SIGNAL PATTERN:",
