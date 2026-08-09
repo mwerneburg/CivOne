@@ -560,6 +560,29 @@ namespace CivOne.Units
 			return false;
 		}
 
+		// Habitats the score treats as worth keeping. Jungle and wetland are the two terrains
+		// a settler can erase that nothing can put back at full value: Plant Jungle exists but
+		// only on forest, and there is no order that makes a wetland at all. Forest is absent
+		// deliberately — it is renewable, Plant Forest is a standing order, and clearing one
+		// is ordinary husbandry rather than a loss.
+		private const int EcoPenalty = 1;
+
+		// Every terrain change a settler makes goes through here, including the ones that
+		// cannot touch a habitat. That is the point: three separate orders can erase jungle
+		// or wetland today (irrigate, mine, engineer a river) and the rule applied at the
+		// call sites is the rule that covers the first one and quietly misses the other two —
+		// which is exactly how the keyboard shortcuts drifted from the menus.
+		//
+		// The penalty falls on the unit's owner, AI civs included: it is a scoring rule about
+		// what a civilization did to the map, not a handicap on the player.
+		private void ReplaceTerrain(Terrain to)
+		{
+			ITile from = Map[X, Y];
+			if (from.Type != to && (from is Jungle || from is Swamp))
+				Game.GetPlayer(Owner).AwardMilestone(-EcoPenalty);
+			Map.ChangeTileType(X, Y, to);
+		}
+
 		public bool CleanPollution()
 		{
 			ITile tile = Map[X, Y];
@@ -628,7 +651,7 @@ namespace CivOne.Units
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
-					Map.ChangeTileType(X, Y, Terrain.Plains);
+					ReplaceTerrain(Terrain.Plains);
 					Game.InvalidateCitiesAt(X, Y);
 				}
 				// Clearing wooded slopes leaves the slope. This is the only way to reach the
@@ -637,14 +660,14 @@ namespace CivOne.Units
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
-					Map.ChangeTileType(X, Y, Terrain.Hills);
+					ReplaceTerrain(Terrain.Hills);
 					Game.InvalidateCitiesAt(X, Y);
 				}
 				else if ((Map[X, Y] is Jungle) || (Map[X, Y] is Swamp))
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
-					Map.ChangeTileType(X, Y, Terrain.Grassland1);
+					ReplaceTerrain(Terrain.Grassland1);
 					Game.InvalidateCitiesAt(X, Y);
 				}
 				else
@@ -666,7 +689,7 @@ namespace CivOne.Units
 				{
 					Map[X, Y].Irrigation = false;
 					Map[X, Y].Mine = false;
-					Map.ChangeTileType(X, Y, Terrain.Forest);
+					ReplaceTerrain(Terrain.Forest);
 					Game.InvalidateCitiesAt(X, Y);
 				}
 				else
@@ -724,13 +747,13 @@ namespace CivOne.Units
 			{
 				BuildingLowerTerrain--;
 				if (BuildingLowerTerrain > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.Plains); Game.InvalidateCitiesAt(X, Y); }
+				else { Map[X, Y].Mine = false; ReplaceTerrain(Terrain.Plains); Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingRaiseTerrain > 0)
 			{
 				BuildingRaiseTerrain--;
 				if (BuildingRaiseTerrain > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].Irrigation = false; Map.ChangeTileType(X, Y, Terrain.Hills); Game.InvalidateCitiesAt(X, Y); }
+				else { Map[X, Y].Irrigation = false; ReplaceTerrain(Terrain.Hills); Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingPlantForest > 0)
 			{
@@ -742,26 +765,26 @@ namespace CivOne.Units
 					// flatten the ground it is planted on.
 					Terrain planted = Map[X, Y] is Hills ? Terrain.ForestedHills : Terrain.Forest;
 					Map[X, Y].Irrigation = false; Map[X, Y].Mine = false;
-					Map.ChangeTileType(X, Y, planted); Game.InvalidateCitiesAt(X, Y);
+					ReplaceTerrain(planted); Game.InvalidateCitiesAt(X, Y);
 				}
 			}
 			else if (BuildingPlantJungle > 0)
 			{
 				BuildingPlantJungle--;
 				if (BuildingPlantJungle > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map.ChangeTileType(X, Y, Terrain.Jungle); Game.InvalidateCitiesAt(X, Y); }
+				else { ReplaceTerrain(Terrain.Jungle); Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingThawTundra > 0)
 			{
 				BuildingThawTundra--;
 				if (BuildingThawTundra > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map.ChangeTileType(X, Y, Terrain.Grassland1); Game.InvalidateCitiesAt(X, Y); }
+				else { ReplaceTerrain(Terrain.Grassland1); Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingAddRiver > 0)
 			{
 				BuildingAddRiver--;
 				if (BuildingAddRiver > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; Map.ChangeTileType(X, Y, Terrain.River); Game.InvalidateCitiesAt(X, Y); }
+				else { Map[X, Y].Irrigation = false; Map[X, Y].Mine = false; ReplaceTerrain(Terrain.River); Game.InvalidateCitiesAt(X, Y); }
 			}
 
 			if (AutoClean && BuildingRoad == 0 && BuildingIrrigation == 0 && BuildingMine == 0 && BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 && BuildingAquafarm == 0 && BuildingCamp == 0

@@ -482,9 +482,11 @@ namespace CivOne.Units
 				Movement!.Done += (s, a) =>
 				{
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
-					if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true))
+					// The attacker is credited: a Harvester killed here pays a bounty
+					// (Screens.DestroyUnit). Every other loss path passes no credit.
+					if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true, Player))
 					{
-						GameTask.Insert(Show.DestroyUnit(unit, true));
+						GameTask.Insert(Show.DestroyUnit(unit, true, Player));
 					}
 					
 					if (MovesLeft == 0)

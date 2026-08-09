@@ -177,7 +177,7 @@ namespace CivOne.Tasks
 
 		public static Show Nuke(int x, int y) => new Show(new Nuke(x, y));
 
-		public static Show DestroyUnit(IUnit unit, bool stack) => new Show(new DestroyUnit(unit, stack));
+		public static Show DestroyUnit(IUnit unit, bool stack, Player? credit = null) => new Show(new DestroyUnit(unit, stack, credit));
 
 		// Hand-drawn event art when it exists, the built-in city view otherwise.
 		// The stick-figure animation in CityView.NativeAnimFrame is a placeholder

@@ -32,13 +32,15 @@ namespace CivOne.Screens
 		private readonly DestroyAnimation _animation;
 		private readonly IUnit _unit;
 		private readonly bool _stack;
+		private readonly Player? _credit;
 		private int _noiseCounter = NOISE_COUNT + 2;
 		private readonly IBitmap[]? _destroySprites = null;
 
-		internal DestroyUnit(IUnit unit, bool stack)
+		internal DestroyUnit(IUnit unit, bool stack, Player? credit = null)
 		{
 			_unit = unit;
 			_stack = stack;
+			_credit = credit;
 
 			using var p = Common.DefaultPalette;
 			Palette = p;
@@ -116,7 +118,7 @@ namespace CivOne.Screens
 		// The part that must happen whether or not a frame was ever drawn.
 		private void FinishAndDestroy(uint gameTick)
 		{
-			Kill(_unit, _stack);
+			Kill(_unit, _stack, _credit);
 			Common.GamePlay.RefreshMap();
 			Common.GamePlay.Update(gameTick);
 			Destroy();
@@ -125,11 +127,23 @@ namespace CivOne.Screens
 		// Which units a death takes with it: a stack dies together in the open, but not in a
 		// city or a fortress. Shared so the no-animation path cannot drift from the animated
 		// one — this is the rule, not a rendering detail.
-		private static void Kill(IUnit unit, bool stack)
+		// Killing a Scavenger extraction craft is the only counterplay to the draining, and
+		// the score says so. `credit` is the player whose attack did it — null for every
+		// other way a unit leaves the world (disband, upgrade, capture sweep), which must
+		// not pay. Awarded here rather than at the call site because this is where the set
+		// that actually dies is decided: `stack` can turn one kill into six.
+		private const int HarvesterBounty = 100;
+
+		private static void Kill(IUnit unit, bool stack, Player? credit = null)
 		{
 			IUnit[] units = (unit.Tile.Units.Length > 1 && unit.Tile.City is null && !unit.Tile.Fortress && stack)
 				? unit.Tile.Units
 				: new[] { unit };
+			if (credit is not null)
+			{
+				int bounty = units.Count(u => u is Units.Harvester) * HarvesterBounty;
+				if (bounty > 0) credit.AwardMilestone(bounty);
+			}
 			foreach (IUnit u in units)
 				Game.DisbandUnit(u);
 		}
@@ -158,10 +172,10 @@ namespace CivOne.Screens
 		// does not ask whose war it is — and it ran its full ten-tick countdown regardless,
 		// drawing nothing. That was 8,789 paced samples in 32 turns of a war-heavy save.
 		// Returns true when it has handled the death and no screen is needed.
-		internal static bool ResolveIfUnseen(IUnit unit, bool stack)
+		internal static bool ResolveIfUnseen(IUnit unit, bool stack, Player? credit = null)
 		{
 			if (Game.Animations && CanBeSeen(unit)) return false;
-			Kill(unit, stack);
+			Kill(unit, stack, credit);
 			Common.GamePlay?.RefreshMap();
 			return true;
 		}
