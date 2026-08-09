@@ -239,6 +239,84 @@ namespace CivOne.Tests
 			Assert.Empty(missing);
 		}
 
+		// The Civilopedia's terrain table had drifted from the code. Checked every cell
+		// against City.FoodValue/ShieldValue/TradeValue; six were wrong, and these pin
+		// them. Baseline is MONARCHY, which is what the page's two footnotes imply —
+		// `*` is "-1 under Despotism/Anarchy" and `%` is "+1 under Republic/Democracy",
+		// so the printed number is the one government that is neither.
+		//
+		// The footnotes themselves turned out to be accurate. What was wrong was
+		// BaseGovernment.TilePenalty's comment, which described Civ 1's "dock 1 from
+		// any tile yielding 3+" — a rule this codebase does not implement. Nothing
+		// docks a tile's own output; the flag only withholds the bonuses City.cs adds.
+		[Theory]
+		// terrain,             irrigate, mine, special, food, shield, trade
+		[InlineData(Terrain.Desert,     true,  false, false, 2, 1, 0)]  // pedia said irrigated 1
+		[InlineData(Terrain.Desert,     true,  false, true,  2, 4, 0)]  // oil, irrigated
+		[InlineData(Terrain.Forest,     false, false, true,  2, 2, 0)]  // pedia said game 3*
+		[InlineData(Terrain.Plains,     false, false, true,  1, 2, 0)]  // pedia said horses 3
+		[InlineData(Terrain.River,      false, false, false, 2, 0, 2)]  // pedia said trade 1%
+		[InlineData(Terrain.Hills,      false, true,  false, 1, 3, 0)]  // mine bonus: starred
+		public void TheTerrainTableMatchesWhatTheCityActuallyPays(
+			Terrain terrain, bool irrigate, bool mine, bool special,
+			int food, int shield, int trade)
+		{
+			City city = ATownUnder(new Monarchy());
+			ITile t = Map.Instance[45, 25];
+			Map.Instance.ChangeTileType(45, 25, terrain);
+			t = Map.Instance[45, 25];
+			t.Irrigation = irrigate;
+			t.Mine = mine;
+			((BaseTile)t).Special = special;
+
+			Assert.Equal(food, city.FoodValue(t));
+			Assert.Equal(shield, city.ShieldValue(t));
+			Assert.Equal(trade, city.TradeValue(t));
+		}
+
+		// River gold is 5 trade at Monarchy, not the tile's own 4: City.TradeValue adds
+		// one for the river itself. The pedia row said 4% until this was checked.
+		[Fact]
+		public void AGoldRiverIsWorthFiveTradeToACity()
+		{
+			City city = ATownUnder(new Monarchy());
+			Tiles.River seam = Map.Instance.AllTiles().OfType<Tiles.River>().First(r => r.Gold);
+
+			Assert.Equal(5, city.TradeValue(seam));
+		}
+
+		// The starred cells, and only those, lose exactly 1 under Despotism. Nothing
+		// docks a tile's own yield — a 4-shield oil field is 4 under either government.
+		[Fact]
+		public void DespotismWithholdsBonusesAndDocksNothingElse()
+		{
+			City city = ATownUnder(new Despotism());
+			Map.Instance.ChangeTileType(45, 25, Terrain.Hills);
+			ITile hills = Map.Instance[45, 25];
+			hills.Mine = true;
+			Map.Instance.ChangeTileType(46, 25, Terrain.Desert);
+			ITile oil = Map.Instance[46, 25];
+			((BaseTile)oil).Special = true;
+
+			Assert.Equal(2, city.ShieldValue(hills));   // 3 under Monarchy: the starred cell
+			Assert.Equal(4, city.ShieldValue(oil));     // the tile's own yield, untouched
+		}
+
+		private static City ATownUnder(IGovernment government)
+		{
+			Sim.NewGame(width: 80, height: 50, difficulty: 2);
+			Settings.Instance.Autopilot = false;
+			Game g = Game.Instance;
+			Player human = g.HumanPlayer;
+			human.Government = government;
+			human.Explore(40, 25, range: 20);
+			Map.Instance.ChangeTileType(40, 25, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+			City c = g.AddCity(human, 0, 40, 25)!;
+			Sim.ClearTasks();
+			return c;
+		}
+
 		// City.TradeValue gave the mountain special a government trade bonus on top of
 		// its base trade. With the base now zero that bonus was the old gold seam still
 		// collecting rent, so it is gone — while jungle gems, which is what the rule was

@@ -435,12 +435,12 @@ namespace CivOne.Screens
 					move = 2;
 					break;
 				case Terrain.Desert:
-					DrawTerrainTextValues(ref yy, "Desert", "0", "1", "0", "1", "2", "1%");
-					DrawTerrainTextValues(ref yy, "Oil", "0", "4", "0", "1", "5", "1%");
+					DrawTerrainTextValues(ref yy, "Desert", "0", "1", "0", "2*", "2", "1%");
+					DrawTerrainTextValues(ref yy, "Oil", "0", "4", "0", "2*", "5", "1%");
 					break;
 				case Terrain.Forest:
 					DrawTerrainTextValues(ref yy, "Forest", "1", "2");
-					DrawTerrainTextValues(ref yy, "Game", "3*", "2");
+					DrawTerrainTextValues(ref yy, "Game", "2", "2");
 					move = 2;
 					defense = 50;
 					break;
@@ -472,11 +472,11 @@ namespace CivOne.Screens
 					break;
 				case Terrain.Plains:
 					DrawTerrainTextValues(ref yy, "Plains", "1", "1", "0", "2", null, "1%");
-					DrawTerrainTextValues(ref yy, "Horses", "1", "3", "0", "2", null, "1%");
+					DrawTerrainTextValues(ref yy, "Horses", "1", "2", "0", "2", null, "1%");
 					break;
 				case Terrain.River:
-					DrawTerrainTextValues(ref yy, "River", "2", "0/1", "1%", "3*");
-					DrawTerrainTextValues(ref yy, "Gold", "2", "0/1", "4%", "3*");
+					DrawTerrainTextValues(ref yy, "River", "2", "0/1", "2%", "3*");
+					DrawTerrainTextValues(ref yy, "Gold", "2", "0/1", "5%", "3*");
 					defense = 50;
 					break;
 				case Terrain.Swamp:

@@ -28,7 +28,13 @@ namespace CivOne.Governments
 		// case, and it lets the AI reason about a government instead of matching
 		// on its type. Defaults reproduce the pre-refactor behaviour.
 
-		// Tile output: Anarchy and Despotism dock 1 from any tile producing 3+.
+		// Tile output under Anarchy and Despotism. NOT Civ 1's "dock 1 from any tile
+		// yielding 3+" — nothing here touches a tile's own output, so a 4-shield oil
+		// field is worth 4 under Despotism as under Democracy. What it withholds are
+		// the bonuses City.cs adds on top: irrigation food on desert, forest,
+		// grassland and river; mine shields on hills; and the special food on ocean
+		// and tundra. Every starred value on the Civilopedia's terrain pages is one
+		// of those three, and drops by exactly 1.
 		public bool TilePenalty { get; protected set; }
 
 		// Extra trade on roaded grass/plains, ocean and river (Republic, Democracy).
