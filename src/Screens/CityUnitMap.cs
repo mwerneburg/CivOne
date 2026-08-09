@@ -36,14 +36,11 @@ namespace CivOne.Screens
 			{
 				if (!Settings.RevealWorld && !Human.Visible(x, y)) continue;
 				ITile tile = Map[x, y];
-				Terrain type = tile.Type;
-				if (type == Terrain.Grassland2) type = Terrain.Grassland1;
-				// Shared terrain palette (Graphics/MiniMap) — the same one the sidebar
-				// minimap, the world map and the replay use. This read the SP299
-				// WorldMapTiles strip, which is a placeholder filled with index 1 when
-				// the original assets are absent: every terrain type came back BG0 and
-				// the whole map rendered black on black.
-				byte colour = MiniMap.TerrainColour(tile);
+				// Two colours, not the full terrain palette. This screen answers one
+				// question — where are this city's units — and a fully coloured world
+				// competes with the very dots it exists to show. Land and sea are all the
+				// context that question needs.
+				byte colour = tile.IsOcean ? CassetteTheme.OCEAN : CassetteTheme.INK_LOW;
 				_terrain.FillRectangle(ox + x * tw, oy + y * th, tw, th, colour);
 			}
 		}

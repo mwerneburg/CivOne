@@ -97,6 +97,14 @@ namespace CivOne.Screens.GamePlayPanels
 			int stage = (int)Math.Floor(((double)Human.Science / Human.ScienceCost) * 4);
 			_demographics.AddLayer(Icons.Lamp(stage), 4 + width, 22);
 
+			// Score, right-aligned on the YEAR line. It lived only behind the F5
+			// demographics screen, which is a strange place for the number the whole game
+			// is played for. Not the population line: the year is a fixed seven characters
+			// where the population runs to "500,000,000#", which collides with a four-digit
+			// score at 80px wide (SideBarLayoutTests). PHOS_DIM so it reads as a second
+			// value on a shared line rather than competing with the date.
+			_demographics.DrawText($"{Human.Score}", 0, CassetteTheme.PHOS_DIM, 77, 23, TextAlign.Right);
+
 			_demographics.DrawText($"{Human.Gold}$ {Human.LuxuriesRate}.{Human.TaxesRate}.{Human.ScienceRate}", 0, CassetteTheme.INK_MID, 2, 31, TextAlign.Left);
 
 			// Warming indicator: a small coloured dot in the bottom-right corner
