@@ -399,25 +399,29 @@ namespace CivOne.Graphics
 
 			switch(type)
 			{
-				// Placer gold: three nuggets scattered in the bed.
+				// Placer gold: three nuggets clustered on the tile CENTRE, which is where
+				// the water runs in every river_overlays.txt variant — and where they belong,
+				// since placer gold sits in the streambed, not on the bank. Safe to put them
+				// in the water because TileExtensions.ToBitmap layers the special AFTER the
+				// river, and the corners are the only reliably dry pixels anyway.
 				// outline=5(BORDER) body=12(PHOS/gold) highlight=13(PHOS_GLOW)
 				case Terrain.River:
 					return new Bytemap(16, 16).FromByteArray(
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  5, 12, 13, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  5, 12, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  5, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-						0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  5,  5,  5,  0,  0,  0,
-						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 13, 12, 12,  5,  0,  0,
-						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 12, 12, 12,  5,  0,  0,
-						0,  0,  0,  5,  5,  5,  0,  0,  0,  5,  5,  5,  5,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  5, 12, 13, 12,  5,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  5, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  5,  5,  5,  0,  0,  5,  5,  5,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 13, 12,  5,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  5, 12, 12, 12,  5,  0,  0,  0,
+						0,  0,  0,  5,  5,  5,  0,  0,  0,  5,  5,  5,  0,  0,  0,  0,
 						0,  0,  5, 12, 13, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  5, 12, 12, 12,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  5,  5,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 						0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 					);
 
