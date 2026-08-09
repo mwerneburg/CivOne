@@ -389,6 +389,9 @@ namespace CivOne
 				return;
 			}
 			_instance = new Game(difficulty, competition, tribe, leaderName, tribeName, tribeNamePlural);
+			// Before anything can flood or drain it: the Scavenger draw reads today's sea
+			// against this number.
+			_instance.CaptureOriginalOceanTiles();
 			WLTKNotifications.Clear();
 			DisorderNotifications.Clear();
 			DecisionLogger.BeginGame();

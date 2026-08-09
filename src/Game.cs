@@ -881,6 +881,21 @@ namespace CivOne
 		
 		internal ushort GlobalWarmingCount { get; set; }
 
+		// Ocean tiles the world was generated with, captured before any warming or extraction
+		// could move it. LarderScore reads today's sea against this, so the water half measures
+		// CHANGE — which is what its comment always claimed and what an absolute share against
+		// a fixed 0.60 constant could never deliver: every generated map is wetter than 0.60,
+		// so the term sat clamped at 1.000 in every game ever played and no flood or drought
+		// could shift it. Zero means "unknown" (a save written before this existed); callers
+		// fall back to the current count, which reads as an unchanged world.
+		internal int OriginalOceanTiles { get; set; }
+
+		internal void CaptureOriginalOceanTiles()
+		{
+			if (OriginalOceanTiles > 0) return;
+			OriginalOceanTiles = Map.Instance.AllTiles().Count(t => t is not null && t.IsOcean);
+		}
+
 		// Storm frequency: at most one landfall in the world per this many game years.
 		// Five is the player-facing number — in the 1-year-per-turn late game that is one
 		// storm every five turns worldwide, where it used to be several per turn.
@@ -1237,6 +1252,28 @@ namespace CivOne
 			}
 		}
 
+		// Every civilization loses points when the climate turns, escalating with the incident
+		// number: the first is a shock, the fifth is a policy. Uniform across civs and not
+		// apportioned by who smoked most — the atmosphere is not divisible, and a scoring rule
+		// that let a clean neighbour off the hook would be describing a different planet.
+		// Capped at the fifth incident so a runaway late game cannot erase an empire's whole
+		// history; by then the flooding itself is doing the punishing.
+		private const int WarmingPenaltyPerIncident = 5;
+		private const int WarmingPenaltyMaxSteps = 5;
+
+		private void ApplyWarmingScorePenalty()
+		{
+			int step = Math.Min((int)GlobalWarmingCount, WarmingPenaltyMaxSteps);
+			int penalty = step * WarmingPenaltyPerIncident;
+			foreach (Player p in _players)
+			{
+				// Barbarians keep no score worth docking.
+				if (p is null || PlayerNumber(p) == 0 || p.IsDestroyed()) continue;
+				p.AwardMilestone(-penalty);
+			}
+			Log($"[warming] incident {GlobalWarmingCount}: -{penalty} points to every civilization");
+		}
+
 		internal void HandleGlobalWarming()
 		{
 			int polluted = Map.AllTiles().Count(t => t.Pollution);
@@ -1324,6 +1361,8 @@ namespace CivOne
 					tile.Irrigation = false;
 				}
 			}
+
+			ApplyWarmingScorePenalty();
 
 			GameTask.Enqueue(Show.EventArt("globalwarming", "Global warming! Icecaps melt."));
 			// Advisor message belts-and-braces the art screen: if Autopilot dwell or a fast
@@ -2794,6 +2833,18 @@ namespace CivOne
 			// planet a poor target. A wide quiet wilderness is a full pantry.
 			double larder = LarderScore();
 			double pScavengers = ScavengerFloor + larder * ScavengerLarderWeight;
+
+			// A world that has never warmed is barely worth the detour. The larder answers
+			// "how much is here"; this answers "has anyone advertised it". An industrial
+			// civilization that has already changed its own climate is visible from a long
+			// way off — a quiet world is not, however full its pantry.
+			//
+			// The floor rather than zero, for the same reason the floor exists at all: a draw
+			// a careful player can drive to impossible stops being a threat and becomes a
+			// checklist. Keep the planet cool and they probably pass you by; nothing you do
+			// guarantees it.
+			if (GlobalWarmingCount == 0) pScavengers = ScavengerFloor;
+
 			if (pScavengers > ScavengerCeiling) pScavengers = ScavengerCeiling;
 
 			// Roll first, log after. Logging the probabilities alone made the draw unauditable:
@@ -2815,6 +2866,11 @@ namespace CivOne
 		private const double ScavengerFloor = 0.08;
 		private const double ScavengerLarderWeight = 0.34;
 		private const double ScavengerCeiling = 0.42;
+		// A 10% swing in the world's sea area spans the water half end to end, so a 5% rise
+		// takes it from the midpoint to full. Sized against the sea-level pass in
+		// HandleGlobalWarming, which drowns whole coastlines per event rather than a tile here
+		// and there.
+		private const double WaterSwellForFull = 0.10;
 
 		// 0..1: how much of the world is still untouched pantry. Two halves, weighted equally.
 		//
@@ -2849,11 +2905,19 @@ namespace CivOne
 			}
 
 			double minerals = specials > 0 ? (double)untouched / specials : 0.5;
-			int total = water + land;
-			double wet = total > 0 ? (double)water / total : 0;
-			// Against a nominal 60% ocean world: wetter than that reads as a full tank, drier
-			// as a picked-over one.
-			double waterShare = Math.Min(1.0, wet / 0.60);
+
+			// Against the world's OWN starting sea, not a constant. An unchanged world sits at
+			// the midpoint; drowned coastline reads as a fuller tank and lifted water as a
+			// picked-over one. WaterSwellForFull sets how much change spans half the range.
+			//
+			// This is also where "humanity abused the planet" enters the draw physically:
+			// every global warming event converts coast to ocean, so a civilization that has
+			// cooked its own atmosphere has literally made the cargo easier to collect.
+			int baseline = OriginalOceanTiles > 0 ? OriginalOceanTiles : water;
+			double ratio = baseline > 0 ? (double)water / baseline : 1.0;
+			double waterShare = 0.5 + (ratio - 1.0) / WaterSwellForFull;
+            if (waterShare < 0) waterShare = 0;
+            if (waterShare > 1) waterShare = 1;
 
 			return (minerals + waterShare) / 2.0;
 		}

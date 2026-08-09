@@ -97,6 +97,7 @@ namespace CivOne.Persistence
 		// pollution that DRIVES warming vanished on load too, so a long session with
 		// reloads could never accumulate toward an event at all.
 		public int GlobalWarmingCount { get; set; }
+		public int OriginalOceanTiles { get; set; }
 		// Year of the most recent hurricane anywhere in the world, for the global cooldown.
 		public int LastHurricaneYear { get; set; }
 		// Strategic resource camps: [x, y, ownerPlayerIdx] triples.
