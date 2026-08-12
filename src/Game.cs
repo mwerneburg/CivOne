@@ -1720,7 +1720,16 @@ namespace CivOne
 							.Sum(GrossOutput);
 						bool share = humanOut > 0 && humanOut * 2 > worldOut;
 
+						// Wars of the human's own making break the streak — but not wars against the
+						// story factions. Skynet is at war with everyone the moment it wakes, the
+						// Registry arrives to repossess the planet, and the Thing does not
+						// negotiate: there is no version of those conflicts a merchant could have
+						// declined, and striking back at a machine uprising is not the commercial
+						// aggression this clause exists to punish. Same exclusion econRivals uses
+						// above; deliberately NOT the one worldOut uses, which counts their
+						// economies because an occupied world has no commercial hegemon.
 						bool aggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+							&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
 							&& HumanPlayer.IsAtWar(p) && HumanStartedWars.Contains(PlayerNumber(p)));
 
 						bool Bound(Player r)

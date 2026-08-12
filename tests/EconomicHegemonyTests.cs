@@ -52,6 +52,26 @@ namespace CivOne.Tests
 			Assert.Contains("Skynet", block);
 		}
 
+		// The aggression clause: a war of the human's own making breaks the streak, but not one
+		// against a story faction. Skynet declares on everybody the moment it wakes and the
+		// Registry arrives to repossess the planet — there is no version of those wars a
+		// merchant could have declined, so striking back must not cost the streak. Reported
+		// from a real 1921 AD game where the human held twice the world's output, was at war
+		// only with the Machines, and could never have started counting.
+		[Fact]
+		public void TheAggressionClause_ExcludesTheStoryFactions()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+			int at = src.IndexOf("bool aggressing = _players.Any(");
+			Assert.True(at > 0, "the Pax Mercatoria aggression test has moved or been rewritten");
+			string block = src.Substring(at, src.IndexOf(';', at) - at);
+
+			Assert.Contains("TheOthers", block);
+			Assert.Contains("TheThing", block);
+			Assert.Contains("Skynet", block);
+		}
+
 		private static string RepoRoot()
 		{
 			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
