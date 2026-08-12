@@ -29,6 +29,18 @@ namespace CivOne.Tests
 			City c = g.AddCity(p, 0, 40, 25)!;
 			c.Size = 6;
 
+			// The HUMAN needs output of their own. At turn 0 the current player is not the
+			// human, and a human with no cities has GrossOutput 0 — which silently made the
+			// threshold test unable to tell "includes the human" from "excludes the human".
+			// The negative check caught that: zeroing the human's entry changed nothing.
+			if (g.HumanPlayer != p)
+			{
+				g.HumanPlayer.Government = new Monarchy();
+				g.HumanPlayer.Explore(60, 25, range: 10);
+				City hc = g.AddCity(g.HumanPlayer, 1, 60, 25)!;
+				hc.Size = 6;
+			}
+
 			for (int i = 0; i < snapshots; i++) g.RecordScoreSnapshot();
 			Sim.ClearTasks();
 			return g;
@@ -84,6 +96,27 @@ namespace CivOne.Tests
 				int idx = g.PlayerNumber(p) + 1;
 				Assert.Equal(g.GrossOutputOf(p), g.OutputHistory[^1][idx]);
 			}
+		}
+
+		// The threshold the output page draws is half the world's gross output — a number the
+		// player is asked to beat, so it must be computed from the same GrossOutputOf the
+		// victory uses and must include the human's own share in the denominator. Reported
+		// from a 1922 AD game where the line looked far too high; it was not the arithmetic
+		// (half was 5,303 against a human 7,202) but the line failing to draw at all with a
+		// single sample, while its legend was printed regardless.
+		[Fact]
+		public void TheHalfWorldThresholdIsHalfOfEveryoneIncludingYou()
+		{
+			Game g = AGameWithHistory(1);
+
+			int world = g.Players.Where(p => p is not null).Sum(g.GrossOutputOf);
+			var snap = g.OutputHistory[^1];
+			int fromSnapshot = 0;
+			for (int pi = 1; pi < snap.Length; pi++) fromSnapshot += snap[pi];
+
+			Assert.True(g.GrossOutputOf(g.HumanPlayer) > 0, "fixture gave the human no output to count");
+			Assert.Equal(world, fromSnapshot);
+			Assert.Equal(g.GrossOutputOf(g.HumanPlayer), snap[g.PlayerNumber(g.HumanPlayer) + 1]);
 		}
 
 		// The new series round-trip through a save. (A save written before they existed simply

@@ -84,11 +84,16 @@ namespace CivOne.Screens.Reports
 			{
 				pxPerTurn  = GraphW;
 				maxScrollX = 0;
+				_scrollX   = 0;
 			}
 			else if (n <= GraphW)
 			{
 				pxPerTurn  = (float)GraphW / (n - 1);
 				maxScrollX = 0;
+				// Reset, not just capped: the three pages share one scroll position and their
+				// histories are different lengths, so a position valid on the 472-sample score
+				// page pushes a 1-sample output page off the left edge entirely.
+				_scrollX   = 0;
 			}
 			else
 			{
@@ -146,8 +151,21 @@ namespace CivOne.Screens.Reports
 			// above HALF the world's gross output, so the useful reference is not a fixed
 			// value but a curve — half of the total of every civ at that same turn. A trace
 			// above this line is a turn that counted toward the streak.
-			if (_page == Page.Output && n > 0)
+			if (_page == Page.Output)
 			{
+				// Fewer than two samples means no segment to draw between — and this series
+				// starts empty on a save that predates it, so a player's first look at the
+				// page had a red legend promising a line that was never plotted. Fall back to
+				// a flat line at TODAY's threshold, which is the number they actually want.
+				if (n < 2)
+				{
+					int liveWorld = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf);
+					int fy = GraphBottom - (int)((liveWorld / 2.0) * pxPerScore);
+					fy = Math.Max(GraphTop, Math.Min(GraphBottom, fy));
+					for (int dx = 0; dx < GraphW; dx += 4)
+						this.FillRectangle(GraphLeft + dx, fy, 2, 1, CassetteTheme.ALERT);
+				}
+
 				int prevTx = int.MinValue, prevTy = int.MinValue;
 				for (int t = 0; t < n; t++)
 				{
@@ -296,7 +314,8 @@ namespace CivOne.Screens.Reports
 				string streak = $"PAX MERCATORIA STREAK {Game.EconStreak}/20";
 				byte col = Game.EconStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
-				this.DrawText("- - -  HALF OF WORLD OUTPUT", 0, CassetteTheme.ALERT,
+				int halfNow = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf) / 2;
+				this.DrawText($"- - -  HALF OF WORLD OUTPUT ({halfNow})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
 			}
 
