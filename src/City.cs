@@ -141,12 +141,36 @@ namespace CivOne
 			_cachedCitizens       = null;
 		}
 
+		// No cap. Civ 1 kept three per city because it was counting bytes on a 1991 budget,
+		// and the slot churn that produced was actively perverse: an AI caravan arriving in
+		// your city silently evicted a route you had built, and a trio of partner cities gave
+		// the whole world nine slots to fight over.
+		//
+		// One rule has to come with that, though, or the cap was the only thing holding the
+		// economy together: routes are now UNIQUE PER PARTNER. Nothing here ever checked, so a
+		// second caravan to the same city stacked a second full-value route on top of the
+		// first. Under the cap that was worth at most three; uncapped it is an unbounded money
+		// printer — send caravans to one city forever. A repeat delivery now refreshes the
+		// commodity instead of duplicating the route.
 		internal void AddTradeRoute(City partner, string commodity)
 		{
 			if (partner is null) return;
-			if (_tradeRoutes.Count >= 3) _tradeRoutes.RemoveAt(0);
+			_tradeRoutes.RemoveAll(r => r.Partner == partner);
 			_tradeRoutes.Add(new TradeRoute(this, partner, commodity));
 			InvalidateCache();
+		}
+
+		// A route that has stopped paying is dropped — the caravan's work has been undone by
+		// distance, a dead partner, or a war. Both ends go together: RouteBonus reads the
+		// PARTNER's trade, so the same pair is worth different amounts from each side and a
+		// one-sided prune would leave a phantom the other city still counts.
+		internal void PruneWorthlessRoutes()
+		{
+			foreach (TradeRoute route in _tradeRoutes.Where(r => r.Value <= 0).ToArray())
+			{
+				route.Partner.RemoveTradeRoutesTo(this);
+				RemoveTradeRoutesTo(route.Partner);
+			}
 		}
 
 		internal void RemoveTradeRoutesTo(City city)
@@ -1531,6 +1555,7 @@ namespace CivOne
 			InvalidateCache();
 			UpdateResources();
 			ExecutePollution();
+			PruneWorthlessRoutes();
 
 			// Cache expensive per-city computations once for the whole turn.
 			int shieldIncome = ShieldIncome;

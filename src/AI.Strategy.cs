@@ -1218,6 +1218,12 @@ namespace CivOne
 		// up the constitution mid-invasion is suicide), a neighbour we clearly outweigh, and
 		// a low roll. A world of civilised leaders still pacifies itself, which is the point
 		// of the government ladder — this stops it being the ONLY outcome.
+		// The most a commercial relationship can subtract from a war roll. 40 against the -15
+		// it replaced: with the three-route cap gone, a genuine trading partnership can now
+		// accumulate enough value to matter, and it should — but a war every other factor
+		// favours must still be reachable. Compare: a gift buys -15, being notably weaker -20.
+		private const int TradeDeterrentMax = 40;
+
 		private void ConsiderWarFooting()
 		{
 			if (_warAmbition > 0) return;
@@ -1489,15 +1495,30 @@ namespace CivOne
 				if (stillExpanding) chance -= 10;
 
 				// Trade deterrent: an AI profiting from trade routes with this civ is reluctant
-				// to wreck them. Sums the value of routes our cities hold with the enemy (either
-				// side's caravan may have built them), capped at -15 so a rich partner is
-				// meaningfully safer but a determined warmonger can still strike.
+				// to wreck them.
+				//
+				// Counted on BOTH sides. This used to sum only the deciding AI's own cities,
+				// which made a partner's investment invisible to the civ deciding whether to
+				// attack it — a player could run the richest trade relationship on the map and
+				// have it weigh nothing, because the ledger being read was the other one. What
+				// deters a war is the value of the relationship, and a relationship has two
+				// ends.
+				//
+				// Still capped, and deliberately. An uncapped deterrent means a rich enough
+				// trading partner can never be attacked by anybody, which does not make the AI
+				// peaceful so much as inert. TradeDeterrentMax is the most any commercial tie
+				// can be worth against a war that every other factor favours.
 				byte enemyNum = (byte)Game.PlayerNumber(enemy);
+				byte ownNum   = (byte)Game.PlayerNumber(Player);
 				int tradeValue = Player.Cities
 				    .SelectMany(c => c.TradeRoutes)
 				    .Where(r => r.Partner.Owner == enemyNum)
+				    .Sum(r => r.Value)
+				  + enemy.Cities
+				    .SelectMany(c => c.TradeRoutes)
+				    .Where(r => r.Partner.Owner == ownNum)
 				    .Sum(r => r.Value);
-				if (tradeValue > 0) chance -= Math.Min(15, tradeValue / 2);
+				if (tradeValue > 0) chance -= Math.Min(TradeDeterrentMax, tradeValue / 2);
 
 				// Goodwill deters aggression: a gift or aid package buys real safety
 				// for its duration, not just trade acceptance and quiet borders.

@@ -273,9 +273,19 @@ namespace CivOne.Screens
 			return true;
 		}
 
+		// The panel grows a line per route, and MOOD sits directly beneath it — so an uncapped
+		// route list would push both off the bottom of the column and the guard above would
+		// hide them entirely. The DATA is uncapped now; the display shows the most valuable
+		// few and counts the rest.
+		private const int TradeRoutesShown = 4;
+
+		private int TradePanelLines() =>
+			Math.Min(_city.TradeRouteCount, TradeRoutesShown)
+			+ (_city.TradeRouteCount > TradeRoutesShown ? 1 : 0);
+
 		private int TradePanelHeight(int fh)
 		{
-			int lines = Math.Max(1, _city.TradeRoutes.Count());
+			int lines = Math.Max(1, TradePanelLines());
 			return 8 + lines * fh + 8;
 		}
 
@@ -295,17 +305,21 @@ namespace CivOne.Screens
 			if (py + ph > BodyY + BodyH) return;
 			this.DrawCassettePanel(px, py, pw, ph, "TRADE");
 
-			var routes = _city.TradeRoutes.ToArray();
+			var routes = _city.TradeRoutes.OrderByDescending(r => r.Value).ToArray();
 			if (routes.Length == 0)
 			{
 				this.DrawText("NONE", 0, CassetteTheme.INK_LOW, px + 4, py + 8);
 				return;
 			}
-			for (int i = 0; i < routes.Length; i++)
+			int shown = Math.Min(routes.Length, TradeRoutesShown);
+			for (int i = 0; i < shown; i++)
 			{
 				string name = $"{routes[i].Partner.Name.ToUpper()} ({routes[i].Value})";
 				this.DrawText(name, 0, CassetteTheme.OK, px + 4, py + 8 + i * fh);
 			}
+			if (routes.Length > shown)
+				this.DrawText($"+{routes.Length - shown} MORE ({routes.Skip(shown).Sum(r => r.Value)})",
+					0, CassetteTheme.INK_LOW, px + 4, py + 8 + shown * fh);
 		}
 
 		private void DrawHappiness()
