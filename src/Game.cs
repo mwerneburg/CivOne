@@ -42,17 +42,36 @@ namespace CivOne
 		internal int[] SpaceshipComponent;
 		internal int[] SpaceshipModule;
 
-		// Per-turn score snapshots: each int[] is [gameTurn, score0, score1, ..., scoreN]
+		// Per-turn snapshots: each int[] is [gameTurn, value0, value1, ..., valueN].
+		// Three series, recorded together so their indices always line up — the report
+		// pages a single scroll position across all of them and a ragged history would
+		// draw one civ's culture against another turn's score.
 		private readonly List<int[]> _scoreHistory = new();
 		internal IReadOnlyList<int[]> ScoreHistory => _scoreHistory;
 
+		private readonly List<int[]> _cultureHistory = new();
+		internal IReadOnlyList<int[]> CultureHistory => _cultureHistory;
+
+		// Gross output is the Pax Mercatoria metric itself (GrossOutput) rather than gold or
+		// taxes: the victory is judged on trade arrows plus tribute, so the graph a player
+		// reads to gauge progress has to be the quantity the check actually uses.
+		private readonly List<int[]> _outputHistory = new();
+		internal IReadOnlyList<int[]> OutputHistory => _outputHistory;
+
 		internal void RecordScoreSnapshot()
 		{
-			var snap = new int[_players.Count + 1];
-			snap[0] = _gameTurn;
-			for (int i = 0; i < _players.Count; i++)
-				snap[i + 1] = _players[i].Score;
-			_scoreHistory.Add(snap);
+			int[] Snapshot(Func<Player, int> value)
+			{
+				var snap = new int[_players.Count + 1];
+				snap[0] = _gameTurn;
+				for (int i = 0; i < _players.Count; i++)
+					snap[i + 1] = value(_players[i]);
+				return snap;
+			}
+
+			_scoreHistory.Add(Snapshot(p => p.Score));
+			_cultureHistory.Add(Snapshot(p => p.Culture));
+			_outputHistory.Add(Snapshot(GrossOutput));
 		}
 
 		// True once the satellite-coverage intelligence report has fired
@@ -3100,6 +3119,10 @@ namespace CivOne
 		// Gross economic output for the Pax Mercatoria check: total trade arrows
 		// across the empire (tax-slider-proof; includes trade-route bonuses) plus
 		// tribute inflow.
+		// The report graphs the same quantity the victory is judged on; keeping one
+		// implementation means the graph can never drift from the check.
+		internal int GrossOutputOf(Player p) => GrossOutput(p);
+
 		private int GrossOutput(Player p)
 		{
 			byte num = PlayerNumber(p);

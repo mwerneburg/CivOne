@@ -345,6 +345,8 @@ namespace CivOne
 					DomeVictoryFired        = _domeVictoryFired,
 					CoexistenceFired        = _coexistenceFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
+					CultureHistory       = _cultureHistory.Select(s => s.ToList()).ToList(),
+					OutputHistory        = _outputHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
 					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
 				},
@@ -632,6 +634,14 @@ namespace CivOne
 			if (g.ScoreHistory is not null)
 				foreach (var entry in g.ScoreHistory)
 					_scoreHistory.Add(entry.ToArray());
+			// Absent in saves written before these existed. The report tolerates a short
+			// series rather than back-filling zeros, which would draw a cliff at the join.
+			if (g.CultureHistory is not null)
+				foreach (var entry in g.CultureHistory)
+					_cultureHistory.Add(entry.ToArray());
+			if (g.OutputHistory is not null)
+				foreach (var entry in g.OutputHistory)
+					_outputHistory.Add(entry.ToArray());
 
 			// Exploration credits
 			if (!string.IsNullOrEmpty(g.FirstExplorer))

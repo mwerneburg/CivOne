@@ -35,11 +35,40 @@ namespace CivOne.Screens.Reports
 		private int _scrollX;
 		private bool _dirty = true;
 
+		// Three views over the same graph. Score was the only one for a long time and culture
+		// rode along in brackets in the legend, which is a poor way to read a quantity that
+		// moves every turn. Output is here because the economic victory is otherwise unreadable
+		// from inside a game: Pax Mercatoria wants half the world's gross output for 20 turns
+		// and nothing on any screen said what your share was.
+		private enum Page { Score, Culture, Output }
+		private Page _page = Page.Score;
+
+		private string PageTitle => _page switch
+		{
+			Page.Culture => "CULTURAL WEIGHT",
+			Page.Output  => "ECONOMIC OUTPUT",
+			_            => "CIVILIZATION SCORE",
+		};
+
+		private System.Collections.Generic.IReadOnlyList<int[]> Series => _page switch
+		{
+			Page.Culture => Game.CultureHistory,
+			Page.Output  => Game.OutputHistory,
+			_            => Game.ScoreHistory,
+		};
+
+		private int LiveValue(Player p) => _page switch
+		{
+			Page.Culture => p.Culture,
+			Page.Output  => Game.GrossOutputOf(p),
+			_            => p.Score,
+		};
+
 		// ── draw ─────────────────────────────────────────────────────────────
 
 		private void Draw()
 		{
-			var history = Game.ScoreHistory;
+			var history = Series;
 			var players = Game.Players
 				.Where(p => !(p.Civilization is Barbarian))
 				.ToArray();
@@ -78,7 +107,7 @@ namespace CivOne.Screens.Reports
 						if (snap[pi] > maxScore) maxScore = snap[pi];
 			}
 			foreach (var p in players)
-				if (p.Score > maxScore) maxScore = p.Score;
+				if (LiveValue(p) > maxScore) maxScore = LiveValue(p);
 
 			int tickInterval = NiceInterval(maxScore);
 			int yTop         = ((maxScore / tickInterval) + 1) * tickInterval;
@@ -89,6 +118,11 @@ namespace CivOne.Screens.Reports
 			this.FillRectangle(0, GRAPH_TOP, Width, Height - GRAPH_TOP, CassetteTheme.BG0);
 
 			int fh = Resources.GetFontHeight(0);
+
+			// BaseReport painted the title once in its constructor; paging changes it, so the
+			// header band is repainted here rather than left saying SCORE on the culture page.
+			this.FillRectangle(0, 0, Width, 10, CassetteTheme.BG3)
+				.DrawText(PageTitle, 0, CassetteTheme.PHOS_GLOW, Width / 2, 2, TextAlign.Center);
 
 			// ── Y-axis grid and labels ───────────────────────────────────────
 
@@ -105,6 +139,35 @@ namespace CivOne.Screens.Reports
 
 			this.FillRectangle(GraphLeft - 1, GraphTop, 1, GraphH + 1, CassetteTheme.BORDER);
 			this.FillRectangle(GraphLeft - 1, GraphBottom, GraphW + 2, 1, CassetteTheme.BORDER);
+
+			// ── Pax Mercatoria threshold ─────────────────────────────────────
+
+			// On the output page only: the finish line itself. The victory wants the human
+			// above HALF the world's gross output, so the useful reference is not a fixed
+			// value but a curve — half of the total of every civ at that same turn. A trace
+			// above this line is a turn that counted toward the streak.
+			if (_page == Page.Output && n > 0)
+			{
+				int prevTx = int.MinValue, prevTy = int.MinValue;
+				for (int t = 0; t < n; t++)
+				{
+					int screenX = GraphLeft + (int)((t - _scrollX) * pxPerTurn);
+					if (screenX < GraphLeft - 1) { prevTx = int.MinValue; continue; }
+					if (screenX > GraphRight + 1) break;
+
+					var snap = history[t];
+					int worldTotal = 0;
+					for (int pi = 1; pi < snap.Length; pi++) worldTotal += snap[pi];
+					int screenY = GraphBottom - (int)((worldTotal / 2.0) * pxPerScore);
+					screenY = Math.Max(GraphTop, Math.Min(GraphBottom, screenY));
+
+					// Dashed, so it reads as a threshold rather than another civilization.
+					if (prevTx != int.MinValue && (t & 2) == 0)
+						DrawLine(prevTx, prevTy, screenX, screenY, CassetteTheme.ALERT);
+					prevTx = screenX;
+					prevTy = screenY;
+				}
+			}
 
 			// ── score traces ─────────────────────────────────────────────────
 
@@ -141,7 +204,7 @@ namespace CivOne.Screens.Reports
 				// If no history yet, plot current score as a single point
 				if (n == 0)
 				{
-					int score   = players[pi].Score;
+					int score   = LiveValue(players[pi]);
 					lastX = GraphLeft + GraphW / 2;
 					lastY = GraphBottom - (int)(score * pxPerScore);
 					lastY = Math.Max(GraphTop, Math.Min(GraphBottom, lastY));
@@ -158,7 +221,7 @@ namespace CivOne.Screens.Reports
 				// appeared to be plotted in the wrong order.
 				if (lastX != int.MinValue)
 				{
-					int liveY = GraphBottom - (int)(players[pi].Score * pxPerScore);
+					int liveY = GraphBottom - (int)(LiveValue(players[pi]) * pxPerScore);
 					liveY = Math.Max(GraphTop, Math.Min(GraphBottom, liveY));
 					if (liveY != lastY)
 					{
@@ -171,7 +234,7 @@ namespace CivOne.Screens.Reports
 				if (lastX != int.MinValue)
 				{
 					this.FillRectangle(lastX - 1, lastY - 1, 3, 3, col);
-					lineTips.Add((players[pi].Score, lastY, col));
+					lineTips.Add((LiveValue(players[pi]), lastY, col));
 				}
 			}
 
@@ -204,11 +267,11 @@ namespace CivOne.Screens.Reports
 			int lx = GraphLeft + 4;
 			int ly = GraphTop + 4;
 			int rank = 1;
-			foreach (var p in players.OrderByDescending(p => p.Score))
+			foreach (var p in players.OrderByDescending(LiveValue))
 			{
 				int  pIdx = (byte)p;
 				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
-				this.DrawText($"{rank++}. {p.TribeNamePlural}: {p.Score} ({p.Culture}c)", 0, col, lx, ly, TextAlign.Left);
+				this.DrawText($"{rank++}. {p.TribeNamePlural}: {LiveValue(p)}", 0, col, lx, ly, TextAlign.Left);
 				ly += fh + 1;
 			}
 
@@ -224,12 +287,25 @@ namespace CivOne.Screens.Reports
 				prevBottom = ty + fh;
 			}
 
+			// ── Pax Mercatoria streak ────────────────────────────────────────
+
+			// The number the player actually wants: how many consecutive turns of the twenty
+			// are banked. Nothing else in the game reports it.
+			if (_page == Page.Output)
+			{
+				string streak = $"PAX MERCATORIA STREAK {Game.EconStreak}/20";
+				byte col = Game.EconStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
+				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
+				this.DrawText("- - -  HALF OF WORLD OUTPUT", 0, CassetteTheme.ALERT,
+					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
+			}
+
 			// ── scroll hint ──────────────────────────────────────────────────
 
-			if (maxScrollX > 0)
 			{
-				int pct  = (int)(100.0 * _scrollX / maxScrollX);
-				string h = $"[ < > scroll  {pct}% ]";
+				string h = maxScrollX > 0
+					? $"[ < > scroll  {(int)(100.0 * _scrollX / maxScrollX)}%   TAB page ]"
+					: "[ TAB page ]";
 				this.DrawText(h, 0, CassetteTheme.INK_LOW,
 				              Width / 2, GraphBottom + 2 + fh + 1, TextAlign.Center);
 			}
@@ -291,7 +367,14 @@ namespace CivOne.Screens.Reports
 
 		public override bool KeyDown(KeyboardEventArgs args)
 		{
-			int n          = Game.ScoreHistory.Count;
+			if (args.Key == Key.Tab)
+			{
+				_page  = _page == Page.Score ? Page.Culture : _page == Page.Culture ? Page.Output : Page.Score;
+				_dirty = true;
+				return true;
+			}
+
+			int n          = Series.Count;
 			int maxScrollX = Math.Max(0, n - 1 - GraphW);
 
 			if (maxScrollX > 0 && (args.Key == Key.Left || args.Key == Key.NumPad4))
