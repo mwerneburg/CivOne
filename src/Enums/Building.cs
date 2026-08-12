@@ -50,5 +50,7 @@ namespace CivOne.Enums
 		ResearchGrant = 37,
 		BreedingShrine = 38,
 		CascadeCathedral = 39,
+		// Appended, never renumbered: building ids are written into saves.
+		Harbour = 40,
 	}
 }

@@ -301,6 +301,9 @@ namespace CivOne
 					HumanStartedWars        = HumanStartedWars.Count > 0
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
+					LastColonistGrant       = LastColonistGrant.Count > 0
+					                          ? LastColonistGrant.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList()
+					                          : null!,
 					Provocations            = Provocations.Count > 0
 					                          ? Provocations.Select(kv => new[] { (int)kv.Key, kv.Value }).ToList()
 					                          : null!,
@@ -570,6 +573,9 @@ namespace CivOne
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)
 						HumanStartedWars.Add((byte)n);
+			if (g.LastColonistGrant is not null)
+				foreach (int[] pair in g.LastColonistGrant)
+					LastColonistGrant[(byte)pair[0]] = (uint)Math.Max(0, pair[1]);
 			if (g.Provocations is not null)
 				foreach (int[] pair in g.Provocations)
 					if (pair.Length == 2 && pair[0] > 0 && pair[0] < _players.Count)

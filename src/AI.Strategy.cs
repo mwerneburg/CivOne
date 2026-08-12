@@ -3375,6 +3375,14 @@ namespace CivOne
 			// of the standard infrastructure chain.
 			if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) Consider(new Granary());
 
+			// ...and the Harbour beside it, for the same reason and from the same advance. A
+			// coastal city working ocean tiles cannot grow without one, so for those cities
+			// this IS the growth building — a Granary only halves the food already coming in,
+			// while the Harbour is what makes any come in at all.
+			if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Harbour>()
+			    && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean && !Map.Instance.IsFreshwaterAt(t.X, t.Y)))
+				Consider(new Harbour());
+
 			// Barracks is deliberately NOT considered here. It only makes future units
 			// veteran — no growth, no expansion, no immediate defense — yet it used to sit
 			// at slot #4 ahead of Settlers and infrastructure, so tiny AI cities burned
@@ -3490,6 +3498,14 @@ namespace CivOne
 			if (stance == StrategyStance.Expand && ownCities >= 3)
 			{
 				if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Granary>()) Consider(new Granary());
+
+			// ...and the Harbour beside it, for the same reason and from the same advance. A
+			// coastal city working ocean tiles cannot grow without one, so for those cities
+			// this IS the growth building — a Granary only halves the food already coming in,
+			// while the Harbour is what makes any come in at all.
+			if (Player.HasAdvance<Pottery>() && !city.HasBuilding<Harbour>()
+			    && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean && !Map.Instance.IsFreshwaterAt(t.X, t.Y)))
+				Consider(new Harbour());
 				if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
 				int minSize = Leader.Development == Expansionistic ? 3
 				            : Leader.Development == Normal          ? 4 : 4;

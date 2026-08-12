@@ -338,6 +338,10 @@ namespace CivOne
 			}
 			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
 			if (tile.IsOcean && HasBuilding<SeaPlatform>()) output += 1;
+			// A Harbour feeds the whole worked ocean ring. Stacks with the Sea Platform:
+			// one is a fishing fleet, the other floating farmland, and a city that has
+			// built both has earned its three food a tile.
+			if (tile.IsOcean && HasBuilding<Harbour>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirF))
 				output += OlvirFoodBonus(olvirF);
 			return Polluted(tile, output);
@@ -845,6 +849,7 @@ namespace CivOne
 					if (HasBuilding<Palace>() && building is Courthouse) continue;
 					if (building is Shipyard && !coastal) continue;
 					if (building is SeaPlatform && !coastal) continue;
+					if (building is Harbour && !coastal) continue;
 					if (building is HydroPlant && !CityTiles.Any(t => t.Type == Terrain.River)) continue;
 					yield return building;
 				}

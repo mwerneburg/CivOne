@@ -2107,6 +2107,7 @@ namespace CivOne
 				// Cultural defection: disorderly frontier towns may choose a more
 				// admired civilization's flag.
 				Tick("CultureDefections", ProcessCultureDefections);
+				Tick("ColonistGrants", ProcessColonistGrants);
 
 				// Gozira falls: the rampage ends when the kaiju is destroyed.
 				if (GoziraState == 1 && !_units.Any(u => u is Units.Gozira))
@@ -4196,6 +4197,65 @@ namespace CivOne
 			GameTask.Enqueue(Message.Newspaper(null!, "It rises from the sea!",
 				$"{port.Name} reports a shape", "taller than the lighthouse."));
 			Log($"Gozira awakened at ({shore.X},{shore.Y}) — course: {port.Name} (detonator {detonator.TribeName})");
+		}
+
+		// ── Colonist grants ──────────────────────────────────────────────────
+		// The rung below AI.cs's `lastChance` rule, which lets a civ with ZERO cities found
+		// one regardless of the usual expansion gates so it does not become a permanent
+		// zombie. This is for the civ that is stuck rather than dead.
+		//
+		// Measured from a finished 492-turn game: the Aztecs founded exactly one city, on
+		// turn 0, on thirteen mountain tiles, and never founded another in five centuries.
+		// They ended with three units, no settler, and 25 advances against the leaders' 83.
+		// They were not losing a war; they had nothing to build a settler WITH — a size-3
+		// city on mountains cannot spare the shields or the population point.
+		//
+		// So: an unsupported colonist, arriving where a stuck civ can use it. Not a city —
+		// the AI chooses where to settle, and if there is genuinely nowhere it improves
+		// terrain instead. Unsupported (SetHome(null)) because a size-2 city cannot carry
+		// the upkeep of the thing meant to rescue it, and the unit panel showing NONE is
+		// exactly the honest label for a gift.
+		private const int ColonistGrantFirstTurn = 100;   // let a slow start be a slow start
+		private const int ColonistGrantCooldown  = 50;    // per civ
+		private const int ColonistGrantMaxCities = 2;
+
+		internal readonly Dictionary<byte, uint> LastColonistGrant = new();
+
+		private void ProcessColonistGrants()
+		{
+			if (_gameTurn < ColonistGrantFirstTurn) return;
+
+			foreach (Player p in _players)
+			{
+				if (p is null || p.IsDestroyed()) continue;
+				byte num = PlayerNumber(p);
+				// Not the human — this is an AI floor, not a difficulty setting — and not the
+				// horde or the story factions, none of which expand by settling.
+				if (num == 0 || p == HumanPlayer) continue;
+				if (p.Civilization is Civilizations.Barbarian or Civilizations.Olvir
+				                   or Civilizations.TheOthers or Civilizations.TheThing
+				                   or Civilizations.Skynet) continue;
+
+				City[] cities = _cities.Where(c => c.Owner == num && c.Size > 0).ToArray();
+				if (cities.Length == 0 || cities.Length > ColonistGrantMaxCities) continue;
+
+				// A live settler means the civ already has the thing this would give it.
+				// Without this the grant would also be a population pump: a settler joining
+				// a city adds a citizen, so a civ that kept doing that would be handed free
+				// population every turn.
+				if (_units.Any(u => u.Owner == num && u is Units.Settlers)) continue;
+
+				if (LastColonistGrant.TryGetValue(num, out uint last)
+				    && _gameTurn - last < ColonistGrantCooldown) continue;
+
+				City home = cities.OrderByDescending(c => c.Size).First();
+				IUnit? colonist = CreateUnit(UnitType.Settlers, home.X, home.Y, num);
+				if (colonist is null) continue;
+				colonist.SetHome(null);
+				LastColonistGrant[num] = _gameTurn;
+				Log($"[colonist] {p.TribeNamePlural} granted an unsupported settler at {home.Name} "
+				  + $"({cities.Length} cities, turn {_gameTurn})");
+			}
 		}
 
 		// ── Cultural defection ───────────────────────────────────────────────

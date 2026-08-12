@@ -73,6 +73,7 @@ namespace CivOne.Persistence
 		// { playerNumber, count } pairs. Null on saves written before the Senate
 		// grievance rule existed, which the loader treats as "no grievances".
 		public List<int[]> Provocations { get; set; } = null!;
+		public List<int[]> LastColonistGrant { get; set; } = null!;
 
 		// [playerNumber, turnsRemaining] — universal condemnation for a nuclear strike on
 		// people. Absent in saves written before the mechanic existed, which reads as
