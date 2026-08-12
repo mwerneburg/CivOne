@@ -297,6 +297,7 @@ namespace CivOne
 					                          ? ThingOutbreaks.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
 					EconStreak              = EconStreak,
+					CultureStreak           = CultureStreak,
 					HumanStartedWars        = HumanStartedWars.Count > 0
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
@@ -564,6 +565,7 @@ namespace CivOne
 					if (triple.Length == 3)
 						ThingOutbreaks[(triple[0], triple[1])] = (uint)triple[2];
 			EconStreak = g.EconStreak;
+			CultureStreak = g.CultureStreak;
 			if (g.HumanStartedWars is not null)
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)

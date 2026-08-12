@@ -130,6 +130,9 @@ namespace CivOne
 		// human started — only those wars break the streak; defensive wars don't.
 		internal uint EconStreak;
 
+		// Cultural Ascendancy: consecutive turns holding the conditions below.
+		internal uint CultureStreak;
+
 		// Timestamp of the last full-round wrap, for TurnMetrics wall-clock timing.
 		private long _turnClock;
 		internal readonly HashSet<byte> HumanStartedWars = new();
@@ -1787,6 +1790,76 @@ namespace CivOne
 					}
 				}
 
+				// ── Cultural ascendancy ──────────────────────────────────────────────
+				// The peaceful mirror of conquest: hold enough of the world living in your
+				// cultural shadow, by a margin nobody can mistake, for 20 consecutive turns.
+				// Cities come to you rather than being taken — the same pull that makes a
+				// small unhappy town change flags, measured as a standing condition instead
+				// of an 8%-a-turn accident.
+				{
+					Player[] cultRivals = _players.Where(p => p is not null && p != HumanPlayer
+						&& !p.IsDestroyed() && PlayerNumber(p) != 0
+						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
+
+					if (HumanPlayer.HasAdvance<Philosophy>() && cultRivals.Length >= 3)
+					{
+						int shadow  = CulturalShadow(HumanPlayer);
+						int runnerUp = cultRivals.Max(p => p.Culture);
+						bool admired = HumanPlayer.Culture >= runnerUp * CultureLeadMultiple && HumanPlayer.Culture > 0;
+						bool reach   = shadow >= CulturalShadowTarget;
+
+						// Same clause and the same story-faction exclusion as Pax Mercatoria:
+						// a war you started is incompatible with being admired, but the
+						// Machines and the Registry were never yours to decline.
+						bool cultAggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+							&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
+							&& HumanPlayer.IsAtWar(p) && HumanStartedWars.Contains(PlayerNumber(p)));
+
+						if (admired && reach && !cultAggressing)
+						{
+							CultureStreak++;
+							if (CultureStreak == 1)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"The world looks to us.",
+									$"{shadow} foreign cities live in",
+									"our shadow. Hold for 20 years."));
+							else if (CultureStreak == 10)
+								GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
+									"Our arts and learning", "are the world's measure."));
+
+							if (CultureStreak >= 20)
+							{
+								HumanPlayer.AwardMilestone(150);
+								DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn);
+								int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
+								string? cultArt = Screens.EventArtScreen.FindPath("CulturalAscendancy");
+								if (cultArt is not null)
+									GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(cultArt,
+										"CULTURAL ASCENDANCY — THE WORLD KEEPS YOUR CALENDAR")));
+								GameTask.Enqueue(Message.Newspaper(null!, "Cultural Ascendancy!",
+									"The world does not obey us.", "It imitates us."));
+								GameTask cultFt;
+								GameTask.Enqueue(cultFt = Show.Screen(new Screens.Reports.FinalScore("Cultural Ascendancy")));
+								cultFt.Done += (s, a) => EndSequence.ChainAfterFinal(cultFame, () => Runtime.Quit());
+								return;
+							}
+						}
+						else if (CultureStreak > 0)
+						{
+							string why = !admired ? "Our arts no longer stand above the world's."
+								: !reach ? "Fewer nations live in our shadow."
+								: "Wars of our making tarnish our name.";
+							CultureStreak = 0;
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"Our influence wanes.", why, "The streak is broken."));
+						}
+					}
+					else if (CultureStreak > 0)
+					{
+						CultureStreak = 0;
+					}
+				}
+
 				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
 				for (int p = 1; p < _players.Count; p++)
 				{
@@ -3131,6 +3204,55 @@ namespace CivOne
 		// The report graphs the same quantity the victory is judged on; keeping one
 		// implementation means the graph can never drift from the check.
 		internal int GrossOutputOf(Player p) => GrossOutput(p);
+
+		// How many foreign cities live in this civilization's cultural shadow: within 5 tiles
+		// of one of its own cities, owned by somebody holding less than a third of its culture.
+		//
+		// That is deliberately the SAME test ProcessCultureDefections uses to decide whether a
+		// city may flip, minus the dice, the disorder and the garrison. Defection is the rare,
+		// headline expression of cultural pull; this is the standing measure of it, and a
+		// victory built on the flips themselves would be luck — 8% a turn on cities that
+		// happen to be rioting, at most one per turn in the whole world.
+		//
+		// Tile-set first, then one pass over the cities: the obvious nested loop is
+		// (own cities x world cities), which on a 255-city empire in a 1398-city world is
+		// 356,000 distance checks EVERY turn. Painting the covered tiles costs 121 per own
+		// city and turns the second half into a hash lookup.
+		internal int CulturalShadow(Player p)
+		{
+			byte num = PlayerNumber(p);
+			long threshold = p.Culture;   // foreign owner must hold less than a third
+			if (threshold <= 0) return 0;
+
+			var covered = new HashSet<(int, int)>();
+			foreach (City c in _cities.Where(c => c.Owner == num && c.Size > 0))
+				for (int dy = -CulturalShadowRange; dy <= CulturalShadowRange; dy++)
+				for (int dx = -CulturalShadowRange; dx <= CulturalShadowRange; dx++)
+					covered.Add((c.X + dx, c.Y + dy));
+
+			int count = 0;
+			foreach (City c in _cities)
+			{
+				if (c.Size <= 0 || c.Owner == num || c.Owner == 0) continue;
+				Player owner = GetPlayer(c.Owner);
+				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers
+				                       or Civilizations.TheThing or Civilizations.Skynet) continue;
+				if (owner.Culture * 3 >= threshold) continue;
+				if (covered.Contains((c.X, c.Y))) count++;
+			}
+			return count;
+		}
+
+		// Matches the 5-tile reach in ProcessCultureDefections. One constant, one meaning.
+		internal const int CulturalShadowRange = 5;
+
+		// Cities in shadow needed for the win, scaled to the map the way the AI's expansion
+		// target is: 6 on a standard 80-wide world, 24 on a 320-wide epic one. A fixed count
+		// would be trivial on an epic map and impossible on a small one.
+		internal int CulturalShadowTarget => 6 * Math.Max(1, Map.WIDTH / 80);
+
+        // The runner-up must be beaten by this multiple: admiration, not a narrow lead.
+        internal const int CultureLeadMultiple = 2;
 
 		private int GrossOutput(Player p)
 		{

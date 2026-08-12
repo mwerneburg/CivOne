@@ -67,6 +67,7 @@ namespace CivOne.Persistence
 		// Economic-dominance streak (consecutive qualifying turns) and the player
 		// numbers of wars the human started (defensive wars don't break the streak).
 		public uint EconStreak { get; set; }
+		public uint CultureStreak { get; set; }
 		public int[] HumanStartedWars { get; set; } = null!;
 		// Hostile diplomat acts (sabotage, incite) committed against the HUMAN, as
 		// { playerNumber, count } pairs. Null on saves written before the Senate

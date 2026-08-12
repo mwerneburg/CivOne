@@ -145,6 +145,33 @@ namespace CivOne.Screens.Reports
 			this.FillRectangle(GraphLeft - 1, GraphTop, 1, GraphH + 1, CassetteTheme.BORDER);
 			this.FillRectangle(GraphLeft - 1, GraphBottom, GraphW + 2, 1, CassetteTheme.BORDER);
 
+			// ── Cultural ascendancy threshold ────────────────────────────────
+
+			// The bar the human must clear: the best rival's culture times the required
+			// margin. Flat, because it is a live comparison rather than a historical curve —
+			// the culture series records each civ, not the bar.
+			if (_page == Page.Culture)
+			{
+				int best = Game.Players
+					.Where(p => p is not null && p != Human && !p.IsDestroyed() && !(p.Civilization is Barbarian))
+					.Select(p => p.Culture).DefaultIfEmpty(0).Max();
+				int bar = best * Game.CultureLeadMultiple;
+				int by  = GraphBottom - (int)(bar * pxPerScore);
+				if (by >= GraphTop && by <= GraphBottom)
+					for (int dx = 0; dx < GraphW; dx += 4)
+						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
+
+				int shadow = Game.CulturalShadow(Human);
+				byte scol = Game.CultureStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
+				this.DrawText($"CULTURAL ASCENDANCY STREAK {Game.CultureStreak}/20", 0, scol,
+					GraphRight - 4, GraphTop + 4, TextAlign.Right);
+				this.DrawText($"CITIES IN OUR SHADOW {shadow}/{Game.CulturalShadowTarget}", 0,
+					shadow >= Game.CulturalShadowTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
+					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
+				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST RIVAL ({bar})", 0, CassetteTheme.ALERT,
+					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
+			}
+
 			// ── Pax Mercatoria threshold ─────────────────────────────────────
 
 			// On the output page only: the finish line itself. The victory wants the human
