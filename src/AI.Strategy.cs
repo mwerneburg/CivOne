@@ -2207,8 +2207,9 @@ namespace CivOne
 			if (!Game.Instance.GetUnits().Any(u => u.Owner == 0 && IsMegafauna(u))) return;
 
 			byte own = Game.PlayerNumber(Player);
+			// Any land unit, not just the ones filed as attackers — see HuntQuarry for why.
 			foreach (IUnit unit in Game.Instance.GetUnits()
-				.Where(u => u.Owner == own && u.Role == UnitRole.LandAttack && (u.Fortify || u.Sentry))
+				.Where(u => u.Owner == own && u.Class == UnitClass.Land && (u.Fortify || u.Sentry))
 				.ToArray())
 			{
 				if (HuntQuarry(unit) is null) continue;
@@ -2221,9 +2222,29 @@ namespace CivOne
 			}
 		}
 
+		// Eligibility is CAPABILITY, not job title. It used to be Role == LandAttack, which is
+		// how a civ could own the answer and never be offered it: in the 1804 AD Scavenger
+		// game the Lakota held 8 MechInf — attack 6, exactly enough for a defence-6 harvester
+		// — with ten of their cities inside the hunt radius of one, and not one was ever
+		// considered, because MechInf is filed Role.Defense. Their other 104 units were
+		// Musketeers and Riflemen, and the Haida's entire 61-unit army topped out at attack 3.
+		// Forty-six harvesters drank that world with nineteen of them parked next to a city.
+		//
+		// The attack >= defence test below already refuses anything that cannot win, so the
+		// role test was contributing nothing except the exclusion.
+		//
+		// (It does not fix a civ that owns nothing capable — the Haida need to BUILD something,
+		// which is the production-priority half and is not this.)
 		internal IUnit? HuntQuarry(IUnit hunter)
 		{
 			if (hunter.Attack == 0) return null;
+			if (hunter.Class != UnitClass.Land) return null;
+			// Widening past the attack roles means garrisons are now eligible, so the garrison
+			// has to be protected explicitly: never send the last unit holding a city. Marching
+			// the sole defender out to kill a harvester and losing the city to the next raider
+			// is a worse trade than the drained tiles.
+			if (IsSoleGarrison(hunter)) return null;
+
 			City[] cities = Player.Cities;
 			if (cities.Length == 0) return null;
 
@@ -2242,6 +2263,17 @@ namespace CivOne
 				.Where(u => cities.Any(c => Common.DistanceToTile(c.X, c.Y, u.X, u.Y) <= HuntRadius))
 				.OrderBy(u => Common.DistanceToTile(hunter.X, hunter.Y, u.X, u.Y))
 				.FirstOrDefault();
+		}
+
+		// Is this unit the only thing standing between one of our cities and whoever walks up
+		// next? Counts anything with a defence value on the city tile, not just Role.Defense —
+		// a stack of Armor holds a city perfectly well.
+		private static bool IsSoleGarrison(IUnit unit)
+		{
+			City? city = Map.Instance[unit.X, unit.Y]?.City;
+			if (city is null || city.Owner != unit.Owner) return false;
+			return !Game.Instance.GetUnits().Any(u => u != unit && u.Owner == unit.Owner
+				&& u.X == unit.X && u.Y == unit.Y && u.Class == UnitClass.Land && u.Defense > 0);
 		}
 
 		private City PickAttackTarget()
@@ -2771,19 +2803,25 @@ namespace CivOne
 				return;
 			}
 
+			// Hunt loose monsters before considering anybody's cities. See HuntQuarry: the
+			// offensive AI targets cities and nothing else, so barbarian megafauna standing in
+			// a civ's own fields were untouchable by anyone but a human.
+			//
+			// Deliberately OUTSIDE the LandAttack branch below. Inside it, a civ that builds
+			// only defenders — which is what a developed peaceful AI does — could never hunt
+			// anything, however capable its garrison. HuntQuarry vets the unit itself
+			// (capability, land, not the sole garrison), so everything that falls through to
+			// here is safe to offer.
+			IUnit? quarry = HuntQuarry(unit);
+			if (quarry is not null)
+			{
+				unit.Goto = new Point(quarry.X, quarry.Y);
+				return;
+			}
+
 			// Offensive land units
 			if (unit.Role == UnitRole.LandAttack)
 			{
-				// Hunt loose monsters before considering anybody's cities. See HuntQuarry:
-				// the offensive AI targets cities and nothing else, so barbarian megafauna
-				// standing in a civ's own fields were untouchable by anyone but a human.
-				IUnit? quarry = HuntQuarry(unit);
-				if (quarry is not null)
-				{
-					unit.Goto = new Point(quarry.X, quarry.Y);
-					return;
-				}
-
 				if (stance == StrategyStance.Militarize)
 				{
 					// Validate or refresh the civ-wide attack target.
