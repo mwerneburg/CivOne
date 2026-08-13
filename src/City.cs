@@ -1901,6 +1901,17 @@ namespace CivOne
 				else if (CurrentProduction is IBuilding currentBuilding && !_buildings.Any(b => b.Id == currentBuilding.Id))
 				{
 					Shields = 0;
+					// One per civilization, on the Palace's terms below: a second one MOVES the
+					// first. Kept separate from the Palace branch because none of what follows
+					// it applies — no Courthouse displacement, no capital-relocation cutscene.
+					//
+					// No need to exclude this city: the sweep runs BEFORE the add, and the
+					// branch condition above already established that this city does not hold
+					// one. An `x != this` guard here was dead code, and the negative check
+					// proved it by deleting it without breaking anything.
+					if (currentBuilding is MissionControl)
+						foreach (City other in Game.Instance.GetCities().Where(c => c.Owner == Owner))
+							other.RemoveBuilding<MissionControl>();
 					if (CurrentProduction is Palace)
 					{
 						foreach (City city in Game.Instance.GetCities().Where(c => c.Owner == Owner))

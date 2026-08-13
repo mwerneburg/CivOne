@@ -52,5 +52,6 @@ namespace CivOne.Enums
 		CascadeCathedral = 39,
 		// Appended, never renumbered: building ids are written into saves.
 		Harbour = 40,
+		MissionControl = 41,
 	}
 }
