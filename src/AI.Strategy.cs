@@ -3627,7 +3627,18 @@ namespace CivOne
 					// A conqueror builds the army before the aqueduct. RepublicDemocratic
 					// civs cannot field attackers at all, so they get nothing here and fall
 					// through to the ordinary chain.
-					if (!Player.RepublicDemocratic) Consider(BestAttacker());
+					//
+					// Subject to the SAME unit ceiling the production fallback applies at the
+					// bottom of this method, and for the same reason: an ambition to conquer
+					// is not a licence to keep building spearmen a one-city civ cannot feed.
+					// Without this, the path entry ran ahead of the ceiling and re-created the
+					// exact pathology the glut guard was written for — measured as France's
+					// 236 Militia in 241 production decisions, and caught here by the test
+					// that guards it. A civ actually at war still arms without limit: the
+					// Militarize stance branch below is reached before the ceiling applies.
+					int conqUnits = Game.GetUnits().Count(u => u.Owner == Game.PlayerNumber(Player));
+					if (!Player.RepublicDemocratic && conqUnits <= Player.Cities.Length * 3)
+						Consider(BestAttacker());
 					break;
 
 				case VictoryPath.Commerce:

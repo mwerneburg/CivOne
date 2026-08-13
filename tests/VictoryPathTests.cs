@@ -17,6 +17,7 @@ using CivOne.Advances;
 using CivOne.Buildings;
 using CivOne.Enums;
 using CivOne.Leaders;
+using CivOne.Units;
 
 namespace CivOne.Tests
 {
@@ -185,6 +186,42 @@ namespace CivOne.Tests
 			int ship = System.Array.FindIndex(plan, x => x is ISpaceShip);
 
 			Assert.True(ship != 0, "a conqueror led its plan with a spaceship part");
+		}
+
+		// An ambition is not a licence. The Conquest entry runs ahead of the production
+		// fallback's unit ceiling, so without its own copy of that ceiling it re-created the
+		// pathology the glut guard exists for — a one-city civ holding eight Militia asking
+		// for a ninth. Caught by TerraformAndStormTests.GlutWithNothingCivicToBuild only after
+		// the full suite ran; the filtered run was green.
+		[Fact]
+		public void AConquerorOverTheUnitCeilingStopsAsking()
+		{
+			(Game g, Player p) = AWorld();
+			Temperament(p, war: 2.0, science: 0);
+			City c = AddCity(g, p, 0, 40);
+			byte n = g.PlayerNumber(p);
+			for (int i = 0; i < 8; i++) g.CreateUnit(UnitType.Militia, 40, 25, n);
+			Assert.Equal("Conquest", PathName(p));
+
+			IProduction[] plan = Plan(p, c);
+			int attacker = System.Array.FindIndex(plan, x => x is IUnit u && u.Role == UnitRole.LandAttack);
+
+			Assert.True(attacker != 0, "a glutted conqueror led its plan with another attacker");
+		}
+
+		// ...and one below the ceiling still arms, or the path means nothing.
+		[Fact]
+		public void AConquerorBelowTheCeilingStillArms()
+		{
+			(Game g, Player p) = AWorld();
+			Temperament(p, war: 2.0, science: 0);
+			City c = AddCity(g, p, 0, 40);
+			g.CreateUnit(UnitType.Musketeers, 40, 25, g.PlayerNumber(p));
+			Assert.Equal("Conquest", PathName(p));
+
+			IProduction[] plan = Plan(p, c);
+
+			Assert.Contains(plan, x => x is IUnit u && u.Role == UnitRole.LandAttack);
 		}
 
 		// ── research weights ──────────────────────────────────────────────────────
