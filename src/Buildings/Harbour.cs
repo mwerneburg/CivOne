@@ -48,7 +48,14 @@ namespace CivOne.Buildings
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
-		public Harbour() : base(6, 1)
+		// 40 shields, a third under the Granary's 60 and level with a Temple. Measured, not
+		// guessed: in a finished 750-turn run, 18 coastal cities were still stalled WITHOUT a
+		// harbour, and they were the tiny ones — Larsa at size 3 with thirteen ocean tiles and
+		// zero buildings, Kaifeng at size 2 with sixteen. A city producing one or two shields a
+		// turn cannot save sixty for the building that would feed it, so the thing aimed at
+		// starving cities was priced beyond starvation's reach. The catch-22 is the point of
+		// this number.
+		public Harbour() : base(4, 1)
 		{
 			Name = "Harbour";
 			RequiredTech = new Pottery();

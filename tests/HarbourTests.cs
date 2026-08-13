@@ -145,6 +145,17 @@ namespace CivOne.Tests
 			return dir!.FullName;
 		}
 
+		// Priced under the Granary, deliberately. A relative assertion rather than a magic
+		// number: what matters is that the building aimed at starving cities is not the more
+		// expensive of the two growth buildings, whatever either costs later.
+		[Fact]
+		public void ItCostsLessThanAGranary()
+		{
+			Sim.EnsureRuntime();   // building constructors load their sprite-sheet icons
+			Assert.True(new Harbour().Price < new Granary().Price,
+				$"harbour {new Harbour().Price} vs granary {new Granary().Price}");
+		}
+
 		// The art is shipped: a missing PNG degrades silently to the sprite-sheet icon.
 		[Fact]
 		public void TheArtIsShipped()

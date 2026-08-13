@@ -69,8 +69,13 @@ namespace CivOne.Screens.Reports
 		private void Draw()
 		{
 			var history = Series;
+			// Destroyed civilizations are excluded, not just barbarians. A dead civ kept its
+			// place in the legend with a frozen score forever — the `Romans: 0 / Greeks: 0`
+			// rows on the economic page were not struggling empires, they were corpses, and
+			// they made a standings list read as though a dozen rivals were still in play.
+			// The chronicle and the decision log still hold their history.
 			var players = Game.Players
-				.Where(p => !(p.Civilization is Barbarian))
+				.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
 				.ToArray();
 
 			// ── layout ──────────────────────────────────────────────────────

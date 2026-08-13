@@ -119,6 +119,30 @@ namespace CivOne.Tests
 			Assert.Equal(g.GrossOutputOf(g.HumanPlayer), snap[g.PlayerNumber(g.HumanPlayer) + 1]);
 		}
 
+		// Destroyed civilizations are not standings. They kept their place in the legend with a
+		// frozen score forever, which is how a finished game showed four rivals on 0 output as
+		// though they were merely poor rather than gone.
+		[Fact]
+		public void TheGraphLeavesOutDestroyedCivilizations()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Screens", "Reports", "CivilizationScore.cs"));
+			int at = src.IndexOf("var players = Game.Players");
+			Assert.True(at > 0, "the player filter has moved or been rewritten");
+			string block = src.Substring(at, src.IndexOf(';', at) - at);
+
+			Assert.Contains("IsDestroyed", block);
+		}
+
+		private static string RepoRoot()
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			Assert.NotNull(dir);
+			return dir!.FullName;
+		}
+
 		// The new series round-trip through a save. (A save written before they existed simply
 		// has no such keys and loads with an empty history — the report tolerates a short
 		// series rather than back-filling zeros, which would draw a cliff at the join.)
