@@ -741,6 +741,16 @@ namespace CivOne
 		// the victory screens on every subsequent call before the game quits.
 		private bool _conquestVictoryFired = false;
 
+		// The same guard for the three endings that lacked one. Every ending in EndTurn is
+		// reached from a condition that STAYS TRUE once met — a streak sitting at 20, a year
+		// past 2100 — while the screen chain that ends in Runtime.Quit() takes several rounds
+		// to drain. Until it does, the block fires again every round: the milestone awarded
+		// again, the fame roster written again, the newspaper stacked. Found on Diaspora,
+		// where a test expecting +200 read +600, then confirmed present here.
+		private bool _econVictoryFired = false;
+		private bool _cultVictoryFired = false;
+		private bool _scoreVictoryFired = false;
+
 		internal static readonly Wonders.IWonder[] DomeFiveComponents =
 		{
 			new Wonders.DomeEmitterArray(),
@@ -1772,8 +1782,9 @@ namespace CivOne
 								GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
 									"The world's markets", "answer to us."));
 
-							if (EconStreak >= 20)
+							if (EconStreak >= 20 && !_econVictoryFired)
 							{
+								_econVictoryFired = true;
 								HumanPlayer.AwardMilestone(150);
 								DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn);
 								int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
@@ -1842,8 +1853,9 @@ namespace CivOne
 								GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
 									"Our arts and learning", "are the world's measure."));
 
-							if (CultureStreak >= 20)
+							if (CultureStreak >= 20 && !_cultVictoryFired)
 							{
+								_cultVictoryFired = true;
 								HumanPlayer.AwardMilestone(150);
 								DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn);
 								int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
@@ -2043,8 +2055,9 @@ namespace CivOne
 
 				// 2100 AD: game ends by score — waived if the SETI storyline is active,
 				// since the alien contact arc has its own endings (dome, probe result).
-				if (Common.TurnToYear(_gameTurn) >= 2100 && !SETISignalReceived)
+				if (Common.TurnToYear(_gameTurn) >= 2100 && !SETISignalReceived && !_scoreVictoryFired)
 				{
+					_scoreVictoryFired = true;
 					Player winner = _players
 						.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
 						.OrderByDescending(p => p.Score)
