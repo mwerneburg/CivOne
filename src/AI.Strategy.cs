@@ -3407,6 +3407,35 @@ namespace CivOne
 			// deadlocks production forever (the Inca case).
 			if (hostileNear && defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 
+			// Food first, for a city that has actually stopped.
+			//
+			// Measured over the last 202 turns of the 2200 AD run: 1,011 production decisions
+			// were taken by AI cities of size <= 6 with a food income of zero or less — 285 of
+			// them size 2 — and the ranking was Caravan 14%, Diplomat 12%, Colosseum 10%,
+			// Observatory 7%, SAM Battery 7%. Granary was 2%, Aqueduct 1%, and the Harbour,
+			// which exists precisely to feed these cities, was chosen by exactly none of them
+			// (26 times in 7,475 decisions empire-wide).
+			//
+			// The growth block further down was never reached, because a starving city is
+			// usually also an unhappy or an under-garrisoned one, and both of those come first.
+			// So the food case gets its own entry ahead of them — but only when the city has
+			// genuinely stopped AND could still grow if fed.
+			//
+			// Disorder still outranks this: a rioting city produces nothing at all, so the
+			// happiness chain below keeps its priority in that case. This is for the quiet
+			// city that simply sits at size 2 forever.
+			if (city.FoodIncome <= 0 && !city.GrowthBlocked && !city.IsInDisorder
+			    && Player.HasAdvance<Pottery>())
+			{
+				// Harbour before Granary, and not interchangeable: a Granary halves the food
+				// already coming in, which is nothing when the income is nothing. The Harbour
+				// is what makes any come in at all on a city ringed by water.
+				if (!city.HasBuilding<Harbour>()
+				    && Map[city.X, city.Y].GetBorderTiles().Any(t => t.IsOcean && !Map.Instance.IsFreshwaterAt(t.X, t.Y)))
+					Consider(new Harbour());
+				if (!city.HasBuilding<Granary>()) Consider(new Granary());
+			}
+
 			// Preventive happiness: a city on the verge of disorder — unhappy citizens no
 			// longer outweighed by happy ones — builds a Temple (then Colosseum, then
 			// Cathedral) NOW, ahead of growth, military and settlers. Stance-independent and

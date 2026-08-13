@@ -1887,11 +1887,19 @@ namespace CivOne
 					}
 				}
 
-				// Check for spaceship launches (AI players only — human launches manually via SpaceShips screen)
+				// Check for spaceship launches (AI players only — human launches manually via
+				// SpaceShips screen).
+				//
+				// ...except under Autopilot, where the AI drives the human and there is nobody
+				// to press the button. Every other "AI runs the human" path already carries this
+				// exception — City.cs in five places, Game.Update, Game.Cos — and this one did
+				// not, so an autoplayed human accumulated ship parts forever and never launched.
+				// Observed in the 2200 AD run: the Malians finished the game with a Mission
+				// Control city and no ship, while two AI civs launched and arrived.
 				for (int p = 1; p < _players.Count; p++)
 				{
 					if (_players[p].IsDestroyed()) continue;
-					if (_players[p] == HumanPlayer) continue;
+					if (_players[p] == HumanPlayer && !Settings.Instance.Autopilot) continue;
 					int structural = SpaceshipStructural[p];
 					int component  = SpaceshipComponent[p];
 					int module     = SpaceshipModule[p];

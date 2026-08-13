@@ -50,6 +50,12 @@ using CivOne.Units;
 //   own_gold      int
 //   own_cities    int
 //   stance        string   AI stance label ("Chieftain", "Aggressive", etc.)
+//   has_granary   bool     city already holds a Granary
+//   has_harbour   bool     city already holds a Harbour
+//   coastal       bool     adjacent to salt water (Harbour eligibility)
+//   growth_blocked bool    cannot grow without an Aqueduct/Sewer
+//   disorder      bool     city is rioting
+//   pottery       bool     owner knows Pottery (gates Granary and Harbour)
 //   action        string   production name (e.g. "Settlers", "Granary")
 //
 //   --- game_outcome fields ---
@@ -377,6 +383,21 @@ namespace CivOne
 				KV("own_cities",    ownCities.Length),
 				KV("stance",        stance),
 				KV("has_room",      hasRoom),
+				// Why the food buildings were or weren't an option. The 2200 AD run showed
+				// 1,011 decisions by cities of size <= 6 with food income <= 0 choosing Caravan
+				// (14%), Diplomat (12%) and Colosseum (10%) while Granary sat at 2% and the
+				// Harbour at 0% — and the log could not say whether those cities already held
+				// the food building, were landlocked, were capped without an Aqueduct, or
+				// simply lacked Pottery. These six flags are exactly the gates on the
+				// food-first rule and the Consider entries below it, so the next run answers
+				// that question instead of leaving it to inference.
+				KV("has_granary",   city.HasBuilding<Buildings.Granary>()),
+				KV("has_harbour",   city.HasBuilding<Buildings.Harbour>()),
+				KV("coastal",       cityTile.GetBorderTiles()
+				                        .Any(t => t.IsOcean && !Map.Instance.IsFreshwaterAt(t.X, t.Y))),
+				KV("growth_blocked", city.GrowthBlocked),
+				KV("disorder",      city.IsInDisorder),
+				KV("pottery",       player?.HasAdvance<Advances.Pottery>() ?? false),
 				KV("action",        productionName),
 			}));
 		}
