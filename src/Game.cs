@@ -1921,9 +1921,22 @@ namespace CivOne
 							}
 						}
 					}
-					else if (SETISignalReceived)
+					else
 					{
-						// Story arc active: acknowledge the arrival but keep playing.
+						// Arrival is a MILESTONE, never an ending — signal or no signal.
+						//
+						// It used to end the game when the SETI signal had not been received: first
+						// ship to Alpha Centauri won outright, and an AI getting there first was
+						// Game Over for the human. That was Civ 1's rule, and it contradicts this
+						// game's premise. In a dark forest, leaving the solar system is not a
+						// victory condition, it is an act of exposure — and it cannot be one on the
+						// strength of ignorance, which is all "pre-signal" means. A civ that
+						// launches before it knows anything has taken the same risk as one that
+						// launches after; it simply hasn't been told.
+						//
+						// What the colony is worth is settled later, by whether it survives:
+						// Mission Control standing and twenty consecutive turns. Here it only
+						// gets founded.
 						if (humanWins)
 						{
 							HumanPlayer.AwardMilestone(100);
@@ -1933,9 +1946,9 @@ namespace CivOne
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived", acCaption));
 							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 								"Alpha Centauri II: colonised.",
-								DomeComplete
+								SETISignalReceived && DomeComplete
 									? "The Dome guards Earth."
-									: "The Dome must still be built.",
+									: "The colony must now hold.",
 								"Continue to 2200 AD."));
 							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;
 						}
@@ -1949,30 +1962,6 @@ namespace CivOne
 								break;
 							}
 						}
-					}
-					else
-					{
-						if (humanWins)
-						{
-							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: true, turns: _gameTurn);
-							int spaceFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Space Race Victory");
-							GameTask.Enqueue(Show.EventArt("spaceshiparrived", $"Spaceship reaches Alpha Centauri! Score: {HumanPlayer.Score}"));
-							GameTask spaceFt;
-							GameTask.Enqueue(spaceFt = Show.Screen(new FinalScore("Space Race Victory")));
-							spaceFt.Done += (s, a) => EndSequence.ChainAfterFinal(spaceFame, () => Runtime.Quit());
-						}
-						else
-						{
-							for (int p = 1; p < _players.Count; p++)
-							{
-								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-								GameTask.Enqueue(Message.Newspaper(null!, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
-								break;
-							}
-							DecisionLogger.EndGame(HumanPlayer.Score, "Space Race", humanWon: false, turns: _gameTurn);
-							GameTask.Enqueue(Turn.GameOver(HumanPlayer));
-						}
-						return;
 					}
 				}
 
