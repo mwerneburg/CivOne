@@ -309,9 +309,11 @@ namespace CivOne
 				// Any habitable land tile is a valid city site — Desert, Hills, Jungle etc.
 				// are all legal in Civ 1. Restricting to Grassland/Plains was causing settlers
 				// to mill endlessly after the new arid-interior map generation.
-				bool validCity = (tile.City is null) && (
-					(!tile.IsOcean && !(tile is Arctic) && !(tile is Mountains)) ||
-					(tile.IsOcean && Player.HasAdvance<AquaticColonization>()));
+				//
+				// The rule itself now lives in AI.Strategy.CanFoundOn, shared with the site
+				// scan that routes settlers here. Stating it in both places is what put six
+				// settlers on a mountain; see the comment there.
+				bool validCity = CanFoundOn(tile);
 				// What this tile can take. Defined once, in AI.Strategy.WorkAvailable, so that
 				// this half of the settler AI and BestImproveSite cannot disagree about it —
 				// three separate bugs came from them doing exactly that.

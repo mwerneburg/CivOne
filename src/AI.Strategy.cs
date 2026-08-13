@@ -1856,6 +1856,23 @@ namespace CivOne
 		// TEMPORARY probe (2026-08-02) — see TurnMetrics.AddBucket. This one scans
 		// 13x13 and then, on failure, 33x33 = 1089 tiles with a SiteSuitability call
 		// each, so it is the leading suspect for the 25 ms unit move.
+		// ONE definition of where a city may stand, shared by the founder (AI.MoveInner) and
+		// by the site scan below — for exactly the reason WorkAvailable exists. They stated
+		// it separately and disagreed: the scan rejected only ocean and occupied tiles, while
+		// the founder also refuses Arctic and Mountains. So the scan could route settlers to
+		// a mountain the founder would refuse forever.
+		//
+		// Observed at 1804 AD in a 377-turn game: SIX Malian settlers, at (167,107) through
+		// (168,110), every one of them targeting (167,111) — Mountains. They converged,
+		// could not found, lost their Goto, drifted home and re-targeted the same peak the
+		// next turn. The one already standing on it scored its own tile, which the caller
+		// discards as "nowhere to go", so it did nothing at all. None of them logged a single
+		// settler action, which is why the decision log looked healthy throughout.
+		internal bool CanFoundOn(ITile tile)
+			=> tile is not null && tile.City is null && (
+				(!tile.IsOcean && !(tile is Arctic) && !(tile is Mountains)) ||
+				(tile.IsOcean && Player.HasAdvance<AquaticColonization>()));
+
 		internal ITile? BestSettleSite(IUnit settlers)
 			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
 
@@ -1878,7 +1895,10 @@ namespace CivOne
 				int ty = settlers.Y + dy;
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
-				if (tile is null || tile.IsOcean || tile.City is not null) continue;
+				// The IsOcean test stays alongside CanFoundOn rather than folded into it: a
+				// settler on foot cannot walk to water even where AquaticColonization makes
+				// it foundable, and floating cities are placed by their own path.
+				if (tile is null || tile.IsOcean || !CanFoundOn(tile)) continue;
 				if (!LandReachable(settlers, tile)) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;
