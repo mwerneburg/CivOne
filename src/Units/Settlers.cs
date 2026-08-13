@@ -53,7 +53,6 @@ namespace CivOne.Units
 		}
 		public Point RoadTo { get; set; } = Point.Empty;
 		public int BuildingRoad { get; private set; }
-		private bool _buildingTube;
 		public int BuildingCanopyArray { get; internal set; }
 		public int BuildingAquafarm { get; internal set; }
 		public int BuildingIrrigation { get; private set; }
@@ -86,7 +85,7 @@ namespace CivOne.Units
 		// ── Auto-Improve ────────────────────────────────────────────────────────
 		// Session-only flag (not persisted). Drains in NewTurn/MovementDone like
 		// AutoClean. Policy:
-		//   Despotism/Anarchy: roads (and rail/tube upgrades) only.
+		//   Despotism/Anarchy: roads and rail upgrades only.
 		//   Monarchy or better: full improvement set.
 		//   Budget: Size+1 tiles per owned city, ordered by distance from city centre.
 		//   Hills    → road, rail, mine
@@ -135,7 +134,9 @@ namespace CivOne.Units
 			{
 				if (!tile.Road) return true;
 				if (tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) return true;
-				if (tile.RailRoad && !tile.TransportTube && Player.HasAdvance<TransitConduit>()) return true;
+				// Rail is the end of the chain on land. Tubes are sea-only (BuildRoad), and
+				// claiming one here would send an auto-improving settler to a railroad to do
+				// work BuildRoad refuses — it would stand on the tile every turn.
 			}
 
 			if (Player.AnarchyDespotism) return false;
@@ -157,7 +158,7 @@ namespace CivOne.Units
 
 		private bool ExecuteAutoImproveAt(ITile tile)
 		{
-			// Road / rail / tube — BuildRoad walks the chain itself based on state and tech
+			// Road / rail — BuildRoad walks the chain itself based on state and tech
 			if (!tile.TransportTube && !tile.IsOcean && tile.City is null)
 			{
 				if (BuildRoad()) return true;
@@ -367,15 +368,16 @@ namespace CivOne.Units
 
 			if (tile.TransportTube) { Log("[BuildRoad] -> false (tube exists)"); return false; }
 
-			if (tile.RailRoad && Game.CurrentPlayer.HasAdvance<TransitConduit>() && tile.City is null)
-			{
-				_buildingTube = true;
-				BuildingRoad = 3;
-				MovesLeft = 0; PartMoves = 0;
-				Log("[BuildRoad] -> true (tube building started)");
-				return true;
-			}
-
+			// No land tubes. The transit tube is alien infrastructure and belongs to the sea:
+			// it is laid on ocean tiles by the Hydro Engineer (HydroEngineer.BuildSeaTube) and
+			// nowhere else. A settler upgrading its own railroads to tubes made them ordinary
+			// terrain improvement and took the strangeness out of them.
+			//
+			// Connecting to cities still works and needs nothing here: a coastal city sits on
+			// land beside the ocean tiles the tube runs through, and the movement rules already
+			// treat a tube tile as passable to land units and as rail for movement cost
+			// (Common.cs:578, BaseUnitLand.cs:50). So a tube reaching a city's shore joins it
+			// to the network exactly as before.
 			if (tile.RailRoad) { Log("[BuildRoad] -> false (railroad exists)"); return false; }
 
 			if (!tile.IsOcean && !tile.Road && tile.City is null)
@@ -613,18 +615,11 @@ namespace CivOne.Units
 			if (Map[X, Y].IsOcean)
 			{
 				BuildingRoad = BuildingIrrigation = BuildingMine = BuildingFortress = BuildingCamp = 0;
-				_buildingTube = false;
 				if (BuildingAquafarm == 0) return;
 			}
 			if (BuildingRoad > 0)
 			{
 				BuildingRoad--;
-				if (_buildingTube)
-				{
-					if (BuildingRoad == 0) { Map[X, Y].TransportTube = true; _buildingTube = false; }
-					else { MovesLeft = 0; PartMoves = 0; }
-				}
-				else
 				{
 					if (Map[X, Y].Road)
 					{
@@ -834,9 +829,9 @@ namespace CivOne.Units
 		private MenuItem<int> MenuBuildRoad()
 		{
 			ITile t = Map[X, Y];
-			string label = (t.RailRoad && Human.HasAdvance<TransitConduit>()) ? "Build Transport Tube"
-			             : t.Road ? "Build RailRoad"
-			             : "Build Road";
+			// No "Build Transport Tube" on land: tubes are laid on ocean by the Hydro
+			// Engineer. Offering it here promised a settler order that BuildRoad refuses.
+			string label = t.Road ? "Build RailRoad" : "Build Road";
 			return MenuItem<int>.Create(label).SetShortcut("r").OnSelect((s, a) => BuildRoad());
 		}
 
@@ -962,8 +957,7 @@ namespace CivOne.Units
 				{
 					bool noInfra     = !tile.Road && !tile.RailRoad && !tile.TransportTube;
 					bool canRailroad = tile.Road  && Human.HasAdvance<RailRoad>()       && !tile.RailRoad && !tile.TransportTube;
-					bool canTube     = tile.RailRoad && Human.HasAdvance<TransitConduit>() && !tile.TransportTube;
-					if (!tile.IsOcean && (noInfra || canRailroad || canTube))
+					if (!tile.IsOcean && (noInfra || canRailroad))
 						yield return MenuBuildRoad();
 				}
 				if (!tile.IsOcean && !tile.TransportTube)

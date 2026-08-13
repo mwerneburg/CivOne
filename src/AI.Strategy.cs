@@ -2011,8 +2011,11 @@ namespace CivOne
 			// (road looks valid → enqueue BuildRoad → silent fail → SkipTurn → repeat).
 			bool newRoad = !tile.Road && !tile.RailRoad
 				&& (!(tile is River) || Player.HasAdvance<BridgeBuilding>());
-			bool upgrade = (tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>())
-			            || (tile.RailRoad && Player.HasAdvance<TransitConduit>());
+			// Rail is the end of the land upgrade path. The tube used to sit above it here, but
+			// tubes are sea-only now (see Settlers.BuildRoad) — and leaving the clause would
+			// have routed settlers to railroads to start a tube BuildRoad refuses, which is the
+			// scan-and-gate disagreement that has already cost this project four bugs.
+			bool upgrade = tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>();
 			if (tile.TransportTube) { newRoad = false; upgrade = false; }
 
 			return new TileWork(irrigation, conversion, mine, newRoad, upgrade);
@@ -3226,7 +3229,31 @@ namespace CivOne
 			// research shutdown from the other direction. While luxuries are doing the
 			// work, keep building the thing that lets them stop.
 			if (building is Temple or Colosseum or Cathedral
+			    or Hospital or ExchangeCenter or NeuralLab
 			    && city.UnhappyCitizens == 0 && Player.LuxuriesRate == 0)
+				return false;
+
+			// Multipliers need something to multiply.
+			//
+			// Every building below adds a PERCENTAGE of what the city already produces:
+			// Library, University, Observatory and Xenolab scale science, MarketPlace and
+			// Bank scale taxes and luxuries. All of it comes off TradeTotal, so on a size-3
+			// desert town producing 2 trade a Library returns 1 — for permanent upkeep.
+			//
+			// Measured over the 2200 AD run: of 2,075 production decisions taken by AI cities
+			// of size <= 6 with a food income of zero or less, Observatory was 7%, MarketPlace
+			// 6%, Neural Lab 4%, Xenolab 4% and Library 4%. Those cities had already built
+			// every food building available to them (86% held a Granary) — they were not
+			// choosing these instead of growing, they were choosing them instead of nothing,
+			// and paying gold a turn for the privilege.
+			//
+			// The floor is the building's own maintenance, doubled: a 50% multiplier returns
+			// half the base, so base >= 2 x upkeep is exactly the break-even. It scales itself
+			// per building rather than freezing a size threshold that would be wrong for
+			// half the roster, and a city that grows into it becomes eligible on its own.
+			if (building is Library or UniversityBuilding or ObservatoryBuilding or Xenolab
+			    or MarketPlace or Bank
+			    && city.TradeTotal < 2 * building.Maintenance)
 				return false;
 
 			return true;
