@@ -37,6 +37,104 @@ namespace CivOne
 		// Test/diagnostic accessor: the stance this civ would take right now.
 		internal string CurrentStanceName() => GetStance().ToString();
 
+		// ── victory paths ─────────────────────────────────────────────────────────
+		//
+		// What this civ is TRYING to do, as opposed to what it is reacting to.
+		//
+		// Nothing in the AI decided anything before this. StrategyStance is reactive — it
+		// answers "are we rioting, are we at war, is there room" — and every long-range build
+		// fell out of accident. The spaceship is the clearest case: no code anywhere calls
+		// Consider on an SS part, so ship parts were reachable ONLY through the last-resort
+		// fallback that rolls over whatever a city has left. Measured over the 2200 AD run,
+		// three AI civs launched full ships purely because their big cities had run out of
+		// buildings, while the autoplayed human's ninety-five smaller ones always had another
+		// Cathedral available and finished the game with four parts.
+		//
+		// A path is a civ's answer to "how do we intend to be remembered". It is deliberately
+		// NOT a permission system: nothing below forbids anything. It reorders.
+		internal enum VictoryPath { Endurance, Conquest, Commerce, Culture, Diaspora }
+
+		// Sticky by construction. StrategyStance is re-derived every call and the comments
+		// through this file are largely a history of what happens when a long-range signal
+		// thrashes or latches. A path is re-examined rarely, and only a real shock — the SETI
+		// signal arriving, the last rival falling — should move it before then.
+		private const int PathReviewInterval = 50;
+		private VictoryPath _path = VictoryPath.Endurance;
+		// Not int.MinValue: the review test is `GameTurn - _pathChosenTurn >= interval`, and
+		// on turn 0 that subtraction overflowed to a large NEGATIVE number, so the first
+		// review never fired and every civ in the game held the default forever. One turn
+		// past the interval is the honest way to say "never chosen".
+		private int _pathChosenTurn = -PathReviewInterval - 1;
+		private bool _pathSignalSeen;
+
+		internal VictoryPath Path
+		{
+			get
+			{
+				bool shock = _pathSignalSeen != Game.Instance.SETISignalReceived;
+				if (shock || Game.GameTurn - _pathChosenTurn >= PathReviewInterval)
+				{
+					_pathSignalSeen = Game.Instance.SETISignalReceived;
+					_pathChosenTurn = (int)Game.GameTurn;
+					_path = ChoosePath();
+				}
+				return _path;
+			}
+		}
+
+		// Scored from the leader's temperament first and their circumstances second, so two
+		// civs in the same position still choose differently — which is the whole point of
+		// Doctrine's per-leader spread.
+		private VictoryPath ChoosePath()
+		{
+			Leaders.Doctrine d = Leader.Doctrine;
+			int cities = Player.Cities.Length;
+
+			double conquest = d.WarAppetite * 100
+			                + (Leader.Aggression == AggressionLevel.Aggressive ? 40 : 0)
+			                + (Leader.Militarism == MilitarismLevel.Militaristic ? 40 : 0);
+
+			// Space is a science ambition, and it is only a real ambition once the road to it
+			// exists: before the signal there is no spaceship to build, so a would-be Diaspora
+			// civ that scored highest here would spend the early game acting on a plan it
+			// cannot execute. It reads as Endurance until the sky says otherwise.
+			double diaspora = Game.Instance.SETISignalReceived
+			                ? 100 + d.ScienceBias * 1.5
+			                : 0;
+
+			// Commerce and Culture are the builder's paths, and both want a going concern
+			// rather than a frontier. Weighted by what the civ has actually got, so a
+			// ten-city trading nation reaches for Pax Mercatoria and a two-city one does not.
+			//
+			// They are split on ExpansionAppetite, which is the one knob that genuinely
+			// distinguishes them: commerce is a wide empire's game — routes, partners, gross
+			// output — while a civ that never wanted to be wide is playing for what it can
+			// make of what it holds. Complementary by construction, so the two never tie.
+			double commerce = 60 + cities * 2 - d.WarAppetite * 30 + d.ExpansionAppetite * 20;
+			double culture  = 55 + cities * 2 - d.WarAppetite * 30 + (1.5 - d.ExpansionAppetite) * 20;
+
+			// The default, and not a failure state: outlasting everyone to 2200 is a way to
+			// win. Set to beat the builder paths for a civ with almost nothing, so nobody
+			// commits to a trade empire from two cities in 3000 BC, and to lose to them once
+			// there is something to build on.
+			double endurance = 70;
+
+			var scores = new (VictoryPath path, double score)[]
+			{
+				(VictoryPath.Conquest,  conquest),
+				(VictoryPath.Diaspora,  diaspora),
+				(VictoryPath.Commerce,  commerce),
+				(VictoryPath.Culture,   culture),
+				(VictoryPath.Endurance, endurance),
+			};
+
+			VictoryPath best = VictoryPath.Endurance;
+			double bestScore = double.MinValue;
+			foreach ((VictoryPath path, double score) in scores)
+				if (score > bestScore) { bestScore = score; best = path; }
+			return best;
+		}
+
 		private StrategyStance GetStance()
 		{
 			var cities = Player.Cities;
@@ -151,6 +249,26 @@ namespace CivOne
 			//
 			// This changes PRIORITIES only, not permission: MayFoundCities is deliberately
 			// independent of stance, so a settler that does find a site still founds on it.
+			//
+			// Path modulation, and ONLY here. Everything above this line is a civ answering a
+			// situation — rioting, at war, out-gunned — and a plan does not get to override
+			// any of it: a Diaspora civ whose cities are burning consolidates like anybody
+			// else. This last choice is the one place where nothing is actually wrong, which
+			// makes it the only place an ambition may legitimately speak.
+			//
+			// Expand is the frontier posture: settlers, roads, more towns. The builder paths
+			// want the opposite — deepen what you hold — and Develop is where the AI funds
+			// research, reaches for Republic and stops capping colonisation. So a civ with a
+			// plan that lives in its cities skips Expand once it has a real base to build on.
+			// Below that threshold it still expands, because four cities is not a trade empire
+			// and a plan you cannot fund is not a plan.
+			const int PathBaseCities = 5;
+			bool deepensRatherThanSpreads = Path is VictoryPath.Diaspora
+			                                     or VictoryPath.Commerce
+			                                     or VictoryPath.Culture;
+			if (deepensRatherThanSpreads && cities.Length >= PathBaseCities)
+				return StrategyStance.Develop;
+
 			if (HasExpansionRoom()) return StrategyStance.Expand;
 
 			return StrategyStance.Develop;
@@ -2899,9 +3017,9 @@ namespace CivOne
 
 		// Returns how much the AI values acquiring a given advance right now.
 		// Used by the King screen to pick the advance it demands in a trade.
-		internal int AdvanceDemandValue(IAdvance a) => AdvanceWeight(a, GetStance());
+		internal int AdvanceDemandValue(IAdvance a) => AdvanceWeight(a, GetStance(), Path);
 
-		private static int AdvanceWeight(IAdvance a, StrategyStance stance)
+		private static int AdvanceWeight(IAdvance a, StrategyStance stance, VictoryPath path)
 		{
 			int weight = 1; // baseline: every advance can be chosen
 
@@ -3002,6 +3120,46 @@ namespace CivOne
 			if (a is GravitonEngineering)   weight += 4;
 			if (a is PlanetaryStewardship)  weight += 4;
 			if (a is CollectiveMemory)      weight += 4;
+
+			// The path's own second axis, ADDED to the stance weights rather than replacing
+			// them: a civ reaching for the stars still needs Pottery and Construction, and the
+			// stance lists are where those live. Without this a Diaspora civ arrived at Space
+			// Flight by drift, if at all — the stance tables have no entry for it anywhere, so
+			// it was competing at weight 1 against a dozen weighted alternatives.
+			switch (path)
+			{
+				case VictoryPath.Diaspora:
+					if (a is SpaceFlight)         weight += 12;   // Mission Control, and the ship
+					if (a is Computers)           weight += 8;    // gateway to SpaceFlight
+					if (a is NuclearFission)      weight += 6;
+					if (a is Astronomy)           weight += 5;
+					if (a is Advances.University) weight += 5;
+					if (a is Writing)             weight += 4;
+					break;
+
+				case VictoryPath.Commerce:
+					if (a is Trade)               weight += 9;    // Caravans, and trade routes
+					if (a is Currency)            weight += 7;
+					if (a is Banking)             weight += 8;    // Pax Mercatoria requires it
+					if (a is TheRepublic)         weight += 6;
+					break;
+
+				case VictoryPath.Culture:
+					if (a is Philosophy)          weight += 9;    // Cultural Ascendancy requires it
+					if (a is CeremonialBurial)    weight += 6;
+					if (a is Religion)            weight += 7;
+					if (a is Literacy)            weight += 5;
+					break;
+
+				case VictoryPath.Conquest:
+					// The Militarize stance list already is this, in detail. Doubling it here
+					// would just deepen a rut the stance is better placed to judge, since it
+					// can see whether a war is actually on.
+					break;
+
+				case VictoryPath.Endurance:
+					break;
+			}
 
 			return weight;
 		}
@@ -3433,6 +3591,65 @@ namespace CivOne
 			// exactly one unit free, so a second garrison eats the city-center shield and
 			// deadlocks production forever (the Inca case).
 			if (hostileNear && defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
+
+			// What this civ is TRYING to do. See VictoryPath.
+			//
+			// Placed after the garrison and before everything else: a civ pursuing a plan
+			// still defends its cities first, but its plan outranks the generic
+			// infrastructure chain that would otherwise consume every shield it has.
+			//
+			// Only the Diaspora entry is unconditional-by-availability; the rest lean on
+			// items the ordinary chain already offers, so this changes WHEN they are built
+			// rather than introducing anything new. Consider() keeps the first entry per
+			// type, so position here is priority.
+			switch (Path)
+			{
+				case VictoryPath.Diaspora:
+					// The reason this exists. Nothing else in the AI ever asks for a ship
+					// part: before this, SS parts were reachable only through the last-resort
+					// fallback at the bottom of this method, which fires when a city has run
+					// out of everything else. Three civs launched in the 2200 AD run purely
+					// because their largest cities had exhausted the building list.
+					//
+					// ProductionAvailable carries the real gates — signal received, Apollo
+					// built, not already launched, per-part maximums (Player.cs:615) — so a
+					// civ that cannot build these simply adds nothing here.
+					if (Player.ProductionAvailable(new SSStructural())) Consider(new SSStructural());
+					if (Player.ProductionAvailable(new SSComponent()))  Consider(new SSComponent());
+					if (Player.ProductionAvailable(new SSModule()))     Consider(new SSModule());
+					// The lifeline the colony is flown from, and a city a rival can take.
+					if (Player.ProductionAvailable(new MissionControl())
+					    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
+						Consider(new MissionControl());
+					break;
+
+				case VictoryPath.Conquest:
+					// A conqueror builds the army before the aqueduct. RepublicDemocratic
+					// civs cannot field attackers at all, so they get nothing here and fall
+					// through to the ordinary chain.
+					if (!Player.RepublicDemocratic) Consider(BestAttacker());
+					break;
+
+				case VictoryPath.Commerce:
+					// Pax Mercatoria is measured in gross output and in rivals economically
+					// bound to you, and the Caravan is the only unit that does both — a trade
+					// route raises output at both ends and counts as a binding.
+					if (Player.HasAdvance<Trade>()) Consider(new Caravan());
+					break;
+
+				case VictoryPath.Culture:
+					// Culture accrues from buildings and wonders (Player.Culture), so the
+					// cultural path is the ordinary builder's chain run harder. EarnsItsKeep
+					// still refuses these where there is no unhappiness to quell, which is
+					// correct: a Temple nobody needs generates upkeep, not admiration.
+					if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
+					if (Player.HasAdvance<Religion>() && !city.HasBuilding<Cathedral>())      Consider(new Cathedral());
+					break;
+
+				case VictoryPath.Endurance:
+					// Outlast everyone. That is the existing chain, unmodified.
+					break;
+			}
 
 			// Food first, for a city that has actually stopped.
 			//

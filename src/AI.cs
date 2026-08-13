@@ -837,7 +837,7 @@ namespace CivOne
 			if (available.Length == 0) return;
 
 			StrategyStance stance = GetStance();
-			int[] weights = available.Select(a => AdvanceWeight(a, stance)).ToArray();
+			int[] weights = available.Select(a => AdvanceWeight(a, stance, Path)).ToArray();
 
 			// Government escape: no stance list weights Monarchy, so a despot civ kept
 			// rolling weight-1 odds against 5-9 weighted picks and stayed in Despotism
