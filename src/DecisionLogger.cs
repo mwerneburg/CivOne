@@ -53,7 +53,6 @@ using CivOne.Units;
 //   has_granary   bool     city already holds a Granary
 //   has_harbour   bool     city already holds a Harbour
 //   coastal       bool     adjacent to salt water (Harbour eligibility)
-//   growth_blocked bool    cannot grow without an Aqueduct/Sewer
 //   disorder      bool     city is rioting
 //   pottery       bool     owner knows Pottery (gates Granary and Harbour)
 //   action        string   production name (e.g. "Settlers", "Granary")
