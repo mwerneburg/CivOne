@@ -133,6 +133,21 @@ namespace CivOne
 		// Cultural Ascendancy: consecutive turns holding the conditions below.
 		internal uint CultureStreak;
 
+		// Diaspora: a colony stands at Alpha Centauri II, and Mission Control still runs it
+		// from Earth. Set when the human's ship arrives; cleared if the colony is lost.
+		internal bool ColonyFounded;
+
+		// Consecutive turns the colony has been supplied. Broken by losing Mission Control,
+		// reset to zero — the building can be rebuilt, but the clock starts again.
+		internal uint DiasporaStreak;
+
+		// Twenty, matching Pax Mercatoria and Cultural Ascendancy. Long enough that an
+		// enemy who wants to stop you has time to march on one known city.
+		internal const uint DiasporaStreakTarget = 20;
+
+		// The win fires once. Not persisted: a game that reached it is over.
+		private bool _diasporaFired;
+
 		// Timestamp of the last full-round wrap, for TurnMetrics wall-clock timing.
 		private long _turnClock;
 		internal readonly HashSet<byte> HumanStartedWars = new();
@@ -1951,6 +1966,7 @@ namespace CivOne
 									: "The colony must now hold.",
 								"Continue to 2200 AD."));
 							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;
+							ColonyFounded = true;
 						}
 						else
 						{
@@ -1962,6 +1978,66 @@ namespace CivOne
 								break;
 							}
 						}
+					}
+				}
+
+				// ── Diaspora ─────────────────────────────────────────────────────────
+				// The colony survives, which is a different thing from having been founded.
+				// A settlement at Alpha Centauri II is not self-sufficient for a long time:
+				// it is being resupplied, and the resupply is run from one city on Earth.
+				// So hold Mission Control for 20 consecutive turns and humanity is a
+				// two-star species — permanently, whatever then happens to Earth.
+				//
+				// Unlike the other five paths this one has no rivals clause and no war
+				// clause. It does not measure standing against anybody; the only question
+				// is whether the lifeline held. Losing Mission Control — to an army, to a
+				// rebellion, to the organism — resets the clock to zero. The building can
+				// be rebuilt elsewhere, and the twenty turns start over.
+				if (ColonyFounded)
+				{
+					byte dnum = PlayerNumber(HumanPlayer);
+					bool lifeline = _cities.Any(c => c is not null && c.Owner == dnum && c.Size > 0
+						&& c.HasBuilding<Buildings.MissionControl>());
+
+					if (lifeline)
+					{
+						DiasporaStreak++;
+						if (DiasporaStreak == 1)
+							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+								"Mission Control has the colony.",
+								"Resupply is running. Hold this",
+								$"city for {DiasporaStreakTarget} years."));
+						else if (DiasporaStreak == DiasporaStreakTarget / 2)
+							GameTask.Enqueue(Message.Newspaper(null!, "Half way to independence!",
+								"Alpha Centauri II reports", "its first harvest."));
+
+						// Latched. The win enqueues a screen chain that ends in Runtime.Quit(),
+						// and the queue takes several rounds to drain — during which this block
+						// keeps seeing a streak of 20 and awarding the 200 again. Caught by a
+						// test that expected +200 and read +600.
+						if (DiasporaStreak >= DiasporaStreakTarget && !_diasporaFired)
+						{
+							_diasporaFired = true;
+							HumanPlayer.AwardMilestone(200);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Diaspora", humanWon: true, turns: _gameTurn);
+							int diasFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Diaspora");
+							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
+								"DIASPORA — HUMANITY IS NO LONGER A SINGLE TARGET"));
+							GameTask.Enqueue(Message.Newspaper(null!, "Diaspora!",
+								"Alpha Centauri II stands alone.", "Earth is no longer all of us."));
+							GameTask diasFt;
+							GameTask.Enqueue(diasFt = Show.Screen(new Screens.Reports.FinalScore("Diaspora")));
+							diasFt.Done += (s, a) => EndSequence.ChainAfterFinal(diasFame, () => Runtime.Quit());
+							return;
+						}
+					}
+					else if (DiasporaStreak > 0)
+					{
+						DiasporaStreak = 0;
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"We have lost Mission Control.",
+							"The colony is on its own.",
+							"Rebuild it, and begin again."));
 					}
 				}
 
@@ -4568,6 +4644,30 @@ namespace CivOne
 			Log($"The Thing departs from {vesselCity.Name}: {razed} cities razed");
 			GameTask.Enqueue(Message.Newspaper(null!, "It has gone.",
 				$"{razed} cities went with it.", "Nothing is left standing."));
+
+			// Where does a thing that builds a starship go? The only other inhabited place
+			// it knows about — and we told it, in every transmission Mission Control ever
+			// sent. The colony is the one target in the sky with a return address.
+			//
+			// This is the cost of the Diaspora being a SLOW win: twenty turns is long
+			// enough for the Ascension to finish, so the two arcs can collide, and a
+			// player nineteen turns into the clock can lose the whole thing to an
+			// organism they never contained. Founding the colony again means building
+			// another ship.
+			if (ColonyFounded)
+			{
+				ColonyFounded = false;
+				DiasporaStreak = 0;
+				string? breachArt = Screens.EventArtScreen.FindPath("ColonyBreached");
+				if (breachArt is not null)
+					GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(breachArt,
+						"ALPHA CENTAURI II — STATUS: BREACHED")));
+				GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+					"The colony has stopped answering.",
+					"The last frame from the habitat",
+					"shows what came for them."));
+				Log("The Vessel reached Alpha Centauri II: the colony is lost");
+			}
 		}
 
 		private void SpawnOlvir()

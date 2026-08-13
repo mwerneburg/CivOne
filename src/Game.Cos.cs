@@ -298,6 +298,8 @@ namespace CivOne
 					                          : null!,
 					EconStreak              = EconStreak,
 					CultureStreak           = CultureStreak,
+					ColonyFounded           = ColonyFounded,
+					DiasporaStreak          = DiasporaStreak,
 					HumanStartedWars        = HumanStartedWars.Count > 0
 					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
 					                          : null!,
@@ -569,6 +571,8 @@ namespace CivOne
 						ThingOutbreaks[(triple[0], triple[1])] = (uint)triple[2];
 			EconStreak = g.EconStreak;
 			CultureStreak = g.CultureStreak;
+			ColonyFounded = g.ColonyFounded;
+			DiasporaStreak = g.DiasporaStreak;
 			if (g.HumanStartedWars is not null)
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)

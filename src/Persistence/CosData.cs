@@ -68,6 +68,8 @@ namespace CivOne.Persistence
 		// numbers of wars the human started (defensive wars don't break the streak).
 		public uint EconStreak { get; set; }
 		public uint CultureStreak { get; set; }
+		public bool ColonyFounded { get; set; }
+		public uint DiasporaStreak { get; set; }
 		public int[] HumanStartedWars { get; set; } = null!;
 		// Hostile diplomat acts (sabotage, incite) committed against the HUMAN, as
 		// { playerNumber, count } pairs. Null on saves written before the Senate
