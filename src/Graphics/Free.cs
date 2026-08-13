@@ -1157,22 +1157,33 @@ namespace CivOne.Graphics
 			}
 		}
 
+		// The fringe dithers the edge of explored ground into the unexplored fill, so its ink
+		// has to BE that fill. GameMap clears the map panel to index 5 — (58,49,34), the warm
+		// BORDER brown — while this stippled indices 28-31, which are neutral greys of the
+		// same lightness. Right value, wrong hue, and the result read as a black rim around
+		// the unknown rather than a fade into it.
+		//
+		// Index 0 is the transparency key (Common.LoadPaletteFile forces it), so one pixel in
+		// five shows the terrain through. Four opaque entries against that one keeps the
+		// original density — only the colour changes.
+		private static readonly byte[] FogInk = { 0, 5, 5, 5, 5 };
+
 		public Bytemap Fog(Direction direction)
 		{
 			Bytemap output = new Bytemap(16, 16);
 			switch(direction)
 			{
 				case Direction.West:
-					output.AddLayer(new Bytemap(3, 16).FromByteArray(GenerateNoise(0, 28, 29, 30, 31).Take(3 * 16).ToArray()), 0, 0);
+					output.AddLayer(new Bytemap(3, 16).FromByteArray(GenerateNoise(FogInk).Take(3 * 16).ToArray()), 0, 0);
 					break;
 				case Direction.South:
-					output.AddLayer(new Bytemap(16, 3).FromByteArray(GenerateNoise(28, 0, 29, 30, 31).Take(16 * 3).ToArray()), 0, 13);
+					output.AddLayer(new Bytemap(16, 3).FromByteArray(GenerateNoise(FogInk).Take(16 * 3).ToArray()), 0, 13);
 					break;
 				case Direction.East:
-					output.AddLayer(new Bytemap(3, 16).FromByteArray(GenerateNoise(28, 29, 0, 30, 31).Take(3 * 16).ToArray()), 13, 0);
+					output.AddLayer(new Bytemap(3, 16).FromByteArray(GenerateNoise(FogInk).Take(3 * 16).ToArray()), 13, 0);
 					break;
 				case Direction.North:
-					output.AddLayer(new Bytemap(16, 3).FromByteArray(GenerateNoise(28, 29, 30, 0, 31).Take(16 * 3).ToArray()), 0, 0);
+					output.AddLayer(new Bytemap(16, 3).FromByteArray(GenerateNoise(FogInk).Take(16 * 3).ToArray()), 0, 0);
 					break;
 			}
 			return output;
