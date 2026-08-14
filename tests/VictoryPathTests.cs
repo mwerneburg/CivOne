@@ -28,6 +28,15 @@ namespace CivOne.Tests
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;
 			Player p = g.Players.First(x => x is not null && x != g.HumanPlayer && g.PlayerNumber(x) != 0);
+			// Force an UNASSIGNED civilization. This class tests the DERIVED scoring — what a
+			// civ works out from doctrine and circumstance — and an authored preference
+			// (PreferredPathFor) bypasses that entirely. Whichever civ the fixture happened to
+			// draw was fine until the preference table existed; then ten of these failed at
+			// once, because the table was answering before the arithmetic got a turn.
+			// Roman is one of the six deliberately left to derive its own answer.
+			typeof(Player).GetField("_civilization",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+				.SetValue(p, new CivOne.Civilizations.Roman());
 			p.Government = new Governments.Monarchy();
 			p.Explore(40, 25, range: 12);
 			for (int y = 20; y <= 30; y++)

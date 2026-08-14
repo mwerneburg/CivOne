@@ -154,7 +154,8 @@ namespace CivOne
 					BuildingAddRiver     = buildRiver,
 					RoadToX            = roadToX,
 					RoadToY            = roadToY,
-					FuelLeft           = fuelLeft
+					FuelLeft           = fuelLeft,
+					CapturedOn         = unit.CapturedOn
 				});
 			}
 
@@ -833,6 +834,7 @@ namespace CivOne
 				}
 				if (unit is BaseUnitAir airU && ud.FuelLeft.HasValue)
 					airU.FuelLeft = ud.FuelLeft.Value;
+				unit.CapturedOn = ud.CapturedOn;
 				_units.Add(unit);
 			}
 

@@ -484,7 +484,10 @@ namespace CivOne.Units
 					IUnit unit = Map[X, Y][relX, relY].Units.FirstOrDefault();
 					// The attacker is credited: a Harvester killed here pays a bounty
 					// (Screens.DestroyUnit). Every other loss path passes no credit.
-					if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true, Player))
+					// ...unless we can use it. Salvage takes the unit intact instead of
+					// destroying it; the loser is out one unit either way.
+					if (unit is not null && Salvage(unit)) { }
+					else if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true, Player))
 					{
 						GameTask.Insert(Show.DestroyUnit(unit, true, Player));
 					}
@@ -887,6 +890,75 @@ namespace CivOne.Units
 		public byte MovesLeft { get; set; }
 		public byte PartMoves { get; set; }
 
+		// ── Reverse engineering ──────────────────────────────────────────────────
+		//
+		// Hardware taken off a foreign army teaches you how to build it — but only if you
+		// keep it intact long enough for your engineers to take it apart. Twenty turns is
+		// deliberately long: the interesting decision is whether to spend a superior unit
+		// fighting now or garrison it in the rear until it pays out a whole advance.
+		//
+		// Nothing here fires for a unit you built: CapturedOn is set only in Confront, and
+		// only when the loser's RequiredTech was one you did not have.
+		internal const int ReverseEngineerTurns = 20;
+
+		public int? CapturedOn { get; set; }
+
+		// One in four, and only for hardware we could not have built ourselves. Everything
+		// else is destroyed as before — this is not a general "capture units" rule, it is the
+		// narrow case where taking the wreck home is worth more than the kill.
+		internal const int SalvageChance = 25;
+
+		// Called on a won attack, BEFORE the defender is destroyed. True = taken instead.
+		private bool Salvage(IUnit loser)
+		{
+			// A city's garrison is not salvage — the city itself is the prize, and its
+			// capture already has its own advance-stealing path (GetAdvancesToSteal).
+			if (loser.Tile.City is not null) return false;
+			// Only from a lone unit in the open. Flipping one unit's flag inside an enemy
+			// stack would leave it standing among units still at war with it.
+			if (loser.Tile.Units.Length != 1) return false;
+			if (loser.Class != UnitClass.Land) return false;
+			// Nothing to learn: either we already build these, or nobody can — Harvesters and
+			// the other unbuildable barbarian units have RequiredTech null, so alien
+			// machinery is never salvageable no matter how long it is held.
+			if (loser.RequiredTech is null || Player.HasAdvance(loser.RequiredTech)) return false;
+			if (Common.Random.Next(100) >= SalvageChance) return false;
+
+			loser.SetHome(null);
+			loser.Owner = Owner;
+			loser.CapturedOn = Game.GameTurn;
+			loser.Goto = Point.Empty;
+			loser.Sentry = false;
+			loser.Fortify = false;
+			loser.MovesLeft = 0;
+			loser.PartMoves = 0;
+			Log($"[Salvage] {GetType().Name} P{Owner} captures {loser.GetType().Name} at ({loser.X},{loser.Y})");
+			if (Human == Owner)
+			{
+				GameTask.Enqueue(Message.General($"We have captured an intact {loser.Name}!",
+					$"Hold it {ReverseEngineerTurns} turns and our engineers", "will learn to build it."));
+			}
+			return true;
+		}
+
+		// Returns true when the clock paid out, so callers can report it.
+		private bool ReverseEngineer()
+		{
+			if (CapturedOn is null) return false;
+			if (Game.GameTurn - CapturedOn.Value < ReverseEngineerTurns) return false;
+
+			CapturedOn = null;
+			IAdvance? tech = RequiredTech;
+			// Learned it in the meantime, or the unit teaches nothing — the clock still
+			// stops, or it would re-check every turn for the rest of the game.
+			if (tech is null || Player.HasAdvance(tech)) return false;
+
+			// setOrigin: false — you did not discover this, you took it apart. Origin drives
+			// who the Great Library credits, and the civ you looted should keep that credit.
+			Player.AddAdvance(tech, false);
+			return true;
+		}
+
 		// Hover units glide over rough terrain at the normal 1-MP/tile rate — they skip the
 		// last-move penalty for entering Hills/Mountains (see MoveTo). Default off.
 		public virtual bool IgnoresTerrainCost => false;
@@ -899,6 +971,11 @@ namespace CivOne.Units
 				_fortify = true;
 			}
 			MovesLeft = Move;
+			if (ReverseEngineer() && Human == Owner)
+			{
+				GameTask.Enqueue(Message.General($"Our engineers have stripped the captured {Name}",
+					"and can now build our own!"));
+			}
 			Explore();
 		}
 

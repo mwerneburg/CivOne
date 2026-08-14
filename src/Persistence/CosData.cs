@@ -311,6 +311,9 @@ namespace CivOne.Persistence
 		public int? RoadToY { get; set; }
 		// Air unit fuel (null = full / not an air unit)
 		public int? FuelLeft { get; set; }
+		// Turn this unit was salvaged off a foreign army (null = built, or already
+		// reverse-engineered). See BaseUnit.Salvage.
+		public int? CapturedOn { get; set; }
 	}
 
 	public class CosMap

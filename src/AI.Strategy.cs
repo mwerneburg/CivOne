@@ -82,6 +82,39 @@ namespace CivOne
 			}
 		}
 
+		// What each civilization is TEMPERAMENTALLY inclined toward, authored rather than
+		// derived. Doctrine's numbers gave every large empire the same answer — measured twice,
+		// Commerce took four to six civs a run and Culture took NONE — so the world came out
+		// uniform. This is the character layer on top.
+		//
+		// A BIAS, never an override: it is worth a bonus in the scoring below, so a civ still
+		// abandons its inclination when circumstances say otherwise (no signal yet, nothing to
+		// trade with, an army it cannot feed). Six civilizations are deliberately absent —
+		// Egyptian, Ethiopian, Guarani, Lakota, Ottoman, Roman — and stay fully derived, so the
+		// world keeps some emergent variety alongside the authored kind.
+		//
+		// Assignments are the project owner's, and frankly subjective; that is the point of
+		// having them rather than a formula.
+		private static VictoryPath? PreferredPathFor(ICivilization civ) => civ switch
+		{
+			Civilizations.Russian or Civilizations.Maori or Civilizations.Greek
+				=> VictoryPath.Diaspora,
+
+			Civilizations.Mongol or Civilizations.Zulu or Civilizations.Aztec
+				or Civilizations.Haida or Civilizations.English
+				=> VictoryPath.Conquest,
+
+			Civilizations.Indian or Civilizations.Japanese or Civilizations.Persian
+				or Civilizations.Khmer or Civilizations.Babylonian or Civilizations.Frank
+				=> VictoryPath.Culture,
+
+			Civilizations.Malian or Civilizations.Arab or Civilizations.Iroquois
+				or Civilizations.Chinese
+				=> VictoryPath.Commerce,
+
+			_ => null,
+		};
+
 		// Scored from the leader's temperament first and their circumstances second, so two
 		// civs in the same position still choose differently — which is the whole point of
 		// Doctrine's per-leader spread.
@@ -90,28 +123,47 @@ namespace CivOne
 			Leaders.Doctrine d = Leader.Doctrine;
 			int cities = Player.Cities.Length;
 
-			double conquest = d.WarAppetite * 100
-			                + (Leader.Aggression == AggressionLevel.Aggressive ? 40 : 0)
-			                + (Leader.Militarism == MilitarismLevel.Militaristic ? 40 : 0);
+			// Rescaled. The first version was WarAppetite * 100 plus up to +80, which put
+			// Conquest between 45 and 231 while every other path sat between 30 and 80 —
+			// measured across the whole roster at six cities. It was not a competitor, it was
+			// a ceiling: any civ with a WarAppetite above ~0.7 chose Conquest whatever else it
+			// was good at, and no authored preference could bridge a gap that wide. Same
+			// ordering among warlike leaders, now on the same scale as its rivals.
+			double conquest = 45 + d.WarAppetite * 25
+			                + (Leader.Aggression == AggressionLevel.Aggressive ? 10 : 0)
+			                + (Leader.Militarism == MilitarismLevel.Militaristic ? 10 : 0);
 
 			// Space is a science ambition, and it is only a real ambition once the road to it
 			// exists: before the signal there is no spaceship to build, so a would-be Diaspora
 			// civ that scored highest here would spend the early game acting on a plan it
 			// cannot execute. It reads as Endurance until the sky says otherwise.
+			//
+			// The city term is the correction the first version needed. Without it Diaspora was
+			// scored purely on temperament, and it landed on the civs LEAST able to act on it —
+			// measured across two runs, on Khmer at 16 cities and Aztecs at 10, while the big
+			// empires took Commerce and then built ships by accident anyway. A space programme
+			// is the most expensive thing in the game; wanting one is not enough.
 			double diaspora = Game.Instance.SETISignalReceived
-			                ? 100 + d.ScienceBias * 1.5
+			                ? 55 + cities * 2 + d.ScienceBias * 1.2
 			                : 0;
 
 			// Commerce and Culture are the builder's paths, and both want a going concern
 			// rather than a frontier. Weighted by what the civ has actually got, so a
 			// ten-city trading nation reaches for Pax Mercatoria and a two-city one does not.
 			//
-			// They are split on ExpansionAppetite, which is the one knob that genuinely
-			// distinguishes them: commerce is a wide empire's game — routes, partners, gross
-			// output — while a civ that never wanted to be wide is playing for what it can
-			// make of what it holds. Complementary by construction, so the two never tie.
-			double commerce = 60 + cities * 2 - d.WarAppetite * 30 + d.ExpansionAppetite * 20;
-			double culture  = 55 + cities * 2 - d.WarAppetite * 30 + (1.5 - d.ExpansionAppetite) * 20;
+			// They lean on ExpansionAppetite in opposite directions: commerce is a wide
+			// empire's game — routes, partners, gross output — while a civ that never wanted to
+			// be wide is playing for what it can make of what it holds.
+			//
+			// The FIRST version made that split too wide, and Culture became unreachable:
+			// Commerce beat it unless ExpansionAppetite fell below 0.625, which almost no
+			// leader does, and across two full runs Culture was chosen by exactly nobody. The
+			// spread is narrower now and the bases are equal, so the authored preference above
+			// is what actually decides between them — which is the right place for that choice
+			// to live.
+			double commerce = 60 + cities * 2 - d.WarAppetite * 30 + d.ExpansionAppetite * 15;
+			double culture  = 60 + cities * 2 - d.WarAppetite * 30 + (1.0 - d.ExpansionAppetite) * 15
+			                + (d.UnrestTolerance < 0.5 ? 10 : 0);
 
 			// The default, and not a failure state: outlasting everyone to 2200 is a way to
 			// win. Set to beat the builder paths for a civ with almost nothing, so nobody
@@ -127,6 +179,29 @@ namespace CivOne
 				(VictoryPath.Culture,   culture),
 				(VictoryPath.Endurance, endurance),
 			};
+
+			// An authored preference DECIDES, unless the path is structurally unavailable.
+			//
+			// This started as an additive bonus and it did not survive contact with the
+			// numbers: a civ the owner wants playing for culture can have a WarAppetite of
+			// 1.51 (the Franks do), and no bonus small enough to be called a bias could beat
+			// that. Trying to tune one that could would have meant a number large enough to
+			// decide every case anyway — an override wearing a bias costume.
+			//
+			// So it is honest about being a preference. The escape hatch is structural rather
+			// than numerical: a path scoring zero is one the civ CANNOT take, which today
+			// means Diaspora before the SETI signal — there is no spaceship to build, and no
+			// amount of inclination conjures one. Everything reactive (rioting, at war,
+			// under-defended) is StrategyStance's job and is decided long before this.
+			//
+			// The six unassigned civilizations fall through to the derived scoring below,
+			// which is why the Conquest rescale above still matters.
+			VictoryPath? prefer = PreferredPathFor(Player.Civilization);
+			if (prefer is not null)
+			{
+				double preferred = scores.First(x => x.path == prefer.Value).score;
+				if (preferred > 0) return prefer.Value;
+			}
 
 			VictoryPath best = VictoryPath.Endurance;
 			double bestScore = double.MinValue;

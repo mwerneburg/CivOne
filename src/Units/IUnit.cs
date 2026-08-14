@@ -48,6 +48,9 @@ namespace CivOne.Units
 		byte Status { get; set; }
 		byte MovesLeft { get; set; }
 		byte PartMoves { get; set; }
+		// Turn this unit was taken off a foreign army, or null if it was built. Runs the
+		// reverse-engineering clock in BaseUnit.NewTurn; cleared once the tech is learned.
+		int? CapturedOn { get; set; }
 		void SkipTurn();
 		IEnumerable<ITile> MoveTargets { get; }
 		void Explore();
