@@ -1889,15 +1889,27 @@ namespace CivOne
 					// so the city can repeat-build the same part.
 					Shields = 0;
 					int playerIndex = Owner;
+					// Nothing counts once the ship has gone. A part finished after launch is
+					// bolted to a vessel already under way, and counting it made the recorded
+					// hull disagree with the one that flew: observed in a finished run, the
+					// Romans launched on turn 675 and ended holding 42 structurals against the
+					// 43 their component and module counts require — a hull that could never
+					// have flown. Game.ClearSpaceShipProduction stops the shields going in at
+					// all; this is the backstop. NOT an early return — the rest of NewTurn
+					// still has to run for this city.
+					//
 					// Clamped as well as gated in BuildingAvailable: a part already sitting in
 					// the production QUEUE was validated when it was queued, so the cap has to
 					// hold here too or the queue becomes a way around it.
-					if (CurrentProduction is Buildings.SSStructural)
-						Game.SpaceshipStructural[playerIndex] = Math.Min(Game.MaxSpaceshipStructural, Game.SpaceshipStructural[playerIndex] + 1);
-					else if (CurrentProduction is Buildings.SSComponent)
-						Game.SpaceshipComponent[playerIndex]  = Math.Min(Game.MAX_SS_COMPONENT, Game.SpaceshipComponent[playerIndex] + 1);
-					else if (CurrentProduction is Buildings.SSModule)
-						Game.SpaceshipModule[playerIndex]     = Math.Min(Game.MAX_SS_MODULE, Game.SpaceshipModule[playerIndex] + 1);
+					if (Game.SpaceshipLaunchTurn[playerIndex] == 0)
+					{
+						if (CurrentProduction is Buildings.SSStructural)
+							Game.SpaceshipStructural[playerIndex] = Math.Min(Game.MaxSpaceshipStructural, Game.SpaceshipStructural[playerIndex] + 1);
+						else if (CurrentProduction is Buildings.SSComponent)
+							Game.SpaceshipComponent[playerIndex]  = Math.Min(Game.MAX_SS_COMPONENT, Game.SpaceshipComponent[playerIndex] + 1);
+						else if (CurrentProduction is Buildings.SSModule)
+							Game.SpaceshipModule[playerIndex]     = Math.Min(Game.MAX_SS_MODULE, Game.SpaceshipModule[playerIndex] + 1);
+					}
 					// Deliberately silent. A spaceship is dozens of identical parts, and this
 					// announced every one of them — for EVERY civ, since nothing here gated on
 					// the human — then opened the building city. During a space race that is a

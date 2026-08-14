@@ -26,6 +26,12 @@ namespace CivOne.Tests
 	public class SpaceshipTargetTests
 	{
 		// An empire of `cities` cities, each producing roughly `shields` per turn.
+		//
+		// Laid out on a grid: the interesting empires here run to a few dozen cities, which
+		// does not fit on one row, and the budget is a share of output — so demonstrating that
+		// the target scales at all takes an empire big enough to clear the next rung. A dozen
+		// grassland cities make about 66 shields a turn between them; the hull above the
+		// minimum costs 3,760.
 		private static (Game g, Player p) AnEmpire(int cities, int size)
 		{
 			Sim.NewGame(width: 80, height: 50);
@@ -33,12 +39,20 @@ namespace CivOne.Tests
 			Player p = g.Players.First(x => x is not null && x != g.HumanPlayer && g.PlayerNumber(x) != 0);
 			p.Government = new Governments.Monarchy();
 			p.Explore(40, 25, range: 15);
-			for (int y = 18; y <= 32; y++)
-			for (int x = 28; x <= 52; x++)
+			for (int y = 16; y <= 34; y++)
+			for (int x = 20; x <= 60; x++)
 				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
 			Map.Instance.RecalculateContinentsIfDirty();
-			for (int i = 0; i < cities; i++)
-				g.AddCity(p, (byte)i, 30 + i * 3, 25)!.Size = (byte)size;
+			int made = 0;
+			for (int cy = 17; cy <= 33 && made < cities; cy += 2)
+			for (int cx = 21; cx <= 59 && made < cities; cx += 2)
+			{
+				City c = g.AddCity(p, (byte)made, cx, cy);
+				if (c is null) continue;
+				c.Size = (byte)size;
+				made++;
+			}
+			Assert.Equal(cities, made);
 			Sim.ClearTasks();
 			return (g, p);
 		}
@@ -72,7 +86,10 @@ namespace CivOne.Tests
 			(Game _, Player poor) = AnEmpire(cities: 1, size: 4);
 			int smallHull = HullCost(TargetFor(poor));
 
-			(Game __, Player rich) = AnEmpire(cities: 12, size: 20);
+			// 40 cities, not 12: the budget is a third of output, and a dozen test cities on
+			// bare grassland cannot reach even the second-smallest hull, so the comparison was
+			// minimum-against-minimum and failed on correct code.
+			(Game __, Player rich) = AnEmpire(cities: 40, size: 20);
 			int bigHull = HullCost(TargetFor(rich));
 
 			Assert.True(bigHull > smallHull,

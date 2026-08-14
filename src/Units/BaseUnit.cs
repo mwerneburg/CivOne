@@ -933,6 +933,8 @@ namespace CivOne.Units
 			loser.MovesLeft = 0;
 			loser.PartMoves = 0;
 			Log($"[Salvage] {GetType().Name} P{Owner} captures {loser.GetType().Name} at ({loser.X},{loser.Y})");
+			// ...and to the decision log, which survives a RELEASE build. Log() above does not.
+			DecisionLogger.LogSalvage("captured", Player, loser, 0, null);
 			if (Human == Owner)
 			{
 				GameTask.Enqueue(Message.General($"We have captured an intact {loser.Name}!",
@@ -947,6 +949,7 @@ namespace CivOne.Units
 			if (CapturedOn is null) return false;
 			if (Game.GameTurn - CapturedOn.Value < ReverseEngineerTurns) return false;
 
+			int held = Game.GameTurn - CapturedOn.Value;
 			CapturedOn = null;
 			IAdvance? tech = RequiredTech;
 			// Learned it in the meantime, or the unit teaches nothing — the clock still
@@ -956,6 +959,7 @@ namespace CivOne.Units
 			// setOrigin: false — you did not discover this, you took it apart. Origin drives
 			// who the Great Library credits, and the civ you looted should keep that credit.
 			Player.AddAdvance(tech, false);
+			DecisionLogger.LogSalvage("learned", Player, this, held, (tech as ICivilopedia)?.Name);
 			return true;
 		}
 

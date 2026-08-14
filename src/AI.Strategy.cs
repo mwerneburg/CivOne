@@ -137,6 +137,16 @@ namespace CivOne
 		// calibrate like the other numbers in ChoosePath.
 		private const int SpaceshipHorizonTurns = 100;
 
+		// ...of which only a share ever reaches the ship. The first version budgeted the
+		// empire's ENTIRE shield output for the horizon, which is not what any civ does: a
+		// city building a ship part is not building a Factory, a settler or a defender, and
+		// the ordinary production chain keeps winning most of those choices. Measured on the
+		// run after the target shipped, three civs still aimed at the maximum hull and missed
+		// it — Babylonians 48 of 51, Haida 37, Japanese 34 — while only three civs launched
+		// at all, down from five. Budgeting a third is a guess in the right direction; the
+		// error before was one of kind, not degree.
+		private const int SpaceshipOutputShare = 3;
+
 		// Returns the (component, module) hull this civ should aim for. Always at least the
 		// launchable minimum: a civ on this path is trying to leave, and the smallest ship
 		// that flies beats the biggest one that does not.
@@ -151,7 +161,7 @@ namespace CivOne
 			// net of unit upkeep and can be negative in a city carrying an army, so the floor
 			// keeps one struggling city from cancelling out the rest.
 			int perTurn = Player.Cities.Sum(c => Math.Max(0, c.ShieldIncome));
-			int budget = perTurn * SpaceshipHorizonTurns;
+			int budget = perTurn * SpaceshipHorizonTurns / SpaceshipOutputShare;
 
 			int structPrice = new SSStructural().Price * 10;
 			int compPrice   = new SSComponent().Price * 10;

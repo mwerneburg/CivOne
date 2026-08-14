@@ -23,7 +23,7 @@ using CivOne.Units;
 //
 // Schema (flat, intentionally simple for easy pandas/numpy ingestion):
 //
-//   type          string   "settler" | "city_prod" | "game_outcome"
+//   type          string   "settler" | "city_prod" | "game_outcome" | "salvage"
 //   game_id       string   8-char hex, stable per session
 //   turn          int      Game.GameTurn at time of decision
 //   is_human      bool     false for AI decisions
@@ -57,6 +57,13 @@ using CivOne.Units;
 //   disorder      bool     city is rioting
 //   pottery       bool     owner knows Pottery (gates Granary and Harbour)
 //   action        string   production name (e.g. "Settlers", "Granary")
+//
+//   --- salvage fields ---
+//   outcome       string   "captured" (taken intact) | "learned" (clock paid out)
+//   civ           string   the captor
+//   unit          string   what was taken
+//   held_turns    int      0 at capture, the full clock at payout
+//   advance       string   what it taught, "" at capture
 //
 //   --- game_outcome fields ---
 //   score         int      human player's final score
@@ -295,6 +302,32 @@ namespace CivOne
 				KV("p_scavengers", Math.Round(pScavengers, 2)),
 				// Who actually came. Without this the log records only the odds.
 				KV("chosen",       chosen),
+			}));
+		}
+
+		// Battlefield salvage, at both ends: "captured" when a unit is taken intact, "learned"
+		// when the twenty-turn clock pays out its advance. Two records rather than one because
+		// the interesting quantity is the RATIO — how many captures survive long enough to be
+		// taken apart. Anything held and then lost never writes a second line.
+		//
+		// This exists because the only other trace was a Log() call, and Log compiles to a
+		// no-op in RELEASE (runtime/sdl Runtime.cs), so a played game left no evidence the
+		// mechanic had ever fired.
+		internal static void LogSalvage(string outcome, Player? captor, IUnit? unit, int heldTurns, string? advance)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",       "salvage"),
+				KV("game_id",    _gameId),
+				KV("turn",       Game.Instance?.GameTurn ?? 0),
+				KV("is_human",   captor is not null && captor.IsHuman),
+				KV("outcome",    outcome),
+				KV("civ",        captor?.Civilization?.NamePlural ?? "?"),
+				KV("unit",       (unit as ICivilopedia)?.Name ?? "?"),
+				// Turns held so far: 0 at capture, the full clock at payout.
+				KV("held_turns", heldTurns),
+				// What it taught, or "" at capture time.
+				KV("advance",    advance ?? ""),
 			}));
 		}
 

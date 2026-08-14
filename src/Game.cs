@@ -1144,8 +1144,23 @@ namespace CivOne
 
 		internal void ClearSpaceShipProduction(int playerIndex)
 		{
-			foreach (City city in _players[playerIndex].Cities.Where(c => c.CurrentProduction is Buildings.ISpaceShip))
+			// The QUEUE as well as the current item. Clearing only what a city was building
+			// this turn left every queued part behind, so cities went on completing parts for
+			// a ship that had already left — pure waste, and it inflated the part counters
+			// past what the launched hull actually carried. Observed in a finished run: the
+			// Romans launched on turn 675 and ended holding 42 structurals against the 43
+			// their final component and module counts require, a hull that could never have
+			// flown. City.NewTurn refuses the increment after launch as well; this stops the
+			// shields being spent in the first place.
+			foreach (City city in _players[playerIndex].Cities)
 			{
+				if (city.ProductionQueue.Any(p => p is Buildings.ISpaceShip))
+				{
+					IProduction[] keep = city.ProductionQueue.Where(p => p is not Buildings.ISpaceShip).ToArray();
+					city.ClearProductionQueue();
+					foreach (IProduction p in keep) city.EnqueueProduction(p);
+				}
+				if (city.CurrentProduction is not Buildings.ISpaceShip) continue;
 				IProduction fallback = city.AvailableProduction.FirstOrDefault();
 				if (fallback is not null) city.SetProduction(fallback);
 			}

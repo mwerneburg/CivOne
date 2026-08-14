@@ -210,6 +210,58 @@ namespace CivOne.Tests
 			Assert.True(everTaken, "40 real attacks and not one defender was ever taken intact");
 		}
 
+		// ── the evidence trail ───────────────────────────────────────────────────
+
+		// Salvage left no trace a played game could be examined for. The only record was a
+		// Log() call, and Log compiles to a no-op in RELEASE (runtime/sdl Runtime.cs) — a
+		// finished 750-turn run could not say whether the mechanic had ever fired once. Both
+		// ends now write to decisions.jsonl, which survives the build.
+		//
+		// Pinned on the source rather than by running the logger: DecisionLogger writes to the
+		// user's data directory on a background task, and a test that produced real log lines
+		// would be writing into the same file the analysis reads.
+		private static string LoggerCallSites()
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			Assert.NotNull(dir);
+			return System.IO.File.ReadAllText(System.IO.Path.Combine(
+				dir!.FullName, "src", "Units", "BaseUnit.cs"));
+		}
+
+		[Theory]
+		[InlineData("\"captured\"")]   // a unit taken intact
+		[InlineData("\"learned\"")]    // the clock paid out
+		public void BothEndsOfTheMechanicAreLogged(string outcome)
+		{
+			string src = LoggerCallSites();
+
+			Assert.Contains($"DecisionLogger.LogSalvage({outcome}", src);
+		}
+
+		// The ratio is the interesting quantity — how many captures survive to be taken apart
+		// — so the record has to carry how long the unit was actually held.
+		[Fact]
+		public void TheRecordCarriesTheFieldsTheRatioNeeds()
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(
+				dir!.FullName, "src", "DecisionLogger.cs"));
+
+			// Anchored on the KV entry, not the bare word: "salvage" also appears in the
+			// schema comment at the top of the file, and matching that would take the
+			// substring from the header and find some other record's closing brace.
+			int at = src.IndexOf("\"salvage\"),");
+			Assert.True(at > 0, "the salvage record has moved or been rewritten");
+			string record = src.Substring(at, src.IndexOf("}));", at) - at);
+
+			foreach (string field in new[] { "outcome", "civ", "unit", "held_turns", "advance" })
+				Assert.Contains($"KV(\"{field}\"", record);
+		}
+
 		// ── the twenty-turn clock ────────────────────────────────────────────────
 
 		private static IUnit ACapturedRifleman(int heldFor)
