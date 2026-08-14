@@ -424,11 +424,32 @@ namespace CivOne
 			// plan that lives in its cities skips Expand once it has a real base to build on.
 			// Below that threshold it still expands, because four cities is not a trade empire
 			// and a plan you cannot fund is not a plan.
-			const int PathBaseCities = 5;
+			// "A real base" is measured against the civ's OWN target, not a fixed number.
+			//
+			// This was a constant 5, and a constant does not survive contact with an epic map:
+			// CityTarget scales by Map.WIDTH/80, so a Normal leader on 320x200 Earth is aiming
+			// at about 26 cities, and 5 is a beachhead rather than a base. The effect was total
+			// rather than gradual, because settler production for a civ with three or more
+			// cities lives inside `stance == Expand`: a deepening civ that crossed five cities
+			// could never enter Expand again, so it never built another settler, so it never
+			// grew. The only escape was the last-resort fallback, which fires when a city has
+			// run out of everything else — and a large city being actively developed never
+			// does.
+			//
+			// Measured on the Maori across three runs. Before the paths existed: 84 Expand
+			// stances and 3 settlers built. After: zero and zero, frozen on 8 cities from turn
+			// 313 to 749 while Whanganui grew to size 17 building Library, Aqueduct, Harbour,
+			// Observatory, Hospital, Neural Lab, Mass Transit — never once a settler.
+			//
+			// Half the target keeps what the clause was for: a civ that is genuinely
+			// established deepens instead of spreading, which is why the Babylonians build
+			// temples at 20 cities rather than more towns. A civ at a third of its target is
+			// not established, whatever it intends to be remembered for.
+			int pathBaseCities = Math.Max(5, CityTarget() / 2);
 			bool deepensRatherThanSpreads = Path is VictoryPath.Diaspora
 			                                     or VictoryPath.Commerce
 			                                     or VictoryPath.Culture;
-			if (deepensRatherThanSpreads && cities.Length >= PathBaseCities)
+			if (deepensRatherThanSpreads && cities.Length >= pathBaseCities)
 				return StrategyStance.Develop;
 
 			if (HasExpansionRoom()) return StrategyStance.Expand;
