@@ -156,12 +156,36 @@ namespace CivOne.Tiles
 			return BorderTransportTubes(tile);
 		}
 
+		// ONE statement of "can this tile draw water", shared by every caller.
+		//
+		// It was stated FIVE times — here, Settlers.BuildIrrigation, Settlers'
+		// auto-improve scan, AI.WorkAvailable and the AI's neglected-countryside test — and
+		// this file already carries three bug comments about exactly that kind of duplication.
+		//
+		// The rule itself: irrigation normally spreads from any adjacent irrigated tile, which
+		// is how one oasis seeds a line of green marching a hundred tiles across the Gobi.
+		// DESERT DOES NOT CHAIN. It needs a real source in the cross — a river, a lake, or
+		// freshwater coast — so riverbank and oasis agriculture still work (Egypt and
+		// Mesopotamia happened exactly that way) while the daisy-chain stops at the second
+		// tile. The deep interior gets the Moisture Farm instead, and a late-game river cut
+		// across dry land is worth far more than it used to be.
+		public static bool HasIrrigationSource(this ITile tile)
+		{
+			if (tile is River) return true;   // a river tile is its own source
+
+			bool Natural(ITile x) => x is River || x is Swamp
+			                      || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y));
+			bool mayChain = tile is not Desert;
+
+			return CrossTiles(tile).Any(x => x.City is null
+			                              && (Natural(x) || (mayChain && x.Irrigation)));
+		}
+
 		public static bool AllowIrrigation(this ITile tile)
 		{
 			if (tile.Irrigation) return false;
 			if (!(tile is Desert || tile is Grassland || tile is Hills || tile is Plains || tile is River)) return false;
-			return CrossTiles(tile).Any(x => (x.Irrigation || x is River || x is Swamp
-				|| (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))) && x.City is null);
+			return tile.HasIrrigationSource();
 		}
 
 		public static bool AllowChangeTerrain(this ITile tile)

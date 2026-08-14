@@ -119,10 +119,7 @@ namespace CivOne.Units
 			if (tile.Irrigation) return false;
 			if (tile is River) return true;
 			if (!(tile is Desert || tile is Grassland || tile is Plains || tile is Hills)) return false;
-			return tile.GetBorderTiles().Any(t =>
-				(t.X == tile.X || t.Y == tile.Y) && t.City is null &&
-				(t.Irrigation || t is River || t is Swamp ||
-					(t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))));
+			return tile.HasIrrigationSource();
 		}
 
 		private bool HasCanopyHere(ITile tile) =>
@@ -506,9 +503,7 @@ namespace CivOne.Units
 				PartMoves = 0;
 				return true;
 			}
-			else if ((tile.GetBorderTiles().Any(t => (t.X == X || t.Y == Y) && (t.City is null)
-				&& (t.Irrigation || (t is River) || (t is Swamp)
-				    || (t.IsOcean && Map.Instance.IsFreshwaterAt(t.X, t.Y))))) || (tile is River))
+			else if (tile.HasIrrigationSource())
 			{
 				if (!tile.IsOcean && !(tile.Irrigation) && ((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)))
 				{
@@ -526,10 +521,20 @@ namespace CivOne.Units
 				if (((tile is Desert) || (tile is Grassland) || (tile is Hills) || (tile is Plains) || (tile is River)) && tile.City is null)
 				{
 					if (Human == Owner)
-						GameTask.Enqueue(Message.Error("-- Civilization Note --",
-						"This tile has no water source.",
-						"Needs a neighboring river, lake,",
-						"swamp, or irrigated tile."));
+						// Desert gets its own wording: it cannot chain from a neighbouring
+						// irrigated tile (TileExtensions.HasIrrigationSource), so offering that
+						// as a remedy would send the player off to do something that will not
+						// work. The Moisture Farm is what dry interior desert gets instead.
+						GameTask.Enqueue(tile is Desert
+							? Message.Error("-- Civilization Note --",
+								"This desert has no water source.",
+								"Needs a neighboring river, lake",
+								"or swamp - desert cannot be fed",
+								"from another irrigated tile.")
+							: Message.Error("-- Civilization Note --",
+								"This tile has no water source.",
+								"Needs a neighboring river, lake,",
+								"swamp, or irrigated tile."));
 					return true;
 				}
 				if (Human == Owner)

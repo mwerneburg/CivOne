@@ -966,7 +966,22 @@ namespace CivOne
 			} finally { TurnMetrics.AddAiProduction(__t0); }
 		}
 
+		// Keyed by Player — and Player.GetHashCode is Game.PlayerNumber(this), i.e. the SLOT
+		// INDEX IN THE CURRENT GAME (Player.cs:1107), with Equals to match. So a Player object
+		// from a previous game hashes to the same bucket as whoever now holds that slot, and a
+		// stale entry is returned in preference to building a fresh one: every AI decision then
+		// reads the OLD game's advances, cities and gold.
+		//
+		// Nothing cleared this. Starting a new game or loading a save without restarting the
+		// process left every AI reasoning about the game before it. Found via a test that
+		// passed alone and failed in the full suite — by the fortieth Sim.NewGame the cache was
+		// handing back AIs bound to long-dead players, and the tech test in WorkAvailable read
+		// false for an advance the live player definitely had.
 		private static Dictionary<Player, AI> _instances = new();
+
+		// Called wherever the Game singleton is replaced. See above for why this is not
+		// optional.
+		internal static void ResetInstances() => _instances.Clear();
 		internal static AI Instance(Player player)
 		{
 			if (_instances.ContainsKey(player))

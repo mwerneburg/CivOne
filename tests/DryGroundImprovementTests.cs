@@ -27,9 +27,11 @@ namespace CivOne.Tests
 		{
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;
-			// Game.CurrentPlayer, not any AI: Settlers.BuildTerrace and BuildMoistureFarm read
-			// CurrentPlayer for the tech test, exactly as BuildRoad does.
-			Player p = g.CurrentPlayer;
+			// A real civ, NOT Game.CurrentPlayer. On a fresh game CurrentPlayer is the
+			// BARBARIANS (slot 0), which is both the wrong owner for a settler test and the
+			// one slot where the AI instance cache used to hand back a stale object — the
+			// first version of this fixture used it and failed only in the full suite.
+			Player p = g.Players.First(x => x is not null && x != g.HumanPlayer && g.PlayerNumber(x) != 0);
 			p.Explore(40, 25, range: 6);
 			for (int y = 20; y <= 30; y++)
 			for (int x = 35; x <= 45; x++)
@@ -38,8 +40,14 @@ namespace CivOne.Tests
 				((BaseTile)Map.Instance[x, y]).Special = false;
 			}
 			Map.Instance.RecalculateContinentsIfDirty();
-			if (masonry)  p.AddAdvance(new Masonry(), false);
-			if (refining) p.AddAdvance(new Refining(), false);
+			// Both the owner AND CurrentPlayer: WorkAvailable asks the owning Player, while
+			// Settlers.BuildTerrace/BuildMoistureFarm ask Game.CurrentPlayer — the same
+			// idiom BuildRoad uses. The test asserts those two agree, so it has to satisfy both.
+			foreach (Player who in new[] { p, g.CurrentPlayer })
+			{
+				if (masonry)  who.AddAdvance(new Masonry(), false);
+				if (refining) who.AddAdvance(new Refining(), false);
+			}
 			Settlers s = (Settlers)g.CreateUnit(UnitType.Settlers, 40, 25, g.PlayerNumber(p))!;
 			Sim.ClearTasks();
 			return (g, p, s);

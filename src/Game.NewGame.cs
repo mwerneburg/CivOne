@@ -388,6 +388,7 @@ namespace CivOne
 				Log("ERROR: Game instance already exists");
 				return;
 			}
+			AI.ResetInstances();   // see AI._instances: keyed by a slot index, not identity
 			_instance = new Game(difficulty, competition, tribe, leaderName, tribeName, tribeNamePlural);
 			// Before anything can flood or drain it: the Scavenger draw reads today's sea
 			// against this number.

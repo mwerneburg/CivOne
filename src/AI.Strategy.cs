@@ -2166,8 +2166,7 @@ namespace CivOne
 				&& (conversion
 				    || ((tile is Grassland || tile is River || tile is Plains || tile is Desert
 				         || tile is Hills)
-				        && tile.CrossTiles().Any(x => x.City is null
-				            && (x.Irrigation || x is River || x is Swamp || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))))));
+				        && tile.HasIrrigationSource()));
 			bool mine = (tile is Mountains || tile is Hills) && !tile.Mine && !tile.Irrigation;
 
 			// Mirror Settlers.BuildRoad's eligibility checks: a brand-new road on a River tile
@@ -3410,8 +3409,7 @@ namespace CivOne
 				if (t.Irrigation || t.Mine) continue;
 				if (t is Swamp || t is Jungle || t is Forest) return true;   // conversion: no water source needed
 				if ((t is Grassland || t is River || t is Plains || t is Desert)
-				    && t.CrossTiles().Any(x => x.Irrigation || x is River || x is Swamp
-				                            || (x.IsOcean && Map.Instance.IsFreshwaterAt(x.X, x.Y))))
+				    && t.HasIrrigationSource())
 					return true;
 			}
 			return false;

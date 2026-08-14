@@ -382,6 +382,7 @@ namespace CivOne
 			{
 				var text = File.ReadAllText(cosFile);
 				var cos  = CosSerializer.Deserialize(text);
+				AI.ResetInstances();   // see AI._instances: keyed by a slot index, not identity
 				_instance = new Game(cos);
 				_instance.FixDomeAssignmentsIfNeeded();
 				_instance.RepickAiCityTiles();
