@@ -3835,6 +3835,48 @@ namespace CivOne
 			// deadlocks production forever (the Inca case).
 			if (hostileNear && defenders < Math.Min(2, (int)city.Size)) Consider(BestDefender());
 
+			// A hull, for a civ with nowhere left to walk — placed HIGH, which is the whole
+			// change. Both boat rules already existed near the bottom of this method and both
+			// were being reached: BoxedIn() was true on 35 of the Maori's 63 logged production
+			// decisions, so a Longboat went into the plan and stayed there. Consider() keeps
+			// the first entry per type and CityProduction builds plan[0], so position IS
+			// priority, and a city with any building left to make never got that far. Measured
+			// across three complete runs the Maori built not one boat of any kind, sat on the
+			// same 8 cities from turn 313 to 749, and finished with two idle settlers and an
+			// island with nothing left to improve.
+			//
+			// This is the same failure the spaceship had before the Diaspora path entry: a
+			// correct rule in a position nothing ever reaches.
+			//
+			// Narrow on purpose. Boxed in (no legal land site in reach), below the leader's
+			// own city target, coastal, and able to spare the population point — a civ with
+			// room to walk into does not need a navy, and the two-hull cap below keeps this
+			// from becoming one.
+			if (Player.HasAdvance<MapMaking>()
+			    && BoxedIn()
+			    && Player.Cities.Length < CityTarget()
+			    && city.Tile is not null
+			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
+			    && CanAffordSettler(city, 3))
+			{
+				byte boxedId = Game.PlayerNumber(Player);
+				// Longboats counted explicitly. The Longboat is NOT IBoardable — it carries no
+				// passenger, it IS the colonist, spending a population point and consuming
+				// itself ashore as a land Settlers would. Counting only IBoardable hulls, as
+				// the Trireme rule below does, left this cap counting everything except the
+				// boat it caps.
+				int afloat = Game.GetUnits().Count(u => u.Owner == boxedId
+				                                     && (u is Longboat || u is IBoardable));
+				// Two crossings in flight, not one and not unbounded. The rule this replaces
+				// was uncapped, on the reasoning that "one at sea at a time" colonises a new
+				// world at one city per crossing — true, but it was written for a rule sitting
+				// at the bottom of the plan where it was never reached anyway. At the TOP,
+				// uncapped means a boxed-in civ builds boats every turn from every coastal
+				// city, at a population point each. A Longboat consumes itself founding, so
+				// the count falls as crossings land and the yard reopens on its own.
+				if (afloat < 2) Consider(new Longboat());
+			}
+
 			// What this civ is TRYING to do. See VictoryPath.
 			//
 			// Placed after the garrison and before everything else: a civ pursuing a plan
@@ -4197,17 +4239,9 @@ namespace CivOne
 					Consider(new Settlers());
 			}
 
-			// Longboat: the only expansion a hemmed-in civ has. Built when there is no
-			// land left to settle and the city is coastal. Uncapped deliberately — the
-			// old "one at sea at a time" rule meant an island civ colonised a new world
-			// at one city per crossing, which is indistinguishable from never. The cost
-			// is its own brake: each boat spends a population point, and CanAffordSettler
-			// keeps a city from starving itself to build one.
-			if (Player.HasAdvance<MapMaking>() && BoxedIn()
-			    && city.Tile is not null
-			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
-			    && CanAffordSettler(city, 3))
-				Consider(new Longboat());
+			// The Longboat rule used to live HERE, at the bottom of the method, and that is
+			// exactly why no civ ever built one — see the entry near the top, beside the
+			// garrison. Stated once, up there, where a city can reach it.
 
 			// A hull, for a civ that has run out of world to walk to.
 			//

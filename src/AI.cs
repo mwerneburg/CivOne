@@ -493,11 +493,38 @@ namespace CivOne
 						}
 						else
 						{
-							// Drift toward the nearest own city rather than milling in empty
-							// terrain indefinitely.
-							City home = ownCities.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y)).First();
-							if (Common.DistanceToTile(home.X, home.Y, unit.X, unit.Y) > 2)
-								unit.Goto = new Point(home.X, home.Y);
+							// Nothing to found, nothing to improve, no ride out. Fold the
+							// settler back into a city instead of pacing the countryside
+							// with it for the rest of the game.
+							//
+							// "Add to City" has always existed — Orders.CreateCity turns a
+							// settler standing on a city tile into a population point, capped
+							// at size 10 (Civ 1's rule) — but only the human menu ever issued
+							// it. Nothing in the AI did, so a stranded settler was simply
+							// stranded. The case is the island civ: measured on the Maori at
+							// 2200 AD, two idle Settlers, no boat, and an island with nothing
+							// left to irrigate.
+							//
+							// Reached only after BOTH site searches and the boarding check
+							// have come back empty, so this never dissolves a settler that
+							// had somewhere to be.
+							City? host = ownCities
+								.Where(c => c.Size > 0 && c.Size < MaxJoinCitySize)
+								.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y))
+								.FirstOrDefault();
+							if (host is not null && host.X == unit.X && host.Y == unit.Y)
+							{
+								DecisionLogger.LogSettlerAction(unit, "join");
+								GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
+								return;
+							}
+							// Drift toward a city that could take us — or, if every city is
+							// already at the cap, toward the nearest one anyway rather than
+							// milling in empty terrain indefinitely.
+							City drift = host ?? ownCities
+								.OrderBy(c => Common.DistanceToTile(c.X, c.Y, unit.X, unit.Y)).First();
+							if (Common.DistanceToTile(drift.X, drift.Y, unit.X, unit.Y) > (host is null ? 2 : 0))
+								unit.Goto = new Point(drift.X, drift.Y);
 						}
 					}
 				}
@@ -965,6 +992,11 @@ namespace CivOne
 				city.EnqueueProduction(plan[i]);
 			} finally { TurnMetrics.AddAiProduction(__t0); }
 		}
+
+		// A settler may join a city below this size, adding a population point and being
+		// disbanded. Mirrors the cap enforced in Orders.CreateCity ("ADDCITY"): stated here
+		// so the AI does not walk a settler across the map to a city that will refuse it.
+		private const int MaxJoinCitySize = 10;
 
 		// Keyed by Player — and Player.GetHashCode is Game.PlayerNumber(this), i.e. the SLOT
 		// INDEX IN THE CURRENT GAME (Player.cs:1107), with Equals to match. So a Player object
