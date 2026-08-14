@@ -2099,10 +2099,15 @@ namespace CivOne
 		internal readonly struct TileWork
 		{
 			public readonly bool Irrigation, Conversion, Mine, NewRoad, RoadUpgrade;
-			public TileWork(bool irrigation, bool conversion, bool mine, bool newRoad, bool roadUpgrade)
+			// The dry-ground pair. Both add food where irrigation cannot reach, because
+			// irrigation needs fresh water in the cross and continental interiors have none.
+			public readonly bool Terrace, MoistureFarm;
+			public TileWork(bool irrigation, bool conversion, bool mine, bool newRoad, bool roadUpgrade,
+			                bool terrace = false, bool moistureFarm = false)
 			{
 				Irrigation = irrigation; Conversion = conversion; Mine = mine;
 				NewRoad = newRoad; RoadUpgrade = roadUpgrade;
+				Terrace = terrace; MoistureFarm = moistureFarm;
 			}
 			public bool Road => NewRoad || RoadUpgrade;
 		}
@@ -2177,7 +2182,15 @@ namespace CivOne
 			bool upgrade = tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>();
 			if (tile.TransportTube) { newRoad = false; upgrade = false; }
 
-			return new TileWork(irrigation, conversion, mine, newRoad, upgrade);
+			// Terracing and moisture farming. Both mirror Settlers.BuildTerrace /
+			// BuildMoistureFarm exactly — terrain, tech and "not already there" — because a
+			// scan that offers work the builder refuses is the disagreement this file has
+			// four separate bug comments about. Salt Flat appears in neither: it is meant to
+			// stay good for nothing.
+			bool terrace = tile is Hills && !tile.Terrace && Player.HasAdvance<Masonry>();
+			bool moisture = tile is Desert && !tile.MoistureFarm && Player.HasAdvance<Refining>();
+
+			return new TileWork(irrigation, conversion, mine, newRoad, upgrade, terrace, moisture);
 		}
 
 		// Under Despotism and Anarchy the tile penalty claws back any yield above 2, so
@@ -2288,7 +2301,15 @@ namespace CivOne
 				{
 					Pass.Mine => work.Mine,
 					Pass.Rail => work.RoadUpgrade,
-					_         => work.Irrigation && !DespotBlocksIrrigation(tile)
+					// Terrace and moisture farm ride the FARM pass rather than getting one of
+					// their own: they are food work, they sit on the same tiles the farm pass
+					// already walks, and a separate pass would only run after farming found
+					// nothing — which on dry ground is exactly when they are needed most.
+					// Neither is subject to DespotBlocksIrrigation: that rule is about the
+					// despotic penalty clawing back irrigation's third point of food, and
+					// these two are adding a first or second one.
+					_         => (work.Irrigation && !DespotBlocksIrrigation(tile))
+					             || work.Terrace || work.MoistureFarm
 				};
 				if (!wanted) continue;
 				if (claimed.Contains((tx, ty))) continue;

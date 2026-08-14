@@ -386,6 +386,24 @@ namespace CivOne
 						if (validCanopy)  { DecisionLogger.LogSettlerAction(unit, "canopy");   (unit as Settlers)?.BuildCanopyArray(); unit.SkipTurn(); return; }
 						if (validAquafarm) { DecisionLogger.LogSettlerAction(unit, "aquafarm"); (unit as Settlers)?.BuildAquafarm();  unit.SkipTurn(); return; }
 
+						// Dry-ground food, ahead of the ordinary improvement choice. Both only
+						// ever fire on terrain where irrigation has nothing to offer — Hills
+						// without water in the cross, Desert likewise — so they cannot crowd
+						// out farming that would have been better. Eligibility is
+						// WorkAvailable's, so the scan that routed the settler here and the
+						// order it now gives cannot disagree.
+						TileWork dry = WorkAvailable(tile);
+						if (dry.Terrace)
+						{
+							DecisionLogger.LogSettlerAction(unit, "terrace");
+							GameTask.Enqueue(Orders.BuildTerrace(unit)); unit.SkipTurn(); return;
+						}
+						if (dry.MoistureFarm)
+						{
+							DecisionLogger.LogSettlerAction(unit, "moisture-farm");
+							GameTask.Enqueue(Orders.BuildMoistureFarm(unit)); unit.SkipTurn(); return;
+						}
+
 						var improvementChoice = ChooseSettlerImprovement(unit, validRoad, validIrrigation, validMine, nearestOwnCity, convertible, canNewRoadHere);
 							switch (improvementChoice)
 							{

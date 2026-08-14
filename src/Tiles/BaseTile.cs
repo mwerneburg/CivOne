@@ -197,6 +197,13 @@ namespace CivOne.Tiles
 			set => _railroad = value;
 		}
 		public virtual bool TransportTube { get; set; }
+
+		// Terrace (Hills) and Moisture Farm (Desert). Both add food to ground irrigation
+		// cannot reach — irrigation needs fresh water in the cross, and the deep interior of
+		// a continent has none. Deliberately NOT available on Salt Flat: that terrain is meant
+		// to stay good for nothing.
+		public virtual bool Terrace { get; set; }
+		public virtual bool MoistureFarm { get; set; }
 		public virtual bool Irrigation { get; set; }
 		public virtual bool Mine { get; set; }
 		public virtual bool Fortress { get; set; }

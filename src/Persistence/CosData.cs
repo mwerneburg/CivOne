@@ -332,6 +332,8 @@ namespace CivOne.Persistence
 		public bool TransportTube { get; set; }
 		public bool Irrigation { get; set; }
 		public bool Mine { get; set; }
+		public bool Terrace { get; set; }
+		public bool MoistureFarm { get; set; }
 		public bool Hut { get; set; }
 		public bool Pollution { get; set; }
 	}

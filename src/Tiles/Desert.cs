@@ -19,7 +19,10 @@ namespace CivOne.Tiles
 		// always read here. So it pays in shields, and pays what wetland oil pays (4);
 		// the water it used to stand for is handled by the river oases that
 		// Map.EnsureFreshwaterReachability plants in dry interiors.
-		public override sbyte Food => (sbyte)(Irrigation ? 1 : 0);
+		// Moisture farming: +1 food on ground with no water to draw on. Desert irrigates to 1
+		// where a river or oasis is adjacent; a moisture farm is what the deep interior gets
+		// instead, and the two stack for the rare tile that can have both.
+		public override sbyte Food => (sbyte)((Irrigation ? 1 : 0) + (MoistureFarm ? 1 : 0));
 		public override sbyte Shield => (sbyte)(1 + (Special ? 3 : 0) + (Mine ? 1 : 0));
 		public override sbyte Trade => (sbyte)(Road || RailRoad ? 1 : 0);
 		public override sbyte IrrigationFoodBonus => -2;

@@ -387,6 +387,47 @@ namespace CivOne.Graphics.Sprites
 			return output;
 		}
 
+		// Terrace: [terrace] override from improvement_tiles.txt, else procedural — three
+		// stepped shelves cut across the slope, drawn in stone with a green lip on each so
+		// they read as planted rather than quarried (the Mine is the quarry).
+		private static Bytemap GetTerrace()
+		{
+			byte[]? over = Free.Improvement("terrace");
+			if (over is not null) return new Bytemap(16, 16).FromByteArray(over);
+
+			const byte stone = 7;   // INK_MID retaining wall
+			const byte crop  = 33;  // green ramp
+			Bytemap output = new Bytemap(16, 16);
+			for (int i = 0; i < 3; i++)
+			{
+				int y = 4 + i * 4;
+				int x0 = 2 + i, w = 12 - i * 2;
+				output.FillRectangle(x0, y, w, 1, stone);
+				output.FillRectangle(x0, y + 1, w, 1, crop);
+			}
+			return output;
+		}
+
+		// Moisture farm: [moisture_farm] override, else procedural — a squat condenser stack
+		// with a cyan bead at the spout. Cyan deliberately: nothing else on the map uses it
+		// for terrain, so water-from-air reads at a glance against desert ochre.
+		private static Bytemap GetMoistureFarm()
+		{
+			byte[]? over = Free.Improvement("moisture_farm");
+			if (over is not null) return new Bytemap(16, 16).FromByteArray(over);
+
+			const byte metal = 20;  // steel from the greyscale ramp
+			const byte shade = 5;   // BORDER, for the shadowed side
+			const byte water = 17;  // CYAN
+			Bytemap output = new Bytemap(16, 16);
+			output.FillRectangle(6, 4, 4, 2, metal);    // intake cowl
+			output.FillRectangle(7, 6, 2, 6, metal);    // stack
+			output.FillRectangle(9, 6, 1, 6, shade);    // shadowed side
+			output.FillRectangle(5, 12, 6, 1, metal);   // base
+			output[8, 13] = water;                      // the drop
+			return output;
+		}
+
 		// Fortress: [fortress] override, else a procedural crenellated stone wall.
 		private static Bytemap GetFortress()
 		{
@@ -471,6 +512,8 @@ namespace CivOne.Graphics.Sprites
 		public static readonly ISpriteCollection<Direction> Swamp = new CachedSpriteCollection<Direction>(GetTileLayer<Swamp>);
 		public static readonly ISpriteCollection<Direction> Tundra = new CachedSpriteCollection<Direction>(GetTileLayer<Tundra>);
 		public static readonly ISpriteCollection<Direction> Fog = new CachedSpriteCollection<Direction>(GetFog);
+		public static Bytemap Terrace => GetTerrace();
+		public static Bytemap MoistureFarm => GetMoistureFarm();
 		public static readonly ISpriteCollection<Direction> Road = new CachedSpriteCollection<Direction>(GetRoad);
 		public static readonly ISpriteCollection<Direction> RailRoad = new CachedSpriteCollection<Direction>(GetRailRoad);
 		public static readonly ISpriteCollection<Direction> TransportTube = new CachedSpriteCollection<Direction>(GetTransportTube);

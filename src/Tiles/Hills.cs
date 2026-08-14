@@ -15,7 +15,12 @@ namespace CivOne.Tiles
 	{
 		public override byte Movement => 2;
 		public override byte Defense => 4;
-		public override sbyte Food => (sbyte)(1 + (Irrigation ? 1 : 0));
+		// Terracing: +1 food, and it does NOT need fresh water beside it, which is the whole
+		// point — irrigation on Hills already gives +1 but only where the cross has water,
+		// and interior highlands never do. Stacks with irrigation where both are possible;
+		// a hillside that is both watered and terraced is the best farmland in the game, and
+		// it costs two settler jobs to get there.
+		public override sbyte Food => (sbyte)(1 + (Irrigation ? 1 : 0) + (Terrace ? 1 : 0));
 		public override sbyte Shield => (sbyte)((Special ? 2 : 0) + (Mine ? 2 : 0));
 		public override sbyte Trade => 0;
 		public override sbyte IrrigationFoodBonus => -2;

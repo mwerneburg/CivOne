@@ -222,6 +222,8 @@ namespace CivOne.Tiles
 			{
 				if (!GFX256 && tile.DrawIrrigation()) output.AddLayer(MapTile.Irrigation);
 				if (tile.DrawMine()) output.AddLayer(MapTile.Mine);
+				if (tile.Terrace) output.AddLayer(MapTile.Terrace);
+				if (tile.MoistureFarm) output.AddLayer(MapTile.MoistureFarm);
 			}
 			if (settings.Roads)
 			{

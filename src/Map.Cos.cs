@@ -81,7 +81,8 @@ namespace CivOne
 				// flag was pollution used to be skipped here entirely, so smog vanished on
 				// save. Pollution is what accumulates toward the next global-warming event,
 				// so losing it meant a reloaded game could never warm.
-				if (!t.Road && !t.RailRoad && !t.TransportTube && !t.Irrigation && !t.Mine && !t.Hut && !t.Pollution) continue;
+				if (!t.Road && !t.RailRoad && !t.TransportTube && !t.Irrigation && !t.Mine && !t.Hut && !t.Pollution
+				    && !t.Terrace && !t.MoistureFarm) continue;
 				improvements.Add(new CosImprovement
 				{
 					X = x, Y = y,
@@ -91,7 +92,9 @@ namespace CivOne
 					Irrigation    = t.Irrigation,
 					Mine          = t.Mine,
 					Hut           = t.Hut,
-					Pollution     = t.Pollution
+					Pollution     = t.Pollution,
+					Terrace       = t.Terrace,
+					MoistureFarm  = t.MoistureFarm
 				});
 			}
 
@@ -151,6 +154,8 @@ namespace CivOne
 					t.Pollution     = imp.Pollution;
 					t.Mine          = imp.Mine;
 					t.Hut           = imp.Hut;
+					t.Terrace       = imp.Terrace;
+					t.MoistureFarm  = imp.MoistureFarm;
 				}
 			}
 

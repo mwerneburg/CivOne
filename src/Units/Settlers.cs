@@ -27,7 +27,8 @@ namespace CivOne.Units
 			get
 			{
 				return (base.Busy || BuildingRoad > 0 || BuildingIrrigation > 0 || BuildingMine > 0 || BuildingFortress > 0 || BuildingCleanPollution > 0 || BuildingCanopyArray > 0 || BuildingAquafarm > 0 || BuildingCamp > 0
-					|| BuildingLowerTerrain > 0 || BuildingRaiseTerrain > 0 || BuildingPlantForest > 0 || BuildingPlantJungle > 0 || BuildingThawTundra > 0 || BuildingAddRiver > 0);
+					|| BuildingLowerTerrain > 0 || BuildingRaiseTerrain > 0 || BuildingPlantForest > 0 || BuildingPlantJungle > 0 || BuildingThawTundra > 0 || BuildingAddRiver > 0
+					|| BuildingTerrace > 0 || BuildingMoistureFarm > 0);
 			}
 			set
 			{
@@ -46,6 +47,8 @@ namespace CivOne.Units
 				BuildingPlantJungle = 0;
 				BuildingThawTundra = 0;
 				BuildingAddRiver = 0;
+				BuildingTerrace = 0;
+				BuildingMoistureFarm = 0;
 				AutoClean = false;
 				AutoImprove = false;
 				RoadTo = Point.Empty;
@@ -66,6 +69,8 @@ namespace CivOne.Units
 		public int BuildingThawTundra { get; internal set; }
 		public int BuildingAddRiver { get; internal set; }
 		public int BuildingCamp { get; private set; }
+		public int BuildingTerrace { get; private set; }
+		public int BuildingMoistureFarm { get; private set; }
 		// internal set: the AI turns this on for its own workers (AI.cs). The NewTurn
 		// machinery below already routes an auto-cleaning settler to the nearest
 		// polluted tile and switches the flag back off when the map is clean.
@@ -99,7 +104,7 @@ namespace CivOne.Units
 			BuildingFortress == 0 && BuildingCleanPollution == 0 && BuildingCanopyArray == 0 &&
 			BuildingAquafarm == 0 && BuildingCamp == 0 && BuildingLowerTerrain == 0 && BuildingRaiseTerrain == 0 &&
 			BuildingPlantForest == 0 && BuildingPlantJungle == 0 && BuildingThawTundra == 0 &&
-			BuildingAddRiver == 0;
+			BuildingAddRiver == 0 && BuildingTerrace == 0 && BuildingMoistureFarm == 0;
 
 		private bool AutoImproveSkipTerrain(ITile t) =>
 			t is null || t.IsOcean || t is Mountains || t is Arctic || t is Tundra ||
@@ -546,6 +551,34 @@ namespace CivOne.Units
 			return false;
 		}
 
+		// Terracing: Hills only, gated on Masonry. Cut the slope into steps and it holds soil
+		// and water without a river beside it — which is the whole point, since Hills
+		// irrigation needs fresh water in the cross and interior highlands have none.
+		public bool BuildTerrace()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Masonry>()) return false;
+			ITile tile = Map[X, Y];
+			if (tile.IsOcean || tile.City is not null) return false;
+			if (!(tile is Hills) || tile.Terrace) return false;
+			BuildingTerrace = 5;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
+		// Moisture farming: Desert only, gated on Refining. Deliberately NOT Salt Flat — that
+		// terrain is meant to stay good for nothing, and a food improvement that reached it
+		// would also undermine the founding gate that keeps cities off it (AI.CentreCanFeed).
+		public bool BuildMoistureFarm()
+		{
+			if (!Game.CurrentPlayer.HasAdvance<Refining>()) return false;
+			ITile tile = Map[X, Y];
+			if (tile.IsOcean || tile.City is not null) return false;
+			if (!(tile is Desert) || tile.MoistureFarm) return false;
+			BuildingMoistureFarm = 6;
+			MovesLeft = 0; PartMoves = 0;
+			return true;
+		}
+
 		public bool BuildFortress()
 		{
 			if (!Game.CurrentPlayer.HasAdvance<Construction>())
@@ -693,6 +726,18 @@ namespace CivOne.Units
 					Map[X, Y].Mine = true;
 					Game.InvalidateCitiesAt(X, Y);
 				}
+			}
+			else if (BuildingTerrace > 0)
+			{
+				BuildingTerrace--;
+				if (BuildingTerrace > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].Terrace = true; Game.InvalidateCitiesAt(X, Y); }
+			}
+			else if (BuildingMoistureFarm > 0)
+			{
+				BuildingMoistureFarm--;
+				if (BuildingMoistureFarm > 0) { MovesLeft = 0; PartMoves = 0; }
+				else { Map[X, Y].MoistureFarm = true; Game.InvalidateCitiesAt(X, Y); }
 			}
 			else if (BuildingFortress > 0)
 			{
@@ -889,6 +934,20 @@ namespace CivOne.Units
 			.SetEnabled(Map[X, Y].AllowIrrigation() || Map[X, Y].AllowChangeTerrain())
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildIrrigation(this)));
 
+		// No SetShortcut on either, deliberately. Every letter GameMap will forward to a unit
+		// menu is already claimed by a Settlers order, and the obvious ones are worse than
+		// nothing: 'f' is Fortify (BaseUnit) and 't' opens the Terrain screen and returns
+		// before the menu is consulted — the same dead-shortcut trap documented on 'W'. A
+		// shortcut that silently does nothing is worse than an honest menu entry, so these
+		// wait until we decide which key to take and how to guard it.
+		private MenuItem<int> MenuBuildTerrace() => MenuItem<int>
+			.Create("Build Terrace")
+			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildTerrace(this)));
+
+		private MenuItem<int> MenuBuildMoistureFarm() => MenuItem<int>
+			.Create("Build Moisture Farm")
+			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildMoistureFarm(this)));
+
 		private MenuItem<int> MenuBuildMines() => MenuItem<int>
 			.Create(((Map[X, Y] is Jungle) || (Map[X, Y] is Grassland) || (Map[X, Y] is Plains) || (Map[X, Y] is Swamp)) ?
 					"Change to Forest" : "Build Mines")
@@ -966,6 +1025,10 @@ namespace CivOne.Units
 					yield return MenuBuildIrrigation();
 				if (!tile.Mine && ((tile is Desert) || (tile is Hills) || (tile is Mountains) || (tile is Jungle) || (tile is Grassland) || (tile is Plains) || (tile is Swamp)))
 					yield return MenuBuildMines();
+				if (tile is Hills && !tile.Terrace && Human.HasAdvance<Masonry>())
+					yield return MenuBuildTerrace();
+				if (tile is Desert && !tile.MoistureFarm && Human.HasAdvance<Refining>())
+					yield return MenuBuildMoistureFarm();
 				if (!tile.IsOcean && !tile.Fortress)
 					yield return MenuBuildFortress();
 				if (Game.ResourceAt(tile) != StrategicResource.None && tile.City is null

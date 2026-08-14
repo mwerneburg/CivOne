@@ -39,6 +39,11 @@ namespace CivOne.Tiles
 		bool Road { get; set; }
 		bool RailRoad { get; set; }
 		bool TransportTube { get; set; }
+
+		// Terracing (Hills) and moisture farming (Desert): two ways to get food out of ground
+		// that irrigation cannot reach, because it has no fresh water beside it.
+		bool Terrace { get; set; }
+		bool MoistureFarm { get; set; }
 		bool Irrigation { get; set; }
 		bool Fortress { get; set; }
 		bool Mine { get; set; }

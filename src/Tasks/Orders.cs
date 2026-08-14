@@ -26,6 +26,8 @@ namespace CivOne.Tasks
 			Road,
 			Irrigate,
 			Mines,
+			Terrace,
+			MoistureFarm,
 			Fortress,
 			CleanPollution,
 			Wait,
@@ -208,6 +210,20 @@ namespace CivOne.Tasks
 			EndTask();
 		}
 
+		private void Terrace()
+		{
+			if (!(_unit is Settlers)) { Error("SETTLERS"); EndTask(); return; }
+			(_unit as Settlers)!.BuildTerrace();
+			EndTask();
+		}
+
+		private void MoistureFarm()
+		{
+			if (!(_unit is Settlers)) { Error("SETTLERS"); EndTask(); return; }
+			(_unit as Settlers)!.BuildMoistureFarm();
+			EndTask();
+		}
+
 		private void Fortress()
 		{
 			if (!(_unit is Settlers))
@@ -265,6 +281,12 @@ namespace CivOne.Tasks
 				case Order.Mines:
 					Mines();
 					break;
+				case Order.Terrace:
+					Terrace();
+					break;
+				case Order.MoistureFarm:
+					MoistureFarm();
+					break;
 				case Order.Fortress:
 					Fortress();
 					break;
@@ -320,6 +342,12 @@ namespace CivOne.Tasks
 				_order = Order.Mines
 			};
 		}
+
+		public static Orders BuildTerrace(IUnit unit)
+			=> new Orders() { _unit = unit, _order = Order.Terrace };
+
+		public static Orders BuildMoistureFarm(IUnit unit)
+			=> new Orders() { _unit = unit, _order = Order.MoistureFarm };
 
 		public static Orders BuildFortress(IUnit unit)
 		{

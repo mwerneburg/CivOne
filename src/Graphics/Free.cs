@@ -602,7 +602,15 @@ namespace CivOne.Graphics
 		{
 			if (_improvementOverrides is null)
 				_improvementOverrides = ParseTilesFile(ImprovementsFilePath);
-			return _improvementOverrides.TryGetValue(name, out byte[] data) ? data : null;
+			if (!_improvementOverrides.TryGetValue(name, out byte[] data)) return null;
+			// An all-transparent section is an EMPTY SLOT, not an override. The file ships
+			// blank grids for improvements nobody has drawn yet, and taking them literally
+			// would replace the procedural sprite with nothing at all — the improvement would
+			// silently vanish from the map and the only symptom would be a tile that looks
+			// unimproved. Treated as absent, so a blank slot falls back to the built-in draw
+			// and filling it in is what switches the override on.
+			foreach (byte b in data) if (b != 0) return data;
+			return null;
 		}
 
 		// Per-level 47x41 emblem for the New Game difficulty screen, from
