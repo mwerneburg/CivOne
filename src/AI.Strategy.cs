@@ -1690,6 +1690,22 @@ namespace CivOne
 				else if (tile is not null && tile.IsOcean) hasCoastNeighbor = true;
 			}
 
+			// The centre tile again, weighted.
+			//
+			// The radius loop above already counted it, as one of twenty-one — and that is a
+			// bad account of what it is. Every other tile in the ring is optional: a citizen
+			// works it or does not, and the governor reassigns them as the city grows. The
+			// centre is worked from the first turn, for free, forever, and cannot be given
+			// up. A site whose ring is excellent and whose centre is barren is not the same
+			// proposition as one where the reverse is true, and scoring them alike is how
+			// eight Malian cities ended up on Salt Flat.
+			//
+			// Food carries the heaviest multiplier because it is the only one of the three
+			// with no floor: ShieldValue and TradeValue both guarantee the centre at least 1
+			// (City.cs), so a barren centre still yields a shield and a coin — it just never
+			// yields a bite.
+			score += center.Food * 6 + center.Shield * 2 + center.Trade * 2;
+
 			// A river-mouth site combines irrigation, river trade, and ocean trade.
 			if (hasCoastNeighbor && hasRiverNeighbor) score += 6;
 
@@ -1991,6 +2007,29 @@ namespace CivOne
 				(!tile.IsOcean && !(tile is Arctic) && !(tile is Mountains)) ||
 				(tile.IsOcean && Player.HasAdvance<AquaticColonization>()));
 
+		// Can the tile under the city ever produce food?
+		//
+		// The centre is the one tile a city is guaranteed to work, from its first turn, for
+		// free, forever — and it is the only tile it can never reassign. ShieldValue and
+		// TradeValue floor it at 1 apiece, but there is NO food floor, so a city centred on
+		// Salt Flat begins at zero food from its own tile and stays there: Salt Flat yields 0
+		// food and is not irrigable at any point in the game.
+		//
+		// Measured across two 2200 AD runs, the Malians founded 1 city on Salt Flat and then
+		// 8 — the rise almost certainly ours, since routing settlers off Mountains sent that
+		// traffic somewhere and Salt Flat was already legal.
+		//
+		// Tested on the terrain TYPE, deliberately, and not on IrrigationFoodBonus: Desert
+		// reports -2 there and irrigates perfectly well (Desert.cs:22 — Food becomes 1 once
+		// irrigated). The sign is a yield modifier on some terrain and a "never" flag on
+		// others, so it cannot carry this question. The type list is AllowIrrigation's.
+		internal static bool CentreCanFeed(ITile tile)
+		{
+			if (tile is null) return false;
+			if (tile.Food > 0) return true;
+			return tile is Desert or Grassland or Hills or Plains or River;
+		}
+
 		internal ITile? BestSettleSite(IUnit settlers)
 			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
 
@@ -2017,6 +2056,8 @@ namespace CivOne
 				// settler on foot cannot walk to water even where AquaticColonization makes
 				// it foundable, and floating cities are placed by their own path.
 				if (tile is null || tile.IsOcean || !CanFoundOn(tile)) continue;
+				// ...and it has to be able to feed itself. See CentreCanFeed.
+				if (!CentreCanFeed(tile)) continue;
 				if (!LandReachable(settlers, tile)) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;

@@ -364,7 +364,11 @@ namespace CivOne
 					               && Game.PlayerNumber(Player) != 0
 					               && Player.Civilization is not (TheOthers or TheThing or Skynet)
 					               && Player.Civilization is not Civilizations.Barbarian;
-					if (validCity && (lastChance || (nearestCity > 3 && expanding)))
+					// CentreCanFeed is deliberately NOT part of lastChance. A civ down to its
+					// final settler is choosing between a poor city and not existing, and the
+					// note above is explicit that the ordinary questions are the wrong ones to
+					// ask it. Everyone else has to found somewhere the city can eat.
+					if (validCity && (lastChance || (nearestCity > 3 && expanding && CentreCanFeed(tile))))
 					{
 						DecisionLogger.LogSettlerAction(unit, "found");
 						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
