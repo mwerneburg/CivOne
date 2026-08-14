@@ -1063,6 +1063,13 @@ namespace CivOne
 				contentFloor -= (empireCities - empireFree) / EmpireStep;
 			if (contentFloor < 0) contentFloor = 0;
 
+			// ...and culture pushes back. See Player.CultureContentBonus: an ancient
+			// civilization holds together at a size a young one cannot. Applied after the
+			// clamp deliberately — before it, an empire large enough to need the help is
+			// exactly the one whose floor has already gone negative, and the bonus would be
+			// swallowed whole.
+			contentFloor += Player.CultureContentBonus;
+
 			int unhappyCount = Size - contentFloor - happyCount;
 
 			// Red shirts: a truly sprawling empire piles extra unhappy onto every city.

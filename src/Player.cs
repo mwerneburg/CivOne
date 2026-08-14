@@ -246,6 +246,48 @@ namespace CivOne
 		private int _culture;
 		public int Culture => _culture;
 		public int CultureRate => Cities.Sum(c => c.CultureRate);
+
+		// ── Culture as social cohesion ───────────────────────────────────────────
+		//
+		// Extra content citizens in EVERY city, from the empire's accumulated culture. One
+		// per doubling above the base, capped — an old civilization full of cathedrals and
+		// universities holds together at a size a young one could not.
+		//
+		// This is the counterweight to the empire-size penalty in City.ComputeCitizens, which
+		// is what actually drives the late-game riots: at 105 cities the content floor is
+		// pushed to zero AND every city carries five extra "red shirt" malcontents, so a
+		// sprawling empire riots everywhere at once no matter how it is governed. Nothing
+		// distinguished a large young empire from a large ancient one. Measured at 2200 AD in
+		// one run: the Ottomans held 38 cities on 2,477 culture while the Babylonians held 25
+		// on 34,811 — the same penalty applied to both.
+		//
+		// It applies AFTER the empire penalty is clamped at zero, not before. Added first it
+		// would be swallowed whole: the Malians' floor computes to -5, so +3 would still clamp
+		// to nothing and the most cultured civ in the world would feel no effect at all.
+		//
+		// Both numbers are first guesses and want a run to calibrate. Against that same 2200
+		// AD world they give: Ottomans (2,477) +0, Romans (13,477) +1, Babylonians (34,811)
+		// +2, Guarani (70,274) and Malians (141,146) +3. The cap matters more than the base —
+		// uncapped, a long game makes unhappiness irrelevant to whoever built the most temples.
+		private const int CultureContentBase = 10000;
+		private const int CultureContentMax  = 3;
+
+		internal int CultureContentBonus
+		{
+			get
+			{
+				// Doubling by loop rather than a log: the core targets netstandard2.0, which
+				// has no Math.Log2, and three iterations is not worth a floating-point call.
+				int bonus = 0;
+				long threshold = CultureContentBase;
+				while (_culture >= threshold && bonus < CultureContentMax)
+				{
+					bonus++;
+					threshold *= 2;
+				}
+				return bonus;
+			}
+		}
 		internal void SetCulture(int culture) => _culture = culture; // COS load
 
 		public int Score =>
