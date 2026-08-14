@@ -153,6 +153,35 @@ namespace CivOne
 				city.InvalidateCache();
 		}
 
+		// Cities in prolonged disorder needed before the government falls: one in eight, and
+		// never fewer than one.
+		//
+		// Civ 1 collapsed a Republic or Democracy when ANY ONE city had rioted three turns
+		// running, and shipped that rule for players holding about eight cities. This game's
+		// empires are an order of magnitude bigger — the Malians finished a 750-turn run with
+		// 105 cities — and at that size the chance that no city anywhere is three turns into a
+		// riot is near zero, so a large empire lives in permanent revolution. Measured over
+		// turns 312-749 of one run, the trigger fired 34 times for the Malians and 48 for the
+		// Mongols, each one dropping the whole empire into Anarchy: corruption multiplier 12
+		// against a Republic's 24 and a Democracy's 0, so every city's trade fell at once.
+		// That is the sawtooth on the economic output graph.
+		//
+		// One in eight keeps the original behaviour at the original scale — an eight-city
+		// empire still falls on a single rioting city — and makes it proportional above that.
+		private const int DisorderCollapseDivisor = 8;
+
+		// A city counts once it has rioted the full three turns, matching the case that asks.
+		internal bool DisorderIsGeneral
+		{
+			get
+			{
+				City[] cities = Cities;
+				if (cities.Length == 0) return false;
+				int needed = Math.Max(1, cities.Length / DisorderCollapseDivisor);
+				return cities.Count(c => c.DisorderTurns >= 3) >= needed;
+			}
+		}
+
 		public void Revolt()
 		{
 			_anarchy = (short)((HasWonder<Pyramids>() && !Game.WonderObsolete<Pyramids>()) ? 0 : 4 - (Game.GameTurn % 4) - 1);

@@ -176,6 +176,44 @@ namespace CivOne.Tests
 			Assert.Contains(plan, x => x is ISpaceShip);
 		}
 
+		// ...and stops once the ship is the size it set out to build.
+		//
+		// The hull requirement scales with engines and module sets — 15 structurals for a
+		// minimum ship, 51 for a maxed one — so a civ that keeps asking for parts until the
+		// per-part maximums are hit is committed to a 10,500-shield ship whether or not it
+		// can finish one. The Japanese and Maori both ended a 750-turn run holding maxed
+		// components and modules and an unfinished hull, which scores exactly what no ship
+		// scores. SpaceshipTarget picks the size; this is the check that the production
+		// intent respects it (SpaceshipTargetTests covers the sizing itself).
+		[Fact]
+		public void ADiasporaCivStopsAtItsTargetHull()
+		{
+			(Game g, Player p) = AWorld();
+			Temperament(p, war: 0.5, science: 100);
+			City c = AddCity(g, p, 0, 40);
+			g.CreateUnit(UnitType.Musketeers, 40, 25, g.PlayerNumber(p));
+			g.SETISignalReceived = true;
+			g.DomeAssignments[1] = new System.Collections.Generic.List<Wonder> { Wonder.DomeSensorNet };
+			p.AddAdvance(new SpaceFlight(), false);
+			foreach (City x in p.Cities) x.AddWonder(new Wonders.ApolloProgram());
+			Assert.Equal("Diaspora", PathName(p));
+
+			// Fill the ship to whatever this civ decided to aim for. Parts are still
+			// AVAILABLE — the per-part maximums are far above this — so anything the plan
+			// asks for now is the old build-until-capped behaviour.
+			(int targetComp, int targetModule) = AI.Instance(p).SpaceshipTarget();
+			byte me = g.PlayerNumber(p);
+			g.SpaceshipStructural[me] = Game.SpaceshipStructuresNeeded(targetComp, targetModule);
+			g.SpaceshipComponent[me]  = targetComp;
+			g.SpaceshipModule[me]     = targetModule;
+			Assert.True(p.ProductionAvailable(new SSStructural()),
+				"fixture: parts must still be available, or this passes for the wrong reason");
+
+			IProduction[] plan = Plan(p, c);
+
+			Assert.DoesNotContain(plan, x => x is ISpaceShip);
+		}
+
 		// ...and a conqueror in the same position does not, which is what makes it a choice
 		// rather than a new step in the standard chain.
 		[Fact]

@@ -115,6 +115,83 @@ namespace CivOne
 			_ => null,
 		};
 
+		// ── How big a ship to build ──────────────────────────────────────────────
+		//
+		// The hull requirement scales with the engines and module sets, so a MAXED ship needs
+		// 51 structurals against a minimum ship's 15 — about 10,500 shields against 2,500.
+		// Nothing used to choose that: Consider() takes the first entry per type and the
+		// Diaspora block lists structural, component, module in that order, so cities built
+		// structural to its cap, then components, and only reached modules at the very end —
+		// by which point the requirement had climbed to 51. Measured across two finished runs:
+		// the Chinese completed a maxed ship on turn 744 of 750, and the Japanese (40 of 51)
+		// and Maori (42 of 51) simply ran out of game. A ship one structural short scores
+		// exactly what no ship scores.
+		//
+		// So the civ picks the largest hull it can plausibly FINISH and stops there. Modules
+		// stay last in the build order, which means the launch condition is met by the final
+		// module and the ship launches at its target size rather than at the bare minimum.
+		//
+		// The horizon is a first guess. With the SETI storyline active the game has no fixed
+		// end turn, so there is no deadline to measure against — 100 turns of current output
+		// is a stand-in for "can we see the end of this from here", and wants a run to
+		// calibrate like the other numbers in ChoosePath.
+		private const int SpaceshipHorizonTurns = 100;
+
+		// Returns the (component, module) hull this civ should aim for. Always at least the
+		// launchable minimum: a civ on this path is trying to leave, and the smallest ship
+		// that flies beats the biggest one that does not.
+		internal (int component, int module) SpaceshipTarget()
+		{
+			byte me = Game.PlayerNumber(Player);
+			int haveStruct = Game.Instance.SpaceshipStructural[me];
+			int haveComp   = Game.Instance.SpaceshipComponent[me];
+			int haveModule = Game.Instance.SpaceshipModule[me];
+
+			// What the empire can put into a ship between now and the horizon. ShieldIncome is
+			// net of unit upkeep and can be negative in a city carrying an army, so the floor
+			// keeps one struggling city from cancelling out the rest.
+			int perTurn = Player.Cities.Sum(c => Math.Max(0, c.ShieldIncome));
+			int budget = perTurn * SpaceshipHorizonTurns;
+
+			int structPrice = new SSStructural().Price * 10;
+			int compPrice   = new SSComponent().Price * 10;
+			int modPrice    = new SSModule().Price * 10;
+
+			(int component, int module) best = (2, 3);
+			for (int engines = 1; engines * 2 <= Game.MAX_SS_COMPONENT; engines++)
+			for (int modSets = 1; modSets * 3 <= Game.MAX_SS_MODULE; modSets++)
+			{
+				int comp = engines * 2, module = modSets * 3;
+				int cost = Math.Max(0, Game.SpaceshipStructuresNeeded(comp, module) - haveStruct) * structPrice
+				         + Math.Max(0, comp   - haveComp)   * compPrice
+				         + Math.Max(0, module - haveModule) * modPrice;
+				if (cost > budget) continue;
+				// Bigger is better, and modules outrank engines: score is habitation modules
+				// times the success chance, so a module set is worth more than an engine.
+				if (module * 2 + comp > best.module * 2 + best.component) best = (comp, module);
+			}
+			return best;
+		}
+
+		// Is this ship part still wanted, or is the target hull already that big?
+		//
+		// Applied to the last-resort production fallback as well as the Diaspora path,
+		// because the fallback is how a civ NOT on that path builds a ship at all — a
+		// built-out city with nothing left to make picks parts until the hull is maxed.
+		// That is how the Chinese, a Commerce civ, completed a 51/16/12 ship on turn 744 of
+		// 750. Without this the target binds only on the civs that are already trying.
+		private bool WantsSpaceshipPart(IProduction production)
+		{
+			if (production is not ISpaceShip) return true;
+			(int targetComp, int targetModule) = SpaceshipTarget();
+			byte me = Game.PlayerNumber(Player);
+			if (production is SSStructural)
+				return Game.Instance.SpaceshipStructural[me] < Game.SpaceshipStructuresNeeded(targetComp, targetModule);
+			if (production is SSComponent) return Game.Instance.SpaceshipComponent[me] < targetComp;
+			if (production is SSModule)    return Game.Instance.SpaceshipModule[me] < targetModule;
+			return true;
+		}
+
 		// Scored from the leader's temperament first and their circumstances second, so two
 		// civs in the same position still choose differently — which is the whole point of
 		// Doctrine's per-leader spread.
@@ -3749,9 +3826,24 @@ namespace CivOne
 					// ProductionAvailable carries the real gates — signal received, Apollo
 					// built, not already launched, per-part maximums (Player.cs:615) — so a
 					// civ that cannot build these simply adds nothing here.
-					if (Player.ProductionAvailable(new SSStructural())) Consider(new SSStructural());
-					if (Player.ProductionAvailable(new SSComponent()))  Consider(new SSComponent());
-					if (Player.ProductionAvailable(new SSModule()))     Consider(new SSModule());
+					//
+					// Built to a TARGET hull rather than to the per-part maximums — see
+					// SpaceshipTarget. The order is deliberate and unchanged: structural,
+					// then components, then modules. Modules last means the launch condition
+					// (2 components, 3 modules, structure to match) is completed by the final
+					// module, so the ship launches at its target size instead of at the bare
+					// minimum the moment it becomes airworthy.
+					(int targetComp, int targetModule) = SpaceshipTarget();
+					byte ssMe = Game.PlayerNumber(Player);
+					if (Game.Instance.SpaceshipStructural[ssMe] < Game.SpaceshipStructuresNeeded(targetComp, targetModule)
+					    && Player.ProductionAvailable(new SSStructural()))
+						Consider(new SSStructural());
+					if (Game.Instance.SpaceshipComponent[ssMe] < targetComp
+					    && Player.ProductionAvailable(new SSComponent()))
+						Consider(new SSComponent());
+					if (Game.Instance.SpaceshipModule[ssMe] < targetModule
+					    && Player.ProductionAvailable(new SSModule()))
+						Consider(new SSModule());
 					// The lifeline the colony is flown from, and a city a rival can take.
 					if (Player.ProductionAvailable(new MissionControl())
 					    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
@@ -4331,6 +4423,7 @@ namespace CivOne
 				    .Where(p => !hasCapital || !(p is Palace))
 				    .Where(p => !Situational(p))
 				    .Where(p => !fighting || p is not ResearchGrant)
+			    .Where(WantsSpaceshipPart)
 				    // Apply the upkeep rule HERE rather than letting Consider drop the pick
 				    // silently: this branch is the last one that adds anything, so a
 				    // dropped pick leaves the plan empty and CityProduction (AI.cs:674)

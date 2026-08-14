@@ -1620,7 +1620,7 @@ namespace CivOne
 							}
 							break;
 						case 3:
-							if (Player.Government.CollapsesInDisorder)
+							if (Player.Government.CollapsesInDisorder && Player.DisorderIsGeneral)
 							{
 								Player.Revolt();
 								if (Player == Human)
