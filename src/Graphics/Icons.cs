@@ -419,6 +419,23 @@ namespace CivOne.Graphics
 			return _lamp[stage];
 		}
 
+		// What colour the city-size numeral is drawn in, stated ONCE for every city icon —
+		// the ordinary one, the domed one, and any that follow.
+		//
+		//   ALERT     rioting. The loudest state, and it wins: a celebrating city that tips
+		//             into disorder has stopped celebrating (City.NewTurn agrees — CityView
+		//             reads `WasWeLoveKing && !IsInDisorder` for exactly this reason).
+		//   INK_HIGH  We Love the King Day. Bright cream against the amber field, so a
+		//             flourishing city reads at a glance the way a rioting one does.
+		//   PHOS      the ordinary amber.
+		//
+		// It was written out twice, identically, which is how the disorder red came to exist
+		// in two places and the celebration colour in none.
+		internal static byte CityNumeralColour(City city)
+			=> city.IsInDisorder    ? CassetteTheme.ALERT
+			 : city.WasWeLoveKing   ? CassetteTheme.INK_HIGH
+			 :                        CassetteTheme.PHOS;
+
 		private static IBitmap[,] _governmentPortrait = new Picture[7, 4];
 		public static IBitmap GovernmentPortrait(IGovernment government, Advisor advisor, bool modern)
 		{
@@ -473,8 +490,8 @@ namespace CivOne.Graphics
 				.FillRectangle(11, 1, 3, 2, CassetteTheme.INK_MID)  // right merlon
 				.FillRectangle(3, 3, 11, 1, CassetteTheme.INK_MID); // base wall
 
-			// City size numeral: amber phosphor normally, red when in disorder
-			byte numCol = city.IsInDisorder ? CassetteTheme.ALERT : CassetteTheme.PHOS;
+			// See CityNumeralColour: red rioting, cream celebrating, amber otherwise.
+			byte numCol = CityNumeralColour(city);
 			output.DrawText($"{city.Size}", (smallFont ? 1 : 0), numCol, 8, 6, TextAlign.Center);
 
 			if (city.HasBuilding<CityWalls>())
@@ -519,7 +536,7 @@ namespace CivOne.Graphics
 			for (int x = 2; x <= 13; x++) output.Bitmap[x, 8] = dc;
 
 			// City size numeral inside the dome
-			byte numCol = city.IsInDisorder ? CassetteTheme.ALERT : CassetteTheme.PHOS;
+			byte numCol = CityNumeralColour(city);
 			output.DrawText($"{city.Size}", (smallFont ? 1 : 0), numCol, 8, 6, TextAlign.Center);
 
 			if (city.HasBuilding<CityWalls>())

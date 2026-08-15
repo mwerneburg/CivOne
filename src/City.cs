@@ -209,6 +209,49 @@ namespace CivOne
 		public int  DisorderTurns {get; set;} = 0;
 		public bool WasInDisorder { get => DisorderTurns > 0; set { if (value && DisorderTurns == 0) DisorderTurns = 1; else if (!value) DisorderTurns = 0; } }
 		public bool WasWeLoveKing {get; set;} = false;
+
+		// What the map tile last showed for this city, so a change can be noticed.
+		//
+		// The city-size numeral on the map is drawn in three colours — red rioting, cream
+		// celebrating, amber otherwise (Icons.CityNumeralColour) — but it is baked into the
+		// city's 16x16 icon when the TILE is rendered. Nothing repainted the tile when a city
+		// changed state, so the numeral stayed whatever it was until something else forced a
+		// redraw. Fixing a riot from the city screen left the number red until the player
+		// happened to move a unit; a celebration would not have shown at all until then.
+		//
+		// Compared rather than fired blindly: RefreshMap sets a full-recompose flag, and this
+		// is reachable from the citizen governor and every screen that edits a city, so
+		// signalling on every call would recompose the viewport constantly — which is the
+		// waste this was mistaken for in the first place.
+		private bool? _shownDisorder;
+		private bool? _shownCelebrating;
+
+		// Has what this city LOOKS like changed since the last time anyone asked? Records the
+		// new appearance as a side effect, so the answer is true exactly once per change.
+		//
+		// Separate from the repaint below because it is the part that can be observed: the
+		// repaint needs a live renderer, and a test that watched the remembered fields could
+		// not tell "asked for a repaint" from "decided not to" — which is how the first
+		// version of the guard came to be untested.
+		internal bool AppearanceChanged()
+		{
+			if (!Game.Started) return false;
+			bool disorder = IsInDisorder;
+			bool celebrating = WasWeLoveKing;
+			if (_shownDisorder == disorder && _shownCelebrating == celebrating) return false;
+			_shownDisorder = disorder;
+			_shownCelebrating = celebrating;
+			return true;
+		}
+
+		// Repaint the map if this city now looks different. Cheap when it does not.
+		internal void RefreshTileIfAppearanceChanged()
+		{
+			if (!AppearanceChanged()) return;
+			// Only a city the player can actually see is worth a repaint.
+			if (Human is not null && Human.Visible(X, Y))
+				Common.GamePlay?.RefreshMap();
+		}
 		// After a diplomat steals tech here, the city is locked against further theft for
 		// TechStealCooldown turns (then it's fair game again — Civ1 allows repeat espionage).
 		// Stored as the turn of the last theft so the lock expires on its own; 0 = never/expired.
@@ -1704,6 +1747,12 @@ namespace CivOne
 					WLTKNotifications.Remove(Name);
 				WasWeLoveKing = false;
 			}
+
+			// Placed AFTER the celebration block, not between it and the disorder block: both
+			// states have to be settled or a city that starts celebrating this turn is not
+			// noticed until the next one.
+			RefreshTileIfAppearanceChanged();
+
  			Food += inDisorder ? 0 : foodIncome;
 			if (!inDisorder && foodIncome > 0 && HasBuilding<SurplusDepot>())
 				Player.Gold += (short)(foodIncome / 2);

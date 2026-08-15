@@ -640,7 +640,14 @@ namespace CivOne.Screens
 			return true;
 		}
 
-		private void CloseScreen() => Destroy();
+		private void CloseScreen()
+		{
+			// A player who just quelled a riot in here has changed what the city's tile should
+			// look like, and nothing else would notice until the next unit move forced a
+			// repaint. See City.RefreshTileIfAppearanceChanged.
+			_city.RefreshTileIfAppearanceChanged();
+			Destroy();
+		}
 
 		// ─── hit testing ─────────────────────────────────────────────────────────
 
