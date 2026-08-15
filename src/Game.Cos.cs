@@ -254,6 +254,9 @@ namespace CivOne
 				Meta = new CosMeta { Name = displayName, Turn = (int)_gameTurn, Difficulty = _difficulty },
 				Game = new CosGame
 				{
+					// Carried so a reload continues the same logged game — see
+					// DecisionLogger.BeginGame.
+					DecisionGameId = DecisionLogger.GameId,
 					Turn          = _gameTurn,
 					HumanPlayer   = PlayerNumber(HumanPlayer),
 					Difficulty    = _difficulty,
@@ -390,7 +393,7 @@ namespace CivOne
 				_instance.ClearGhostWars();
 				WLTKNotifications.Clear();
 			DisorderNotifications.Clear();
-				DecisionLogger.BeginGame();
+				DecisionLogger.BeginGame(cos.Game?.DecisionGameId);
 				Log($"Game loaded from COS (difficulty: {_instance._difficulty}, competition: {_instance._competition})");
 				return true;
 			}

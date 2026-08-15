@@ -19,6 +19,9 @@ namespace CivOne.Persistence
 		internal int    Score;
 		internal string Victory = null!;
 		internal string Year = null!;
+		// The decision log's game id (DecisionLogger.GameId), so one game leaves one entry.
+		// Empty for entries written before this field existed.
+		internal string GameId = string.Empty;
 	}
 
 	internal static class HallOfFame
@@ -41,6 +44,8 @@ namespace CivOne.Persistence
 					Score      = score,
 					Victory    = parts[3],
 					Year       = parts[4],
+					// Sixth field, added later: older files have five and load fine.
+					GameId     = parts.Length > 5 ? parts[5] : string.Empty,
 				});
 			}
 			return list;
@@ -55,15 +60,26 @@ namespace CivOne.Persistence
 				Score      = player.Score,
 				Victory    = victory,
 				Year       = year,
+				GameId     = DecisionLogger.GameId ?? string.Empty,
 			};
 			var list = Load();
+			// One entry per GAME. A game can reach an ending more than once — a milestone
+			// ending, then a later one; or a save reloaded and finished again — and each
+			// call appended another row, so one run could fill the table with near-copies
+			// of itself. The game id survives save/load (see DecisionLogger.BeginGame),
+			// which is what makes it usable as the key here.
+			//
+			// Guarded on a NON-EMPTY id: entries written before this field existed all carry
+			// "", and matching on that would collapse every historical run into one row.
+			if (!string.IsNullOrEmpty(entry.GameId))
+				list.RemoveAll(e => e.GameId == entry.GameId);
 			list.Add(entry);
 			list.Sort((a, b) => b.Score.CompareTo(a.Score));
 			try
 			{
 				Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
 				File.WriteAllLines(FilePath, list.ConvertAll(
-					e => $"{e.LeaderName}|{e.TribeName}|{e.Score}|{e.Victory}|{e.Year}"));
+					e => $"{e.LeaderName}|{e.TribeName}|{e.Score}|{e.Victory}|{e.Year}|{e.GameId}"));
 			}
 			catch (System.Exception ex)
 			{

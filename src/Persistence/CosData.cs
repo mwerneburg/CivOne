@@ -31,6 +31,10 @@ namespace CivOne.Persistence
 
 	public class CosGame
 	{
+		// The decision log's id for this game, so a reloaded run keeps one identity and its
+		// game_outcome scores the whole thing. Absent in saves written before this existed —
+		// DecisionLogger.BeginGame(null) then mints a fresh one, as it always did.
+		public string? DecisionGameId { get; set; }
 		public uint Turn { get; set; }
 		public int HumanPlayer { get; set; }
 		public int Difficulty { get; set; }

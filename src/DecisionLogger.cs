@@ -24,7 +24,11 @@ using CivOne.Units;
 // Schema (flat, intentionally simple for easy pandas/numpy ingestion):
 //
 //   type          string   "settler" | "city_prod" | "game_outcome" | "salvage"
-//   game_id       string   8-char hex, stable per session
+//   game_id       string   8-char hex, one per GAME — survives save/load, so a resumed
+//                          run keeps one identity and its game_outcome scores all of it
+//   session_id    string   8-char hex, one per LOAD. Two sessions sharing a game_id are a
+//                          continuation; that is also how divergent branches of one save
+//                          stay tellable apart
 //   turn          int      Game.GameTurn at time of decision
 //   is_human      bool     false for AI decisions
 //
@@ -81,6 +85,12 @@ namespace CivOne
 	internal static class DecisionLogger
 	{
 		private static string _gameId = null!;
+		// One id per GAME, carried across saves; one per LOAD. See BeginGame.
+		private static string _sessionId = null!;
+
+		// The id this game will be logged under. Persisted into the save so a reloaded game
+		// keeps reporting under the same identity.
+		internal static string GameId => _gameId;
 		private static StreamWriter? _writer;
 		private static readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
 		private static readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
@@ -89,9 +99,28 @@ namespace CivOne
 
 		// ── lifecycle ────────────────────────────────────────────────────────────
 
-		internal static void BeginGame()
+		// `resumeId` is the id recovered from a save. Null (a new game, or a save written
+		// before this field existed) mints a fresh one.
+		//
+		// A reload used to mint a new game id unconditionally, which split one run into
+		// unrelated pieces: EndGame writes `game_outcome` under whatever id is current when
+		// the game ends, so only the LAST segment was ever scored. Measured on the live log:
+		// four ids, every one of them starting mid-game (turn 311, 673, 696) — two runs, each
+		// cut in half by a reload — and 62,772 of 69,491 records belonging to a segment with
+		// no outcome. The notebook weights every decision by game score, so 90% of the
+		// training signal was dropped or median-filled, and the part lost was the EARLY game,
+		// which is where the founding and expansion decisions live.
+		//
+		// Branching is the reason a bare "reuse the id" is not enough: load one save twice,
+		// play differently, and those are two genuine futures. So the game id is stable and a
+		// SESSION id changes on every load — continuations join for scoring, branches stay
+		// distinguishable, and neither needs the reader to know the trick.
+		internal static void BeginGame(string? resumeId = null)
 		{
-			_gameId = Guid.NewGuid().ToString("N").Substring(0, 8);
+			_gameId = string.IsNullOrEmpty(resumeId)
+				? Guid.NewGuid().ToString("N").Substring(0, 8)
+				: resumeId!;
+			_sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 			try
 			{
 				string dir  = Settings.Instance.DataDirectory;
@@ -465,7 +494,10 @@ namespace CivOne
 
 		private static string Fmt((string key, string val)[] fields)
 		{
+			// session_id is added HERE rather than at thirty call sites: every record goes
+			// through Fmt, so this cannot be forgotten when a new record type is added.
 			var sb = new StringBuilder("{");
+			sb.Append($"\"session_id\":\"{Esc(_sessionId ?? string.Empty)}\",");
 			for (int i = 0; i < fields.Length; i++)
 			{
 				if (i > 0) sb.Append(',');
