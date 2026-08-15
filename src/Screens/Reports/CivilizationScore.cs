@@ -119,6 +119,19 @@ namespace CivOne.Screens.Reports
 			foreach (var p in players)
 				if (LiveValue(p) > maxScore) maxScore = LiveValue(p);
 
+			// The economic victory target belongs on the axis, because reading the distance to
+			// it is the whole point of this page.
+			//
+			// It used to be excluded: the axis was scaled to the CIVILIZATIONS only and the
+			// threshold line was then clamped to the graph edge, so once half the world's
+			// output passed the leader the line pinned itself to the ceiling and sat there —
+			// looking like a fixed target rather than the live series it is. Observed at 2200
+			// AD with the leader on 4,237 against a threshold of 9,328: flat at the top since
+			// about 1962. It would only have come back into view at the moment a civ reached
+			// it, which is exactly too late to be useful.
+			if (_page == Page.Output)
+				maxScore = Math.Max(maxScore, PeakHalfWorld(history, LiveWorldTotal()));
+
 			int tickInterval = NiceInterval(maxScore);
 			int yTop         = ((maxScore / tickInterval) + 1) * tickInterval;
 			float pxPerScore = (float)GraphH / yTop;
@@ -362,6 +375,33 @@ namespace CivOne.Screens.Reports
 			}
 
 			_dirty = false;
+		}
+
+		// Today's world output, which is what the threshold line's last point is drawn at.
+		private static int LiveWorldTotal()
+			=> Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf);
+
+		// The tallest the Pax Mercatoria threshold ever reaches across the plotted history and
+		// today. Half of world output is a SERIES, not a constant — it climbs as the world
+		// industrialises — so the axis has to fit its peak, not its current value, or the line
+		// leaves the chart partway along and the earlier part of the race becomes unreadable.
+		internal static int PeakHalfWorld(System.Collections.Generic.IReadOnlyList<int[]> history, int liveWorldTotal)
+		{
+			int peak = liveWorldTotal / 2;
+			if (history is not null)
+			{
+				foreach (int[] snap in history)
+				{
+					if (snap is null) continue;
+					// Index 0 is the barbarians' slot and is not part of world output — the
+					// threshold line's own loop starts at 1, and these two must agree or the
+					// axis and the line disagree about where the target is.
+					int world = 0;
+					for (int pi = 1; pi < snap.Length; pi++) world += snap[pi];
+					if (world / 2 > peak) peak = world / 2;
+				}
+			}
+			return peak;
 		}
 
 		// ── Bresenham line ────────────────────────────────────────────────────
