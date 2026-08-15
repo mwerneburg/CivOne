@@ -636,11 +636,26 @@ namespace CivOne.Units
 		// Claim a strategic resource deposit (Iron/Coal/Oil special tiles) with a
 		// camp — works anywhere, including far outside any city's radius. The camp
 		// belongs to whoever's unit last stood on it (Game.ProcessResourceCamps).
+		// May a camp stand on this tile at all? Stated ONCE, here, and read by the AI's
+		// camp-seeking scan (AI.Strategy.BestCampSite) as well as by the builder below.
+		//
+		// The two halves of every other settler job in this codebase have drifted apart at
+		// least twice — the settle scan against the founder (six settlers converging on a
+		// mountain), the work scan against the irrigator — and both times the symptom was a
+		// settler walking somewhere it could not do the job. This is the same shape, so it
+		// gets the same treatment before it has the chance.
+		internal static bool CanCampOn(ITile? tile)
+		{
+			if (tile is null) return false;
+			if (Game.ResourceAt(tile) == StrategicResource.None) return false;
+			if (tile.City is not null) return false;
+			return !Game.Instance.ResourceCamps.ContainsKey((tile.X, tile.Y));
+		}
+
 		public bool BuildCamp()
 		{
 			ITile tile = Map[X, Y];
-			if (Game.ResourceAt(tile) == StrategicResource.None) return false;
-			if (tile.City is not null || Game.ResourceCamps.ContainsKey((X, Y))) return false;
+			if (!CanCampOn(tile)) return false;
 			BuildingCamp = 3;
 			MovesLeft = 0;
 			PartMoves = 0;

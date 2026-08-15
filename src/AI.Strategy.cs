@@ -2418,6 +2418,69 @@ namespace CivOne
 			   && !(tile is Swamp || tile is Jungle || tile is Forest
 			        || tile is Plains || tile is Hills || tile is Desert);
 
+		// ── camp-seeking ──────────────────────────────────────────────────────────
+		//
+		// Camps were opportunistic only: a settler that happened to be standing on an
+		// unclaimed deposit claimed it, and nothing ever walked to one. Measured over a
+		// finished 750-turn game that came to 0.7% of all AI tile work, so a civ with no iron
+		// in any city radius simply paid the penalty for the rest of the game.
+		//
+		// The payoff is specific and worth stating, because it decides the whole design:
+		// Game.HasResource is satisfied by a city working the deposit OR a camp on it, and
+		// lacking a resource costs +50% shields on anything that needs it
+		// (City.ProductionCost). So a camp is worth walking to ONLY for a resource this civ
+		// does not already hold — a second iron deposit removes no penalty. The shields a
+		// remote camp ships home are real but small, and chasing them would send settlers
+		// across the map for a couple of hammers, which is the settler-shuttle bug again.
+		private const int CampSearchRange = 12;
+
+		// Which materials are we paying the penalty on?
+		private StrategicResource[] MissingResources()
+		{
+			var missing = new List<StrategicResource>();
+			foreach (StrategicResource r in new[] { StrategicResource.Iron, StrategicResource.Coal, StrategicResource.Oil })
+				if (!Game.Instance.HasResource(Player, r)) missing.Add(r);
+			return missing.ToArray();
+		}
+
+		// The nearest deposit worth claiming, or null. Shares Settlers.CanCampOn with the
+		// builder so the scan cannot route a settler to a tile BuildCamp will refuse.
+		internal ITile? BestCampSite(IUnit settler)
+		{
+			StrategicResource[] wanted = MissingResources();
+			if (wanted.Length == 0) return null;
+
+			int w = Map.WIDTH, h = Map.HEIGHT;
+			byte me = Game.PlayerNumber(Player);
+			byte from = settler.Tile?.ContinentId ?? MISC_CONTINENT;
+			ITile? best = null;
+			int bestDistance = int.MaxValue;
+
+			for (int dy = -CampSearchRange; dy <= CampSearchRange; dy++)
+			for (int dx = -CampSearchRange; dx <= CampSearchRange; dx++)
+			{
+				int tx = (settler.X + dx + w) % w;
+				int ty = settler.Y + dy;
+				if (ty < 0 || ty >= h) continue;
+				ITile tile = Map[tx, ty];
+				if (!Settlers.CanCampOn(tile)) continue;
+				if (!wanted.Contains(Game.ResourceAt(tile))) continue;
+				// Walkable from here. A deposit across water needs a boat, and a settler that
+				// targets one paces the shoreline instead of working.
+				if (Map.NamedContinent(from) && tile.ContinentId != from) continue;
+				// One settler per deposit: without this every idle settler in the empire
+				// converges on the same hill — the exact pathology six Malian settlers showed
+				// against a mountain, and the reason BestSettleSite claims its sites.
+				if (Game.GetUnits().Any(u => u is Settlers && u != settler && u.Owner == me
+				                          && !u.Goto.IsEmpty && u.Goto.X == tx && u.Goto.Y == ty))
+					continue;
+
+				int distance = Common.DistanceToTile(settler.X, settler.Y, tx, ty);
+				if (distance < bestDistance) { bestDistance = distance; best = tile; }
+			}
+			return best;
+		}
+
 		private enum Pass { Farm, Mine, Rail }
 
 		internal ITile? BestImproveSite(IUnit settlers) => BestImproveSiteInner(settlers);

@@ -293,10 +293,12 @@ namespace CivOne
 					}
 				}
 
-				// Opportunistic resource camp: a settler standing on an unclaimed
-				// Iron/Coal/Oil deposit outside a city claims it before doing
-				// anything else. (Dedicated camp-seeking is deferred — city-worked
-				// deposits already count for possession; see Game.HasResource.)
+				// Resource camp: a settler standing on an unclaimed Iron/Coal/Oil deposit
+				// outside a city claims it before doing anything else.
+				//
+				// This is also the ARRIVAL half of camp-seeking — it sits ahead of the Goto
+				// logic below, so a settler that walked here on a BestCampSite target claims
+				// the deposit the turn it arrives without any further routing.
 				if (Game.ResourceAt(tile) != StrategicResource.None
 				    && tile.City is null && !Game.ResourceCamps.ContainsKey((tile.X, tile.Y))
 				    && (unit as Settlers)!.BuildCamp())
@@ -467,10 +469,18 @@ namespace CivOne
 					ITile? port = WantsColonist() ? BoardingTile(unit) : null;
 					if (port is not null) DonatePortEscort(unit, port);
 
+					// Camp-seeking, between founding and gardening. A civ short of iron pays
+					// +50% shields on everything that needs it (City.ProductionCost), which
+					// is worth more than any single irrigated tile — but a new CITY is worth
+					// more than either, and BestCampSite returns null the moment the civ
+					// holds all three materials, so this is inert for most civs most of the
+					// game. See AI.Strategy.BestCampSite.
+					ITile? camp = BestCampSite(unit);
+
 					ITile? best = port
 						?? (expanding
-							? (BestSettleSite(unit) ?? BestImproveSite(unit))
-							: BestImproveSite(unit));
+							? (BestSettleSite(unit) ?? camp ?? BestImproveSite(unit))
+							: (camp ?? BestImproveSite(unit)));
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);
