@@ -522,6 +522,12 @@ namespace CivOne.Screens.GamePlayPanels
 					Game.ActiveUnit.SetHome();
 					return true;
 				case 'I':
+					// Shift+I is Build Moisture Farm — desert's version of irrigation, which
+					// is why it shares the key. Dispatched explicitly because the generic
+					// path below lowercases the key, so it can never reach an uppercase
+					// shortcut. Falls through to plain irrigation when the menu has no
+					// moisture farm (wrong terrain, or no Refining).
+					if (args.Shift && ActivateUnitMenuShortcut("I")) return true;
 					GameTask.Enqueue(Orders.BuildIrrigation(Game.ActiveUnit));
 					return true;
 				case 'M':
@@ -572,10 +578,15 @@ namespace CivOne.Screens.GamePlayPanels
 				case 'J':   // Plant Jungle
 				case 'K':   // Thaw to Grassland
 				case 'Q':   // Build Canopy Array
-				case 'Y':   // Build Camp
 				case 'X':   // Auto-Clean Pollution
 				case 'Z':   // Wait
 					return ActivateUnitMenuShortcut(char.ToLower(args.KeyChar).ToString());
+				case 'Y':
+					// Shift+Y is Build Terrace, plain 'y' is Build Camp. Same arrangement as
+					// 'I' above and for the same reason — a hill carrying coal offers both
+					// orders at once, so they cannot share a key unshifted.
+					if (args.Shift && ActivateUnitMenuShortcut("Y")) return true;
+					return ActivateUnitMenuShortcut("y");
 			}
 
 			return false;

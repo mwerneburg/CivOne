@@ -340,6 +340,38 @@ namespace CivOne
 			if (Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p)))
 				return StrategyStance.Militarize;
 
+			// Reconquest: the horde is sitting in cities that were OURS.
+			//
+			// Not the same thing as the barbarian-proximity clause that used to live below
+			// and was removed — read that note before touching this. Proximity had no
+			// expiry: a horde camped ten tiles away kept a civ on a war footing for the rest
+			// of the game, and nothing the civ did could end it. THIS ends the moment the
+			// cities are retaken or razed, which is the only reason it is safe to have.
+			//
+			// The gap it closes is a deadlock, not a preference. Attackers are Considered
+			// only in Militarize, and attack targets are chosen only in Militarize — but
+			// Militarize is reached (below) only by a civ that ALREADY out-guns a neighbour.
+			// A civ that loses cities therefore can never build the army that would win them
+			// back. Measured at turn 393: the Haudenosaunee down to three cities, holding six
+			// Militia and a Phalanx — every one of them attack 1 — while barbarian Legions
+			// and Knights sat in three cities whose OriginalOwner was still theirs. They had
+			// The Wheel the whole time, so BestAttacker would have handed them a Chariot at
+			// attack 4, an even match. They never built one, in any game, ever.
+			//
+			// Deliberately BARBARIAN-only, which is narrower than "held by anyone". A rival
+			// holding one of our cities is already covered while the war lasts, by the clause
+			// above; once peace is signed, re-arming forever over a city we have accepted
+			// losing is exactly the no-expiry pathology — and AI wars here end in permanent
+			// peace, so that state would never clear. Barbarians hold no diplomacy and never
+			// sue for peace, so with them there is nothing to accept and no treaty to freeze.
+			//
+			// Placed ahead of armySaturated on purpose: being unable to afford an army is the
+			// condition, so an army cap must not veto the answer.
+			byte reconquestOwn = Game.PlayerNumber(Player);
+			if (Game.GetCities().Any(c => c.Size > 0 && c.Owner == 0
+			                           && c.OriginalOwner == reconquestOwn))
+				return StrategyStance.Militarize;
+
 			// Everything below this line is SPECULATIVE militarisation — nobody has
 			// actually declared war on us. Those clauses have no expiry of their own: a
 			// barbarian city that is never expelled, or a neighbour we merely out-gun,
@@ -4857,9 +4889,21 @@ namespace CivOne
 			byte own = Game.PlayerNumber(Player);
 			bool Hostile(byte owner) => owner != own && owner != 0
 				&& Player.IsAtWar(Game.GetPlayer(owner));
+			// A barbarian city that used to be OURS counts as hostile, and is the one
+			// barbarian thing that does.
+			//
+			// `owner != 0` above excludes the horde deliberately — a wandering raider must
+			// not put a city on a war footing, which is the same judgement the stance code
+			// makes. But this demotion is what decides whether a FRONTLINE city arms at all,
+			// and with the horde excluded a civ whose towns were taken was demoted straight
+			// back to Develop even while GetStance had it in Militarize for reconquest. The
+			// attacker was never built. Same narrow test as the stance clause, and the same
+			// expiry: retake the city or lose it for good and this stops being true.
+			bool OccupiedOwnCity(City c) => c.Owner == 0 && c.Size > 0 && c.OriginalOwner == own;
 			return Game.GetUnits().Any(u => Hostile(u.Owner) && !NonCombatant(u)
 			                             && Common.DistanceToTile(u.X, u.Y, x, y) <= radius)
-			    || Game.GetCities().Any(c => Hostile(c.Owner) && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);
+			    || Game.GetCities().Any(c => (Hostile(c.Owner) || OccupiedOwnCity(c))
+			                              && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);
 		}
 
 		// `conversion` marks an irrigate order that CHANGES THE TERRAIN — draining swamp,

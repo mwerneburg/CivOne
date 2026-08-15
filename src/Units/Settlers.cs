@@ -954,18 +954,30 @@ namespace CivOne.Units
 			.SetEnabled(Map[X, Y].AllowIrrigation() || Map[X, Y].AllowChangeTerrain())
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildIrrigation(this)));
 
-		// No SetShortcut on either, deliberately. Every letter GameMap will forward to a unit
-		// menu is already claimed by a Settlers order, and the obvious ones are worse than
-		// nothing: 'f' is Fortify (BaseUnit) and 't' opens the Terrain screen and returns
-		// before the menu is consulted — the same dead-shortcut trap documented on 'W'. A
-		// shortcut that silently does nothing is worse than an honest menu entry, so these
-		// wait until we decide which key to take and how to guard it.
+		// Both keys are SHIFTED, and both are already taken unshifted by the order the
+		// player would confuse them with — which is the point, not an accident:
+		//
+		//   i  Build Irrigation      Shift+I  Build Moisture Farm  (desert's irrigation)
+		//   y  Build Camp            Shift+Y  Build Terrace        (hills' improvement)
+		//
+		// An uppercase Shortcut string is how this codebase says "shifted": the Orders menu
+		// prints it as Shift+X, exactly as MenuPillage's "P" has always done. It also means
+		// GameMap must dispatch these EXPLICITLY — its generic path lowercases the key before
+		// matching (ActivateUnitMenuShortcut), so an uppercase shortcut can never be reached
+		// that way. Both cases are handled beside 'D' and 'P' in GameMap.KeyDown.
+		//
+		// The old note here worried about "a shortcut that silently does nothing". That is
+		// still the rule and it still holds: neither menu item exists off its own terrain
+		// (Hills for the terrace, Desert for the farm) or without its advance, so a press on
+		// the wrong tile finds no item and falls through.
 		private MenuItem<int> MenuBuildTerrace() => MenuItem<int>
 			.Create("Build Terrace")
+			.SetShortcut("Y")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildTerrace(this)));
 
 		private MenuItem<int> MenuBuildMoistureFarm() => MenuItem<int>
 			.Create("Build Moisture Farm")
+			.SetShortcut("I")
 			.OnSelect((s, a) => GameTask.Enqueue(Orders.BuildMoistureFarm(this)));
 
 		private MenuItem<int> MenuBuildMines() => MenuItem<int>
