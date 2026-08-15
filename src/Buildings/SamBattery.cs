@@ -13,24 +13,39 @@ namespace CivOne.Buildings
 {
 	internal class SamBattery : BaseBuilding
 	{
+		// The old text promised defence "against enemy AIRCRAFT and missiles", and advised
+		// pairing the battery with an SDI DEFENSE. Both were wrong in the same direction —
+		// they read as nuclear insurance, and there is none here. A Nuclear attack never
+		// reaches DefendStrength at all: it takes its own branch to ApplyNuclearStrike
+		// (BaseUnit.cs), where the only thing that stops it is a defender holding the FUSION
+		// CORE, and the per-city SDI Defense building was never implemented.
+		//
+		// What the battery does do is now stated exactly, including what it does NOT do,
+		// because a player who reads this as protection from the bomb will build it and be
+		// wrong at the worst possible moment.
 		private static readonly string[] _page1 =
 		{
 			"A SAM BATTERY rings the city with",
 			"surface-to-air missiles.",
 			"",
-			"It sharply improves the city's",
-			"defence against enemy AIRCRAFT",
-			"and missiles.",
+			"Aircraft attacking the city no",
+			"longer strip its defenders of",
+			"their FORTIFICATION — though the",
+			"terrain still counts for nothing",
+			"from the air.",
 		};
 
 		private static readonly string[] _page2 =
 		{
 			"Requires ROCKETRY.",
 			"",
-			"Pair a SAM Battery with CITY WALLS",
-			"and SDI DEFENSE to shield a",
-			"capital from land, air, and",
-			"warhead alike.",
+			"It answers BOMBERS, REAPER DRONES",
+			"and CRUISE MISSILES alike.",
+			"",
+			"It does NOT stop a nuclear strike.",
+			"Nothing does, save the FUSION CORE,",
+			"which intercepts warheads over the",
+			"whole empire that holds it.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
