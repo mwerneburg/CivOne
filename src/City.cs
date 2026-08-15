@@ -2800,7 +2800,12 @@ namespace CivOne
 				else          { title = "Hurricane buffets";    sizeLoss = Math.Max(0, Size / 6); buildingsToDestroy = (!seaPlatform && Common.Random.Next(0, 2) == 0) ? 1 : 0; }
 			}
 
+			// Captured before the damage: the message describes the loss as a SHARE of the
+			// city, and Size is about to change. The actual loss can also be smaller than
+			// sizeLoss, because a city never falls below 1.
+			int sizeBefore = Size;
 			if (sizeLoss > 0) Size = (byte)Math.Max(1, Size - sizeLoss);
+			int displaced = sizeBefore - Size;
 
 			var demolished = new List<string>();
 			if (buildingsToDestroy > 0)
@@ -2855,8 +2860,7 @@ namespace CivOne
 
 			// Advisor message: damage summary only — no title repeat, no unsolicited advice.
 			List<string> msg = new();
-			if (sizeLoss > 0)
-				msg.Add($"Pop -{sizeLoss}.");
+			msg.AddRange(DisplacementText(sizeBefore, displaced));
 			foreach (var name in demolished)
 				msg.Add($"{name} destroyed.");
 			if (eroded is not null)
@@ -2867,6 +2871,27 @@ namespace CivOne
 				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
 
 			return true;
+		}
+
+		// What the storm did to the people, in words.
+		//
+		// This used to read "Pop -1." — a ledger entry for the one event in the game that
+		// actually displaces a population. The size change is already visible on the city
+		// itself; what the advisor is for is what it MEANT.
+		//
+		// Scaled by the share of the city lost rather than the raw number, because losing two
+		// from a town of four and two from a metropolis of twenty are not the same event.
+		internal static string[] DisplacementText(int sizeBefore, int displaced)
+		{
+			if (displaced <= 0 || sizeBefore <= 0) return System.Array.Empty<string>();
+
+			// Halves and quarters, in integer arithmetic: displaced*2 >= sizeBefore is "half
+			// or more", displaced*4 >= sizeBefore is "a quarter or more".
+			if (displaced * 2 >= sizeBefore)
+				return new[] { "Half the city is swept away.", "The survivors take the road inland." };
+			if (displaced * 4 >= sizeBefore)
+				return new[] { "Whole quarters are uninhabitable.", "Many who leave do not return." };
+			return new[] { "The lower town is flooded out.", "Families shelter further inland." };
 		}
 
 		// Real sea: ocean tile that's NOT flagged as a freshwater lake. Lakes are stored as
