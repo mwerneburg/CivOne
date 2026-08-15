@@ -19,6 +19,7 @@
 using System.Linq;
 using CivOne.Enums;
 using CivOne.Tiles;
+using CivOne.Units;
 
 namespace CivOne.Tests
 {
@@ -38,6 +39,11 @@ namespace CivOne.Tests
 			Map.Instance.RecalculateContinentsIfDirty();
 			mine.Explore(40, 25, range: 10);
 			theirs.Explore(40, 25, range: 10);
+			// Monarchy, not the default Despotism: Despotism caps a tile at 2 food, so an
+			// irrigated grassland reads the same as an unirrigated one and the invalidation
+			// tests below cannot see their own effect.
+			mine.Government = new Governments.Monarchy();
+			theirs.Government = new Governments.Monarchy();
 			City theirCity = g.AddCity(theirs, 0, 40, 25)!;
 			theirCity.Size = 4;
 			Sim.ClearTasks();
@@ -159,6 +165,113 @@ namespace CivOne.Tests
 			Assign(theirCity, 79, 25);   // two tiles west of x=1, across the seam
 
 			Assert.True(g.IsWorkedByOther(79, 25, g.PlayerNumber(mine)));
+		}
+
+		// ---- the same question, asked by the other two hot callers ----
+
+		// InvalidateCitiesAt must reach a city that WORKS the changed tile, or its cached
+		// food/shield totals go stale and stay stale until something else invalidates them.
+		[Fact]
+		public void ChangingAWorkedTileInvalidatesTheCitysCache()
+		{
+			(Game g, Player mine, Player theirs, City theirCity) = AFrontier();
+			Assign(theirCity, 41, 25);
+			int before = theirCity.FoodIncome;              // warms _cachedFoodRaw
+
+			Map.Instance[41, 25].Irrigation = true;         // raises the tile's food
+			Assert.Equal(before, theirCity.FoodIncome);     // still the cached figure
+
+			Game.InvalidateCitiesAt(41, 25);
+
+			Assert.True(theirCity.FoodIncome > before,
+				$"expected the cache to refresh; before={before} after={theirCity.FoodIncome}");
+		}
+
+		// A city works its own centre. WorkingCity deliberately excludes it, so the centre case
+		// is carried separately in InvalidateCitiesAt and needs its own test.
+		//
+		// This one reads the cache field rather than a food total: the centre tile is already
+		// treated as irrigated, so no mutation of it changes FoodIncome and the behavioural
+		// form of this test could only ever pass vacuously.
+		[Fact]
+		public void ChangingTheCentreTileInvalidatesToo()
+		{
+			(Game g, Player mine, Player theirs, City theirCity) = AFrontier();
+			var cache = typeof(City).GetField("_cachedFoodRaw",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+			_ = theirCity.FoodIncome;                            // warm it
+			Assert.NotNull(cache.GetValue(theirCity));
+
+			Game.InvalidateCitiesAt(40, 25);
+
+			Assert.Null(cache.GetValue(theirCity));
+		}
+
+		// ...and it reaches across the seam, like every other distance test here.
+		[Fact]
+		public void InvalidationCrossesTheMapSeam()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			Player theirs = g.Players.First(x => x is not null && x != g.HumanPlayer && g.PlayerNumber(x) != 0);
+			for (int y = 20; y <= 30; y++)
+			for (int x = -4; x <= 4; x++)
+				Map.Instance.ChangeTileType((x + 80) % 80, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+			theirs.Explore(0, 25, range: 10);
+			theirs.Government = new Governments.Monarchy();
+			City c = g.AddCity(theirs, 0, 1, 25)!;
+			c.Size = 4;
+			Sim.ClearTasks();
+			Assign(c, 79, 25);
+			int before = c.FoodIncome;
+
+			Map.Instance[79, 25].Irrigation = true;
+			Assert.Equal(before, c.FoodIncome);
+
+			Game.InvalidateCitiesAt(79, 25);
+
+			Assert.True(c.FoodIncome > before);
+		}
+
+		// Settlers.IsTileWorkedByEnemy is private, so this reaches it the way StagingTileTests
+		// reaches StagingTile. Both halves matter: an ordinary worked field, and the enemy
+		// city's own centre — which ResourceTiles reported and IsWorkedByOther does not.
+		private static bool WorkedByEnemy(IUnit settler, int x, int y)
+			=> (bool)typeof(Units.Settlers).GetMethod("IsTileWorkedByEnemy",
+					System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+				.Invoke(settler, new object[] { x, y })!;
+
+		[Fact]
+		public void ASettlerSeesAnEnemyField()
+		{
+			(Game g, Player mine, Player theirs, City theirCity) = AFrontier();
+			Assign(theirCity, 41, 25);
+			IUnit settler = g.CreateUnit(UnitType.Settlers, 38, 25, g.PlayerNumber(mine))!;
+
+			Assert.True(WorkedByEnemy(settler, 41, 25));
+			Assert.False(WorkedByEnemy(settler, 38, 22));   // open ground
+		}
+
+		[Fact]
+		public void ASettlerSeesTheEnemyCityItself()
+		{
+			(Game g, Player mine, Player theirs, City theirCity) = AFrontier();
+			IUnit settler = g.CreateUnit(UnitType.Settlers, 38, 25, g.PlayerNumber(mine))!;
+
+			Assert.True(WorkedByEnemy(settler, 40, 25));
+		}
+
+		// Our own city's fields are not "the enemy's".
+		[Fact]
+		public void ASettlerDoesNotFlagItsOwnSidesFields()
+		{
+			(Game g, Player mine, Player theirs, City theirCity) = AFrontier();
+			Assign(theirCity, 41, 25);
+			IUnit settler = g.CreateUnit(UnitType.Settlers, 38, 25, g.PlayerNumber(theirs))!;
+
+			Assert.False(WorkedByEnemy(settler, 41, 25));
+			Assert.False(WorkedByEnemy(settler, 40, 25));
 		}
 
 		// The cost, pinned on the source. A timing assertion would flake — WaterBodyCostTests

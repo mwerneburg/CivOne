@@ -110,9 +110,14 @@ namespace CivOne.Units
 			t is null || t.IsOcean || t is Mountains || t is Arctic || t is Tundra ||
 			t is Swamp || t.City is not null;
 
+		// Asked for all 25 tiles of a city radius during an auto-improve scan, and it used to
+		// walk every city in the game building each one's ResourceTiles: 0.446 ms per tile at
+		// 250 cities, so ~11 ms per settler move. IsWorkedByOther answers the same question
+		// with a distance pre-filter — except for the centre tile, which ResourceTiles reports
+		// and IsWorkedByOther deliberately does not, so that case is restored here.
 		private bool IsTileWorkedByEnemy(int tx, int ty) =>
-			Game.GetCities().Any(c => c.Owner != Owner &&
-				c.ResourceTiles.Any(rt => rt.X == tx && rt.Y == ty));
+			Game.Instance.IsWorkedByOther(tx, ty, Owner) ||
+			(Map[tx, ty]?.City is City c && c.Owner != Owner);
 
 		private bool AutoImproveCanIrrigate(ITile tile)
 		{

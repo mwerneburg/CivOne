@@ -80,6 +80,49 @@ namespace CivOne.Tests
 			return sw.Elapsed.TotalMilliseconds / reps;
 		}
 
+		// The same question — "does any city work this tile?" — asked by three other callers,
+		// plus HasResource, which needs a city's whole radius rather than one tile. Measured
+		// before touching any of them: the move fix was found this way and the two guesses
+		// before it were not.
+		[Fact]
+		[Trait("Category", "Benchmark")]
+		public void WhereTheRestOfTheCityScanTimeGoes()
+		{
+			(Game g, Player p, IUnit mover) = ALateGameWorld();
+
+			// Camps, so the CampShields double-count guard has something to loop over.
+			var camps = (System.Collections.Generic.Dictionary<(int x, int y), byte>)
+				typeof(Game).GetField("ResourceCamps", System.Reflection.BindingFlags.NonPublic
+					| System.Reflection.BindingFlags.Instance)!.GetValue(g)!;
+			int made = 0;
+			for (int y = 1; y < 49 && made < 50; y += 7)
+			for (int x = 1; x < 79 && made < 50; x += 7)
+			{
+				camps[(x, y)] = g.PlayerNumber(p);
+				made++;
+			}
+			City ours = g.CitiesList.First(c => c.Owner == g.PlayerNumber(p));
+
+			double invalidate = Time(50, () => Game.InvalidateCitiesAt(41, 25));
+			double campShields = Time(20, () => g.CampShields(ours));
+			bool sink = false;
+			double workedByEnemy = Time(50, () =>
+			{
+				sink = g.IsWorkedByOther(41, 25, mover.Owner)
+				    || (Map.Instance[41, 25]?.City is City wc && wc.Owner != mover.Owner);
+			});
+			Assert.False(sink);
+			double hasResource = Time(50, () => g.HasResource(p, StrategicResource.Iron));
+
+			_out.WriteLine($"world: {g.CitiesList.Count} cities, {camps.Count} camps");
+			_out.WriteLine($"InvalidateCitiesAt (one tile)   : {invalidate:F3} ms");
+			_out.WriteLine($"CampShields (one city)          : {campShields:F3} ms");
+			_out.WriteLine($"IsTileWorkedByEnemy (one tile)  : {workedByEnemy:F3} ms");
+			_out.WriteLine($"HasResource (one player)        : {hasResource:F3} ms");
+
+			Assert.Equal(250, g.CitiesList.Count);
+		}
+
 		[Fact]
 		[Trait("Category", "Benchmark")]
 		public void WhereTheMoveTimeActuallyGoes()

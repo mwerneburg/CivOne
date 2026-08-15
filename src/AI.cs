@@ -750,23 +750,12 @@ namespace CivOne
 					return;
 				}
 
-				// TEMPORARY probe (2026-08-15) — see TurnMetrics.AddBucket, and the note on the
-				// existing `unit:` buckets. The unit: buckets showed every LandAttack type
-				// costing 14-32 ms a move (Cannon 32, HoverTank 26, Artillery 25, Armor 14)
-				// against Caravan's 9 and HydroEngineer's 2, so the cost is in this branch —
-				// but StagingTile, the first suspect, turned out not to be it: fixing its 16
-				// full unit-scans left ms-per-move unchanged at 14.3 -> 14.4. These three
-				// split the branch into its phases so the next few turns say which.
-				// Remove once answered.
-				long __mission = TurnMetrics.Now;
+				// Assign a mission if the unit is idle (sets unit.Goto)
 				if (unit.Goto.IsEmpty) AssignMission(unit);
-				TurnMetrics.AddBucket("move:AssignMission", __mission);
 
 				if (!unit.Goto.IsEmpty)
 				{
-					long __step = TurnMetrics.Now;
 					ITile? next = Common.GotoStep(unit);
-					TurnMetrics.AddBucket("move:GotoStep", __step);
 					if (next is null)
 					{
 						// No land path — try boarding an adjacent friendly transport
@@ -876,10 +865,7 @@ namespace CivOne
 						}
 					}
 
-                    long __step2 = TurnMetrics.Now;
-                    bool __moved = unit.MoveTo(next.X - unit.X, next.Y - unit.Y);
-                    TurnMetrics.AddBucket("move:MoveTo", __step2);
-                    if (!__moved)
+                    if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
                     {
                         HandleMovementFailure(unit, next);
                         return;

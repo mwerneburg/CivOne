@@ -2555,12 +2555,26 @@ namespace CivOne
 		// Invalidate the food/shield/trade cache for every city that currently works the
 		// tile at (x, y). Call this after any tile mutation (irrigation, railroad, pollution
 		// removal, terrain conversion) so cached FoodRaw/ShieldRaw values stay accurate.
+		//
+		// Same distance pre-filter as WorkingCity, and for the same reason: this ran the full
+		// ResourceTiles materialisation over every city, and it is called after EVERY tile
+		// mutation — 32 call sites, most of them settler improvements, plus the per-tile loops
+		// in pollution and global warming. Measured at 250 cities: 0.529 ms a call.
+		//
+		// Unlike WorkingCity this one keeps the centre tile (a city does work its own centre,
+		// and a change there must invalidate its cache) and does not stop at the first match,
+		// since up to four cities can share a tile's radius.
 		internal static void InvalidateCitiesAt(int x, int y)
 		{
 			if (_instance is null) return;
-			foreach (City c in _instance._cities)
+			List<City> cities = _instance._cities;
+			for (int i = 0; i < cities.Count; i++)
 			{
-				if (c.ResourceTiles.Any(t => t.X == x && t.Y == y))
+				City c = cities[i];
+				int dx = Math.Abs(c.X - x);
+				if (dx > Map.WIDTH - dx) dx = Map.WIDTH - dx;   // horizontal map wrap
+				if (dx > 2 || Math.Abs(c.Y - y) > 2) continue;
+				if ((c.X == x && c.Y == y) || c.WorksTile(x, y))
 					c.InvalidateCache();
 			}
 		}
