@@ -4822,11 +4822,33 @@ namespace CivOne
 
 		// Ocean-tile target finder for Hydro Engineer: prefers open ocean far from any city
 		// (a candidate floating-city site) over tiles already inside a city's working radius.
+		// Where a Hydro Engineer should head: open water, as far from anybody's city as it can
+		// get without a long swim. Scored `nearestCity - dist`, so distance from civilisation
+		// is worth having and distance from the engineer is worth avoiding.
+		//
+		// bestScore starts at int.MinValue, NOT 0, and that is the whole of a bug that killed
+		// the aquatic game outright.
+		//
+		// Requiring a POSITIVE score means requiring a tile further from every city than from
+		// the engineer — and while the engineer stands IN a city that is arithmetically
+		// impossible: nearestCity(tile) <= distance(tile, thisCity) = dist, for every
+		// candidate, so the best score attainable is zero. The function returned null, Goto
+		// stayed empty, the engineer skipped its turn, and did so again the next turn forever.
+		// It could never take the first step out of the port it was built in.
+		//
+		// Measured at turn 750 of a live game: 69 Hydro Engineers alive across eleven civs,
+		// every single one standing in a city, zero transport tubes on the map, and not one
+		// `found-floating`, `sea-tube` or `sea-aquafarm` action in the entire decision log.
+		// The floating cities, the sea farms and the tube network had never run at all.
+		//
+		// Taking the best tile available rather than only a strictly-improving one cannot
+		// wedge: once the engineer is actually at sea the sea-work block above acts before
+		// this is consulted, and with no ocean in range this still returns null.
 		internal ITile? BestFloatingSite(IUnit unit)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			ITile? best = null;
-			int bestScore = 0;
+			int bestScore = int.MinValue;
 			City[] cities = Game.GetCities();
 
 			for (int dy = -8; dy <= 8; dy++)
