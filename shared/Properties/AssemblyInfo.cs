@@ -10,4 +10,7 @@
 using System.Reflection;
 
 [assembly: AssemblyVersion("0.1.0.1417")]
-[assembly: AssemblyCopyright("CC0 - Creative Commons")]
+// The compiled assembly carries the licence of the work as distributed, which is
+// the fork's. The CC0 header above is upstream's and is accurate for this file's
+// history — see NOTICE for why both are true at once.
+[assembly: AssemblyCopyright("Copyright (C) 2026 Michael Werneburg - GPL-3.0-or-later")]

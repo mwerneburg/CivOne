@@ -2,7 +2,10 @@
 
 A Civilization I remake in C#, forked from the original CivOne project and extended with a sci-fi storyline, improved AI, procedural map generation, and a machine-learning decision logger.
 
-Licensed under [CC0](LICENSE.md) — public domain.
+Licensed under [GPL-3.0-or-later](LICENSE). Forked from the CC0 original — see
+[NOTICE](NOTICE) for how the two fit together, [AUTHORS](AUTHORS) for who wrote
+what, and [PROVENANCE.md](PROVENANCE.md) for where the art and map data came
+from. No original Civilization I assets are included, and none are required.
 
 ---
 

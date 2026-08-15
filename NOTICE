@@ -1,0 +1,62 @@
+CivOne — sci-fi fork
+====================
+
+This project as a whole is distributed under the GNU General Public License,
+version 3 or later. The full text is in LICENSE.
+
+Copyright (C) 2026 Michael Werneburg and contributors (see AUTHORS).
+
+
+Two licences, and why
+---------------------
+
+This is a fork of CivOne by Stefan Wouters (SWY1985), which was released as a
+CC0 1.0 Universal public-domain dedication. The upstream dedication is kept in
+this repository as LICENSE-CC0.md.
+
+CC0 places a work in the public domain, so it may be incorporated into a work
+distributed under any licence, including the GPL. That is what has happened
+here: the combined work is GPL-3.0-or-later, while the upstream material it was
+built from remains independently available under CC0 from the original project.
+
+Relicensing the combined work does NOT withdraw anything from the public
+domain. Anyone may still obtain the original CivOne under CC0 from upstream and
+do as they please with it. What the GPL covers is this fork — the code written
+after 2026-04-23 and the combined work as distributed here.
+
+The same applies to material adopted from Christian Wimmer's parallel fork of
+CivOne (https://github.com/ChrisWiGit/CivOne), which is likewise CC0 1.0.
+
+    Upstream CivOne     CC0 1.0            last upstream commit 2019-10-14
+    ChrisWiGit fork     CC0 1.0            adopted 2026-05 to 2026-07
+    This fork           GPL-3.0-or-later   first fork commit    2026-04-23
+
+
+Source file headers
+-------------------
+
+Most source files still carry the upstream CC0 header. Those headers are left
+in place deliberately: for files inherited from upstream they are accurate
+history, and rewriting 794 files would replace that history with a claim that
+is true of the project but false of the file. The licence of the work as
+distributed is the one stated here and in LICENSE.
+
+New files may carry a GPL header. Neither header changes the licence of the
+combined work.
+
+
+Assets
+------
+
+No original MicroProse Civilization I data files are included in this
+repository, and none are required to run the game. Where the game can read
+original DOS assets it does so only if the user supplies them; otherwise it
+falls back to art bundled here or generated at runtime. See PROVENANCE.md.
+
+
+Trademarks
+----------
+
+"Civilization" is a trademark of its respective owner. This project is an
+independent reimplementation and is not affiliated with, endorsed by, or
+derived from the assets of that product.

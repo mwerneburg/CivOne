@@ -1,0 +1,220 @@
+Art manifest
+============
+
+Every binary asset tracked in this repository, with the date it first appeared
+in the history and the committer who added it. Generated — do not hand-edit.
+
+    Regenerate with:  tools/art-manifest.sh > ART-MANIFEST.txt
+
+Provenance and licensing of these files is described in PROVENANCE.md.
+
+resources
+    2026-06-05  michael werneburg  earth_epic.bin
+    2026-07-25  michael werneburg  earth_standard.bin
+
+resources/linux
+    2018-03-21  SWY1985  CivOne.png
+
+resources/macos
+    2018-03-21  Stefan Wouters-Yaowanasap  CivOne.icns
+
+resources/windows
+    2018-03-21  Stefan Wouters-Yaowanasap  CivOne.ico
+
+runtime/sdl/Resources
+    2018-04-09  SWY1985  WindowIcon.gif
+    2026-04-28  michael werneburg  spacedock.gif
+
+runtime/sdl/Resources/defaults
+    2026-05-10  michael werneburg  splash.png
+
+runtime/sdl/Resources/defaults/data/event_art
+    2026-07-17  michael werneburg  Anomaly.png
+    2026-08-13  michael werneburg  ColonyBreached.png
+    2026-08-13  michael werneburg  CulturalAscendancy.png
+    2026-07-17  michael werneburg  Gozira.png
+    2026-07-17  michael werneburg  GreyGoo.png
+    2026-07-17  michael werneburg  KingInYellow.png
+    2026-07-17  michael werneburg  Leviathan.png
+    2026-05-22  michael werneburg  MeetTheOlvir.png
+    2026-05-22  michael werneburg  OlvirInSpace.png
+    2026-07-17  michael werneburg  OtherVoice.png
+    2026-08-07  michael werneburg  OthersIntercept.png
+    2026-07-17  michael werneburg  PaxMercatoria.png
+    2026-07-05  michael werneburg  Repossession.png
+    2026-08-06  michael werneburg  ScavengerContact.png
+    2026-08-06  michael werneburg  ScavengerExtraction.png
+    2026-07-18  michael werneburg  Skynet.png
+    2026-07-17  michael werneburg  SplinterRepublic.png
+    2026-07-17  michael werneburg  TheDoor.png
+    2026-07-17  michael werneburg  TheGreys.png
+    2026-07-05  michael werneburg  TheOthersArrive.png
+    2026-07-13  michael werneburg  TheThing.png
+    2026-07-17  michael werneburg  Visitations.png
+    2026-07-27  michael werneburg  citycaptured.png
+    2026-05-22  michael werneburg  cityconquered.png
+    2026-07-27  michael werneburg  cityfounded.png
+    2026-05-22  michael werneburg  cityliberated.png
+    2026-05-22  michael werneburg  civilunrest0.png
+    2026-05-22  michael werneburg  civilunrest1.png
+    2026-05-22  michael werneburg  civilunrest2.png
+    2026-05-22  michael werneburg  famine.png
+    2026-05-22  michael werneburg  globalwarming.png
+    2026-05-22  michael werneburg  governmentcollapses.png
+    2026-06-21  michael werneburg  hurricane.png
+    2026-06-21  michael werneburg  incite_rebellion.png
+    2026-05-22  michael werneburg  nuclearbombdetonation.png
+    2026-05-22  michael werneburg  nuclearmeltdown.png
+    2026-05-22  michael werneburg  pollution.png
+    2026-05-22  michael werneburg  spaceshiparrived.png
+    2026-05-22  michael werneburg  spaceshipintercepted.png
+    2026-05-22  michael werneburg  spaceshiplaunched.png
+    2026-05-22  michael werneburg  welovethekingday.png
+
+runtime/sdl/Resources/defaults/data/improvement_art
+    2026-05-24  michael werneburg  adam_smith's_trading_house.png
+    2026-05-24  michael werneburg  angkor_wat.png
+    2026-05-18  michael werneburg  apollo_program.png
+    2026-05-15  michael werneburg  aqueduct.png
+    2026-06-21  michael werneburg  audit_authority.png
+    2026-05-15  michael werneburg  bank.png
+    2026-05-15  michael werneburg  barracks.png
+    2026-08-05  michael werneburg  breeding_shrine.png
+    2026-08-05  michael werneburg  cascade_cathedral.png
+    2026-05-15  michael werneburg  cathedral.png
+    2026-05-15  michael werneburg  city_walls.png
+    2026-05-27  michael werneburg  civic_monument.png
+    2026-05-15  michael werneburg  colosseum.png
+    2026-05-22  michael werneburg  colossus.png
+    2026-05-18  michael werneburg  copernicus'_observatory.png
+    2026-05-15  michael werneburg  courthouse.png
+    2026-05-18  michael werneburg  cure_for_cancer.png
+    2026-05-18  michael werneburg  darwin's_voyage.png
+    2026-05-22  michael werneburg  dome_command_hub.png
+    2026-05-22  michael werneburg  dome_emitter_array.png
+    2026-05-22  michael werneburg  dome_kinetic_ring.png
+    2026-05-22  michael werneburg  dome_power_core.png
+    2026-05-22  michael werneburg  dome_sensor_net.png
+    2026-05-24  michael werneburg  exchange_center.png
+    2026-05-15  michael werneburg  factory.png
+    2026-06-23  michael werneburg  fusion_core.png
+    2026-05-15  michael werneburg  granary.png
+    2026-05-18  michael werneburg  great_library.png
+    2026-05-18  michael werneburg  great_wall.png
+    2026-05-27  michael werneburg  hagia_sofia.png
+    2026-05-18  michael werneburg  hanging_gardens.png
+    2026-08-13  michael werneburg  harbour.png
+    2026-05-18  michael werneburg  hoover_dam.png
+    2026-06-23  michael werneburg  human_genome.png
+    2026-06-21  michael werneburg  human_genome_project.png
+    2026-05-15  michael werneburg  hydro_plant.png
+    2026-05-27  michael werneburg  infrastructure_bond.png
+    2026-05-18  michael werneburg  interstellar_probe.png
+    2026-05-18  michael werneburg  isaac_newton's_college.png
+    2026-05-18  michael werneburg  j.s.bach's_cathedral.png
+    2026-05-24  michael werneburg  leonardo's_workshop.png
+    2026-05-15  michael werneburg  library.png
+    2026-05-15  michael werneburg  lighthouse.png
+    2026-05-18  michael werneburg  magellan's_expedition.png
+    2026-05-18  michael werneburg  manhattan_project.png
+    2026-05-20  michael werneburg  marco_polo's_voyage.png
+    2026-05-15  michael werneburg  marketplace.png
+    2026-05-15  michael werneburg  mass_transit.png
+    2026-05-24  michael werneburg  mfg._plant.png
+    2026-05-18  michael werneburg  michelangelo's_chapel.png
+    2026-08-13  michael werneburg  mission_control.png
+    2026-07-17  michael werneburg  nanobot_factory.png
+    2026-05-24  michael werneburg  neural_lab.png
+    2026-05-15  michael werneburg  nuclear_plant.png
+    2026-05-15  michael werneburg  observatory.png
+    2026-05-18  michael werneburg  oracle.png
+    2026-05-15  michael werneburg  palace.png
+    2026-06-21  michael werneburg  police_station.png
+    2026-05-15  michael werneburg  power_plant.png
+    2026-05-18  michael werneburg  pyramids.png
+    2026-05-15  michael werneburg  recycling_cntr..png
+    2026-05-15  michael werneburg  sam_battery.png
+    2026-05-18  michael werneburg  sdi_defense.png
+    2026-05-24  michael werneburg  sea_platform.png
+    2026-05-22  michael werneburg  seti_program.png
+    2026-05-15  michael werneburg  sewer_system.png
+    2026-05-18  michael werneburg  shakespeare's_theatre.png
+    2026-05-15  michael werneburg  shipyard.png
+    2026-05-18  michael werneburg  south_pole_expedition.png
+    2026-07-17  michael werneburg  stonehenge.png
+    2026-05-24  michael werneburg  sun_tzu's_war_academy.png
+    2026-05-27  michael werneburg  surplus_depot.png
+    2026-05-27  michael werneburg  taj_mahal.png
+    2026-05-15  michael werneburg  temple.png
+    2026-07-17  michael werneburg  the_internet.png
+    2026-07-17  michael werneburg  the_portal.png
+    2026-08-06  michael werneburg  the_reprocessor.png
+    2026-08-05  michael werneburg  the_vessel.png
+    2026-05-18  michael werneburg  united_nations.png
+    2026-05-15  michael werneburg  university.png
+    2026-05-18  michael werneburg  women's_suffrage.png
+    2026-05-24  michael werneburg  xenolab.png
+    2026-05-20  michael werneburg  zheng_he's_voyage.png
+
+runtime/sdl/Resources/defaults/data/leader_art
+    2026-05-26  michael werneburg  abe_lincoln.png
+    2026-05-26  michael werneburg  alexander.png
+    2026-05-26  michael werneburg  atilla.png
+    2026-05-26  michael werneburg  caesar.png
+    2026-08-08  michael werneburg  charlemagne.png
+    2026-05-28  michael werneburg  cyrus_the_great.png
+    2026-05-26  michael werneburg  deng_xiaoping.png
+    2026-08-08  michael werneburg  edenshaw.png
+    2026-05-26  michael werneburg  elizabeth_i.png
+    2026-05-26  michael werneburg  frederick.png
+    2026-05-26  michael werneburg  genghis_khan.png
+    2026-05-28  michael werneburg  haile_selassie.png
+    2026-05-26  michael werneburg  hammurabi.png
+    2026-05-28  michael werneburg  harun_al-rashid.png
+    2026-05-28  michael werneburg  hiawatha.png
+    2026-05-28  michael werneburg  jayavarman_vii.png
+    2026-08-05  michael werneburg  leon_trotsky.png
+    2026-05-26  michael werneburg  m_gandhi.png
+    2026-05-28  michael werneburg  mansa_musa.png
+    2026-05-26  michael werneburg  montezuma.png
+    2026-05-26  michael werneburg  napoleon.png
+    2026-05-28  michael werneburg  pachacuti.png
+    2026-05-26  michael werneburg  peter_the_great.png
+    2026-05-26  michael werneburg  ramesses.png
+    2026-08-08  michael werneburg  sepe_tiaraju.png
+    2026-05-26  michael werneburg  shaka.png
+    2026-05-28  michael werneburg  sitting_bull.png
+    2026-08-05  michael werneburg  skynet.png
+    2026-05-28  michael werneburg  suleiman.png
+    2026-08-08  michael werneburg  te_rauparaha.png
+    2026-05-26  michael werneburg  the_council.png
+    2026-08-05  michael werneburg  the_registry.png
+    2026-08-05  michael werneburg  the_thing.png
+    2026-05-28  michael werneburg  tokugawa.png
+
+runtime/sdl/Resources/defaults/garrison_icons
+    2026-05-23  michael werneburg  Militia.png
+
+runtime/sdl/Resources/defaults/unit_tiles
+    2026-05-18  michael werneburg  Armor.png
+    2026-05-18  michael werneburg  Artillery.png
+    2026-05-18  michael werneburg  Battleship.png
+    2026-05-18  michael werneburg  Bomber.png
+    2026-05-18  michael werneburg  Cannon.png
+    2026-05-18  michael werneburg  Caravan.png
+    2026-05-18  michael werneburg  Carrier.png
+    2026-05-18  michael werneburg  Catapult.png
+    2026-05-18  michael werneburg  Chariot.png
+    2026-05-18  michael werneburg  Diplomat.png
+    2026-05-18  michael werneburg  Fighter.png
+    2026-05-18  michael werneburg  Frigate.png
+    2026-05-18  michael werneburg  Legion.png
+    2026-05-18  michael werneburg  MechInf.png
+    2026-05-18  michael werneburg  Musketeers.png
+    2026-05-18  michael werneburg  Nuclear.png
+    2026-05-18  michael werneburg  Phalanx.png
+    2026-05-18  michael werneburg  Riflemen.png
+    2026-05-18  michael werneburg  Settlers.png
+    2026-05-18  michael werneburg  Submarine.png
+    2026-05-18  michael werneburg  Trireme.png
+    2026-05-18  michael werneburg  militia.png

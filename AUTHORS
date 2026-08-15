@@ -1,0 +1,54 @@
+Authors of CivOne
+=================
+
+Derived from the git history (`git shortlog -sne`). Names appear as committed;
+several upstream contributors used more than one address and are merged here.
+
+
+Upstream CivOne — CC0 1.0, 2015-2020
+------------------------------------
+
+    Stefan Wouters (SWY1985, swouters, Stefan Wouters-Yaowanasap)  2015-2019
+    Christoph Donges                                               2018-2020
+    Jake Brown                                                     2017
+    Jakob Mulvad Nielsen                                           2017
+    Ilya Sosnovsky                                                 2017
+    uHappyLogic (Lukasz Kosiak)                                    2017
+    AlexFolland                                                    2017
+    Spiridonov Dmitry                                              2018
+    axx                                                            2018
+
+Their contributions were dedicated to the public domain under CC0 1.0 and are
+incorporated here on those terms. See NOTICE.
+
+
+Parallel fork — CC0 1.0, 2019-2026
+----------------------------------
+
+A second fork of CivOne is maintained by Christian Wimmer (ChrisWiGit), also
+under CC0 1.0. Fixes, performance work and whole features have been taken from
+it into this one — 17 commits here name it as their source, between 2026-05-02
+and 2026-07-20 — covering city-view frame arithmetic, palette and shield-caching
+performance, AI railroad building, goto-move restoration, the conquest finale,
+map zoom, empire-size unhappiness and the feature toggles.
+
+    Christian Wimmer <wimmer@teamchris.info>                       2025-2026
+    Kevin Routley (fire-eggs)                                      2019-2022
+
+Attribution here is at the level of the fork rather than the line: material
+adopted from that project may originate with any of its contributors, so its
+other authors are credited alongside its maintainer.
+
+    https://github.com/ChrisWiGit/CivOne
+
+
+This fork — GPL-3.0-or-later, 2026
+----------------------------------
+
+    Michael Werneburg <michael@werneburg.ca>                       2026
+
+Copyright (C) 2026 Michael Werneburg.
+
+Portions of the fork's code were written with the assistance of Claude
+(Anthropic); authorship and copyright rest with the human author who directed,
+reviewed and accepted the work.
