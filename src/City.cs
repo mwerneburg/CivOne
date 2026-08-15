@@ -663,6 +663,22 @@ namespace CivOne
 
 		internal IEnumerable<ITile> ResourceTiles => CityTiles.Where(t => (t.X == X && t.Y == Y) || _resourceTiles.Contains(t));
 
+		// Does this city work (x,y)? Same answer as `ResourceTiles.Any(t => t.X == x && t.Y == y)`
+		// without building CityRadius, for callers that ask about one tile rather than all of
+		// them — see Game.WorkingCity for why that mattered. The centre is excluded because the
+		// only caller excludes it; everything else CityRadius decides is reproduced here.
+		internal bool WorksTile(int x, int y)
+		{
+			int dx = Math.Abs(X - x);
+			if (dx > Map.WIDTH - dx) dx = Map.WIDTH - dx;   // horizontal map wrap
+			int dy = Math.Abs(Y - y);
+			if (dx > 2 || dy > 2) return false;
+			if (dx == 2 && dy == 2) return false;           // CityRadius cuts the four corners
+			if (!_resourceTiles.Any(t => t.X == x && t.Y == y)) return false;
+			ITile tile = Map[x, y];
+			return tile is not null && Game.Instance.GetPlayer(Owner).Visible(tile);
+		}
+
 		internal bool OccupiedTile(ITile tile)
 		{
 			if (ResourceTiles.Any(t => t.X == tile.X && t.Y == tile.Y))

@@ -2728,17 +2728,43 @@ namespace CivOne
 		internal IReadOnlyList<City> CitiesList => _cities;
 
 		// True when the tile is currently worked by a city belonging to a different owner.
-		public bool IsWorkedByOther(int x, int y, byte owner) =>
-			_cities.Any(c => c.Owner != owner &&
-			                 !(c.X == x && c.Y == y) &&
-			                 c.ResourceTiles.Any(t => t.X == x && t.Y == y));
+		public bool IsWorkedByOther(int x, int y, byte owner) => WorkingCity(x, y, owner) is not null;
 
 		// Returns the Player whose city works (x,y) for someone other than `owner`, or null.
 		public Player GetWorkerOfTile(int x, int y, byte owner) =>
-			_cities
-				.Where(c => c.Owner != owner && !(c.X == x && c.Y == y) && c.ResourceTiles.Any(t => t.X == x && t.Y == y))
-				.Select(c => GetPlayer(c.Owner))
-				.FirstOrDefault();
+			WorkingCity(x, y, owner) is City c ? GetPlayer(c.Owner) : null!;
+
+		// The city working (x,y) for somebody other than `owner`, in _cities order, or null.
+		//
+		// Both callers above used to read `_cities.Any(c => ... c.ResourceTiles.Any(...))`.
+		// ResourceTiles builds CityRadius — a fresh 5x5 ITile array plus a per-tile visibility
+		// pass — for EVERY city in the game, and BaseUnitLand.ValidMoveTarget asks this question
+		// for all eight border tiles of every land move.
+		//
+		// Measured in MoveCostBenchmark at 250 cities and 2,000 units: 3.4 ms per move for the
+		// eight calls, against 0.011 ms for a full scan of every unit in the game. That ratio
+		// is the correction to two earlier guesses at the late-game move cost — ITile.Units is
+		// cheap at this scale and the allocating per-city scan is not.
+		//
+		// City.InvalidTile carries the same fix with the same reasoning: a tile can only be
+		// worked by a city whose CENTRE lies within its 5x5 radius, so pre-filter on integer
+		// distance and only then ask the 0-4 survivors. WorksTile reproduces the rest of what
+		// CityRadius decides — the four cut corners and the owner's visibility — so the answer
+		// is unchanged, only the cost.
+		private City? WorkingCity(int x, int y, byte owner)
+		{
+			for (int i = 0; i < _cities.Count; i++)
+			{
+				City c = _cities[i];
+				if (c.Owner == owner) continue;
+				if (c.X == x && c.Y == y) continue;
+				int dx = Math.Abs(c.X - x);
+				if (dx > Map.WIDTH - dx) dx = Map.WIDTH - dx;   // horizontal map wrap
+				if (dx > 2 || Math.Abs(c.Y - y) > 2) continue;
+				if (c.WorksTile(x, y)) return c;
+			}
+			return null;
+		}
 
 		// Rebuilding this walks every city and allocates a new array. It is read from
 		// Player.Visible (via WonderBuilt<ApolloProgram>), which the sidebar minimap
