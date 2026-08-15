@@ -21,6 +21,7 @@
 using System.Linq;
 using CivOne.Advances;
 using CivOne.Enums;
+using CivOne.Tiles;
 using CivOne.Units;
 
 namespace CivOne.Tests
@@ -119,6 +120,52 @@ namespace CivOne.Tests
 			Assert.False(BoxedIn(p), "fixture: this civ should have somewhere to settle");
 
 			Assert.DoesNotContain(Plan(p, c), x => x is Longboat);
+		}
+
+		// A city on a LAKE is not a port.
+		//
+		// The rule asked only whether a neighbouring tile was ocean, and an enclosed lake is
+		// ocean terrain. The Maori built two Longboats at (316,162), whose adjacent water is a
+		// four-tile landlocked pond — both sat there at full movement for the rest of the
+		// game, while zero of the 277 legal colony sites in the search window touched that
+		// water. Nothing was wrong with the crossing logic; the boats were in a puddle.
+		//
+		// IsFreshwaterAt is true for every water body that is not the main ocean (Map.cs:80),
+		// and the Harbour rule has always used it. This is the same question, asked once more.
+		// Its own fixture, because the shared one cannot express this: a city needs to touch
+		// the pond and NOTHING ELSE. On the default 3x3 island the lakeside city also borders
+		// the open sea, so it is a real port and the test passed with the clause removed.
+		// A 5x5 island with the pond at its centre puts the city fully inland.
+		[Fact]
+		public void ACityOnALakeIsNotAPort()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			Player p = g.Players.First(x => x is not null && x != g.HumanPlayer && g.PlayerNumber(x) != 0);
+			p.Government = new Governments.Monarchy();
+			p.Explore(40, 25, range: 15);
+			for (int y = 15; y <= 35; y++)
+			for (int x = 30; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Ocean);
+			for (int y = 23; y <= 27; y++)
+			for (int x = 38; x <= 42; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(40, 25, Terrain.Ocean);   // the pond
+			Map.Instance.RecalculateContinentsIfDirty();
+			City lakeside = g.AddCity(p, 0, 40, 24)!;
+			lakeside.Size = 6;
+			p.AddAdvance(new MapMaking(), false);
+			Map.Instance.RecalculateWaterBodies(g.GetCities());
+			Sim.ClearTasks();
+
+			Assert.True(Map.Instance.IsFreshwaterAt(40, 25),
+				"fixture: the pond must be an enclosed lake, not the main ocean");
+			Assert.All(Map.Instance[lakeside.X, lakeside.Y].GetBorderTiles().Where(t => t is not null && t.IsOcean),
+				t => Assert.True(Map.Instance.IsFreshwaterAt(t.X, t.Y),
+					"fixture: the city must touch the pond and no open sea"));
+			Assert.True(BoxedIn(p), "fixture: the civ should still be hemmed in");
+
+			Assert.DoesNotContain(Plan(p, lakeside), x => x is Longboat);
 		}
 
 		// Two hulls is a crossing; more is a fleet. The cap already existed on the old rule

@@ -3856,7 +3856,18 @@ namespace CivOne
 			    && BoxedIn()
 			    && Player.Cities.Length < CityTarget()
 			    && city.Tile is not null
-			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean)
+			    // SALT water, not merely water. IsFreshwaterAt is true for every body that is
+			    // not the main ocean (Map.cs:80), which is exactly "an enclosed lake" — and the
+			    // Harbour rule has always asked this question. This one asked only `IsOcean`,
+			    // so a city on a pond qualified as a port.
+			    //
+			    // Not hypothetical: the Maori built two Longboats at (316,162), whose adjacent
+			    // water is a FOUR-TILE landlocked lake. Both boats sat in it at full movement
+			    // for the rest of the game. Zero of the 277 legal colony sites within the
+			    // search window touched that water. The crossing logic was never at fault —
+			    // the boats were in a puddle.
+			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean
+			                                       && !Map.Instance.IsFreshwaterAt(t.X, t.Y))
 			    && CanAffordSettler(city, 3))
 			{
 				byte boxedId = Game.PlayerNumber(Player);
@@ -4269,7 +4280,10 @@ namespace CivOne
 			    && Player.ExploredHomeContinentFraction > 0.90
 			    && (Player.ExploredLandFraction < 0.60 || KnownColonySites() > 0)
 			    && city.Tile is not null
-			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean))
+			    // Salt water, for the same reason as the Longboat rule above: a yard on an
+			    // enclosed lake launches a hull that can never leave it.
+			    && city.Tile.GetBorderTiles().Any(t => t is not null && t.IsOcean
+			                                       && !Map.Instance.IsFreshwaterAt(t.X, t.Y)))
 			{
 				byte hullId = Game.PlayerNumber(Player);
 				int hulls = Game.GetUnits().Count(u => u.Owner == hullId && u is IBoardable);
