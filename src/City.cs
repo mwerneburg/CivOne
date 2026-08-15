@@ -1349,6 +1349,15 @@ namespace CivOne
 			ITile tile = Map[unit.X, unit.Y];
 			if (tile is null) return false;
 			if (tile.City is not null) return tile.City.Owner == Owner;
+			// OUR OWN resource camp shelters too, on the same terms as the city test above —
+			// a rival's camp is the field, exactly as a rival's streets are.
+			//
+			// Not a courtesy: occupation is how camps change hands. ProcessResourceCamps hands
+			// a camp to "any unit standing on a rival's camp at turn's end", so a garrison is
+			// the ONLY defence a camp has — and without this a republic paid war weariness at
+			// home for doing the one thing that keeps its iron.
+			if (Game.Instance.ResourceCamps.TryGetValue((tile.X, tile.Y), out byte campOwner))
+				return campOwner == Owner;
 			return tile.Fortress;
 		}
 
