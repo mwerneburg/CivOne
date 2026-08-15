@@ -276,9 +276,14 @@ namespace CivOne.Screens.Reports
 
 			if (launched)
 			{
-				string launchYr  = Common.YearString((ushort)Game.Instance.SpaceshipLaunchTurn[pid]);
-				string arrivalYr = Common.YearString((ushort)Game.Instance.SpaceshipArrivalTurn[pid]);
-				this.DrawText($"LAUNCHED {launchYr} · ETA {arrivalYr}", 0, CassetteTheme.PHOS_GLOW, W / 2, fy + 2, TextAlign.Center);
+				string launchYr = Common.YearString((ushort)Game.Instance.SpaceshipLaunchTurn[pid]);
+				// Arrival ZEROES the ETA (Game.cs, both the arrival and the interception paths)
+				// while the launch turn stays set forever — so a ship that has already got there
+				// reads as launched with an arrival turn of 0, and TurnToYear(0) is 4000 BC.
+				// That is where "ETA 4000 BC" came from: not a bad calculation, a landed ship.
+				int arrival = Game.Instance.SpaceshipArrivalTurn[pid];
+				string tail = arrival > 0 ? $"ETA {Common.YearString((ushort)arrival)}" : "ARRIVED";
+				this.DrawText($"LAUNCHED {launchYr} · {tail}", 0, CassetteTheme.PHOS_GLOW, W / 2, fy + 2, TextAlign.Center);
 			}
 			else if (canLaunch)
 			{

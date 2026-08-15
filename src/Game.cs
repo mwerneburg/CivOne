@@ -1184,12 +1184,41 @@ namespace CivOne
 		internal static int MaxSpaceshipStructural
 			=> SpaceshipStructuresNeeded(MAX_SS_COMPONENT, MAX_SS_MODULE);
 
-		internal static float SpaceshipFlightYears(int structural, int component, int module)
+		// Alpha Centauri is 4.4 light years away. Cap the best hull this game can build at
+		// 0.2c and the fastest possible crossing is 22 years; every lesser configuration is
+		// proportionally slower.
+		//
+		// The old formula was (4445 + mass) / (100 * engines), which made thrust very nearly
+		// free: the mass term barely moved against that fixed 4445, so each extra engine
+		// bought most of its own speed back. A maxed hull crossed in 6 years — 0.73c — while
+		// the minimum ship took 45 (a defensible 0.098c). The ceiling was the broken end, not
+		// the floor, so this anchors on the best case and lets the spread fall where it falls:
+		// a maxed ship now takes 22 years and a one-engine ship 171, which is what a bad
+		// design should cost. Configuration finally matters.
+		internal const float MinimumFlightYears = 22f;   // 4.4 ly at 0.2c
+
+		private static float ThrustToMass(int structural, int component, int module)
+			=> Math.Max(1, component / 2) / (4445f + component * 4 + module * 4 + structural);
+
+		// The fastest hull the rules allow, which is NOT the maxed one: habitation modules are
+		// mass, so eight engines carrying three modules (39/16/3) outruns eight engines
+		// carrying twelve (51/16/12). Anchoring on the maxed hull let that lighter
+		// configuration cruise at 0.202c and breach the ceiling — caught by the test, not by
+		// inspection. Computed across the whole buildable grid so no such corner can hide, and
+		// cached because SpaceshipTarget evaluates every configuration every time it runs.
+		private static readonly float _bestThrustToMass = ComputeBestThrustToMass();
+
+		private static float ComputeBestThrustToMass()
 		{
-			int engines = Math.Max(1, component / 2);
-			int massHt = component * 4 + module * 4 + structural;
-			return (4445f + massHt) / (100f * engines);
+			float best = 0f;
+			for (int comp = 2; comp <= MAX_SS_COMPONENT; comp += 2)
+			for (int mod = 3; mod <= MAX_SS_MODULE; mod += 3)
+				best = Math.Max(best, ThrustToMass(SpaceshipStructuresNeeded(comp, mod), comp, mod));
+			return best;
 		}
+
+		internal static float SpaceshipFlightYears(int structural, int component, int module)
+			=> MinimumFlightYears * (_bestThrustToMass / ThrustToMass(structural, component, module));
 
 		internal static int SpaceshipStructuresNeeded(int component, int module)
 		{
@@ -1215,7 +1244,9 @@ namespace CivOne
 			return module * 500 * SpaceshipSuccessPct(component, module) / 100;
 		}
 
-		private static int SpaceshipTravelTurns(int structural, int component, int module)
+		// Internal so the AI can ask "would this hull arrive before the game ends" before
+		// committing an empire's production to it.
+		internal static int SpaceshipTravelTurns(int structural, int component, int module)
 		{
 			return Math.Max(1, (int)Math.Ceiling(SpaceshipFlightYears(structural, component, module)));
 		}

@@ -147,9 +147,28 @@ namespace CivOne
 		// error before was one of kind, not degree.
 		private const int SpaceshipOutputShare = 3;
 
-		// Returns the (component, module) hull this civ should aim for. Always at least the
-		// launchable minimum: a civ on this path is trying to leave, and the smallest ship
-		// that flies beats the biggest one that does not.
+		// The game's own backstop ending, in turns. Common.TurnToYear is +1 year per turn from
+		// turn 400 = 1850 AD, so 2200 AD is turn 750. A colony ship that arrives after this
+		// has achieved nothing at all.
+		internal static int EndOfGameTurn => 400 + (2200 - 1850);
+
+		// ...and the ship must land early enough to WIN, not merely to arrive. Diaspora needs
+		// Mission Control held for DiasporaStreakTarget turns after the colony is founded, so
+		// a hull that touches down at 749 has achieved precisely nothing.
+		internal static int ArrivalDeadline => EndOfGameTurn - (int)Game.DiasporaStreakTarget;
+
+		// Returns the (component, module) hull this civ should aim for, or (0, 0) to abandon
+		// the programme entirely.
+		//
+		// Abandonment is the honest answer to a real question: with flight time anchored at
+		// 0.2c a minimum hull takes 173 turns to cross, so a civ that starts late can pour an
+		// empire's production into a ship still in transit when the game ends. That is worse
+		// than not starting — the shields would have bought Banks. So each candidate hull is
+		// costed for BUILD time as well as price, and rejected if it cannot land by
+		// ArrivalDeadline. If none can, the civ builds no parts at all.
+		//
+		// The deadline is the one that WINS, not the one that arrives: it leaves room for the
+		// Diaspora countdown, so a hull touching down at 749 is correctly refused.
 		internal (int component, int module) SpaceshipTarget()
 		{
 			byte me = Game.PlayerNumber(Player);
@@ -167,18 +186,48 @@ namespace CivOne
 			int compPrice   = new SSComponent().Price * 10;
 			int modPrice    = new SSModule().Price * 10;
 
-			(int component, int module) best = (2, 3);
+			// Shields per turn actually reaching the ship — the same share the budget uses.
+			// Used to turn a hull's price into a build TIME, which is what the deadline needs.
+			int toShipPerTurn = Math.Max(1, perTurn / SpaceshipOutputShare);
+
+			(int component, int module) best = (0, 0);
 			for (int engines = 1; engines * 2 <= Game.MAX_SS_COMPONENT; engines++)
 			for (int modSets = 1; modSets * 3 <= Game.MAX_SS_MODULE; modSets++)
 			{
 				int comp = engines * 2, module = modSets * 3;
-				int cost = Math.Max(0, Game.SpaceshipStructuresNeeded(comp, module) - haveStruct) * structPrice
+				int structNeeded = Game.SpaceshipStructuresNeeded(comp, module);
+				int cost = Math.Max(0, structNeeded - haveStruct) * structPrice
 				         + Math.Max(0, comp   - haveComp)   * compPrice
 				         + Math.Max(0, module - haveModule) * modPrice;
 				if (cost > budget) continue;
+
+				// Would it land in time? Build what is left, then fly. A bigger hull is both
+				// slower to build and faster to cross, so this is a genuine trade rather than
+				// a simple ceiling — sometimes the answer is MORE engines, not fewer.
+				int buildTurns = (cost + toShipPerTurn - 1) / toShipPerTurn;
+				int flightTurns = Game.SpaceshipTravelTurns(structNeeded, comp, module);
+				if (Game.Instance.GameTurn + buildTurns + flightTurns > ArrivalDeadline) continue;
+
 				// Bigger is better, and modules outrank engines: score is habitation modules
 				// times the success chance, so a module set is worth more than an engine.
 				if (module * 2 + comp > best.module * 2 + best.component) best = (comp, module);
+			}
+
+			// The floor, preserved but now conditional. A civ on this path is trying to leave,
+			// and the smallest ship that flies beats the biggest one that does not — so a civ
+			// that cannot AFFORD a hull inside the horizon still aims at the minimum and hopes.
+			// What it may no longer do is aim at one that cannot arrive: the minimum hull takes
+			// 171 years to cross, so from turn 580 onward even this is a ship that lands after
+			// the game has ended.
+			//
+			// Deliberately tested on flight time alone, not build time. The floor exists to say
+			// "try anyway" in the face of a budget that says no; re-imposing the budget here
+			// would make it unreachable and quietly delete the behaviour.
+			if (best.component == 0)
+			{
+				int minStruct = Game.SpaceshipStructuresNeeded(2, 3);
+				if (Game.Instance.GameTurn + Game.SpaceshipTravelTurns(minStruct, 2, 3) <= ArrivalDeadline)
+					best = (2, 3);
 			}
 			return best;
 		}
@@ -194,6 +243,10 @@ namespace CivOne
 		{
 			if (production is not ISpaceShip) return true;
 			(int targetComp, int targetModule) = SpaceshipTarget();
+			// (0, 0) means the programme is abandoned — no hull can land before the game ends.
+			// Checked explicitly because SpaceshipStructuresNeeded(0, 0) is 15, not 0, so
+			// falling through would have the civ dutifully building a hull for no ship.
+			if (targetComp == 0 || targetModule == 0) return false;
 			byte me = Game.PlayerNumber(Player);
 			if (production is SSStructural)
 				return Game.Instance.SpaceshipStructural[me] < Game.SpaceshipStructuresNeeded(targetComp, targetModule);
@@ -4084,15 +4137,21 @@ namespace CivOne
 					// minimum the moment it becomes airworthy.
 					(int targetComp, int targetModule) = SpaceshipTarget();
 					byte ssMe = Game.PlayerNumber(Player);
-					if (Game.Instance.SpaceshipStructural[ssMe] < Game.SpaceshipStructuresNeeded(targetComp, targetModule)
-					    && Player.ProductionAvailable(new SSStructural()))
-						Consider(new SSStructural());
-					if (Game.Instance.SpaceshipComponent[ssMe] < targetComp
-					    && Player.ProductionAvailable(new SSComponent()))
-						Consider(new SSComponent());
-					if (Game.Instance.SpaceshipModule[ssMe] < targetModule
-					    && Player.ProductionAvailable(new SSModule()))
-						Consider(new SSModule());
+					// Abandoned programme — see SpaceshipTarget. Skip the parts entirely and let
+					// Mission Control below stand: a civ that already has a ship in flight still
+					// needs the lifeline, and one that never launches loses nothing by holding it.
+					if (targetComp > 0 && targetModule > 0)
+					{
+						if (Game.Instance.SpaceshipStructural[ssMe] < Game.SpaceshipStructuresNeeded(targetComp, targetModule)
+						    && Player.ProductionAvailable(new SSStructural()))
+							Consider(new SSStructural());
+						if (Game.Instance.SpaceshipComponent[ssMe] < targetComp
+						    && Player.ProductionAvailable(new SSComponent()))
+							Consider(new SSComponent());
+						if (Game.Instance.SpaceshipModule[ssMe] < targetModule
+						    && Player.ProductionAvailable(new SSModule()))
+							Consider(new SSModule());
+					}
 					// The lifeline the colony is flown from, and a city a rival can take.
 					if (Player.ProductionAvailable(new MissionControl())
 					    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))

@@ -114,6 +114,47 @@ namespace CivOne.Tests
 			// The point of the exercise: which proposed bar does this world clear? A bar
 			// nobody approaches is decoration; a bar the leader strolls past is not a race.
 			// "Just short" is the target — a civ that pushed would take it.
+			// Why is the AI economy flat? A human reaches ~59% of world output on this same
+			// map; the best AI manages 25% at a transient peak. The candidates are structural
+			// and all visible here: government (Republic/Democracy add trade per tile, so a
+			// civ stuck in Monarchy is capped no matter how well it plays), trade routes,
+			// and the multiplier buildings.
+			_out.WriteLine("");
+			_out.WriteLine($"{"civ",-14} {"government",-12} {"cities",6} {"routes",6} {"mkt%",5} {"bank%",5} "
+			             + $"{"harb%",5} {"avgSize",7} {"out",6}");
+			foreach (Player p in live.OrderByDescending(g.GrossOutputOf))
+			{
+				City[] cs = p.Cities.Where(c => c.Size > 0).ToArray();
+				if (cs.Length == 0) continue;
+				int routes = cs.Sum(c => c.TradeRoutes.Count());
+				int mkt = cs.Count(c => c.HasBuilding<Buildings.MarketPlace>());
+				int bank = cs.Count(c => c.HasBuilding<Buildings.Bank>());
+				int harb = cs.Count(c => c.HasBuilding<Buildings.Harbour>());
+				_out.WriteLine($"{p.TribeNamePlural,-14} {p.Government?.Name ?? "?",-12} {cs.Length,6} {routes,6} "
+				             + $"{mkt * 100 / cs.Length,5} {bank * 100 / cs.Length,5} {harb * 100 / cs.Length,5} "
+				             + $"{cs.Average(c => (double)c.Size),7:F1} {g.GrossOutputOf(p),6}");
+			}
+
+			// Growth caps: a city is stuck at 7 without an Aqueduct and at 12 without a Sewer
+			// System (City.cs:311). If the world's cities pile up ON those two numbers, the flat
+			// AI economy is a growth-infrastructure failure rather than a trade one — output is
+			// worked tiles, and a city frozen at 7 works seven of them forever.
+			_out.WriteLine("");
+			City[] all = live.SelectMany(p => p.Cities).Where(c => c.Size > 0).ToArray();
+			int atAq = all.Count(c => c.Size == 7 && !c.HasBuilding<Buildings.Aqueduct>());
+			int atSw = all.Count(c => c.Size == 12 && !c.HasBuilding<Buildings.SewerSystem>());
+			_out.WriteLine($"world cities {all.Length}: "
+			             + $"aqueduct {all.Count(c => c.HasBuilding<Buildings.Aqueduct>()) * 100 / all.Length}%, "
+			             + $"sewer {all.Count(c => c.HasBuilding<Buildings.SewerSystem>()) * 100 / all.Length}%, "
+			             + $"bank {all.Count(c => c.HasBuilding<Buildings.Bank>()) * 100 / all.Length}%");
+			_out.WriteLine($"  frozen AT a cap: {atAq} stuck at 7 (no aqueduct), {atSw} stuck at 12 (no sewer) "
+			             + $"= {(atAq + atSw) * 100 / all.Length}% of all cities");
+			var hist = new System.Text.StringBuilder("  size histogram: ");
+			for (int lo = 1; lo <= 19; lo += 2)
+				hist.Append($"{lo}-{lo + 1}:{all.Count(c => c.Size == lo || c.Size == lo + 1)} ");
+			hist.Append($"20+:{all.Count(c => c.Size >= 20)}");
+			_out.WriteLine(hist.ToString());
+
 			// What the per-turn standings log actually costs on a full late-game world. This
 			// game has been bitten twice by per-turn-times-per-civ work, so the number gets
 			// measured rather than assumed.
