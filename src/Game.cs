@@ -2649,6 +2649,8 @@ namespace CivOne
 				case UnitType.HengeGuardian: unit = new HengeGuardian(); break;
 				case UnitType.Harvester: unit = new Harvester(); break;
 				case UnitType.Longboat: unit = new Longboat(); break;
+				case UnitType.CruiseMissile: unit = new CruiseMissile(); break;
+				case UnitType.ReaperDrone: unit = new ReaperDrone(); break;
 				default: return null;
 			}
 			unit.X = x;

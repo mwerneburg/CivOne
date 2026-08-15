@@ -15,11 +15,6 @@ namespace CivOne.Units
 {
 	internal class Nuclear : BaseUnitAir
 	{
-		public override void Explore()
-		{
-			Explore(2);
-		}
-		
 		private static readonly string[] _page1 =
 		{
 			"A NUCLEAR MISSILE destroys every",

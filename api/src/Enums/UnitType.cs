@@ -64,5 +64,13 @@ namespace CivOne.Enums
 		// harvest (Game.ArriveScavengers), it drains the water it stands beside and moves on.
 		// Killing them is the only counterplay: no harvesters, no extraction.
 		Harvester = 37,
+		// One-way conventional strike. Flies like a bomber, costs a third as much, is
+		// consumed by its attack, and rides any warship without taking cargo — a way to
+		// project force that does not carry the fallout and irradiation a Nuclear does.
+		CruiseMissile = 38,
+		// Reusable strike drone. Replaces the Fighter (which it renders obsolete): longer
+		// legs, cheaper, sees two tiles instead of one, and nobody at home worries about
+		// the pilot because there is not one.
+		ReaperDrone = 39,
 	}
 }

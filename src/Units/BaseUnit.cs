@@ -170,18 +170,31 @@ namespace CivOne.Units
 
 		private int DefendStrength(IUnit defendUnit, IUnit attackUnit)
 		{
-			// Air attack on a non-air defender: terrain and fortification bonuses are stripped
-			// unless the city has a SAM Battery.  This makes air units dominant in the field
-			// and gives SAM Batteries a clear, exclusive defensive role.
+			// Air attack on a non-air defender strips the defender's bonuses. A SAM Battery
+			// blunts that — it does not cancel it.
+			//
+			// The rule used to be all-or-nothing: no SAM and the defender lost BOTH its
+			// terrain and its fortification multipliers; a SAM and it kept both, as though
+			// the aircraft were infantry. Graded instead: under a SAM the defender keeps its
+			// FORTIFICATION, which is the part missiles are actually bad at reaching, and
+			// still loses the terrain bonus, because a mountainside does not hide a city from
+			// the air. A fortified defender in a SAM city therefore stands at roughly three
+			// times a defender caught in the open, without making air attack pointless.
 			if (attackUnit.Class == UnitClass.Air && defendUnit.Class != UnitClass.Air)
 			{
 				bool hasSam = defendUnit.Tile.City?.HasBuilding<Buildings.SamBattery>() == true;
-				if (!hasSam)
+				int baseDefend = (int)defendUnit.Defense * 2;
+				if (hasSam)
 				{
-					int baseDefend = (int)defendUnit.Defense * 2;
-					if (defendUnit.Veteran) baseDefend += baseDefend / 2;
-					return baseDefend;
+					int fortification = defendUnit.Tile.Fortress ? 8
+					                  : (defendUnit.Fortify || defendUnit.FortifyActive) ? 6
+					                  : 4;
+					// /4 because the fortification modifier carries a factor of 4 already
+					// (see step 3 below); this keeps an unfortified defender at baseDefend.
+					baseDefend = baseDefend * fortification / 4;
 				}
+				if (defendUnit.Veteran) baseDefend += baseDefend / 2;
+				return baseDefend;
 			}
 
 			// Check City Walls for step 5 (Great Wall acts as City Walls for all owner cities until Gunpowder)
@@ -508,6 +521,15 @@ namespace CivOne.Units
 						}
 					}
 					Movement = null;
+
+					// An expendable weapon is consumed by its own strike. This is the WIN path —
+					// the loss path below already destroys the attacker — and it sits OUTSIDE the
+					// city test, because a missile fired at a stack in the open is as spent as one
+					// fired at a city. Without this, 40 shields buys a bomber that never needs fuel.
+					if (CruiseMissile.IsExpendable(this)
+					    && !Screens.DestroyUnit.ResolveIfUnseen(this, false))
+						GameTask.Insert(Show.DestroyUnit(this, false));
+
 					if (Map[X, Y][relX, relY].City is not null)
 					{
 						City cc = Map[X, Y][relX, relY].City;

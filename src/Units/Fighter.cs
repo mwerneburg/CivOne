@@ -14,11 +14,6 @@ namespace CivOne.Units
 {
 	internal class Fighter : BaseUnitAir
 	{
-		public override void Explore()
-		{
-			Explore(2);
-		}
-
 		private static readonly string[] _page1 =
 		{
 			"The FIGHTER is a fast aircraft",
@@ -51,7 +46,9 @@ namespace CivOne.Units
 			Type = UnitType.Fighter;
 			Name = "Fighter";
 			RequiredTech = new Flight();
-			ObsoleteTech = null;
+			// Retired by the Reaper Drone, which flies further, sees further and costs less.
+			// Fighters already built serve out their lives; no new ones are offered.
+			ObsoleteTech = new Robotics();
 			SetIcon('A', 1, 1);
 		}
 	}

@@ -97,6 +97,11 @@ namespace CivOne.Units
 			}
 		}
 
+		// Altitude. Every aircraft sees two tiles instead of one — which was written out
+		// three times, identically, on Fighter, Bomber and Nuclear, and would have been a
+		// fourth on the Reaper Drone. Stated once, where the class is.
+		public override void Explore() => Explore(2);
+
 		protected override bool ValidMoveTarget(ITile tile)
 		{
 			return (tile is not null);

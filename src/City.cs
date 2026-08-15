@@ -1091,8 +1091,13 @@ namespace CivOne
 				// riot that nothing on the map explained. Measured on a size-10 Republic
 				// city with four Musketeers: 3 unhappy with them at home, 7 with them
 				// garrisoned six tiles away inside one of our own cities.
+				// Unmanned units are exempt with the civilians. War weariness is the country
+				// worrying about its people abroad, and there is nobody aboard a drone or a
+				// cruise missile for anyone at home to worry about — which is most of the
+				// reason a republic reaches for them.
 				int militaryAway = Units.Count(u => !(u is Diplomat) && !(u is ICaravan)
-				                                 && !(u is Settlers) && !InShelter(u));
+				                                 && !(u is Settlers) && !(u is ReaperDrone)
+				                                 && !(u is CruiseMissile) && !InShelter(u));
 				unhappyCount += militaryAway * penalty;
 			}
 			else if (Player.Government.MartialLaw)

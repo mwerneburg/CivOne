@@ -373,3 +373,19 @@
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+
+# ── slots awaiting art ────────────────────────────────────────────────────────
+#
+# Both units currently borrow an existing sprite (see the ponytail comments in
+# src/Units/CruiseMissile.cs and src/Units/ReaperDrone.cs): the missile wears the
+# Nuclear icon, the drone wears the Fighter's. Drop a CruiseMissile.png or
+# ReaperDrone.png in this directory, or fill in the sections below, and the
+# borrowed sprite is replaced. A blank section is treated as absent, so leaving
+# these empty changes nothing.
+#
+# Palette hints, matching the sections above: 9 = light grey, 11-13 = the greys
+# and shadow used for hulls, 0 = transparent.
+
+[CruiseMissile]
+
+[ReaperDrone]

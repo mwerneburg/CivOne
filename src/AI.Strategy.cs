@@ -584,6 +584,31 @@ namespace CivOne
 			return false;
 		}
 
+		// Is anyone in the world flying anything that a SAM Battery would answer?
+		//
+		// The question a SAM's value actually turns on. BaseUnit.DefendStrength consults the
+		// battery in exactly one place — when the ATTACKER is UnitClass.Air — so with no
+		// aircraft anywhere the building is inert, and the AI was buying it on Rocketry
+		// alone. Deliberately world-wide rather than "a civ I am at war with": aircraft take
+		// a long time to reach and wars here start faster than a SAM can be built, so waiting
+		// for the war means waiting until it is too late.
+		//
+		// Own aircraft count. A civ that flies knows what aircraft do, and its rivals are
+		// generally a few turns behind it on the same tech.
+		//
+		// Cached per turn: this scans every unit in the world and is asked once per city per
+		// turn, which at 500 cities and 2,000 units is the kind of thing that shows up in the
+		// late-game turn timings.
+		private int _flyingTurn = -1;
+		private bool _flyingCached;
+		private bool SomebodyIsFlying()
+		{
+			if (_flyingTurn == (int)Game.GameTurn) return _flyingCached;
+			_flyingTurn = (int)Game.GameTurn;
+			_flyingCached = Game.GetUnits().Any(u => u is not null && u.Class == UnitClass.Air);
+			return _flyingCached;
+		}
+
 		private bool IsNeighbor(Player enemy)
 		{
 			return Player.Cities.Any(oc =>
@@ -4143,6 +4168,24 @@ namespace CivOne
 					Consider(new Settlers());
 				if (!city.HasBuilding<Barracks>()) Consider(new Barracks());
 				if (!Player.RepublicDemocratic) Consider(BestAttacker());
+
+				// Unmanned strike. BestAttacker returns land units only, so before this the
+				// AI never deliberately built ANY aircraft — every Fighter and Bomber in a
+				// finished game came from the built-out-city fallback. These two are the
+				// reason a republic can fight at all without paying war weariness for it
+				// (City.ComputeCitizens exempts both), which is exactly why the
+				// RepublicDemocratic guard above does not apply here.
+				//
+				// Capped at one per three cities between them: a missile is spent on use, so
+				// an uncapped rule is an empire that builds nothing else.
+				byte airId = Game.PlayerNumber(Player);
+				int unmanned = Game.GetUnits().Count(u => u.Owner == airId
+				                                       && (u is CruiseMissile || u is ReaperDrone));
+				if (unmanned < Math.Max(1, ownCities / 3))
+				{
+					if (Player.HasAdvance<Rocketry>()) Consider(new CruiseMissile());
+					if (Player.HasAdvance<Robotics>()) Consider(new ReaperDrone());
+				}
 			}
 
 			// Expand: infrastructure before settlers, then settlers when city is large enough.
@@ -4333,7 +4376,13 @@ namespace CivOne
 			if (Player.HasAdvance<CeremonialBurial>()  && !city.HasBuilding<Temple>())        Consider(new Temple());
 			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
 			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
-			if (Player.HasAdvance<Rocketry>()          && !city.HasBuilding<SamBattery>())    Consider(new SamBattery());
+			// SAM Battery, gated on somebody actually flying — see SomebodyIsFlying. It is
+			// the one building with no city-output basis at all, so EarnsItsKeep has no
+			// honest break-even to compute for it and waved it through on Rocketry alone.
+			// Air defence in a world with no aircraft is 150 shields and 3 gold a turn spent
+			// against nothing.
+			if (Player.HasAdvance<Rocketry>() && !city.HasBuilding<SamBattery>()
+			    && SomebodyIsFlying())                                                        Consider(new SamBattery());
 			if (Player.HasAdvance<Construction>()      && !city.HasBuilding<Colosseum>())     Consider(new Colosseum());
 			if (Player.HasAdvance<Religion>()          && !city.HasBuilding<Cathedral>())     Consider(new Cathedral());
 			if (Player.HasAdvance<Medicine>()          && !city.HasBuilding<Hospital>())    Consider(new Hospital());
