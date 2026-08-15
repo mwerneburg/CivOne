@@ -218,7 +218,7 @@ namespace CivOne.Units
 				// This modifier effectively includes a factor of 2.
 				defendStrength *= defendUnit.Tile.Defense;
 				
-				if (!cityWalls || attackUnit.Attack == 12)
+				if (!cityWalls || attackUnit.IgnoresCityWalls)
 				{
 					// Step 3: If the defending unit is a ground unit, multiply the defense strength by the Fortification Modifier.
 					// This modifier effectively includes a factor of 4, resulting in a combined factor of 8.
@@ -228,7 +228,7 @@ namespace CivOne.Units
 
 			// Step 4: If the defending unit is a sea or air unit, multiply the defense strength by 8.
 			// This effectively treats the Terrain Modifier as 2, regardless of the actual terrain type. It also means that these units will never benefit from the Fortification Modifier.
-			if (defendUnit.Class != UnitClass.Land && (!cityWalls || attackUnit.Attack == 12))
+			if (defendUnit.Class != UnitClass.Land && (!cityWalls || attackUnit.IgnoresCityWalls))
 			{
 				defendStrength *= 8;
 			}
@@ -815,6 +815,14 @@ namespace CivOne.Units
 		}
 
 		private byte _attack;
+		// City Walls stop most things. They do not stop a siege gun or a heavy bomber.
+		//
+		// This was written as `attackUnit.IgnoresCityWalls` in the two places below — the attack
+		// VALUE standing in for the rule. Three units happen to have attack 12 (Artillery,
+		// Bomber, and the Cruise Missile added later), so the missile inherited wall-piercing
+		// that nobody chose, and the next unit given a 12 would have inherited it too.
+		public virtual bool IgnoresCityWalls => false;
+
 		public byte Attack
 		{
 			get => Modifications.LastOrDefault(x => x.Attack.HasValue)?.Attack.Value ?? _attack;

@@ -41,6 +41,9 @@ namespace CivOne.Units
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
+		// A heavy bomber attacks over the wall, not through it.
+		public override bool IgnoresCityWalls => true;
+
 		public Bomber() : base(12, 12, 1, 8)
 		{
 			Type = UnitType.Bomber;

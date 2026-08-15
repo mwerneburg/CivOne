@@ -39,6 +39,10 @@ namespace CivOne.Units
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
+		// The heaviest gun a civilization can field: its whole point is that walls do
+		// not stop it (see the Civilopedia page above).
+		public override bool IgnoresCityWalls => true;
+
 		public Artillery() : base(6, 12, 2, 2)
 		{
 			Type = UnitType.Artillery;

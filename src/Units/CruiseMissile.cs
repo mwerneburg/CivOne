@@ -71,6 +71,10 @@ namespace CivOne.Units
 			base.NewTurn();
 		}
 
+		// Kept deliberately, where it used to be an accident of the attack value: this is a
+		// bomber-class strike and is priced as one. Drop this override to take it away.
+		public override bool IgnoresCityWalls => true;
+
 		public CruiseMissile() : base(4, 12, 0, 8)
 		{
 			Type = UnitType.CruiseMissile;

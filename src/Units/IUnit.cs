@@ -30,6 +30,8 @@ namespace CivOne.Units
 		City? Home { get; }
 		UnitRole Role { get; }
 		byte Attack { get; }
+		// Siege weapons and heavy bombers shoot past City Walls. See BaseUnit.DefendStrength.
+		bool IgnoresCityWalls { get; }
 		byte Defense { get; }
 		byte Move { get; }
 		int X { get; set; }
