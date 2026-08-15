@@ -2802,13 +2802,35 @@ namespace CivOne
 			    .FirstOrDefault();
 		}
 
+		// Where to mass for an assault: the neighbouring tile of `target` that already holds
+		// the most of our attackers and none of theirs.
+		//
+		// ONE pass over the unit list, not sixteen. `ITile.Units` is Game.GetUnits(x, y),
+		// which scans EVERY unit in the game, sorts the matches and allocates an array — and
+		// the old version called it twice for each of eight neighbours, so choosing a staging
+		// square cost 16 full scans, 16 sorts and 16 allocations. Every attacking unit does
+		// this on every move.
+		//
+		// Measured at turn 655 of a live 2,045-unit game: Armor alone spent 55.4 seconds
+		// across 3,628 moves in a single turn — 84% of all unit-movement time — at roughly
+		// 15 ms a move, against a 66-second turn. The cost is (attackers x all units), so it
+		// grew as the world filled: 59s at turn 650, 66s five turns later.
+		//
+		// The same fix, for the same reason, is already in Common.GotoStepInner (a per-search
+		// occupancy bitmask instead of ITile.Units per neighbour, once worth "~100ms per path
+		// and 80% of the late-game turn") and in Map.NumberWaterBodies. This is the third
+		// place it was needed.
+		//
+		// Behaviour is deliberately unchanged, including the tie-break: candidates are visited
+		// in the same dy/dx order and the comparison is still strictly-greater, so an equal
+		// count keeps the earlier tile.
 		private ITile? StagingTile(City target)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
 			byte own = Game.PlayerNumber(Player);
-			ITile? best = null;
-			int bestCount = -1;
 
+			// The eligible neighbours, in the original scan order.
+			var candidates = new List<ITile>(8);
 			for (int dy = -1; dy <= 1; dy++)
 			for (int dx = -1; dx <= 1; dx++)
 			{
@@ -2818,10 +2840,33 @@ namespace CivOne
 				if (ty < 0 || ty >= mapHeight) continue;
 				ITile tile = Map[tx, ty];
 				if (tile is null || tile.IsOcean) continue;
-				// Don't stage on a tile already occupied by enemies
-				if (tile.Units.Any(u => u.Owner != own)) continue;
-				int count = tile.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack);
-				if (best is null || count > bestCount) { best = tile; bestCount = count; }
+				candidates.Add(tile);
+			}
+			if (candidates.Count == 0) return null;
+
+			// One walk of the units, filling both answers at once. No allocation per tile, no
+			// sorting, and the inner loop is at most eight integer comparisons.
+			int n = candidates.Count;
+			bool[] hostile = new bool[n];
+			int[] friendly = new int[n];
+			foreach (IUnit u in Game.GetUnits())
+			{
+				if (u is null) continue;
+				for (int i = 0; i < n; i++)
+				{
+					if (u.X != candidates[i].X || u.Y != candidates[i].Y) continue;
+					if (u.Owner != own) hostile[i] = true;
+					else if (u.Role == UnitRole.LandAttack) friendly[i]++;
+					break;
+				}
+			}
+
+			ITile? best = null;
+			int bestCount = -1;
+			for (int i = 0; i < n; i++)
+			{
+				if (hostile[i]) continue;   // don't stage on a tile already holding enemies
+				if (best is null || friendly[i] > bestCount) { best = candidates[i]; bestCount = friendly[i]; }
 			}
 			return best;
 		}
