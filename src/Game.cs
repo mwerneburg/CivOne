@@ -1488,6 +1488,28 @@ namespace CivOne
 				_turnClock = TurnMetrics.Now;
 				TurnMetrics.Reset();
 
+				// Victory standings, sampled. Every fifth turn gives 150 points across a full
+				// game — ample to see when each path first crosses its bar — at a fifth of the
+				// cost. The cultural figures build a covered-tile set per civ, which is exactly
+				// the per-turn-times-per-civ shape that has bitten this game's performance
+				// before, so it is deliberately not run every turn.
+				if (GameTurn % VictoryStandingsInterval == 0)
+				{
+					Player[] standing = _players.Where(p => p is not null && PlayerNumber(p) != 0
+					                                     && !p.IsDestroyed()).ToArray();
+					int worldOut = standing.Sum(GrossOutput);
+					foreach (Player p in standing)
+					{
+						byte pn = PlayerNumber(p);
+						(int reach, int shadow) = CulturalReachAndShadow(p);
+						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
+							reach, shadow, GrossOutput(p), worldOut,
+							SpaceshipStructural[pn], SpaceshipComponent[pn], SpaceshipModule[pn],
+							SpaceshipLaunchTurn[pn],
+							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
+					}
+				}
+
 				// Leonardo's Workshop: one free unit upgrade per owner per turn
 				if (!WonderObsolete<LeonardosWorkshop>())
 					foreach (Player lp in _players.Where(p => p != null && !p.IsDestroyed() && p.HasWonder<LeonardosWorkshop>()))
@@ -3367,11 +3389,22 @@ namespace CivOne
 		// (own cities x world cities), which on a 255-city empire in a 1398-city world is
 		// 356,000 distance checks EVERY turn. Painting the covered tiles costs 121 per own
 		// city and turns the second half into a hash lookup.
-		internal int CulturalShadow(Player p)
+		internal int CulturalShadow(Player p) => CulturalReachAndShadow(p).shadow;
+
+		// The shadow, plus the field it is drawn from: REACH is every foreign city near
+		// enough to be shadowed at all, SHADOW is the subset whose owner is culturally
+		// negligible. Both come off one covered-tile pass because building that set twice
+		// is the expensive half.
+		//
+		// Reach exists for the standings log rather than for the victory rule, and it is
+		// worth having because the two move in OPPOSITE directions as the number of
+		// civilizations changes: fewer, larger neighbours means more cities within range
+		// and far fewer of them under a third of your culture. A shadow count alone cannot
+		// show which of those is binding.
+		internal (int reach, int shadow) CulturalReachAndShadow(Player p)
 		{
 			byte num = PlayerNumber(p);
 			long threshold = p.Culture;   // foreign owner must hold less than a third
-			if (threshold <= 0) return 0;
 
 			var covered = new HashSet<(int, int)>();
 			foreach (City c in _cities.Where(c => c.Owner == num && c.Size > 0))
@@ -3379,21 +3412,27 @@ namespace CivOne
 				for (int dx = -CulturalShadowRange; dx <= CulturalShadowRange; dx++)
 					covered.Add((c.X + dx, c.Y + dy));
 
-			int count = 0;
+			int reach = 0, count = 0;
 			foreach (City c in _cities)
 			{
 				if (c.Size <= 0 || c.Owner == num || c.Owner == 0) continue;
 				Player owner = GetPlayer(c.Owner);
 				if (owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers
 				                       or Civilizations.TheThing or Civilizations.Skynet) continue;
-				if (owner.Culture * 3 >= threshold) continue;
-				if (covered.Contains((c.X, c.Y))) count++;
+				if (!covered.Contains((c.X, c.Y))) continue;
+				reach++;
+				// Preserved exactly: a civ with no culture shadows nobody, and the original
+				// returned 0 before building anything. Reach is still counted for it.
+				if (threshold > 0 && owner.Culture * 3 < threshold) count++;
 			}
-			return count;
+			return (reach, count);
 		}
 
 		// Matches the 5-tile reach in ProcessCultureDefections. One constant, one meaning.
 		internal const int CulturalShadowRange = 5;
+
+		// How often the victory standings are sampled into the decision log.
+		internal const int VictoryStandingsInterval = 5;
 
 		// Cities in shadow needed for the win, scaled to the map the way the AI's expansion
 		// target is: 6 on a standard 80-wide world, 24 on a 320-wide epic one. A fixed count

@@ -311,6 +311,43 @@ namespace CivOne
 			}));
 		}
 
+		// Where every civilization stands on every victory metric, one record per civ.
+		//
+		// This exists because the endgame investigation could only read FINISHED saves, and
+		// a victory fires on FIRST crossing: a cultural shadow of 41 at turn 750 is equally
+		// consistent with crossing the bar at turn 300 or at turn 700, and those imply
+		// opposite designs. End states cannot answer "which path would have won, and when".
+		// A trajectory can.
+		//
+		// Sampled rather than emitted every turn — see the call site in Game.NewTurn. The
+		// cultural figures are the expensive part (a covered-tile set per civ), so they come
+		// in already computed by one shared pass.
+		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
+			int reach, int shadow, int grossOutput, int worldOutput, int structural,
+			int component, int module, int launchTurn, bool missionControl)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",        "victory_standings"),
+				KV("game_id",     _gameId),
+				KV("turn",        turn),
+				KV("civ",         p?.Civilization?.NamePlural ?? "?"),
+				KV("cities",      cities),
+				KV("culture",     culture),
+				// reach = foreign cities near enough to shadow; shadow = those culturally
+				// dominated. The ratio is what stays meaningful when civ counts change.
+				KV("reach",       reach),
+				KV("shadow",      shadow),
+				KV("gross_out",   grossOutput),
+				KV("world_out",   worldOutput),
+				KV("ss_struct",   structural),
+				KV("ss_comp",     component),
+				KV("ss_module",   module),
+				KV("launch_turn", launchTurn),
+				KV("mission_ctl", missionControl),
+			}));
+		}
+
 		// The visitor draw happens once per game and decides its whole ending, so the
 		// inputs are worth recording — a run that ends in invasion should be able to
 		// say how close it came to the other outcome.
