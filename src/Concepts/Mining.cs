@@ -34,6 +34,12 @@ namespace CivOne.Concepts
 			"Ring a production city with mines",
 			"and a food city with irrigation,",
 			"then link them by road.",
+			"",
+			"A mine pays only while a citizen",
+			"works the tile. On a resource tile",
+			"nobody works, a CAMP pays instead:",
+			"mine the tile you work, camp the",
+			"tile you don't.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;

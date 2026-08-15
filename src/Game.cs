@@ -4064,6 +4064,26 @@ namespace CivOne
 					ITile tile = Map[kv.Key.x, kv.Key.y];
 					if (tile is null || tile.Shield <= 0) continue;
 
+					// A camp on a tile one of the owner's cities is already WORKING would have
+					// its shields counted twice: once through City.ResourceTiles.Sum(ShieldValue)
+					// and again here, because ProcessResourceCamps clears a camp only when a
+					// city is founded ON its tile, not when the tile merely falls inside a
+					// radius. Measured on a 2-shield forest inside a city's radius: the city
+					// went from 3 shields to 5 the moment a camp appeared on a tile it was
+					// already working — which made a camp inside your own borders the strongest
+					// tile play in the game, for the price of one settler.
+					//
+					// Its OWN pass, ahead of choosing the nearest city and across ALL the
+					// owner's cities: if city A works the tile while city B is nearer, shipping
+					// to B double-counts it for the empire just the same. Folded into the
+					// nearest-city loop this was accidentally load-bearing on iteration order —
+					// an early `break` left `nearest` null and the later null check did the
+					// work, so removing the rule changed nothing and the negative check could
+					// not see it.
+					if (_cities.Any(c => c.Owner == kv.Value && c.Size > 0
+					                  && c.ResourceTiles.Any(t => t.X == kv.Key.x && t.Y == kv.Key.y)))
+						continue;
+
 					City? nearest = null;
 					int best = int.MaxValue;
 					foreach (City c in _cities)

@@ -119,6 +119,26 @@ namespace CivOne.Tests
 			Assert.Contains("does NOT stop a nuclear strike", text);
 		}
 
+		// The rule of thumb the player most needs about tile improvement, and it has to be in
+		// BOTH places or it is only ever read by half the people who need it: somebody reading
+		// about mines is deciding what to do with a hill, and somebody reading about
+		// strategic resources is deciding what to do with a deposit.
+		//
+		// It is a real rule, not a slogan: HasResource counts a worked tile OR a camp, so a
+		// camp on a tile a citizen already works secures nothing new — while on ground nobody
+		// works it converts an idle tile into both a material and shields, for no citizen.
+		[Theory]
+		[InlineData("Mining")]
+		[InlineData("Strategic Resources")]
+		public void BothTileEntriesCarryTheRuleOfThumb(string entry)
+		{
+			BaseConcept concept = Concepts().Single(c => c.Name == entry);
+			string text = string.Join(" ", concept.GetPageText(1).Concat(concept.GetPageText(2)));
+
+			Assert.Contains("mine the tile you work, camp the tile you don't",
+				text.ToLowerInvariant());
+		}
+
 		// The three entries this session added or rewrote, named so a later edit
 		// that drops one fails here rather than going unnoticed.
 		[Fact]

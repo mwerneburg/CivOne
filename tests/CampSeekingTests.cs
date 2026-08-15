@@ -233,6 +233,54 @@ namespace CivOne.Tests
 			Assert.True(((Settlers)settler).BuildingCamp > 0, "the settler stood on the deposit and did nothing");
 		}
 
+		// ── a camp must not be paid twice ───────────────────────────────────────
+
+		// City.ShieldRaw is `ResourceTiles.Sum(ShieldValue) + Game.CampShields(this)`, and
+		// ProcessResourceCamps clears a camp only when a city is founded ON its tile — not
+		// when the tile merely falls inside a radius. So a camp on a tile the city was
+		// already working had its shields counted twice. Measured before the fix, on a
+		// 2-shield forest inside the radius: the city went from 3 shields to 5.
+		//
+		// That made a camp inside your own borders the strongest tile play in the game, for
+		// the price of one settler.
+		[Fact]
+		public void ACampOnAWorkedTileAddsNothing()
+		{
+			(Game g, Player p, City c, ITile deposit) = AWorldWithADeposit();
+			// Grassland yields no shields, so give the governor something worth working.
+			for (int dx = -1; dx <= 1; dx++)
+				Map.Instance.ChangeTileType(c.X + dx, c.Y - 1, Terrain.Forest);
+			c.Size = 6;
+			c.InvalidateCache();
+			ITile worked = c.ResourceTiles.First(t => t.Shield > 0 && !(t.X == c.X && t.Y == c.Y));
+			int before = c.ShieldTotal;
+
+			g.ResourceCamps[(worked.X, worked.Y)] = g.PlayerNumber(p);
+			c.InvalidateCache();
+
+			Assert.Equal(before, c.ShieldTotal);
+		}
+
+		// ...and a camp on a tile NOBODY works still ships its shields home, or the fix has
+		// simply switched camp output off.
+		[Fact]
+		public void ACampOnAnUnworkedTileStillPays()
+		{
+			(Game g, Player p, City c, ITile deposit) = AWorldWithADeposit();
+			c.Size = 2;
+			c.InvalidateCache();
+			// The deposit is six tiles out: outside the radius, so no citizen can be on it.
+			Assert.DoesNotContain(c.ResourceTiles, t => t.X == deposit.X && t.Y == deposit.Y);
+			Map.Instance[deposit.X, deposit.Y].Mine = true;   // give it shields to ship
+			int before = c.ShieldTotal;
+
+			g.ResourceCamps[(deposit.X, deposit.Y)] = g.PlayerNumber(p);
+			c.InvalidateCache();
+
+			Assert.True(c.ShieldTotal > before,
+				$"camp output stopped working: {before} then {c.ShieldTotal}");
+		}
+
 		// One statement of the rule: the builder must not restate the conditions the scan
 		// uses, or the two drift.
 		[Fact]
