@@ -1413,6 +1413,11 @@ namespace CivOne
 					// Skip Mountains — temperate/tropical peaks aren't levelled by warming.
 					// Polar mountain submersion is handled by the sea-level-rise pass.
 					if (tile.Type == Terrain.Mountains) continue;
+					// Skip Salt Flat. The dry-out below sends everything that is not already
+					// Desert or Plains TO Plains, so exposed seabed — the driest, most barren
+					// ground on the map, yielding nothing — was being turned green by a drying
+					// event. Warming cannot reclaim a salt flat; nothing can but an engineer.
+					if (tile.Type == Terrain.SaltFlat) continue;
 					// Rivers re-form unless the area is completely desertified: skip
 					// river dry-out unless every neighbour is already Desert.
 					if (tile.Type == Terrain.River

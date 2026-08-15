@@ -200,5 +200,42 @@ namespace CivOne.Tests
 
 			Assert.Equal(Terrain.Jungle, Map.Instance[cx, cy].Type);   // forest floods to jungle
 		}
+
+		// Warming dries the world out: everything that is not already Desert or Plains is sent
+		// to Plains. Salt Flat — exposed seabed, the one terrain that yields nothing at all —
+		// was caught by that rule and turned green, so a drying event was RECLAIMING the most
+		// barren ground on the map. Observed in a 2100 AD run where draining had opened a lot
+		// of seabed.
+		//
+		// The control tile matters more than the salt flat here: it proves the dry-out pass
+		// actually reached this part of the map on this event, so the salt flat surviving is
+		// an exemption rather than a pass that never ran.
+		[Fact]
+		public void WarmingDoesNotReclaimSaltFlats()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			g.GlobalWarmingCount = 0;
+
+			// Inland land, so neither tile is caught by the flood branch on its way past.
+			for (int y = 20; y <= 30; y++)
+			for (int x = 30; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			// The dry-out is a deterministic mesh: (11x + 13y) & 7 must equal
+			// GlobalWarmingCount & 7, which is 1 once the event increments it. At y=25 that
+			// means x = 4 (mod 8) — so both of these tiles are due to convert on this event.
+			Map.Instance.ChangeTileType(36, 25, Terrain.SaltFlat);
+			Assert.Equal(1, (11 * 36 + 13 * 25) & 7);
+			Assert.Equal(1, (11 * 44 + 13 * 25) & 7);
+
+			Pollute(20);   // threshold on 80x50 is 8
+			g.HandleGlobalWarming();
+			Assert.Equal(1, g.GlobalWarmingCount);
+
+			Assert.Equal(Terrain.Plains, Map.Instance[44, 25].Type);      // control: it ran here
+			Assert.Equal(Terrain.SaltFlat, Map.Instance[36, 25].Type);    // and spared the flat
+		}
 	}
 }
