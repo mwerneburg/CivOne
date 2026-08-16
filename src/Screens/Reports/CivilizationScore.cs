@@ -163,15 +163,54 @@ namespace CivOne.Screens.Reports
 			this.FillRectangle(GraphLeft - 1, GraphTop, 1, GraphH + 1, CassetteTheme.BORDER);
 			this.FillRectangle(GraphLeft - 1, GraphBottom, GraphW + 2, 1, CassetteTheme.BORDER);
 
+			// Who ELSE is on a streak, and how far along.
+			//
+			// Both streak victories are decided for every civilization now, not just the
+			// human — but this screen still showed only the player's own progress, so a rival
+			// sitting on 19 of 20 looked exactly like a rival sitting on nothing. The race
+			// was invisible from inside it.
+			//
+			// Excludes the same set the victory rule does: barbarians, the destroyed, and the
+			// story factions, none of which may CLAIM either path. The bar above uses a looser
+			// set and should not — with an active Registry it would draw a line at twice their
+			// culture, a target the rule does not actually impose.
+			(Player? rival, uint streak) LeadingRivalStreak(System.Func<Player, uint> of)
+			{
+				Player? lead = null; uint best2 = 0;
+				foreach (Player p in Game.Players)
+				{
+					if (p is null || p == Human || p.IsDestroyed()) continue;
+					if (Game.PlayerNumber(p) == 0) continue;
+					if (p.Civilization is Barbarian) continue;
+					if (p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
+					                   or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir) continue;
+					uint v = of(p);
+					if (v > best2) { best2 = v; lead = p; }
+				}
+				return (lead, best2);
+			}
+
+			void DrawRivalStreak((Player? rival, uint streak) r, int y)
+			{
+				if (r.rival is null || r.streak == 0) return;
+				this.DrawText($"{r.rival.TribeNamePlural.ToUpper()} {r.streak}/20", 0,
+					r.streak >= 15 ? CassetteTheme.ALERT : CassetteTheme.PHOS,
+					GraphRight - 4, y, TextAlign.Right);
+			}
+
 			// ── Cultural ascendancy threshold ────────────────────────────────
 
-			// The bar the human must clear: the best rival's culture times the required
-			// margin. Flat, because it is a live comparison rather than a historical curve —
-			// the culture series records each civ, not the bar.
+			// The bar THIS player must clear: their best rival's culture times the required
+			// margin. Every civ has its own bar — the rule is decided for all of them — so one
+			// line cannot show the whole race; the rival-streak readout below covers that.
+			// Flat, because it is a live comparison rather than a historical curve: the culture
+			// series records each civ, not the bar.
 			if (_page == Page.Culture)
 			{
 				int best = Game.Players
-					.Where(p => p is not null && p != Human && !p.IsDestroyed() && !(p.Civilization is Barbarian))
+					.Where(p => p is not null && p != Human && !p.IsDestroyed() && !(p.Civilization is Barbarian)
+					         && !(p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
+					                             or CivOne.Civilizations.Skynet))
 					.Select(p => p.Culture).DefaultIfEmpty(0).Max();
 				int bar = best * Game.CultureLeadMultiple;
 				int by  = GraphBottom - (int)(bar * pxPerScore);
@@ -189,6 +228,8 @@ namespace CivOne.Screens.Reports
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
 				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST RIVAL ({bar})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
+				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
+					GraphTop + 4 + 3 * (fh + 1));
 			}
 
 			// ── Pax Mercatoria threshold ─────────────────────────────────────
@@ -364,6 +405,8 @@ namespace CivOne.Screens.Reports
 				int halfNow = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf) / 2;
 				this.DrawText($"- - -  HALF OF WORLD OUTPUT ({halfNow})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
+				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).EconStreak),
+					GraphTop + 4 + 2 * (fh + 1));
 			}
 
 			// ── scroll hint ──────────────────────────────────────────────────
