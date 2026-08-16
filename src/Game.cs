@@ -1891,8 +1891,15 @@ namespace CivOne
 				// AI could hold every condition for centuries and nothing happened: measured in a
 				// finished 2200 AD game, the Others held 47% of world output and 4.25x the culture
 				// of the best rival, and could win by neither.
+				// Story factions cannot CLAIM this, the same exclusion Cultural Ascendancy
+				// applies. The Registry empties cities rather than running them, and the
+				// worldOut comment below rests on exactly that: their economy counts toward
+				// the total you must out-earn precisely because an occupied world has no
+				// commercial hegemon. Letting the occupier be the hegemon contradicts it.
 				foreach (Player claimant in _players
-				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0).ToArray())
+				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0
+				                  && !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+				                                       or Civilizations.Skynet or Civilizations.Olvir)).ToArray())
 				{
 					byte cnum = PlayerNumber(claimant);
 					if (cnum >= EconStreak.Length) continue;

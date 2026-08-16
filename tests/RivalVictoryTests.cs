@@ -146,6 +146,32 @@ namespace CivOne.Tests
 			Assert.True(g2.StartedWarWith(r, g2.PlayerNumber(g2.HumanPlayer)));
 		}
 
+		// ── who may claim ────────────────────────────────────────────────────────
+
+		// Story factions are excluded as CLAIMANTS on both streak victories, not merely as
+		// rivals. The Registry empties cities rather than running them; letting the occupier
+		// win Pax Mercatoria contradicts the rule that its economy counts toward the total
+		// precisely because an occupied world has no commercial hegemon. Pinned at the source
+		// because staging a Registry invasion to prove it would test the invasion.
+		[Theory]
+		[InlineData("EconStreak.Length")]
+		[InlineData("CultureStreak.Length")]
+		public void NeitherStreakVictoryCanBeClaimedByAStoryFaction(string anchor)
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(dir!.FullName, "src", "Game.cs"));
+
+			int at = src.IndexOf(anchor);
+			Assert.True(at > 0, $"the {anchor} loop has moved or been rewritten");
+			// The exclusion must sit on the claimant filter just above the guard.
+			string loop = src.Substring(System.Math.Max(0, at - 700), 700);
+			Assert.Contains("Civilizations.TheOthers", loop);
+			Assert.Contains("Civilizations.Skynet", loop);
+		}
+
 		// ── the ending ───────────────────────────────────────────────────────────
 
 		// A rival completing the Diaspora fires the ending — and does NOT award the human.
