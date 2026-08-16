@@ -161,7 +161,7 @@ namespace CivOne.Tests
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 			const int reps = 20;
 			for (int i = 0; i < reps; i++)
-				foreach (Player p in live) { (int rr, int ss) = g.CulturalReachAndShadow(p); _ = rr + ss; }
+				foreach (Player p in live) { (int rr, int ss, long bn) = g.CulturalReachAndShadow(p); _ = rr + ss + (int)bn; }
 			sw.Stop();
 			_out.WriteLine("");
 			_out.WriteLine($"standings cost: {sw.Elapsed.TotalMilliseconds / reps:F2} ms for all {live.Length} civs "

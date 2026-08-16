@@ -67,7 +67,7 @@ namespace CivOne.Tests
 			human.SetCulture(900);
 			foreach (Player p in rivals) p.SetCulture(100);
 
-			(int inRange, int shadow) = g.CulturalReachAndShadow(human);
+			(int inRange, int shadow, long bestNear) = g.CulturalReachAndShadow(human);
 			Assert.True(shadow >= Game.CulturalShadowTarget(inRange),
 				$"fixture is not admired: shadow {shadow} of {Game.CulturalShadowTarget(inRange)} (reach {inRange})");
 			int before = human.MilestoneScore;

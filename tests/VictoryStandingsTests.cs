@@ -110,7 +110,7 @@ namespace CivOne.Tests
 		{
 			(Game g, Player us, _, _, _) = AWorld();
 
-			(int reach, int shadow) = g.CulturalReachAndShadow(us);
+			(int reach, int shadow, long bestNear) = g.CulturalReachAndShadow(us);
 
 			Assert.Equal(2, reach);    // poorNear and richNear
 			Assert.Equal(1, shadow);   // only poorNear is culturally dominated
@@ -123,7 +123,7 @@ namespace CivOne.Tests
 		{
 			(Game g, Player us, _, _, Player poorFar) = AWorld();
 
-			(int reach, int shadow) = g.CulturalReachAndShadow(us);
+			(int reach, int shadow, long bestNear) = g.CulturalReachAndShadow(us);
 
 			Assert.True(us.Culture > poorFar.Culture * Game.CultureShadowRatio, "fixture: the far civ should be dominated on culture");
 			Assert.Equal(2, reach);    // the far city is in neither
@@ -139,7 +139,7 @@ namespace CivOne.Tests
 			(Game g, Player us, _, _, _) = AWorld();
 			us.SetCulture(0);
 
-			(int reach, int shadow) = g.CulturalReachAndShadow(us);
+			(int reach, int shadow, long bestNear) = g.CulturalReachAndShadow(us);
 
 			Assert.Equal(2, reach);
 			Assert.Equal(0, shadow);

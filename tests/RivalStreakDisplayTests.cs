@@ -7,8 +7,9 @@
 // looked exactly like a rival sitting on nothing, so the race was invisible from inside it —
 // and losing to a Pax Mercatoria you never saw coming is not a fair loss.
 //
-// Also pinned here: the dashed "2x BEST RIVAL" bar must never be a function of the viewer's
-// own culture. A bar that rose with your score would be one you could never clear.
+// Also pinned here: the dashed bar must show what the RULE measures — twice the best culture
+// among your NEIGHBOURS, since that is what the victory compares you to. It must never be a
+// function of the viewer's own culture, which would be a bar you could never clear.
 
 using System.Linq;
 
@@ -38,33 +39,23 @@ namespace CivOne.Tests
 			Assert.Contains($"LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).{field})", src);
 		}
 
-		// The bar must exclude the viewer. Including them would make the target a function of
-		// their own score: improve your culture, raise your own bar, never win.
+		// The bar is the one the RULE applies: twice the best culture among the player's
+		// neighbours, not twice the world's best. A bar drawn from the world's best would show
+		// a target nobody is judged against — the Mongols of the 13-civ run dominated every
+		// neighbour they had and would still have watched a line set by a civ two thousand
+		// tiles away.
+		//
+		// Viewer and story-faction exclusions now come free: CulturalReachAndShadow skips its
+		// own owner and refuses the story factions at source, so the screen cannot drift from
+		// the rule by forgetting one.
 		[Fact]
-		public void TheBarExcludesTheViewer()
+		public void TheBarIsTwiceTheBestNEIGHBOUR()
 		{
 			string src = ScreenSource();
-			int at = src.IndexOf("int best = Game.Players");
-			Assert.True(at > 0, "the culture bar has moved or been rewritten");
-			string block = src.Substring(at, 400);
 
-			Assert.Contains("p != Human", block);
-		}
-
-		// ...and excludes the story factions, which the victory rule refuses as claimants.
-		// With an active Registry the bar would otherwise sit at twice THEIR culture — a
-		// target the rule does not actually impose on anybody.
-		[Theory]
-		[InlineData("TheOthers")]
-		[InlineData("TheThing")]
-		[InlineData("Skynet")]
-		public void TheBarExcludesTheStoryFactions(string faction)
-		{
-			string src = ScreenSource();
-			int at = src.IndexOf("int best = Game.Players");
-			string block = src.Substring(at, 400);
-
-			Assert.Contains(faction, block);
+			Assert.Contains("bestNeighbour * Game.CultureLeadMultiple", src);
+			Assert.Contains("BEST NEIGHBOUR", src);
+			Assert.DoesNotContain("int best = Game.Players", src);   // the old world-wide max
 		}
 
 		// The rival readout answers to the same exclusions as the victory rule: a civ that

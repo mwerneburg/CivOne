@@ -204,6 +204,122 @@ namespace CivOne.Tests
 			Assert.True(Game.CultureShadowRatio < 3, "the shadow must be looser than defection");
 		}
 
+		// ── the lead is local ────────────────────────────────────────────────────
+
+		// The Mongol shape, from the 13-civ run that motivated this rule.
+		//
+		// A civ that dominates every neighbour it has, while a far stronger civ sits on the
+		// other side of the world. Under the old global clause this scored 0.78x and lost;
+		// the shadow said total ascendancy and the lead said also-ran, because the two were
+		// measured over different geographies. Now both are local.
+		[Fact]
+		public void ADistantTitanDoesNotBlockALocalAscendancy()
+		{
+			(Game g, Player us, Player near, Player far) = AWorldWithNeighbours();
+
+			// The far civ is out of reach and enormous — four times our culture.
+			far.SetCulture(3600);
+			us.SetCulture(900);
+			near.SetCulture(100);
+
+			(int reach, int shadow, long bestNeighbour) = g.CulturalReachAndShadow(us);
+
+			Assert.Equal(1, reach);
+			Assert.Equal(1, shadow);
+			Assert.Equal(100, bestNeighbour);   // the titan is NOT our yardstick
+			Assert.True(us.Culture >= bestNeighbour * Game.CultureLeadMultiple,
+				"a civ dominating every neighbour it has should clear its own bar");
+		}
+
+		// ...and the clause still bites. A strong neighbour IN range sets the bar, so the
+		// local rule is not merely the shadow clause under another name.
+		[Fact]
+		public void AStrongNeighbourInRangeStillBlocksIt()
+		{
+			(Game g, Player us, Player near, Player far) = AWorldWithNeighbours();
+
+			near.SetCulture(600);   // in range, and over half of our 900
+
+			(int reach, int shadow, long bestNeighbour) = g.CulturalReachAndShadow(us);
+
+			Assert.Equal(600, bestNeighbour);
+			Assert.False(us.Culture >= bestNeighbour * Game.CultureLeadMultiple,
+				"a neighbour this strong must still deny the ascendancy");
+		}
+
+		// End to end, through EndTurn: the streak must actually accrue with a titan abroad.
+		//
+		// The two tests above prove CulturalReachAndShadow REPORTS the right neighbour, but a
+		// negative check showed they pass just as happily when the victory block ignores it —
+		// they assert the comparison themselves rather than driving the rule. This one stages
+		// the Mongol shape and lets the game decide.
+		[Fact]
+		public void TheStreakAccruesDespiteATitanOnTheFarSideOfTheWorld()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			for (int y = 20; y <= 30; y++)
+			for (int x = 30; x <= 70; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player human = g.HumanPlayer;
+			Player[] others = g.Players
+				.Where(p => p is not null && p != human && g.PlayerNumber(p) != 0).Take(4).ToArray();
+			Player[] neighbours = others.Take(3).ToArray();
+			Player titan = others[3];
+
+			foreach (Player p in others.Append(human))
+			{
+				p.Government = new Monarchy();
+				p.Explore(40, 25, range: 34);
+			}
+			human.AddAdvance(new Advances.Philosophy(), false);
+			g.AddCity(human, 0, 40, 25)!.Size = 6;
+
+			int id = 1;
+			foreach ((int x, int y) in new[] { (38, 23), (42, 23), (38, 27), (42, 27), (37, 25), (43, 25) })
+			{
+				g.AddCity(neighbours[id % neighbours.Length], id, x, y)!.Size = 3;
+				id++;
+			}
+			// Far out of the 5-tile reach, and overwhelming: five times our culture. Under the
+			// old world-wide clause this alone denied the ascendancy.
+			g.AddCity(titan, 9, 68, 25)!.Size = 3;
+
+			human.SetCulture(900);
+			foreach (Player p in neighbours) p.SetCulture(100);
+			titan.SetCulture(4500);
+			Sim.ClearTasks();
+
+			(int reach, int shadow, long bestNeighbour) = g.CulturalReachAndShadow(human);
+			Assert.Equal(6, reach);
+			Assert.True(shadow >= Game.CulturalShadowTarget(reach), "fixture does not clear the shadow clause");
+			Assert.Equal(100, bestNeighbour);
+			Assert.True(titan.Culture > human.Culture * Game.CultureLeadMultiple,
+				"fixture: the titan must be strong enough to deny a world-wide lead");
+
+			uint target = g.GameTurn + 22u;
+			while (g.GameTurn < target) { Sim.ClearTasks(); g.EndTurn(); }
+
+			Assert.True(g.Progress(g.PlayerNumber(human)).CultureStreak >= 20,
+				$"streak reached only {g.Progress(g.PlayerNumber(human)).CultureStreak} — "
+				+ "the lead is still being judged against the world, not the neighbourhood");
+		}
+
+		// The victory block must read the LOCAL figure. Pinned at the source because staging a
+		// full 20-turn streak with a distant titan is a heavy fixture, and because the failure
+		// mode is silent: the clause simply never fires and the path looks merely difficult.
+		[Fact]
+		public void TheVictoryClauseComparesAgainstTheBestNeighbour()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			Assert.Contains("claimant.Culture >= bestNeighbour * CultureLeadMultiple", src);
+			Assert.DoesNotContain("claimant.Culture >= runnerUp * CultureLeadMultiple", src);
+		}
+
 		[Fact]
 		public void ANarrowLeadIsNotAdmiration()
 		{

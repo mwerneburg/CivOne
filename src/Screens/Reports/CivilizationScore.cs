@@ -200,29 +200,29 @@ namespace CivOne.Screens.Reports
 
 			// ── Cultural ascendancy threshold ────────────────────────────────
 
-			// The bar THIS player must clear: their best rival's culture times the required
-			// margin. Every civ has its own bar — the rule is decided for all of them — so one
-			// line cannot show the whole race; the rival-streak readout below covers that.
+			// The bar THIS player must clear: twice the best culture among their NEIGHBOURS —
+			// the civs with a city inside their reach — not the world's best. That is the rule
+			// the victory applies, and a bar drawn from the world's best would show a target
+			// nobody is judged against: a Mongol player dominating every neighbour would watch
+			// a line they were never asked to clear, set by a civ on the far side of the map.
+			//
 			// Flat, because it is a live comparison rather than a historical curve: the culture
-			// series records each civ, not the bar.
+			// series records each civ, not the bar. Every civ has its own bar, so one line
+			// cannot show the whole race; the rival-streak readout below covers that.
 			if (_page == Page.Culture)
 			{
-				int best = Game.Players
-					.Where(p => p is not null && p != Human && !p.IsDestroyed() && !(p.Civilization is Barbarian)
-					         && !(p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
-					                             or CivOne.Civilizations.Skynet))
-					.Select(p => p.Culture).DefaultIfEmpty(0).Max();
-				int bar = best * Game.CultureLeadMultiple;
+				// Reach and the local best both come off one pass, the same one the victory
+				// uses. Reach is drawn as well as shadow because the target is three fifths of
+				// it — without that the requirement looks arbitrary, and a player under the
+				// floor needs to see WHY the path is shut rather than watching a number they
+				// cannot move.
+				(int inRange, int shadow, long bestNeighbour) = Game.CulturalReachAndShadow(Human);
+				int bar = (int)(bestNeighbour * Game.CultureLeadMultiple);
 				int by  = GraphBottom - (int)(bar * pxPerScore);
-				if (by >= GraphTop && by <= GraphBottom)
+				if (bar > 0 && by >= GraphTop && by <= GraphBottom)
 					for (int dx = 0; dx < GraphW; dx += 4)
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
-				// Reach as well as shadow: the target is three fifths of the reach, so without
-				// it the requirement looks arbitrary — and a player whose reach is under the
-				// floor needs to see WHY the path is shut to them rather than just watching a
-				// number they cannot move.
-				(int inRange, int shadow) = Game.CulturalReachAndShadow(Human);
 				int cultTarget = Game.CulturalShadowTarget(inRange);
 				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
 				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
@@ -231,7 +231,7 @@ namespace CivOne.Screens.Reports
 				this.DrawText($"SHADOW {shadow}/{cultTarget} OF {inRange} IN RANGE", 0,
 					shadow >= cultTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
-				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST RIVAL ({bar})", 0, CassetteTheme.ALERT,
+				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST NEIGHBOUR ({bar})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
 					GraphTop + 4 + 3 * (fh + 1));

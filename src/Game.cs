@@ -1582,9 +1582,9 @@ namespace CivOne
 					foreach (Player p in standing)
 					{
 						byte pn = PlayerNumber(p);
-						(int reach, int shadow) = CulturalReachAndShadow(p);
+						(int reach, int shadow, long bestNear) = CulturalReachAndShadow(p);
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
-							reach, shadow, GrossOutput(p), worldOut,
+							reach, shadow, bestNear, GrossOutput(p), worldOut,
 							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
 							Progress(pn).SpaceshipLaunchTurn,
 							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
@@ -1986,11 +1986,33 @@ namespace CivOne
 						continue;
 					}
 
-					// One pass for both halves: the target is drawn from the reach, so asking
-					// for the shadow alone would mean walking the world's cities twice.
-					(int inRange, int shadow) = CulturalReachAndShadow(claimant);
-					int runnerUp = cultRivals.Max(p => p.Culture);
-					bool admired = claimant.Culture >= runnerUp * CultureLeadMultiple && claimant.Culture > 0;
+					// One pass for all three: the target is drawn from the reach and the lead is
+					// measured against the same neighbours, so asking for them separately would
+					// mean walking the world's cities three times.
+					(int inRange, int shadow, long bestNeighbour) = CulturalReachAndShadow(claimant);
+
+					// The lead is LOCAL — twice the best culture with a city in your range —
+					// where it used to be twice the best culture in the world.
+					//
+					// Mixing the two geographies made the clause incoherent, and a measured
+					// 13-civ game showed it exactly. The Mongols held shadow 7 of reach 7 for
+					// 35 turns: every single foreign city near them was under half their
+					// culture, which is cultural ascendancy over their world by any reading.
+					// The rule then compared them to the Malians, two thousand tiles away, and
+					// scored them at 0.78x. The two clauses selected for opposite positions —
+					// a shadow needs weak neighbours, which means a poor region, which caps
+					// your own culture; the global lead needs to beat the richest region's
+					// leader. Nobody can be both, and in four logged games nobody was.
+					//
+					// Lowering the multiple would not have fixed it: late-game leads ran
+					// 1.10-1.28x, and the civ clearing even 1.5x was the one with reach 2,
+					// which can never build a shadow at all.
+					//
+					// Not redundant with the shadow: the target is three fifths of reach, so a
+					// civ can shadow six neighbours while a seventh, stronger one sits in range
+					// and this clause still stops them.
+					bool admired = claimant.Culture > 0 && inRange > 0
+					            && claimant.Culture >= bestNeighbour * CultureLeadMultiple;
 					bool reach   = shadow >= CulturalShadowTarget(inRange);
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
@@ -3544,10 +3566,10 @@ namespace CivOne
 		// civilizations changes: fewer, larger neighbours means more cities within range
 		// and far fewer of them under a third of your culture. A shadow count alone cannot
 		// show which of those is binding.
-		internal (int reach, int shadow) CulturalReachAndShadow(Player p)
+		internal (int reach, int shadow, long bestNeighbour) CulturalReachAndShadow(Player p)
 		{
 			byte num = PlayerNumber(p);
-			long threshold = p.Culture;   // foreign owner must hold less than a third
+			long threshold = p.Culture;   // foreign owner must hold less than half
 
 			var covered = new HashSet<(int, int)>();
 			foreach (City c in _cities.Where(c => c.Owner == num && c.Size > 0))
@@ -3556,6 +3578,7 @@ namespace CivOne
 					covered.Add((c.X + dx, c.Y + dy));
 
 			int reach = 0, count = 0;
+			long best = 0;
 			foreach (City c in _cities)
 			{
 				if (c.Size <= 0 || c.Owner == num || c.Owner == 0) continue;
@@ -3564,11 +3587,15 @@ namespace CivOne
 				                       or Civilizations.TheThing or Civilizations.Skynet) continue;
 				if (!covered.Contains((c.X, c.Y))) continue;
 				reach++;
+				// The strongest culture with a city in range — the civ the ascendancy has to
+				// be measured against. Free here: this loop is already walking exactly the
+				// set it is the maximum over.
+				if (owner.Culture > best) best = owner.Culture;
 				// Preserved exactly: a civ with no culture shadows nobody, and the original
 				// returned 0 before building anything. Reach is still counted for it.
 				if (threshold > 0 && owner.Culture * CultureShadowRatio < threshold) count++;
 			}
-			return (reach, count);
+			return (reach, count, best);
 		}
 
 		// Matches the 5-tile reach in ProcessCultureDefections. One constant, one meaning.

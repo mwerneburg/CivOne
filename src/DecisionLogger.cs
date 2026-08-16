@@ -323,7 +323,7 @@ namespace CivOne
 		// cultural figures are the expensive part (a covered-tile set per civ), so they come
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
-			int reach, int shadow, int grossOutput, int worldOutput, int structural,
+			int reach, int shadow, long bestNeighbour, int grossOutput, int worldOutput, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -338,6 +338,10 @@ namespace CivOne
 				// dominated. The ratio is what stays meaningful when civ counts change.
 				KV("reach",       reach),
 				KV("shadow",      shadow),
+				// The strongest culture with a city in range. The cultural lead is judged
+				// against THIS, not against the world's best, so without it the log cannot
+				// reproduce the decision it is meant to explain.
+				KV("best_near",   bestNeighbour),
 				KV("gross_out",   grossOutput),
 				KV("world_out",   worldOutput),
 				KV("ss_struct",   structural),
