@@ -4106,6 +4106,35 @@ namespace CivOne
 				if (afloat < 2) Consider(new Longboat());
 			}
 
+			// A city at its growth ceiling is STOPPED, and no ambition changes that.
+			//
+			// Aqueduct and Sewer System are both in the standard chain at the bottom of this
+			// method, and both were being starved there. Position is priority — Consider()
+			// keeps the first entry per type and CityProduction builds plan[0] — and the
+			// victory-path switch below sits ahead of the chain with two entries that never
+			// terminate: Conquest re-offers BestAttacker up to three units per city, and
+			// Commerce re-offers a Caravan with no ceiling at all, because a delivered caravan
+			// is consumed and the count never accumulates. A Commerce civ's city therefore
+			// builds caravans in perpetuity and never reaches the aqueduct.
+			//
+			// The measurement is already in this file, in the food-first comment below:
+			// "Granary was 2%, Aqueduct 1%". It was read then as the growth block being
+			// unreachable; this is the same finding one layer up. Confirmed in a finished
+			// world: 44% aqueduct coverage with 200 cities sitting at exactly size 7.
+			//
+			// So the unblocker goes ahead of the ambition, for the same reason the garrison
+			// does. A city frozen at 7 works seven tiles forever, and seven tiles fund no
+			// conquest, no trade empire and no spaceship. GrowthBlocked is the existing
+			// property (City.cs) that the food-first case already tests to exclude these
+			// cities — it just never did anything about them.
+			if (city.GrowthBlocked)
+			{
+				if (Player.HasAdvance<Construction>() && !city.HasBuilding<Aqueduct>())
+					Consider(new Aqueduct());
+				if (Player.HasAdvance<Engineering>() && !city.HasBuilding<SewerSystem>())
+					Consider(new SewerSystem());
+			}
+
 			// What this civ is TRYING to do. See VictoryPath.
 			//
 			// Placed after the garrison and before everything else: a civ pursuing a plan

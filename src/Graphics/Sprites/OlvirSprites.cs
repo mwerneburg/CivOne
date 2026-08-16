@@ -28,7 +28,15 @@ namespace CivOne.Graphics.Sprites
 		private const byte BG  = CassetteTheme.BG0;         // 1   near-black
 
 		// ── SettlementCluster ───────────────────────────────────────────────
-		// Three small amber domes: two on top, one centred below.
+		// Three small amber domes: two on top, one centred below, each on a dark ground line.
+		//
+		// The ground line is not decoration. Free.Special(Terrain.River) draws placer gold as
+		// three amber nuggets from the same PHOS family, and at 16 pixels the two were
+		// genuinely indistinguishable — a full valley of these was reported as a map covered
+		// in gold, and counting the save settled it at 157 clusters against 65 gold rivers.
+		// Colour cannot separate them without giving up the Olvir amber, so the separation is
+		// by SILHOUETTE: a dome sits ON the ground and casts a shadow, a nugget sits IN it and
+		// carries an outline all the way round.
 		private static Bytemap GetSettlementCluster()
 		{
 			var b = new Bytemap(16, 16);
@@ -37,16 +45,19 @@ namespace CivOne.Graphics.Sprites
 			b[4,  2] = GW;
 			b[3,  3] = PH; b[4, 3] = PH; b[5, 3] = PH;
 			b[3,  4] = PD; b[4, 4] = PD; b[5, 4] = PD;
+			b[3,  5] = BG; b[4, 5] = BG; b[5, 5] = BG;
 
 			// Right dome (centred x=11)
 			b[11, 2] = GW;
 			b[10, 3] = PH; b[11, 3] = PH; b[12, 3] = PH;
 			b[10, 4] = PD; b[11, 4] = PD; b[12, 4] = PD;
+			b[10, 5] = BG; b[11, 5] = BG; b[12, 5] = BG;
 
 			// Bottom centre dome (centred x=7-8)
 			b[7,  8] = GW; b[8,  8] = GW;
 			b[6,  9] = PH; b[7,  9] = PH; b[8,  9] = PH; b[9,  9] = PH;
 			b[6, 10] = PD; b[7, 10] = PD; b[8, 10] = PD; b[9, 10] = PD;
+			b[6, 11] = BG; b[7, 11] = BG; b[8, 11] = BG; b[9, 11] = BG;
 
 			return b;
 		}
