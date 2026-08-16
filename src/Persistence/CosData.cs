@@ -68,12 +68,15 @@ namespace CivOne.Persistence
 		public List<int[]> OlvirImprovements { get; set; } = null!;
 		// Thing outbreak clocks: list of [x, y, deadlineTurn] triples
 		public List<int[]> ThingOutbreaks { get; set; } = null!;
-		// Economic-dominance streak (consecutive qualifying turns) and the player
-		// numbers of wars the human started (defensive wars don't break the streak).
+		// Victory progress moved to CosPlayer when the checks stopped being human-only —
+		// see CosPlayer.EconStreak and friends. A save written before that carries these
+		// four here; the loader reads them into the human's slot so an in-progress streak
+		// survives the format change instead of silently restarting.
 		public uint EconStreak { get; set; }
 		public uint CultureStreak { get; set; }
 		public bool ColonyFounded { get; set; }
 		public uint DiasporaStreak { get; set; }
+		// Player numbers of wars the human started (defensive wars don't break a streak).
 		public int[] HumanStartedWars { get; set; } = null!;
 		// Hostile diplomat acts (sabotage, incite) committed against the HUMAN, as
 		// { playerNumber, count } pairs. Null on saves written before the Senate
@@ -198,6 +201,17 @@ namespace CivOne.Persistence
 		public int ScienceRate { get; set; }
 		public int StartX { get; set; }
 		public int GovernmentId { get; set; }
+		// Victory progress, per civilization. Absent on saves older than the symmetry
+		// change, where they default to zero — which correctly restarts a streak rather
+		// than inventing one.
+		public uint EconStreak { get; set; }
+		public uint CultureStreak { get; set; }
+		public bool ColonyFounded { get; set; }
+		public uint DiasporaStreak { get; set; }
+		public int ColonyOrder { get; set; }
+		// Player numbers this civ declared war on (pact-honouring excluded). Was
+		// CosGame.HumanStartedWars when only the human could win a streak victory.
+		public int[] StartedWarsWith { get; set; } = null!;
 		public int[] Advances { get; set; } = null!;
 		public int? CurrentResearch { get; set; }
 		public int FutureTechs { get; set; }

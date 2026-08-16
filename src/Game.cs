@@ -125,32 +125,94 @@ namespace CivOne
 		// and the organism spreads (see ProcessThingOutbreaks).
 		internal readonly Dictionary<(int x, int y), uint> ThingOutbreaks = new();
 
-		// Economic dominance (Pax Mercatoria): consecutive turns the human has held
-		// the winning conditions, and the set of enemies (player numbers) in wars the
-		// human started — only those wars break the streak; defensive wars don't.
-		internal uint EconStreak;
+		// Victory progress, PER CIVILIZATION, indexed by player number the way
+		// SpaceshipLaunchTurn and its siblings already are.
+		//
+		// These were four scalars belonging to the human, because the three checks that read
+		// them only ever evaluated HumanPlayer. That made four of the six victory paths
+		// unwinnable by anybody else: an AI could hold every condition indefinitely and
+		// nothing would notice. Measured in a finished 2200 AD game, the Others held 64.7% of
+		// the world's cities, 4.25x the culture of the best rival and 47% of world output, and
+		// could not win by any of it.
+		//
+		// The arrays are the whole of the symmetry fix; the checks that walk them follow.
+
+		// Economic dominance (Pax Mercatoria): consecutive turns this civ has held the
+		// winning conditions. HumanStartedWars stays global — it is a fact about the human's
+		// diplomacy, not a per-civ counter.
+		internal uint[] EconStreak = new uint[16];
 
 		// Cultural Ascendancy: consecutive turns holding the conditions below.
-		internal uint CultureStreak;
+		internal uint[] CultureStreak = new uint[16];
 
 		// Diaspora: a colony stands at Alpha Centauri II, and Mission Control still runs it
-		// from Earth. Set when the human's ship arrives; cleared if the colony is lost.
-		internal bool ColonyFounded;
+		// from Earth. Set when this civ's ship arrives; cleared if the colony is lost.
+		internal bool[] ColonyFounded = new bool[16];
 
 		// Consecutive turns the colony has been supplied. Broken by losing Mission Control,
 		// reset to zero — the building can be rebuilt, but the clock starts again.
-		internal uint DiasporaStreak;
+		internal uint[] DiasporaStreak = new uint[16];
+
+		// Order of arrival at Alpha Centauri, for the first-mover premium: 0 = not landed,
+		// 1 = the first colony in this world, and so on. Persisted, because a game reloaded
+		// mid-flight must not hand out the first-landing prize twice.
+		internal int[] ColonyOrder = new int[16];
 
 		// Twenty, matching Pax Mercatoria and Cultural Ascendancy. Long enough that an
 		// enemy who wants to stop you has time to march on one known city.
 		internal const uint DiasporaStreakTarget = 20;
+
+		// The first-mover premium. Being first to another star is the achievement; the fifth
+		// ship to make the same crossing has proved nothing new, and in one measured game
+		// five civs launched. Halving keeps a late colony worth having without letting a
+		// pile-up of them decide a game on arithmetic.
+		//
+		// Note SpaceshipScore (the "+6000" the spaceship report projects) is NOT part of
+		// Player.Score and never has been — it is drawn and discarded. This is the only
+		// score a colony actually earns.
+		internal static int DiasporaAward(int arrivalOrder)
+			=> arrivalOrder <= 1 ? 400 : Math.Max(50, 400 >> Math.Min(3, arrivalOrder - 1));
 
 		// The win fires once. Not persisted: a game that reached it is over.
 		private bool _diasporaFired;
 
 		// Timestamp of the last full-round wrap, for TurnMetrics wall-clock timing.
 		private long _turnClock;
-		internal readonly HashSet<byte> HumanStartedWars = new();
+		// Who started which war, for every civilization — the aggression clause on both
+		// streak victories reads it.
+		//
+		// This was HumanStartedWars, a single set, because only the human could win those
+		// paths. Generalising it was the alternative to giving the AI a different rule
+		// ("any war breaks your streak" against the human's "wars you started"), which would
+		// have been a thumb on the scale that needed explaining forever. Player.DeclareWar
+		// already knew the aggressor and already exempted pact-honouring, so this is the same
+		// bookkeeping with the identity of the aggressor kept.
+		internal readonly Dictionary<byte, HashSet<byte>> StartedWars = new();
+
+		// A rival has won. Ends the run the way the 2100 score loss already does: the human
+		// is told what happened, the outcome is logged as a loss, and the game is over.
+		private void RivalVictory(Player winner, string victory, string headline, string l1, string l2)
+		{
+			DecisionLogger.EndGame(HumanPlayer.Score, victory, humanWon: false, turns: _gameTurn);
+			GameTask.Enqueue(Message.Newspaper(null!, headline, l1, l2));
+			GameTask.Enqueue(Turn.GameOver(HumanPlayer));
+		}
+
+		internal bool StartedWarWith(byte aggressor, byte victim)
+			=> StartedWars.TryGetValue(aggressor, out HashSet<byte> set) && set.Contains(victim);
+
+		internal void RecordWarStart(byte aggressor, byte victim)
+		{
+			if (!StartedWars.TryGetValue(aggressor, out HashSet<byte> set))
+				StartedWars[aggressor] = set = new HashSet<byte>();
+			set.Add(victim);
+		}
+
+		internal void ForgetWarStart(byte a, byte b)
+		{
+			if (StartedWars.TryGetValue(a, out HashSet<byte> sa)) sa.Remove(b);
+			if (StartedWars.TryGetValue(b, out HashSet<byte> sb)) sb.Remove(a);
+		}
 
 		// ── Senate grievances ────────────────────────────────────────────────
 		// Hostile diplomat acts each civ has committed against the human: sabotage and
@@ -1140,6 +1202,34 @@ namespace CivOne
 			Array.Resize(ref SpaceshipStructural,  n);
 			Array.Resize(ref SpaceshipComponent,   n);
 			Array.Resize(ref SpaceshipModule,      n);
+			// Victory progress rides the same indexing. Grown here rather than sized once at
+			// construction because AddPlayer is how the Olvir and the story factions join a
+			// game already in progress, and an unresized array would throw the moment one of
+			// them was evaluated for a win.
+			Array.Resize(ref EconStreak,     n);
+			Array.Resize(ref CultureStreak,  n);
+			Array.Resize(ref ColonyFounded,  n);
+			Array.Resize(ref DiasporaStreak, n);
+			Array.Resize(ref ColonyOrder,    n);
+		}
+
+		// Wipe a civ's space programme back to nothing: no ship in flight, no parts, no
+		// launch on record.
+		//
+		// The breach comment below promises "founding the colony again means building another
+		// ship", and it was not true. The launch turn is never cleared, and the launch check
+		// skips any civ with one on record; the part counters are not cleared either, so
+		// WantsSpaceshipPart sees a full hull and refuses to build. A civ that lost its
+		// colony was quietly barred from ever trying again. Costly rather than generous:
+		// starting over means the whole hull, some ten thousand shields.
+		internal void ResetSpaceProgramme(int p)
+		{
+			if (p < 0 || p >= SpaceshipLaunchTurn.Length) return;
+			SpaceshipLaunchTurn[p]  = 0;
+			SpaceshipArrivalTurn[p] = 0;
+			SpaceshipStructural[p]  = 0;
+			SpaceshipComponent[p]   = 0;
+			SpaceshipModule[p]      = 0;
 		}
 
 		internal void ClearSpaceShipProduction(int playerIndex)
@@ -1791,101 +1881,113 @@ namespace CivOne
 				}
 
 				// ── Economic dominance: Pax Mercatoria ───────────────────────────────
-				// The merchant's finish line: hold more than half the world's gross
-				// economic output for 20 consecutive turns, with Banking known, at
-				// least 3 rivals still standing, no war of the human's own making,
-				// and half the surviving rivals economically bound to the human
-				// (tribute, defense pact, or an active trade route) — the world's
-				// economy runs through you. Defensive wars don't break the streak:
-				// dominance by commerce, not cannon.
+				// The merchant's finish line: hold more than half the world's gross economic
+				// output for 20 consecutive turns, with Banking known, at least 3 rivals still
+				// standing, no war of your own making, and half the surviving rivals economically
+				// bound to you (tribute, defense pact, or an active trade route). Defensive wars
+				// don't break the streak: dominance by commerce, not cannon.
+				//
+				// Evaluated for EVERY civilization. It tested HumanPlayer alone, which is why an
+				// AI could hold every condition for centuries and nothing happened: measured in a
+				// finished 2200 AD game, the Others held 47% of world output and 4.25x the culture
+				// of the best rival, and could win by neither.
+				foreach (Player claimant in _players
+				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0).ToArray())
 				{
-					Player[] econRivals = _players.Where(p => p is not null && p != HumanPlayer
+					byte cnum = PlayerNumber(claimant);
+					if (cnum >= EconStreak.Length) continue;
+					bool isHuman = claimant == HumanPlayer;
+
+					Player[] econRivals = _players.Where(p => p is not null && p != claimant
 						&& !p.IsDestroyed() && PlayerNumber(p) != 0
 						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
 
-					if (HumanPlayer.HasAdvance<Banking>() && econRivals.Length >= 3)
+					if (!claimant.HasAdvance<Banking>() || econRivals.Length < 3)
 					{
-						byte hnum = PlayerNumber(HumanPlayer);
-						int humanOut = GrossOutput(HumanPlayer);
-						// Deliberate asymmetry with econRivals above: the story factions are NOT
-						// rivals you must bind by tribute or trade, but whatever economic value
-						// sits under the Registry IS part of the world you must out-earn. An
-						// occupied world has no commercial hegemon. This is not an oversight —
-						// do not propagate the TheOthers/TheThing/Skynet exclusion down here.
-						//
-						// It resolves itself: the Owners empty cities rather than run them, so
-						// once humanity throws them off they hit Cities.Length == 0, count as
-						// destroyed, and drop out of this sum. The streak resets on every break,
-						// so a liberated world can start a fresh 20 turns and win properly.
-						int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
-							.Sum(GrossOutput);
-						bool share = humanOut > 0 && humanOut * 2 > worldOut;
+						EconStreak[cnum] = 0;   // world shrank below the floor mid-streak
+						continue;
+					}
 
-						// Wars of the human's own making break the streak — but not wars against the
-						// story factions. Skynet is at war with everyone the moment it wakes, the
-						// Registry arrives to repossess the planet, and the Thing does not
-						// negotiate: there is no version of those conflicts a merchant could have
-						// declined, and striking back at a machine uprising is not the commercial
-						// aggression this clause exists to punish. Same exclusion econRivals uses
-						// above; deliberately NOT the one worldOut uses, which counts their
-						// economies because an occupied world has no commercial hegemon.
-						bool aggressing = _players.Any(p => p is not null && !p.IsDestroyed()
-							&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
-							&& HumanPlayer.IsAtWar(p) && HumanStartedWars.Contains(PlayerNumber(p)));
+					int claimOut = GrossOutput(claimant);
+					// Deliberate asymmetry with econRivals above: the story factions are NOT rivals
+					// you must bind by tribute or trade, but whatever economic value sits under the
+					// Registry IS part of the world you must out-earn. An occupied world has no
+					// commercial hegemon. This is not an oversight — do not propagate the
+					// TheOthers/TheThing/Skynet exclusion down here.
+					//
+					// It resolves itself: the Owners empty cities rather than run them, so once
+					// humanity throws them off they hit Cities.Length == 0, count as destroyed, and
+					// drop out of this sum. The streak resets on every break, so a liberated world
+					// can start a fresh 20 turns and win properly.
+					int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
+						.Sum(GrossOutput);
+					bool share = claimOut > 0 && claimOut * 2 > worldOut;
 
-						bool Bound(Player r)
+					// Wars of this civ's own making break its streak — but not wars against the
+					// story factions. Skynet is at war with everyone the moment it wakes, the
+					// Registry arrives to repossess the planet, and the Thing does not negotiate:
+					// there is no version of those conflicts a merchant could have declined. Same
+					// exclusion econRivals uses; deliberately NOT the one worldOut uses.
+					bool aggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
+						&& claimant.IsAtWar(p) && StartedWarWith(cnum, PlayerNumber(p)));
+
+					bool Bound(Player r)
+					{
+						byte rnum = PlayerNumber(r);
+						return r.PaysTributeTo(claimant) || r.HasDefensePact(claimant)
+							|| _cities.Any(c => c.Size > 0 &&
+								((c.Owner == cnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
+								|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == cnum))));
+					}
+					bool boundHalf = econRivals.Count(Bound) * 2 >= econRivals.Length;
+
+					if (share && !aggressing && boundHalf)
+					{
+						EconStreak[cnum]++;
+						// Only the human gets told; the rest is somebody else's newspaper.
+						if (isHuman && EconStreak[cnum] == 1)
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"Our merchants dominate",
+								"world trade. Hold the markets",
+								"for 20 years."));
+						else if (isHuman && EconStreak[cnum] == 10)
+							GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
+								"The world's markets", "answer to us."));
+
+						if (EconStreak[cnum] >= 20 && !_econVictoryFired)
 						{
-							byte rnum = PlayerNumber(r);
-							return r.PaysTributeTo(HumanPlayer) || r.HasDefensePact(HumanPlayer)
-								|| _cities.Any(c => c.Size > 0 &&
-									((c.Owner == hnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
-									|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == hnum))));
-						}
-						bool boundHalf = econRivals.Count(Bound) * 2 >= econRivals.Length;
-
-						if (share && !aggressing && boundHalf)
-						{
-							EconStreak++;
-							if (EconStreak == 1)
-								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-									"Our merchants dominate",
-									"world trade. Hold the markets",
-									"for 20 years."));
-							else if (EconStreak == 10)
-								GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
-									"The world's markets", "answer to us."));
-
-							if (EconStreak >= 20 && !_econVictoryFired)
+							_econVictoryFired = true;
+							if (!isHuman)
 							{
-								_econVictoryFired = true;
-								HumanPlayer.AwardMilestone(150);
-								DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn);
-								int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
-								string? econArt = Screens.EventArtScreen.FindPath("PaxMercatoria");
-								if (econArt is not null)
-									GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(econArt,
-										"PAX MERCATORIA — THE WORLD BANKS WITH YOU")));
-								GameTask.Enqueue(Message.Newspaper(null!, "Pax Mercatoria!",
-									"The world's economy", "runs through you."));
-								GameTask econFt;
-								GameTask.Enqueue(econFt = Show.Screen(new Screens.Reports.FinalScore("Economic Dominance")));
-								econFt.Done += (s, a) => EndSequence.ChainAfterFinal(econFame, () => Runtime.Quit());
+								RivalVictory(claimant, "Economic Dominance", "Pax Mercatoria!",
+									"The world's economy runs", $"through the {claimant.TribeNamePlural}.");
 								return;
 							}
-						}
-						else if (EconStreak > 0)
-						{
-							string why = !share ? "Our share of world trade slipped."
-								: aggressing ? "Wars of our making unsettle the markets."
-								: "Too few nations bank with us.";
-							EconStreak = 0;
-							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-								"The markets waver.", why, "The streak is broken."));
+							HumanPlayer.AwardMilestone(150);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn);
+							int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
+							string? econArt = Screens.EventArtScreen.FindPath("PaxMercatoria");
+							if (econArt is not null)
+								GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(econArt,
+									"PAX MERCATORIA — THE WORLD BANKS WITH YOU")));
+							GameTask.Enqueue(Message.Newspaper(null!, "Pax Mercatoria!",
+								"The world's economy", "runs through you."));
+							GameTask econFt;
+							GameTask.Enqueue(econFt = Show.Screen(new Screens.Reports.FinalScore("Economic Dominance")));
+							econFt.Done += (s, a) => EndSequence.ChainAfterFinal(econFame, () => Runtime.Quit());
+							return;
 						}
 					}
-					else if (EconStreak > 0)
+					else if (EconStreak[cnum] > 0)
 					{
-						EconStreak = 0; // world shrank below the floor mid-streak
+						string why = !share ? "Our share of world trade slipped."
+							: aggressing ? "Wars of our making unsettle the markets."
+							: "Too few nations bank with us.";
+						EconStreak[cnum] = 0;
+						if (isHuman)
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"The markets waver.", why, "The streak is broken."));
 					}
 				}
 
@@ -1895,68 +1997,87 @@ namespace CivOne
 				// Cities come to you rather than being taken — the same pull that makes a
 				// small unhappy town change flags, measured as a standing condition instead
 				// of an 8%-a-turn accident.
+				//
+				// Per civilization, like Pax Mercatoria above. Story factions are excluded from
+				// being CLAIMANTS as well as from the rival list: the Registry does not court
+				// admiration, and it accumulated 4.25x the world's best culture in one measured
+				// game purely by owning two thirds of its cities.
+				foreach (Player claimant in _players
+				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0
+				                  && !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+				                                       or Civilizations.Skynet or Civilizations.Olvir)).ToArray())
 				{
-					Player[] cultRivals = _players.Where(p => p is not null && p != HumanPlayer
+					byte cnum = PlayerNumber(claimant);
+					if (cnum >= CultureStreak.Length) continue;
+					bool isHuman = claimant == HumanPlayer;
+
+					Player[] cultRivals = _players.Where(p => p is not null && p != claimant
 						&& !p.IsDestroyed() && PlayerNumber(p) != 0
 						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
 
-					if (HumanPlayer.HasAdvance<Philosophy>() && cultRivals.Length >= 3)
+					if (!claimant.HasAdvance<Philosophy>() || cultRivals.Length < 3)
 					{
-						int shadow  = CulturalShadow(HumanPlayer);
-						int runnerUp = cultRivals.Max(p => p.Culture);
-						bool admired = HumanPlayer.Culture >= runnerUp * CultureLeadMultiple && HumanPlayer.Culture > 0;
-						bool reach   = shadow >= CulturalShadowTarget;
+						CultureStreak[cnum] = 0;
+						continue;
+					}
 
-						// Same clause and the same story-faction exclusion as Pax Mercatoria:
-						// a war you started is incompatible with being admired, but the
-						// Machines and the Registry were never yours to decline.
-						bool cultAggressing = _players.Any(p => p is not null && !p.IsDestroyed()
-							&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
-							&& HumanPlayer.IsAtWar(p) && HumanStartedWars.Contains(PlayerNumber(p)));
+					int shadow   = CulturalShadow(claimant);
+					int runnerUp = cultRivals.Max(p => p.Culture);
+					bool admired = claimant.Culture >= runnerUp * CultureLeadMultiple && claimant.Culture > 0;
+					bool reach   = shadow >= CulturalShadowTarget;
 
-						if (admired && reach && !cultAggressing)
+					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
+					// started is incompatible with being admired, but the Machines and the Registry
+					// were never yours to decline.
+					bool cultAggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
+						&& claimant.IsAtWar(p) && StartedWarWith(cnum, PlayerNumber(p)));
+
+					if (admired && reach && !cultAggressing)
+					{
+						CultureStreak[cnum]++;
+						if (isHuman && CultureStreak[cnum] == 1)
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"The world looks to us.",
+								$"{shadow} foreign cities live in",
+								"our shadow. Hold for 20 years."));
+						else if (isHuman && CultureStreak[cnum] == 10)
+							GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
+								"Our arts and learning", "are the world's measure."));
+
+						if (CultureStreak[cnum] >= 20 && !_cultVictoryFired)
 						{
-							CultureStreak++;
-							if (CultureStreak == 1)
-								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-									"The world looks to us.",
-									$"{shadow} foreign cities live in",
-									"our shadow. Hold for 20 years."));
-							else if (CultureStreak == 10)
-								GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
-									"Our arts and learning", "are the world's measure."));
-
-							if (CultureStreak >= 20 && !_cultVictoryFired)
+							_cultVictoryFired = true;
+							if (!isHuman)
 							{
-								_cultVictoryFired = true;
-								HumanPlayer.AwardMilestone(150);
-								DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn);
-								int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
-								string? cultArt = Screens.EventArtScreen.FindPath("CulturalAscendancy");
-								if (cultArt is not null)
-									GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(cultArt,
-										"CULTURAL ASCENDANCY — THE WORLD KEEPS YOUR CALENDAR")));
-								GameTask.Enqueue(Message.Newspaper(null!, "Cultural Ascendancy!",
-									"The world does not obey us.", "It imitates us."));
-								GameTask cultFt;
-								GameTask.Enqueue(cultFt = Show.Screen(new Screens.Reports.FinalScore("Cultural Ascendancy")));
-								cultFt.Done += (s, a) => EndSequence.ChainAfterFinal(cultFame, () => Runtime.Quit());
+								RivalVictory(claimant, "Cultural Ascendancy", "Cultural Ascendancy!",
+									"The world does not obey", $"the {claimant.TribeNamePlural}. It imitates them.");
 								return;
 							}
-						}
-						else if (CultureStreak > 0)
-						{
-							string why = !admired ? "Our arts no longer stand above the world's."
-								: !reach ? "Fewer nations live in our shadow."
-								: "Wars of our making tarnish our name.";
-							CultureStreak = 0;
-							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-								"Our influence wanes.", why, "The streak is broken."));
+							HumanPlayer.AwardMilestone(150);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn);
+							int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
+							string? cultArt = Screens.EventArtScreen.FindPath("CulturalAscendancy");
+							if (cultArt is not null)
+								GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(cultArt,
+									"CULTURAL ASCENDANCY — THE WORLD KEEPS YOUR CALENDAR")));
+							GameTask.Enqueue(Message.Newspaper(null!, "Cultural Ascendancy!",
+								"The world does not obey us.", "It imitates us."));
+							GameTask cultFt;
+							GameTask.Enqueue(cultFt = Show.Screen(new Screens.Reports.FinalScore("Cultural Ascendancy")));
+							cultFt.Done += (s, a) => EndSequence.ChainAfterFinal(cultFame, () => Runtime.Quit());
+							return;
 						}
 					}
-					else if (CultureStreak > 0)
+					else if (CultureStreak[cnum] > 0)
 					{
-						CultureStreak = 0;
+						string why = !admired ? "Our arts no longer stand above the world's."
+							: !reach ? "Fewer nations live in our shadow."
+							: "Wars of our making tarnish our name.";
+						CultureStreak[cnum] = 0;
+						if (isHuman)
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"Our influence wanes.", why, "The streak is broken."));
 					}
 				}
 
@@ -2012,7 +2133,7 @@ namespace CivOne
 						for (int p = 1; p < _players.Count; p++)
 						{
 							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-							SpaceshipArrivalTurn[p] = 0;
+							ResetSpaceProgramme(p);
 							if (_players[p] == HumanPlayer)
 							{
 								GameTask.Enqueue(Show.EventArt("spaceshipintercepted",
@@ -2045,30 +2166,41 @@ namespace CivOne
 						// What the colony is worth is settled later, by whether it survives:
 						// Mission Control standing and twenty consecutive turns. Here it only
 						// gets founded.
-						if (humanWins)
+						// EVERY civ that lands founds a colony, and every landing is numbered.
+						// This used to set ColonyFounded for the human alone and give an AI
+						// arrival a newspaper headline and nothing else — so in one measured
+						// game the Lakota landed 98 turns before the human and it counted for
+						// nothing at all. ColonyOrder is the arrival rank, for the first-mover
+						// premium: being first to another star is the achievement, and the
+						// fifth ship to make the same crossing is not the same feat.
+						for (int p = 1; p < _players.Count; p++)
 						{
-							HumanPlayer.AwardMilestone(100);
-							string acCaption = VisitorType == VisitorArchetype.Refugees
-								? "Colony established — Alpha Centauri II. The Olvir know this star."
-								: "Colony established — Alpha Centauri II. Humanity is no longer bound to Earth.";
-							GameTask.Enqueue(Show.EventArt("spaceshiparrived", acCaption));
-							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
-								"Alpha Centauri II: colonised.",
-								SETISignalReceived && DomeComplete
-									? "The Dome guards Earth."
-									: "The colony must now hold.",
-								"Continue to 2200 AD."));
-							SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] = 0;
-							ColonyFounded = true;
-						}
-						else
-						{
-							for (int p = 1; p < _players.Count; p++)
+							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+							if (_players[p] is null || _players[p].IsDestroyed()) continue;
+
+							SpaceshipArrivalTurn[p] = 0;
+							if (p >= ColonyFounded.Length || ColonyFounded[p]) continue;
+							ColonyFounded[p] = true;
+							ColonyOrder[p] = ColonyOrder.Count(o => o > 0) + 1;
+
+							if (_players[p] == HumanPlayer)
 							{
-								if (SpaceshipArrivalTurn[p] != bestArrival) continue;
-								GameTask.Enqueue(Message.Newspaper(null!, $"The {_players[p].TribeNamePlural}", "have reached", "Alpha Centauri!"));
-								SpaceshipArrivalTurn[p] = 0;
-								break;
+								HumanPlayer.AwardMilestone(100);
+								string acCaption = VisitorType == VisitorArchetype.Refugees
+									? "Colony established — Alpha Centauri II. The Olvir know this star."
+									: "Colony established — Alpha Centauri II. Humanity is no longer bound to Earth.";
+								GameTask.Enqueue(Show.EventArt("spaceshiparrived", acCaption));
+								GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+									"Alpha Centauri II: colonised.",
+									SETISignalReceived && DomeComplete
+										? "The Dome guards Earth."
+										: "The colony must now hold.",
+									"Continue to 2200 AD."));
+							}
+							else
+							{
+								GameTask.Enqueue(Message.Newspaper(null!, $"The {_players[p].TribeNamePlural}",
+									"have reached", "Alpha Centauri!"));
 							}
 						}
 					}
@@ -2086,21 +2218,24 @@ namespace CivOne
 				// is whether the lifeline held. Losing Mission Control — to an army, to a
 				// rebellion, to the organism — resets the clock to zero. The building can
 				// be rebuilt elsewhere, and the twenty turns start over.
-				if (ColonyFounded)
+				foreach (Player colonist in _players
+				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0).ToArray())
 				{
-					byte dnum = PlayerNumber(HumanPlayer);
+					byte dnum = PlayerNumber(colonist);
+					if (dnum >= ColonyFounded.Length || !ColonyFounded[dnum]) continue;
+					bool isHuman = colonist == HumanPlayer;
 					bool lifeline = _cities.Any(c => c is not null && c.Owner == dnum && c.Size > 0
 						&& c.HasBuilding<Buildings.MissionControl>());
 
 					if (lifeline)
 					{
-						DiasporaStreak++;
-						if (DiasporaStreak == 1)
+						DiasporaStreak[dnum]++;
+						if (isHuman && DiasporaStreak[dnum] == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 								"Mission Control has the colony.",
 								"Resupply is running. Hold this",
 								$"city for {DiasporaStreakTarget} years."));
-						else if (DiasporaStreak == DiasporaStreakTarget / 2)
+						else if (isHuman && DiasporaStreak[dnum] == DiasporaStreakTarget / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to independence!",
 								"Alpha Centauri II reports", "its first harvest."));
 
@@ -2108,10 +2243,18 @@ namespace CivOne
 						// and the queue takes several rounds to drain — during which this block
 						// keeps seeing a streak of 20 and awarding the 200 again. Caught by a
 						// test that expected +200 and read +600.
-						if (DiasporaStreak >= DiasporaStreakTarget && !_diasporaFired)
+						if (DiasporaStreak[dnum] >= DiasporaStreakTarget && !_diasporaFired)
 						{
 							_diasporaFired = true;
-							HumanPlayer.AwardMilestone(200);
+							if (!isHuman)
+							{
+								RivalVictory(colonist, "Diaspora", "Diaspora!",
+									$"Alpha Centauri II answers", $"to the {colonist.TribeNamePlural}.");
+								return;
+							}
+							// The first crossing is the achievement; a later one is a repeat of
+							// somebody else's. ColonyOrder is the arrival rank.
+							HumanPlayer.AwardMilestone(DiasporaAward(ColonyOrder[dnum]));
 							DecisionLogger.EndGame(HumanPlayer.Score, "Diaspora", humanWon: true, turns: _gameTurn);
 							int diasFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Diaspora");
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
@@ -2124,13 +2267,14 @@ namespace CivOne
 							return;
 						}
 					}
-					else if (DiasporaStreak > 0)
+					else if (DiasporaStreak[dnum] > 0)
 					{
-						DiasporaStreak = 0;
-						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
-							"We have lost Mission Control.",
-							"The colony is on its own.",
-							"Rebuild it, and begin again."));
+						DiasporaStreak[dnum] = 0;
+						if (isHuman)
+							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+								"We have lost Mission Control.",
+								"The colony is on its own.",
+								"Rebuild it, and begin again."));
 					}
 				}
 
@@ -4827,10 +4971,14 @@ namespace CivOne
 			// player nineteen turns into the clock can lose the whole thing to an
 			// organism they never contained. Founding the colony again means building
 			// another ship.
-			if (ColonyFounded)
+			// The human's colony specifically: the Ascension reaches for the one target in
+			// the sky with a return address, and that address is Earth's.
+			byte acHuman = PlayerNumber(HumanPlayer);
+			if (acHuman < ColonyFounded.Length && ColonyFounded[acHuman])
 			{
-				ColonyFounded = false;
-				DiasporaStreak = 0;
+				ColonyFounded[acHuman] = false;
+				DiasporaStreak[acHuman] = 0;
+				ResetSpaceProgramme(acHuman);
 				string? breachArt = Screens.EventArtScreen.FindPath("ColonyBreached");
 				if (breachArt is not null)
 					GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(breachArt,

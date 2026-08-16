@@ -60,6 +60,20 @@ namespace CivOne
 		// signal arriving, the last rival falling — should move it before then.
 		private const int PathReviewInterval = 50;
 		private VictoryPath _path = VictoryPath.Endurance;
+		private bool _pathProgrammeSeen;
+
+		// Is our colony ship flying, or has it landed? Either way the programme is under way
+		// and there is nothing further to BUILD for it — holding Mission Control is the only
+		// remaining task, and that is not an ambition. Reads the arrival turn rather than the
+		// launch turn because the launch turn stays set forever, including after the Owners'
+		// pickets take the ship; the arrival turn is zeroed by success and by interception
+		// alike, and ColonyFounded then tells the two apart.
+		private bool ProgrammeUnderWay()
+		{
+			byte me = Game.PlayerNumber(Player);
+			if (me >= Game.Instance.ColonyFounded.Length) return false;
+			return Game.Instance.SpaceshipArrivalTurn[me] > 0 || Game.Instance.ColonyFounded[me];
+		}
 		// Not int.MinValue: the review test is `GameTurn - _pathChosenTurn >= interval`, and
 		// on turn 0 that subtraction overflowed to a large NEGATIVE number, so the first
 		// review never fired and every civ in the game held the default forever. One turn
@@ -71,9 +85,15 @@ namespace CivOne
 		{
 			get
 			{
-				bool shock = _pathSignalSeen != Game.Instance.SETISignalReceived;
+				// Reviewed on a shock as well as on the clock. Our own space programme
+				// changing state is a shock: launching means there is nothing left to build
+				// for it, and losing the ship or the colony means there is again.
+				bool underWay = ProgrammeUnderWay();
+				bool shock = _pathSignalSeen != Game.Instance.SETISignalReceived
+				          || _pathProgrammeSeen != underWay;
 				if (shock || Game.GameTurn - _pathChosenTurn >= PathReviewInterval)
 				{
+					_pathProgrammeSeen = underWay;
 					_pathSignalSeen = Game.Instance.SETISignalReceived;
 					_pathChosenTurn = (int)Game.GameTurn;
 					_path = ChoosePath();
@@ -283,7 +303,11 @@ namespace CivOne
 			// measured across two runs, on Khmer at 16 cities and Aztecs at 10, while the big
 			// empires took Commerce and then built ships by accident anyway. A space programme
 			// is the most expensive thing in the game; wanting one is not enough.
-			double diaspora = Game.Instance.SETISignalReceived
+			// Zero once the programme is under way, so a civ that has launched reaches for a
+			// second way to win instead of steering by a plan it has already carried out. It
+			// scores again if the ship is lost or the colony breached, because then there IS
+			// a ship to build — which is the whole of "resume if something goes wrong".
+			double diaspora = Game.Instance.SETISignalReceived && !ProgrammeUnderWay()
 			                ? 55 + cities * 2 + d.ScienceBias * 1.2
 			                : 0;
 
@@ -4200,6 +4224,24 @@ namespace CivOne
 					Consider(new SewerSystem());
 			}
 
+			// The lifeline, and it does NOT belong to the Diaspora path.
+			//
+			// Consider(new MissionControl()) used to live inside the Diaspora branch below, so
+			// a civ that pivoted away after launching would never rebuild a captured one — and
+			// losing Mission Control resets the twenty-turn clock to zero. That is the win
+			// itself thrown away by a change of ambition. A civ with a ship in flight or a
+			// colony on the ground needs this building whatever it is otherwise doing, and it
+			// is urgent: every turn without it is a turn of the countdown not running.
+			{
+				byte mcMe = Game.PlayerNumber(Player);
+				bool needsLifeline = mcMe < Game.Instance.ColonyFounded.Length
+				                     && (Game.Instance.SpaceshipArrivalTurn[mcMe] > 0
+				                         || Game.Instance.ColonyFounded[mcMe]);
+				if (needsLifeline && Player.ProductionAvailable(new MissionControl())
+				    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
+					Consider(new MissionControl());
+			}
+
 			// What this civ is TRYING to do. See VictoryPath.
 			//
 			// Placed after the garrison and before everything else: a civ pursuing a plan
@@ -4246,10 +4288,6 @@ namespace CivOne
 						    && Player.ProductionAvailable(new SSModule()))
 							Consider(new SSModule());
 					}
-					// The lifeline the colony is flown from, and a city a rival can take.
-					if (Player.ProductionAvailable(new MissionControl())
-					    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
-						Consider(new MissionControl());
 					break;
 
 				case VictoryPath.Conquest:

@@ -176,6 +176,13 @@ namespace CivOne
 				players.Add(new CosPlayer
 				{
 					CivilizationId   = player.Civilization.Id,
+					EconStreak       = EconStreak[p],
+					CultureStreak    = CultureStreak[p],
+					ColonyFounded    = ColonyFounded[p],
+					DiasporaStreak   = DiasporaStreak[p],
+					ColonyOrder      = ColonyOrder[p],
+					StartedWarsWith  = StartedWars.TryGetValue((byte)p, out var sw) && sw.Count > 0
+					                   ? sw.Select(b => (int)b).ToArray() : null!,
 					LeaderName       = player.LeaderName,
 					CitizenName      = player.TribeName,
 					CivilizationName = player.TribeNamePlural,
@@ -300,12 +307,17 @@ namespace CivOne
 					ThingOutbreaks          = ThingOutbreaks.Count > 0
 					                          ? ThingOutbreaks.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
-					EconStreak              = EconStreak,
-					CultureStreak           = CultureStreak,
-					ColonyFounded           = ColonyFounded,
-					DiasporaStreak          = DiasporaStreak,
-					HumanStartedWars        = HumanStartedWars.Count > 0
-					                          ? HumanStartedWars.Select(b => (int)b).ToArray()
+					// Legacy mirror of the human's progress — the live values are per player
+					// on CosPlayer now. Still written so an older build can read this save,
+					// and so the loader has something to restore from an older one.
+					EconStreak              = EconStreak[PlayerNumber(HumanPlayer)],
+					CultureStreak           = CultureStreak[PlayerNumber(HumanPlayer)],
+					ColonyFounded           = ColonyFounded[PlayerNumber(HumanPlayer)],
+					DiasporaStreak          = DiasporaStreak[PlayerNumber(HumanPlayer)],
+					// Legacy mirror, for older builds: the live record is per player on
+					// CosPlayer.StartedWarsWith.
+					HumanStartedWars        = StartedWars.TryGetValue(PlayerNumber(HumanPlayer), out var hsw) && hsw.Count > 0
+					                          ? hsw.Select(b => (int)b).ToArray()
 					                          : null!,
 					LastColonistGrant       = LastColonistGrant.Count > 0
 					                          ? LastColonistGrant.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList()
@@ -418,6 +430,16 @@ namespace CivOne
 			SpaceshipStructural  = new int[slotCount];
 			SpaceshipComponent   = new int[slotCount];
 			SpaceshipModule      = new int[slotCount];
+			// Victory progress is sized here too. AddPlayer grows these for a live game, but
+			// the load path builds _players directly and never calls it — so they kept their
+			// initial length of 16 while slotCount reaches 19 (17 civs plus barbarians and the
+			// Olvir). Indexing threw, LoadCos swallowed it and returned false, and every save
+			// in the suite stopped loading.
+			EconStreak     = new uint[slotCount];
+			CultureStreak  = new uint[slotCount];
+			ColonyFounded  = new bool[slotCount];
+			DiasporaStreak = new uint[slotCount];
+			ColonyOrder    = new int[slotCount];
 
 			// Map must come first so tiles exist when cities set resource tiles
 			Map.Instance.LoadFromCos(cos.Map);
@@ -550,6 +572,15 @@ namespace CivOne
 				_players[i].SetFutureTechs(cos.Players[i].FutureTechs);
 				_players[i].SetMilestoneScore(cos.Players[i].MilestoneScore ?? 0);
 				_players[i].SetCulture(cos.Players[i].Culture ?? 0);
+				// Victory progress, per civilization. AddPlayer has already sized these.
+				if (cos.Players[i].StartedWarsWith is not null)
+					foreach (int n in cos.Players[i].StartedWarsWith)
+						RecordWarStart((byte)i, (byte)n);
+				EconStreak[i]     = cos.Players[i].EconStreak;
+				CultureStreak[i]  = cos.Players[i].CultureStreak;
+				ColonyFounded[i]  = cos.Players[i].ColonyFounded;
+				DiasporaStreak[i] = cos.Players[i].DiasporaStreak;
+				ColonyOrder[i]    = cos.Players[i].ColonyOrder;
 			}
 
 			MapRevealedNotified   = g.MapRevealedNotified;
@@ -574,14 +605,31 @@ namespace CivOne
 				foreach (var triple in g.ThingOutbreaks)
 					if (triple.Length == 3)
 						ThingOutbreaks[(triple[0], triple[1])] = (uint)triple[2];
-			EconStreak = g.EconStreak;
-			CultureStreak = g.CultureStreak;
-			ColonyFounded = g.ColonyFounded;
-			DiasporaStreak = g.DiasporaStreak;
-			if (g.HumanStartedWars is not null)
+			// Saves written before victory progress went per-civilization carry only the
+			// human's, on CosGame. Restore those into the human's slot — but only when the
+			// per-player fields are absent, or a modern save would have its human streak
+			// overwritten by the legacy mirror it also writes.
+			{
+				int hp = PlayerNumber(HumanPlayer);
+				bool anyPerPlayer = false;
+				foreach (var cp in cos.Players)
+					if (cp.EconStreak > 0 || cp.CultureStreak > 0 || cp.DiasporaStreak > 0
+					    || cp.ColonyFounded || cp.ColonyOrder > 0) { anyPerPlayer = true; break; }
+				if (!anyPerPlayer && hp < EconStreak.Length)
+				{
+					EconStreak[hp]     = g.EconStreak;
+					CultureStreak[hp]  = g.CultureStreak;
+					ColonyFounded[hp]  = g.ColonyFounded;
+					DiasporaStreak[hp] = g.DiasporaStreak;
+				}
+			}
+			// Legacy: a save from before the war record went per-civ carries only the human's.
+			// Applied only when no per-player record was restored above, so a modern save is
+			// not doubled up by the mirror it also writes.
+			if (g.HumanStartedWars is not null && StartedWars.Count == 0)
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)
-						HumanStartedWars.Add((byte)n);
+						RecordWarStart(PlayerNumber(HumanPlayer), (byte)n);
 			if (g.LastColonistGrant is not null)
 				foreach (int[] pair in g.LastColonistGrant)
 					LastColonistGrant[(byte)pair[0]] = (uint)Math.Max(0, pair[1]);

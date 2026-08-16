@@ -73,7 +73,7 @@ namespace CivOne.Tests
 			// ending awards itself again.
 			PlayRounds(g, 24);
 
-			Assert.True(g.CultureStreak >= 20, $"streak reached only {g.CultureStreak}");
+			Assert.True(g.CultureStreak[g.PlayerNumber(g.HumanPlayer)] >= 20, $"streak reached only {g.CultureStreak[g.PlayerNumber(g.HumanPlayer)]}");
 			Assert.Equal(before + 150, human.MilestoneScore);
 		}
 
@@ -83,8 +83,8 @@ namespace CivOne.Tests
 		// score to watch. Both are pinned at the source instead, the same way
 		// EconomicHegemonyTests pins the exclusions it cannot cheaply stage.
 		[Theory]
-		[InlineData("EconStreak >= 20", "_econVictoryFired")]
-		[InlineData("CultureStreak >= 20", "_cultVictoryFired")]
+		[InlineData("EconStreak[cnum] >= 20", "_econVictoryFired")]
+		[InlineData("CultureStreak[cnum] >= 20", "_cultVictoryFired")]
 		[InlineData("Common.TurnToYear(_gameTurn) >= 2100", "_scoreVictoryFired")]
 		public void EveryStandingConditionEndingIsLatched(string condition, string latch)
 		{

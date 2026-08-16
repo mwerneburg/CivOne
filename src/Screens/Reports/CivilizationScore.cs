@@ -180,8 +180,9 @@ namespace CivOne.Screens.Reports
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
 				int shadow = Game.CulturalShadow(Human);
-				byte scol = Game.CultureStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
-				this.DrawText($"CULTURAL ASCENDANCY STREAK {Game.CultureStreak}/20", 0, scol,
+				uint cultStreak = Game.CultureStreak[Game.PlayerNumber(Human)];
+				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
+				this.DrawText($"CULTURAL ASCENDANCY STREAK {cultStreak}/20", 0, scol,
 					GraphRight - 4, GraphTop + 4, TextAlign.Right);
 				this.DrawText($"CITIES IN OUR SHADOW {shadow}/{Game.CulturalShadowTarget}", 0,
 					shadow >= Game.CulturalShadowTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
@@ -356,8 +357,9 @@ namespace CivOne.Screens.Reports
 			// are banked. Nothing else in the game reports it.
 			if (_page == Page.Output)
 			{
-				string streak = $"PAX MERCATORIA STREAK {Game.EconStreak}/20";
-				byte col = Game.EconStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
+				uint econStreak = Game.EconStreak[Game.PlayerNumber(Human)];
+				string streak = $"PAX MERCATORIA STREAK {econStreak}/20";
+				byte col = econStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
 				int halfNow = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf) / 2;
 				this.DrawText($"- - -  HALF OF WORLD OUTPUT ({halfNow})", 0, CassetteTheme.ALERT,

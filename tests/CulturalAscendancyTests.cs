@@ -152,14 +152,14 @@ namespace CivOne.Tests
 		public void TheStreakRoundTripsThroughASave()
 		{
 			(Game g, Player us, Player near, Player far) = AWorldWithNeighbours();
-			g.CultureStreak = 7;
+			g.CultureStreak[g.PlayerNumber(g.HumanPlayer)] = 7;
 			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "cultstreak.cos");
 
 			g.SaveCos(path);
 			Sim.ResetState();
 			Assert.True(Game.LoadCos(path), "load failed");
 
-			Assert.Equal(7u, Game.Instance.CultureStreak);
+			Assert.Equal(7u, Game.Instance.CultureStreak[Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)]);
 		}
 	}
 }
