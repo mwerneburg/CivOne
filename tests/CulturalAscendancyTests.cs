@@ -4,11 +4,11 @@
 // come to you rather than being taken.
 //
 // The measure is the cultural SHADOW: foreign cities within 5 tiles of one of yours whose
-// owner holds less than a third of your culture. That is exactly the eligibility test
-// ProcessCultureDefections already uses to decide whether a city may change flags, minus the
-// dice, the disorder and the garrison — so the victory is built on the same influence the
-// flip mechanic models. Counting the flips themselves would be luck: an 8% roll, only on
-// cities that happen to be rioting, at most one per turn in the whole world.
+// owner holds less than HALF your culture. That began as the same eligibility test
+// ProcessCultureDefections uses to decide whether a city may change flags, minus the dice,
+// the disorder and the garrison — but at a third nothing ever qualified, so the two now
+// differ deliberately (see Game.CultureShadowRatio). Counting the flips themselves would
+// still be luck: an 8% roll, only on rioting cities, at most one per turn in the world.
 
 using System.Linq;
 using CivOne.Enums;
@@ -41,7 +41,7 @@ namespace CivOne.Tests
 			g.AddCity(far, 2, 65, 25)!.Size = 3;    // 25 tiles away — outside it
 
 			us.SetCulture(900);
-			near.SetCulture(100);   // 900 > 3x100, so it counts
+			near.SetCulture(100);   // 900 > 2x100, so it counts
 			far.SetCulture(100);
 			Sim.ClearTasks();
 			return (g, us, near, far);
@@ -63,7 +63,11 @@ namespace CivOne.Tests
 			(Game g, Player us, Player near, Player far) = AWorldWithNeighbours();
 			Assert.Equal(1, g.CulturalShadow(us));
 
-			near.SetCulture(400);   // 900 < 3x400
+			// Just over the line: 500 x 2 = 1000, above our 900. Expressed against the constant
+			// so the boundary moves with the rule rather than needing a hand-edit — this used
+			// to read 400, which was outside the shadow at a ratio of 3 and inside it at 2.
+			near.SetCulture(500);
+			Assert.True(500 * Game.CultureShadowRatio > 900, "fixture no longer straddles the line");
 
 			Assert.Equal(0, g.CulturalShadow(us));
 		}
@@ -165,6 +169,39 @@ namespace CivOne.Tests
 		{
 			Assert.True(Game.CulturalShadowTarget(reach) > reach);
 			Assert.Equal(Game.CulturalShadowFloor, Game.CulturalShadowTarget(reach));
+		}
+
+		// A neighbour at 40% of your culture is in your shadow; one at 60% is not.
+		//
+		// The ratio was 3, and no measured game ever produced a neighbour under a third: best
+		// dominance was 26% of cities in range against a 60% target, with peak shadow of 1 in
+		// a 13-civ game and 0 in a 3-civ one. The field these games grow is flat.
+		// Driven through CulturalShadow itself rather than arithmetic on the constant, so it
+		// proves the RULE and not the number: 400 against our 900 is 44%, shadowed at a ratio
+		// of 2 and not at 3, which is exactly the band every measured game lived in.
+		[Theory]
+		[InlineData(400, 1)]   // 44% — inside
+		[InlineData(600, 0)]   // 67% — keeping up, outside
+		public void ANeighbourUnderHalfYourCultureIsInYourShadow(int neighbourCulture, int expected)
+		{
+			(Game g, Player us, Player near, Player far) = AWorldWithNeighbours();
+
+			near.SetCulture(neighbourCulture);
+
+			Assert.Equal(expected, g.CulturalShadow(us));
+		}
+
+		// Defection keeps the harder third. A city changing flags is a headline event and must
+		// not become as common as the standing measurement — pinned so the two cannot be
+		// silently re-coupled.
+		[Fact]
+		public void DefectionIsStrictlyHarderThanTheShadow()
+		{
+			string body = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			Assert.Contains("p.Culture >= owner.Culture * 3", body);
+			Assert.True(Game.CultureShadowRatio < 3, "the shadow must be looser than defection");
 		}
 
 		[Fact]

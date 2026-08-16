@@ -3519,13 +3519,14 @@ namespace CivOne
 		internal int GrossOutputOf(Player p) => GrossOutput(p);
 
 		// How many foreign cities live in this civilization's cultural shadow: within 5 tiles
-		// of one of its own cities, owned by somebody holding less than a third of its culture.
+		// of one of its own cities, owned by somebody holding less than HALF its culture.
 		//
-		// That is deliberately the SAME test ProcessCultureDefections uses to decide whether a
-		// city may flip, minus the dice, the disorder and the garrison. Defection is the rare,
-		// headline expression of cultural pull; this is the standing measure of it, and a
-		// victory built on the flips themselves would be luck — 8% a turn on cities that
-		// happen to be rioting, at most one per turn in the whole world.
+		// This used to be the same one-third test ProcessCultureDefections uses to decide
+		// whether a city may flip, and the two are now deliberately different numbers — see
+		// CultureShadowRatio for the measurement that says why. Defection is still the rare,
+		// headline expression of cultural pull and keeps the harder third; this is the
+		// standing measure of it, and a victory built on the flips themselves would be luck —
+		// 8% a turn on cities that happen to be rioting, at most one per turn in the world.
 		//
 		// Tile-set first, then one pass over the cities: the obvious nested loop is
 		// (own cities x world cities), which on a 255-city empire in a 1398-city world is
@@ -3565,13 +3566,32 @@ namespace CivOne
 				reach++;
 				// Preserved exactly: a civ with no culture shadows nobody, and the original
 				// returned 0 before building anything. Reach is still counted for it.
-				if (threshold > 0 && owner.Culture * 3 < threshold) count++;
+				if (threshold > 0 && owner.Culture * CultureShadowRatio < threshold) count++;
 			}
 			return (reach, count);
 		}
 
 		// Matches the 5-tile reach in ProcessCultureDefections. One constant, one meaning.
+		//
+		// Deliberately NOT scaled to the map, against first instinct. Sweeping it from 5 to 25
+		// tiles over two finished epic games moved nothing: reach and the target rise together
+		// (the target is a fraction of reach), so at range 25 the Persians had 123 foreign
+		// cities in range and shadowed 10 of them. Range was never the binding constraint.
 		internal const int CulturalShadowRange = 5;
+
+		// A neighbour is in your shadow when they hold less than 1/this of your culture.
+		//
+		// Was 3, matching the defection test. Measured over a finished 10-civ game, the best
+		// dominance any civilization achieved at 3 was 26% of the cities in its range — against
+		// a target of 60% — and in the 13-civ and 3-civ games the peak shadow was 1 and 0. The
+		// cultural field these games produce is FLAT: everybody sits within about 1.7x of
+		// everybody, so almost nobody is ever under a third of anybody.
+		//
+		// At 2 the same measurement gives 82-93%, which makes the clause live without making
+		// it cheap — the 2x-runner-up clause still gates it, and no civ in any measured game
+		// has cleared that. Defection keeps the harder third on purpose: this is a standing
+		// measurement, that is a city changing flags, and they should not be equally easy.
+		internal const int CultureShadowRatio = 2;
 
 		// How often the victory standings are sampled into the decision log.
 		internal const int VictoryStandingsInterval = 5;

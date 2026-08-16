@@ -44,13 +44,23 @@ namespace CivOne.Tests
 			g.AddCity(poorFar,  3, 65, 25)!.Size = 3;   // 25 tiles — out of reach
 
 			us.SetCulture(900);
-			poorNear.SetCulture(100);   // 900 > 3x100 — dominated
-			// 400 rather than a comfortable 600, and the margin is the point: 3x400 = 1200
-			// clears 900 so this neighbour is NOT dominated, but 2x400 = 800 does not. That
-			// makes the fixture sensitive to the dominance RATIO, not just to its direction.
-			// At 600 it was not: both 2x and 3x left this civ out, so the equivalence test
-			// below passed against a deliberately broken rule. Caught by the negative check.
-			richNear.SetCulture(400);   // in reach, NOT dominated — but only just
+			poorNear.SetCulture(100);   // well under the line whatever the ratio — dominated
+
+			// Sat just OUTSIDE the shadow, and the narrow margin is the point: a comfortable
+			// value would leave the fixture insensitive to the dominance ratio, and the
+			// equivalence test below would then pass against a deliberately broken rule. It
+			// did exactly that once, at 600, and the negative check caught it.
+			//
+			// Derived from the constant rather than hard-coded, because the ratio has since
+			// moved from 3 to 2 and a literal here silently became a DOMINATED neighbour —
+			// which is how these three tests failed. Now the margin travels with the rule.
+			int justOutside = (int)(900 / Game.CultureShadowRatio) + 50;
+			richNear.SetCulture(justOutside);
+			Assert.True(justOutside * Game.CultureShadowRatio > 900,
+				"fixture: the rich neighbour must sit outside the shadow");
+			Assert.True(100 * Game.CultureShadowRatio < 900,
+				"fixture: the poor neighbour must sit inside it");
+
 			poorFar.SetCulture(100);    // poor, but nowhere near us
 			Sim.ClearTasks();
 			return (g, us, poorNear, richNear, poorFar);
@@ -63,8 +73,11 @@ namespace CivOne.Tests
 		{
 			(Game g, Player us, _, _, _) = AWorld();
 
-			// The rule as it stood: build the covered set, then count foreign cities whose
-			// owner holds under a third of our culture.
+			// The rule as it stood BEFORE reach was extracted: build the covered set, then
+			// count foreign cities whose owner is culturally negligible. Reads the ratio from
+			// the constant rather than repeating a 3 — this test exists to prove the
+			// extraction is faithful, not to freeze the dominance threshold, and it failed
+			// for the wrong reason when that threshold legitimately moved.
 			int Original(Player p)
 			{
 				byte num = g.PlayerNumber(p);
@@ -80,7 +93,7 @@ namespace CivOne.Tests
 				{
 					if (c.Size <= 0 || c.Owner == num || c.Owner == 0) continue;
 					Player owner = g.GetPlayer(c.Owner);
-					if (owner.Culture * 3 >= threshold) continue;
+					if (owner.Culture * Game.CultureShadowRatio >= threshold) continue;
 					if (covered.Contains((c.X, c.Y))) count++;
 				}
 				return count;
@@ -112,7 +125,7 @@ namespace CivOne.Tests
 
 			(int reach, int shadow) = g.CulturalReachAndShadow(us);
 
-			Assert.True(us.Culture > poorFar.Culture * 3, "fixture: the far civ should be dominated on culture");
+			Assert.True(us.Culture > poorFar.Culture * Game.CultureShadowRatio, "fixture: the far civ should be dominated on culture");
 			Assert.Equal(2, reach);    // the far city is in neither
 			Assert.Equal(1, shadow);
 		}
