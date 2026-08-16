@@ -133,9 +133,9 @@ namespace CivOne.Tests
 			byte h = g.PlayerNumber(g.HumanPlayer);
 			// The launch minimums: 1 engine (2 components), 1 module set (3 modules), and
 			// enough structure to carry them.
-			g.SpaceshipComponent[h]  = 2;
-			g.SpaceshipModule[h]     = 3;
-			g.SpaceshipStructural[h] = Game.SpaceshipStructuresNeeded(2, 3);
+			g.Progress(h).SpaceshipComponent  = 2;
+			g.Progress(h).SpaceshipModule     = 3;
+			g.Progress(h).SpaceshipStructural = Game.SpaceshipStructuresNeeded(2, 3);
 			Sim.ClearTasks();
 			return g;
 		}
@@ -160,7 +160,7 @@ namespace CivOne.Tests
 			{
 				Settings.Instance.Autopilot = true;
 				PlayARound(g);
-				Assert.True(g.SpaceshipLaunchTurn[h] > 0,
+				Assert.True(g.Progress(h).SpaceshipLaunchTurn > 0,
 					"the autoplayed human's ship never left the ground");
 			}
 			finally { Settings.Instance.Autopilot = was; }
@@ -177,7 +177,7 @@ namespace CivOne.Tests
 			{
 				Settings.Instance.Autopilot = false;
 				PlayARound(g);
-				Assert.Equal(0, g.SpaceshipLaunchTurn[h]);
+				Assert.Equal(0, g.Progress(h).SpaceshipLaunchTurn);
 			}
 			finally { Settings.Instance.Autopilot = was; }
 		}

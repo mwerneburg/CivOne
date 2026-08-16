@@ -2006,14 +2006,14 @@ namespace CivOne
 					// Clamped as well as gated in BuildingAvailable: a part already sitting in
 					// the production QUEUE was validated when it was queued, so the cap has to
 					// hold here too or the queue becomes a way around it.
-					if (Game.SpaceshipLaunchTurn[playerIndex] == 0)
+					if (Game.Progress(playerIndex).SpaceshipLaunchTurn == 0)
 					{
 						if (CurrentProduction is Buildings.SSStructural)
-							Game.SpaceshipStructural[playerIndex] = Math.Min(Game.MaxSpaceshipStructural, Game.SpaceshipStructural[playerIndex] + 1);
+							Game.Progress(playerIndex).SpaceshipStructural = Math.Min(Game.MaxSpaceshipStructural, Game.Progress(playerIndex).SpaceshipStructural + 1);
 						else if (CurrentProduction is Buildings.SSComponent)
-							Game.SpaceshipComponent[playerIndex]  = Math.Min(Game.MAX_SS_COMPONENT, Game.SpaceshipComponent[playerIndex] + 1);
+							Game.Progress(playerIndex).SpaceshipComponent  = Math.Min(Game.MAX_SS_COMPONENT, Game.Progress(playerIndex).SpaceshipComponent + 1);
 						else if (CurrentProduction is Buildings.SSModule)
-							Game.SpaceshipModule[playerIndex]     = Math.Min(Game.MAX_SS_MODULE, Game.SpaceshipModule[playerIndex] + 1);
+							Game.Progress(playerIndex).SpaceshipModule     = Math.Min(Game.MAX_SS_MODULE, Game.Progress(playerIndex).SpaceshipModule + 1);
 					}
 					// Deliberately silent. A spaceship is dozens of identical parts, and this
 					// announced every one of them — for EVERY civ, since nothing here gated on
@@ -2104,7 +2104,7 @@ namespace CivOne
 							if (Player == Human)
 							{
 								if (infected is null)
-									Game.SpaceshipComponent[Game.PlayerNumber(Player)] += 2;
+									Game.Progress(Game.PlayerNumber(Player)).SpaceshipComponent += 2;
 								Game.Instance.RecordTransmission("SouthPoleExpedition", gameYear);
 								impTask.Done += (s, a) => GameTask.Enqueue(Show.Screen(new SouthPoleExpeditionLog(gameYear)));
 							}

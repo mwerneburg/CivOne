@@ -181,8 +181,13 @@ namespace CivOne
 					ColonyFounded    = Progress(p).ColonyFounded,
 					DiasporaStreak   = Progress(p).DiasporaStreak,
 					ColonyOrder      = Progress(p).ColonyOrder,
-					StartedWarsWith  = StartedWars.TryGetValue((byte)p, out var sw) && sw.Count > 0
-					                   ? sw.Select(b => (int)b).ToArray() : null!,
+					SpaceshipLaunchTurn  = Progress(p).SpaceshipLaunchTurn,
+					SpaceshipArrivalTurn = Progress(p).SpaceshipArrivalTurn,
+					SpaceshipStructural  = Progress(p).SpaceshipStructural,
+					SpaceshipComponent   = Progress(p).SpaceshipComponent,
+					SpaceshipModule      = Progress(p).SpaceshipModule,
+					StartedWarsWith  = Progress(p).StartedWarsWith.Count > 0
+					                   ? Progress(p).StartedWarsWith.Select(b => (int)b).ToArray() : null!,
 					LeaderName       = player.LeaderName,
 					CitizenName      = player.TribeName,
 					CivilizationName = player.TribeNamePlural,
@@ -281,11 +286,12 @@ namespace CivOne
 						Circuses       = Circuses,
 					Barricades     = Barricades
 					},
-					SpaceshipLaunch      = SpaceshipLaunchTurn.ToArray(),
-					SpaceshipArrival     = SpaceshipArrivalTurn.ToArray(),
-					SpaceshipStructural  = SpaceshipStructural.ToArray(),
-					SpaceshipComponent   = SpaceshipComponent.ToArray(),
-					SpaceshipModule      = SpaceshipModule.ToArray(),
+					// Legacy mirror, so an older build can still read this save.
+					SpaceshipLaunch      = _players.Select(x => x?.Progress.SpaceshipLaunchTurn  ?? 0).ToArray(),
+					SpaceshipArrival     = _players.Select(x => x?.Progress.SpaceshipArrivalTurn ?? 0).ToArray(),
+					SpaceshipStructural  = _players.Select(x => x?.Progress.SpaceshipStructural  ?? 0).ToArray(),
+					SpaceshipComponent   = _players.Select(x => x?.Progress.SpaceshipComponent   ?? 0).ToArray(),
+					SpaceshipModule      = _players.Select(x => x?.Progress.SpaceshipModule      ?? 0).ToArray(),
 					FirstExplorer        = PackFirstExplorer(FirstExplorer),
 					MapRevealedNotified  = MapRevealedNotified,
 					SETISignalTurn          = SETISignalTurn,
@@ -316,8 +322,8 @@ namespace CivOne
 					DiasporaStreak          = Progress(PlayerNumber(HumanPlayer)).DiasporaStreak,
 					// Legacy mirror, for older builds: the live record is per player on
 					// CosPlayer.StartedWarsWith.
-					HumanStartedWars        = StartedWars.TryGetValue(PlayerNumber(HumanPlayer), out var hsw) && hsw.Count > 0
-					                          ? hsw.Select(b => (int)b).ToArray()
+					HumanStartedWars        = Progress(PlayerNumber(HumanPlayer)).StartedWarsWith.Count > 0
+					                          ? Progress(PlayerNumber(HumanPlayer)).StartedWarsWith.Select(b => (int)b).ToArray()
 					                          : null!,
 					LastColonistGrant       = LastColonistGrant.Count > 0
 					                          ? LastColonistGrant.Select(kv => new[] { (int)kv.Key, (int)kv.Value }).ToList()
@@ -425,11 +431,6 @@ namespace CivOne
 			_players  = new List<Player>(Enumerable.Repeat<Player>(null!, slotCount));
 			_cities   = new List<City>();
 			_units    = new List<IUnit>();
-			SpaceshipLaunchTurn  = new int[slotCount];
-			SpaceshipArrivalTurn = new int[slotCount];
-			SpaceshipStructural  = new int[slotCount];
-			SpaceshipComponent   = new int[slotCount];
-			SpaceshipModule      = new int[slotCount];
 
 			// Map must come first so tiles exist when cities set resource tiles
 			Map.Instance.LoadFromCos(cos.Map);
@@ -563,6 +564,11 @@ namespace CivOne
 				_players[i].SetMilestoneScore(cos.Players[i].MilestoneScore ?? 0);
 				_players[i].SetCulture(cos.Players[i].Culture ?? 0);
 				// Victory progress, per civilization. AddPlayer has already sized these.
+				Progress(i).SpaceshipLaunchTurn  = cos.Players[i].SpaceshipLaunchTurn;
+				Progress(i).SpaceshipArrivalTurn = cos.Players[i].SpaceshipArrivalTurn;
+				Progress(i).SpaceshipStructural  = cos.Players[i].SpaceshipStructural;
+				Progress(i).SpaceshipComponent   = cos.Players[i].SpaceshipComponent;
+				Progress(i).SpaceshipModule      = cos.Players[i].SpaceshipModule;
 				if (cos.Players[i].StartedWarsWith is not null)
 					foreach (int n in cos.Players[i].StartedWarsWith)
 						RecordWarStart((byte)i, (byte)n);
@@ -616,7 +622,7 @@ namespace CivOne
 			// Legacy: a save from before the war record went per-civ carries only the human's.
 			// Applied only when no per-player record was restored above, so a modern save is
 			// not doubled up by the mirror it also writes.
-			if (g.HumanStartedWars is not null && StartedWars.Count == 0)
+			if (g.HumanStartedWars is not null && _players.All(x => x is null || x.Progress.StartedWarsWith.Count == 0))
 				foreach (int n in g.HumanStartedWars)
 					if (n > 0 && n < _players.Count)
 						RecordWarStart(PlayerNumber(HumanPlayer), (byte)n);
@@ -879,31 +885,43 @@ namespace CivOne
 				_units.Add(unit);
 			}
 
-			// Spaceship
-			if (g.SpaceshipLaunch is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipLaunch.Length, _players.Count); i++)
-					SpaceshipLaunchTurn[i] = g.SpaceshipLaunch[i];
-			if (g.SpaceshipArrival is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, _players.Count); i++)
-					SpaceshipArrivalTurn[i] = g.SpaceshipArrival[i];
-			if (g.SpaceshipStructural is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, _players.Count); i++)
-					SpaceshipStructural[i] = g.SpaceshipStructural[i];
-			if (g.SpaceshipComponent is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, _players.Count); i++)
-					SpaceshipComponent[i] = g.SpaceshipComponent[i];
-			if (g.SpaceshipModule is not null)
-				for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, _players.Count); i++)
-					SpaceshipModule[i] = g.SpaceshipModule[i];
+			// Spaceship — LEGACY only.
+			//
+			// The live values are per player (restored above, from CosPlayer). These per-game
+			// arrays are what saves written before the move carry, and they are still written
+			// so an older build can read a new save. Applied only when the per-player fields
+			// are all absent: without that guard this block runs later and overwrites the
+			// values it is supposed to be a fallback for.
+			bool anyPerPlayerShip = cos.Players.Any(cp => cp.SpaceshipLaunchTurn != 0 || cp.SpaceshipArrivalTurn != 0
+			                                           || cp.SpaceshipStructural != 0 || cp.SpaceshipComponent != 0
+			                                           || cp.SpaceshipModule != 0);
+			if (!anyPerPlayerShip)
+			{
+				if (g.SpaceshipLaunch is not null)
+					for (int i = 0; i < Math.Min(g.SpaceshipLaunch.Length, _players.Count); i++)
+						Progress(i).SpaceshipLaunchTurn = g.SpaceshipLaunch[i];
+				if (g.SpaceshipArrival is not null)
+					for (int i = 0; i < Math.Min(g.SpaceshipArrival.Length, _players.Count); i++)
+						Progress(i).SpaceshipArrivalTurn = g.SpaceshipArrival[i];
+				if (g.SpaceshipStructural is not null)
+					for (int i = 0; i < Math.Min(g.SpaceshipStructural.Length, _players.Count); i++)
+						Progress(i).SpaceshipStructural = g.SpaceshipStructural[i];
+				if (g.SpaceshipComponent is not null)
+					for (int i = 0; i < Math.Min(g.SpaceshipComponent.Length, _players.Count); i++)
+						Progress(i).SpaceshipComponent = g.SpaceshipComponent[i];
+				if (g.SpaceshipModule is not null)
+					for (int i = 0; i < Math.Min(g.SpaceshipModule.Length, _players.Count); i++)
+						Progress(i).SpaceshipModule = g.SpaceshipModule[i];
+			}
 			// Migrate: old COS saves stored SS parts as city buildings; convert and strip them.
 			if (g.SpaceshipStructural is null && g.SpaceshipComponent is null && g.SpaceshipModule is null)
 			{
 				foreach (City city in _cities)
 				{
 					int p = city.Owner;
-					SpaceshipStructural[p] += city.Buildings.Count(b => b is SSStructural);
-					SpaceshipComponent[p]  += city.Buildings.Count(b => b is SSComponent);
-					SpaceshipModule[p]     += city.Buildings.Count(b => b is SSModule);
+					Progress(p).SpaceshipStructural += city.Buildings.Count(b => b is SSStructural);
+					Progress(p).SpaceshipComponent  += city.Buildings.Count(b => b is SSComponent);
+					Progress(p).SpaceshipModule     += city.Buildings.Count(b => b is SSModule);
 					city.RemoveBuilding<SSStructural>();
 					city.RemoveBuilding<SSComponent>();
 					city.RemoveBuilding<SSModule>();

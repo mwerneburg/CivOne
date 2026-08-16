@@ -30,9 +30,9 @@ namespace CivOne.Screens.Reports
 		private int Count<T>(Player p) where T : IBuilding
 		{
 			int id = Game.PlayerNumber(p);
-			if (typeof(T) == typeof(SSStructural)) return Game.SpaceshipStructural[id];
-			if (typeof(T) == typeof(SSComponent))  return Game.SpaceshipComponent[id];
-			if (typeof(T) == typeof(SSModule))     return Game.SpaceshipModule[id];
+			if (typeof(T) == typeof(SSStructural)) return Game.Progress(id).SpaceshipStructural;
+			if (typeof(T) == typeof(SSComponent))  return Game.Progress(id).SpaceshipComponent;
+			if (typeof(T) == typeof(SSModule))     return Game.Progress(id).SpaceshipModule;
 			return 0;
 		}
 
@@ -100,7 +100,7 @@ namespace CivOne.Screens.Reports
 			int mod = Count<SSModule>(p);
 
 			int strNeeded = Game.SpaceshipStructuresNeeded(cmp, mod);
-			bool launched = Game.Instance.SpaceshipLaunchTurn[pid] != 0;
+			bool launched = Game.Instance.Progress(pid).SpaceshipLaunchTurn != 0;
 			bool canLaunch = cmp >= 2 && mod >= 3 && str >= strNeeded && !launched;
 			int successPct = Game.SpaceshipSuccessPct(cmp, mod);
 			float flightYrs = Game.SpaceshipFlightYears(str, cmp, mod);
@@ -271,12 +271,12 @@ namespace CivOne.Screens.Reports
 
 			if (launched)
 			{
-				string launchYr = Common.YearString((ushort)Game.Instance.SpaceshipLaunchTurn[pid]);
+				string launchYr = Common.YearString((ushort)Game.Instance.Progress(pid).SpaceshipLaunchTurn);
 				// Arrival ZEROES the ETA (Game.cs, both the arrival and the interception paths)
 				// while the launch turn stays set forever — so a ship that has already got there
 				// reads as launched with an arrival turn of 0, and TurnToYear(0) is 4000 BC.
 				// That is where "ETA 4000 BC" came from: not a bad calculation, a landed ship.
-				int arrival = Game.Instance.SpaceshipArrivalTurn[pid];
+				int arrival = Game.Instance.Progress(pid).SpaceshipArrivalTurn;
 				string tail = arrival > 0 ? $"ETA {Common.YearString((ushort)arrival)}" : "ARRIVED";
 				this.DrawText($"LAUNCHED {launchYr} · {tail}", 0, CassetteTheme.PHOS_GLOW, W / 2, fy + 2, TextAlign.Center);
 			}
@@ -324,17 +324,17 @@ namespace CivOne.Screens.Reports
 					int mod = Count<SSModule>(p);
 					int needed = Game.SpaceshipStructuresNeeded(cmp, mod);
 					if (cmp >= 2 && mod >= 3 && str >= needed
-					    && Game.Instance.SpaceshipLaunchTurn[pid] == 0)
+					    && Game.Instance.Progress(pid).SpaceshipLaunchTurn == 0)
 					{
 						// Trigger launch now by nudging conditions already met —
 						// EndTurn fires the actual launch logic; for immediate effect
 						// call it directly.
-						Game.Instance.SpaceshipLaunchTurn[pid] = Game.Instance.GameTurn;
-						Game.Instance.SpaceshipArrivalTurn[pid] = Game.Instance.GameTurn
+						Game.Instance.Progress(pid).SpaceshipLaunchTurn = Game.Instance.GameTurn;
+						Game.Instance.Progress(pid).SpaceshipArrivalTurn = Game.Instance.GameTurn
 							+ (int)Math.Ceiling(Game.SpaceshipFlightYears(str, cmp, mod));
 						Game.Instance.ClearSpaceShipProduction(pid);
 						Game.Instance.PerformAutoSave();
-						string eta = Common.YearString((ushort)Game.Instance.SpaceshipArrivalTurn[pid]);
+						string eta = Common.YearString((ushort)Game.Instance.Progress(pid).SpaceshipArrivalTurn);
 						bool intercepted = Game.Instance.VisitorType == VisitorArchetype.Conquerors;
 						string artKey = intercepted ? "spaceshipintercepted" : "spaceshiplaunched";
 						string launchCaption = intercepted

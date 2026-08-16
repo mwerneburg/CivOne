@@ -84,7 +84,7 @@ namespace CivOne.Tests
 			(Game g, Player p, City c) = ACivWithACity();
 			byte me = g.PlayerNumber(p);
 			g.Progress(me).ColonyFounded = true;                      // landed
-			g.SpaceshipArrivalTurn[me] = 0;                  // no longer in flight
+			g.Progress(me).SpaceshipArrivalTurn = 0;                  // no longer in flight
 
 			Assert.NotEqual("Diaspora", PathOf(p));          // fixture: not on the science path
 			Assert.Contains(PlanFor(p, c), x => x is MissionControl);
@@ -97,7 +97,7 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p, City c) = ACivWithACity();
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipArrivalTurn[me] = g.GameTurn + 30;
+			g.Progress(me).SpaceshipArrivalTurn = g.GameTurn + 30;
 
 			Assert.Contains(PlanFor(p, c), x => x is MissionControl);
 		}
@@ -126,7 +126,7 @@ namespace CivOne.Tests
 			// still to build, this civ reaches for Diaspora.
 			Assert.Equal("Diaspora", PathOf(p));
 
-			g.SpaceshipArrivalTurn[me] = g.GameTurn + 30;
+			g.Progress(me).SpaceshipArrivalTurn = g.GameTurn + 30;
 
 			Assert.NotEqual("Diaspora", PathOf(p));
 		}
@@ -156,7 +156,7 @@ namespace CivOne.Tests
 			byte me = g.PlayerNumber(p);
 			g.SETISignalReceived = true;
 
-			g.SpaceshipArrivalTurn[me] = g.GameTurn + 30;
+			g.Progress(me).SpaceshipArrivalTurn = g.GameTurn + 30;
 			var underWay = typeof(AI).GetMethod("ProgrammeUnderWay",
 				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 			Assert.True((bool)underWay!.Invoke(AI.Instance(p), null)!);
@@ -173,19 +173,19 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p, City c) = ACivWithACity();
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipLaunchTurn[me] = 100;
-			g.SpaceshipArrivalTurn[me] = 140;
-			g.SpaceshipStructural[me] = 51;
-			g.SpaceshipComponent[me] = 16;
-			g.SpaceshipModule[me] = 12;
+			g.Progress(me).SpaceshipLaunchTurn = 100;
+			g.Progress(me).SpaceshipArrivalTurn = 140;
+			g.Progress(me).SpaceshipStructural = 51;
+			g.Progress(me).SpaceshipComponent = 16;
+			g.Progress(me).SpaceshipModule = 12;
 
 			g.ResetSpaceProgramme(me);
 
-			Assert.Equal(0, g.SpaceshipLaunchTurn[me]);
-			Assert.Equal(0, g.SpaceshipArrivalTurn[me]);
-			Assert.Equal(0, g.SpaceshipStructural[me]);
-			Assert.Equal(0, g.SpaceshipComponent[me]);
-			Assert.Equal(0, g.SpaceshipModule[me]);
+			Assert.Equal(0, g.Progress(me).SpaceshipLaunchTurn);
+			Assert.Equal(0, g.Progress(me).SpaceshipArrivalTurn);
+			Assert.Equal(0, g.Progress(me).SpaceshipStructural);
+			Assert.Equal(0, g.Progress(me).SpaceshipComponent);
+			Assert.Equal(0, g.Progress(me).SpaceshipModule);
 		}
 	}
 }

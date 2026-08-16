@@ -4,7 +4,7 @@ Meta:
   Turn: 0
   Difficulty: 0
 Game:
-  DecisionGameId: 278ac921
+  DecisionGameId: aaf42d24
   Turn: 0
   HumanPlayer: 1
   Difficulty: 0
@@ -1405,6 +1405,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances: &o0 []
   FutureTechs: 0
   MilestoneScore: 0
@@ -1433,6 +1438,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances:
   - 25
   - 16
@@ -1463,6 +1473,11 @@ Players:
   ColonyFounded: true
   DiasporaStreak: 6
   ColonyOrder: 2
+  SpaceshipLaunchTurn: 120
+  SpaceshipArrivalTurn: 260
+  SpaceshipStructural: 51
+  SpaceshipComponent: 16
+  SpaceshipModule: 12
   StartedWarsWith:
   - 1
   Advances:
@@ -1495,6 +1510,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances: *o0
   FutureTechs: 0
   MilestoneScore: 0
@@ -1523,6 +1543,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances:
   - 0
   - 31
@@ -1553,6 +1578,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances:
   - 0
   - 1
@@ -1583,6 +1613,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances:
   - 42
   - 0
@@ -1613,6 +1648,11 @@ Players:
   ColonyFounded: false
   DiasporaStreak: 0
   ColonyOrder: 0
+  SpaceshipLaunchTurn: 0
+  SpaceshipArrivalTurn: 0
+  SpaceshipStructural: 0
+  SpaceshipComponent: 0
+  SpaceshipModule: 0
   Advances:
   - 16
   - 25

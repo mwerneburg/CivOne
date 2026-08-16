@@ -49,18 +49,18 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p, City c) = ALaunchedCiv();
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipStructural[me] = 20;
+			g.Progress(me).SpaceshipStructural = 20;
 			// A real turn number, not g.GameTurn: a fresh game is on turn 0, and 0 is exactly
 			// the value that MEANS "not launched". Setting it from GameTurn left the ship on
 			// the pad and the test failed against correct code.
-			g.SpaceshipLaunchTurn[me] = 400;               // she has sailed
+			g.Progress(me).SpaceshipLaunchTurn = 400;               // she has sailed
 
 			c.SetProduction(new SSStructural());
 			c.Shields = (short)((int)new SSStructural().Price * 10);
 			c.NewTurn();
 			Sim.Settle();
 
-			Assert.Equal(20, g.SpaceshipStructural[me]);
+			Assert.Equal(20, g.Progress(me).SpaceshipStructural);
 		}
 
 		// ...and before launch it still is, or this guard has broken the whole mechanic.
@@ -69,15 +69,15 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p, City c) = ALaunchedCiv();
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipStructural[me] = 20;
-			Assert.Equal(0, g.SpaceshipLaunchTurn[me]);
+			g.Progress(me).SpaceshipStructural = 20;
+			Assert.Equal(0, g.Progress(me).SpaceshipLaunchTurn);
 
 			c.SetProduction(new SSStructural());
 			c.Shields = (short)((int)new SSStructural().Price * 10);
 			c.NewTurn();
 			Sim.Settle();
 
-			Assert.Equal(21, g.SpaceshipStructural[me]);
+			Assert.Equal(21, g.Progress(me).SpaceshipStructural);
 		}
 
 		// The shields should not be spent at all: the queue is emptied of parts at launch, so

@@ -43,6 +43,9 @@ namespace CivOne.Persistence
 		public string[] CityNames { get; set; } = null!;
 		public Dictionary<int, int> AdvanceOrigin { get; set; } = null!;
 		public CosOptions Options { get; set; } = null!;
+		// Legacy per-GAME arrays. The live values are per player on CosPlayer now; these are
+		// still written so an older build can read a new save, and still read as a fallback
+		// when a save predates the move.
 		public int[] SpaceshipLaunch { get; set; } = null!;
 		public int[] SpaceshipArrival { get; set; } = null!;
 		public int[] SpaceshipStructural { get; set; } = null!;
@@ -209,6 +212,11 @@ namespace CivOne.Persistence
 		public bool ColonyFounded { get; set; }
 		public uint DiasporaStreak { get; set; }
 		public int ColonyOrder { get; set; }
+		public int SpaceshipLaunchTurn { get; set; }
+		public int SpaceshipArrivalTurn { get; set; }
+		public int SpaceshipStructural { get; set; }
+		public int SpaceshipComponent { get; set; }
+		public int SpaceshipModule { get; set; }
 		// Player numbers this civ declared war on (pact-honouring excluded). Was
 		// CosGame.HumanStartedWars when only the human could win a streak victory.
 		public int[] StartedWarsWith { get; set; } = null!;

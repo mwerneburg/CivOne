@@ -51,13 +51,13 @@ namespace CivOne.Tests
 			(Game g, Player human, Player rival) = AWorldBeforeTheSignal();
 			byte hnum = g.PlayerNumber(human);
 			int before = human.MilestoneScore;
-			g.SpaceshipArrivalTurn[hnum] = (int)g.GameTurn + 1;
+			g.Progress(hnum).SpaceshipArrivalTurn = (int)g.GameTurn + 1;
 
 			PlayARound(g);
 
 			// Cleared, so the check does not fire again — and the ending branch could not
 			// have run, because it returned with this still set.
-			Assert.Equal(0, g.SpaceshipArrivalTurn[hnum]);
+			Assert.Equal(0, g.Progress(hnum).SpaceshipArrivalTurn);
 			Assert.Equal(before + 100, human.MilestoneScore);
 		}
 
@@ -68,12 +68,12 @@ namespace CivOne.Tests
 		{
 			(Game g, Player human, Player rival) = AWorldBeforeTheSignal();
 			byte rnum = g.PlayerNumber(rival);
-			g.SpaceshipArrivalTurn[g.PlayerNumber(human)] = 0;
-			g.SpaceshipArrivalTurn[rnum] = (int)g.GameTurn + 1;
+			g.Progress(g.PlayerNumber(human)).SpaceshipArrivalTurn = 0;
+			g.Progress(rnum).SpaceshipArrivalTurn = (int)g.GameTurn + 1;
 
 			PlayARound(g);
 
-			Assert.Equal(0, g.SpaceshipArrivalTurn[rnum]);
+			Assert.Equal(0, g.Progress(rnum).SpaceshipArrivalTurn);
 			Assert.False(human.IsDestroyed(), "the human lost the game to somebody else's spaceship");
 		}
 

@@ -427,11 +427,6 @@ namespace CivOne
 			_units = new List<IUnit>();
 			int slotCount = competition + 1;
 			_players = new List<Player>(Enumerable.Repeat<Player>(null!, slotCount));
-			SpaceshipLaunchTurn  = new int[slotCount];
-			SpaceshipArrivalTurn = new int[slotCount];
-			SpaceshipStructural  = new int[slotCount];
-			SpaceshipComponent   = new int[slotCount];
-			SpaceshipModule      = new int[slotCount];
 			for (int i = 0; i <= competition; i++)
 			{
 				if (i == tribe.PreferredPlayerNumber)

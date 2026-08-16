@@ -694,7 +694,7 @@ namespace CivOne
 				if (!Game.Instance.WonderBuilt<ApolloProgram>())
 					return false;
 				// No new SS parts once launched
-				if (Game.SpaceshipLaunchTurn[Game.PlayerNumber(this)] != 0)
+				if (Game.Progress(Game.PlayerNumber(this)).SpaceshipLaunchTurn != 0)
 					return false;
 
 				// Hull limits (Game.MAX_SS_*). Completed parts are never added to the city's
@@ -702,11 +702,11 @@ namespace CivOne
 				// can't retire them — without this the part stays on offer forever and the
 				// ship grows without bound.
 				byte ssNum = Game.PlayerNumber(this);
-				if (building is SSStructural && Game.Instance.SpaceshipStructural[ssNum] >= Game.MaxSpaceshipStructural)
+				if (building is SSStructural && Game.Instance.Progress(ssNum).SpaceshipStructural >= Game.MaxSpaceshipStructural)
 					return false;
-				if (building is SSComponent  && Game.Instance.SpaceshipComponent[ssNum]  >= Game.MAX_SS_COMPONENT)
+				if (building is SSComponent  && Game.Instance.Progress(ssNum).SpaceshipComponent  >= Game.MAX_SS_COMPONENT)
 					return false;
-				if (building is SSModule     && Game.Instance.SpaceshipModule[ssNum]     >= Game.MAX_SS_MODULE)
+				if (building is SSModule     && Game.Instance.Progress(ssNum).SpaceshipModule     >= Game.MAX_SS_MODULE)
 					return false;
 			}
 

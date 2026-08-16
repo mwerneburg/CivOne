@@ -144,9 +144,9 @@ namespace CivOne.Tests
 			byte me = g.PlayerNumber(p);
 			(int before, int _) = TargetFor(p);
 
-			g.SpaceshipStructural[me] = Game.MaxSpaceshipStructural;
-			g.SpaceshipComponent[me]  = Game.MAX_SS_COMPONENT;
-			g.SpaceshipModule[me]     = Game.MAX_SS_MODULE - 3;
+			g.Progress(me).SpaceshipStructural = Game.MaxSpaceshipStructural;
+			g.Progress(me).SpaceshipComponent  = Game.MAX_SS_COMPONENT;
+			g.Progress(me).SpaceshipModule     = Game.MAX_SS_MODULE - 3;
 
 			(int after, int afterModule) = TargetFor(p);
 
@@ -167,9 +167,9 @@ namespace CivOne.Tests
 			byte me = g.PlayerNumber(p);
 			(int targetComp, int targetModule) = TargetFor(p);
 			// Already at target on every part: nothing more should be wanted.
-			g.SpaceshipStructural[me] = Game.SpaceshipStructuresNeeded(targetComp, targetModule);
-			g.SpaceshipComponent[me]  = targetComp;
-			g.SpaceshipModule[me]     = targetModule;
+			g.Progress(me).SpaceshipStructural = Game.SpaceshipStructuresNeeded(targetComp, targetModule);
+			g.Progress(me).SpaceshipComponent  = targetComp;
+			g.Progress(me).SpaceshipModule     = targetModule;
 
 			var wants = typeof(AI).GetMethod("WantsSpaceshipPart",
 				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
@@ -189,9 +189,9 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p) = AnEmpire(cities: 6, size: 12);
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipStructural[me] = 0;
-			g.SpaceshipComponent[me]  = 0;
-			g.SpaceshipModule[me]     = 0;
+			g.Progress(me).SpaceshipStructural = 0;
+			g.Progress(me).SpaceshipComponent  = 0;
+			g.Progress(me).SpaceshipModule     = 0;
 
 			var wants = typeof(AI).GetMethod("WantsSpaceshipPart",
 				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

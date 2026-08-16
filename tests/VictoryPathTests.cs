@@ -203,9 +203,9 @@ namespace CivOne.Tests
 			// asks for now is the old build-until-capped behaviour.
 			(int targetComp, int targetModule) = AI.Instance(p).SpaceshipTarget();
 			byte me = g.PlayerNumber(p);
-			g.SpaceshipStructural[me] = Game.SpaceshipStructuresNeeded(targetComp, targetModule);
-			g.SpaceshipComponent[me]  = targetComp;
-			g.SpaceshipModule[me]     = targetModule;
+			g.Progress(me).SpaceshipStructural = Game.SpaceshipStructuresNeeded(targetComp, targetModule);
+			g.Progress(me).SpaceshipComponent  = targetComp;
+			g.Progress(me).SpaceshipModule     = targetModule;
 			Assert.True(p.ProductionAvailable(new SSStructural()),
 				"fixture: parts must still be available, or this passes for the wrong reason");
 

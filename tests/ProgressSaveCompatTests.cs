@@ -37,11 +37,11 @@ namespace CivOne.Tests
 			Player p = g.Players.First(x => x is not null && g.PlayerNumber(x) != 0 && x != g.HumanPlayer);
 			byte n = g.PlayerNumber(p);
 
-			g.SpaceshipLaunchTurn[n]  = Expected.launch;
-			g.SpaceshipArrivalTurn[n] = Expected.arrival;
-			g.SpaceshipStructural[n]  = Expected.str;
-			g.SpaceshipComponent[n]   = Expected.cmp;
-			g.SpaceshipModule[n]      = Expected.mod;
+			g.Progress(n).SpaceshipLaunchTurn  = Expected.launch;
+			g.Progress(n).SpaceshipArrivalTurn = Expected.arrival;
+			g.Progress(n).SpaceshipStructural  = Expected.str;
+			g.Progress(n).SpaceshipComponent   = Expected.cmp;
+			g.Progress(n).SpaceshipModule      = Expected.mod;
 			g.Progress(n).EconStreak     = Expected.econ;
 			g.Progress(n).CultureStreak  = Expected.cult;
 			g.Progress(n).ColonyFounded  = Expected.colony;
@@ -54,11 +54,11 @@ namespace CivOne.Tests
 
 		private static void AssertProgress(Game g, byte n)
 		{
-			Assert.Equal(Expected.launch,  g.SpaceshipLaunchTurn[n]);
-			Assert.Equal(Expected.arrival, g.SpaceshipArrivalTurn[n]);
-			Assert.Equal(Expected.str,     g.SpaceshipStructural[n]);
-			Assert.Equal(Expected.cmp,     g.SpaceshipComponent[n]);
-			Assert.Equal(Expected.mod,     g.SpaceshipModule[n]);
+			Assert.Equal(Expected.launch,  g.Progress(n).SpaceshipLaunchTurn);
+			Assert.Equal(Expected.arrival, g.Progress(n).SpaceshipArrivalTurn);
+			Assert.Equal(Expected.str,     g.Progress(n).SpaceshipStructural);
+			Assert.Equal(Expected.cmp,     g.Progress(n).SpaceshipComponent);
+			Assert.Equal(Expected.mod,     g.Progress(n).SpaceshipModule);
 			Assert.Equal(Expected.econ,    g.Progress(n).EconStreak);
 			Assert.Equal(Expected.cult,    g.Progress(n).CultureStreak);
 			Assert.Equal(Expected.colony,  g.Progress(n).ColonyFounded);
@@ -101,6 +101,43 @@ namespace CivOne.Tests
 			byte n = g.Players.Select(p => g.PlayerNumber(p))
 			                  .First(i => g.Progress(i).ColonyOrder == Expected.order);
 			AssertProgress(g, n);
+		}
+
+		// The per-player fields must WIN over the legacy per-game arrays.
+		//
+		// Both are written, with the same values, so simply letting the legacy block run last
+		// is invisible in a normal round trip — a negative check on the guard killed nothing
+		// at all. It only becomes observable when the two disagree, so this blanks the legacy
+		// arrays in the saved text and asserts the per-player values still arrive. Without the
+		// guard the fallback silently overwrites the real data with zeroes.
+		[Fact]
+		public void ThePerPlayerFieldsBeatTheLegacyArrays()
+		{
+			(Game g, byte n) = AGameWithProgress();
+			string path = Path.Combine(Settings.Instance.SavesDirectory, "legacy-conflict.cos");
+			g.SaveCos(path);
+
+			// Zero every entry of the legacy per-game ship arrays, leaving CosPlayer intact.
+			string[] lines = File.ReadAllLines(path);
+			bool inLegacy = false;
+			for (int i = 0; i < lines.Length; i++)
+			{
+				string t = lines[i].TrimEnd();
+				if (t.StartsWith("  Spaceship") && t.EndsWith(":")) { inLegacy = true; continue; }
+				if (inLegacy)
+				{
+					if (t.StartsWith("  - ")) { lines[i] = "  - 0"; continue; }
+					inLegacy = false;
+				}
+			}
+			File.WriteAllLines(path, lines);
+
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "the doctored save did not load");
+
+			Assert.Equal(Expected.launch, Game.Instance.Progress(n).SpaceshipLaunchTurn);
+			Assert.Equal(Expected.str,    Game.Instance.Progress(n).SpaceshipStructural);
+			Assert.Equal(Expected.mod,    Game.Instance.Progress(n).SpaceshipModule);
 		}
 
 		// A FULL roster must save. This is the bug that ate a whole run: Game.NewGame sizes

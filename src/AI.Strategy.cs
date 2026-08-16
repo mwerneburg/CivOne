@@ -71,7 +71,7 @@ namespace CivOne
 		private bool ProgrammeUnderWay()
 		{
 			byte me = Game.PlayerNumber(Player);
-			return Game.Instance.SpaceshipArrivalTurn[me] > 0 || Game.Instance.Progress(me).ColonyFounded;
+			return Game.Instance.Progress(me).SpaceshipArrivalTurn > 0 || Game.Instance.Progress(me).ColonyFounded;
 		}
 		// Not int.MinValue: the review test is `GameTurn - _pathChosenTurn >= interval`, and
 		// on turn 0 that subtraction overflowed to a large NEGATIVE number, so the first
@@ -191,9 +191,9 @@ namespace CivOne
 		internal (int component, int module) SpaceshipTarget()
 		{
 			byte me = Game.PlayerNumber(Player);
-			int haveStruct = Game.Instance.SpaceshipStructural[me];
-			int haveComp   = Game.Instance.SpaceshipComponent[me];
-			int haveModule = Game.Instance.SpaceshipModule[me];
+			int haveStruct = Game.Instance.Progress(me).SpaceshipStructural;
+			int haveComp   = Game.Instance.Progress(me).SpaceshipComponent;
+			int haveModule = Game.Instance.Progress(me).SpaceshipModule;
 
 			// What the empire can put into a ship between now and the horizon. ShieldIncome is
 			// net of unit upkeep and can be negative in a city carrying an army, so the floor
@@ -268,9 +268,9 @@ namespace CivOne
 			if (targetComp == 0 || targetModule == 0) return false;
 			byte me = Game.PlayerNumber(Player);
 			if (production is SSStructural)
-				return Game.Instance.SpaceshipStructural[me] < Game.SpaceshipStructuresNeeded(targetComp, targetModule);
-			if (production is SSComponent) return Game.Instance.SpaceshipComponent[me] < targetComp;
-			if (production is SSModule)    return Game.Instance.SpaceshipModule[me] < targetModule;
+				return Game.Instance.Progress(me).SpaceshipStructural < Game.SpaceshipStructuresNeeded(targetComp, targetModule);
+			if (production is SSComponent) return Game.Instance.Progress(me).SpaceshipComponent < targetComp;
+			if (production is SSModule)    return Game.Instance.Progress(me).SpaceshipModule < targetModule;
 			return true;
 		}
 
@@ -4233,7 +4233,7 @@ namespace CivOne
 			// is urgent: every turn without it is a turn of the countdown not running.
 			{
 				byte mcMe = Game.PlayerNumber(Player);
-				bool needsLifeline = Game.Instance.SpaceshipArrivalTurn[mcMe] > 0
+				bool needsLifeline = Game.Instance.Progress(mcMe).SpaceshipArrivalTurn > 0
 				                     || Game.Instance.Progress(mcMe).ColonyFounded;
 				if (needsLifeline && Player.ProductionAvailable(new MissionControl())
 				    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
@@ -4276,13 +4276,13 @@ namespace CivOne
 					// needs the lifeline, and one that never launches loses nothing by holding it.
 					if (targetComp > 0 && targetModule > 0)
 					{
-						if (Game.Instance.SpaceshipStructural[ssMe] < Game.SpaceshipStructuresNeeded(targetComp, targetModule)
+						if (Game.Instance.Progress(ssMe).SpaceshipStructural < Game.SpaceshipStructuresNeeded(targetComp, targetModule)
 						    && Player.ProductionAvailable(new SSStructural()))
 							Consider(new SSStructural());
-						if (Game.Instance.SpaceshipComponent[ssMe] < targetComp
+						if (Game.Instance.Progress(ssMe).SpaceshipComponent < targetComp
 						    && Player.ProductionAvailable(new SSComponent()))
 							Consider(new SSComponent());
-						if (Game.Instance.SpaceshipModule[ssMe] < targetModule
+						if (Game.Instance.Progress(ssMe).SpaceshipModule < targetModule
 						    && Player.ProductionAvailable(new SSModule()))
 							Consider(new SSModule());
 					}

@@ -79,7 +79,7 @@ namespace CivOne.Tests
 				_out.WriteLine($"{p.TribeNamePlural,-14} {p.Cities.Length,4} {p.Score,6} {outp,7} "
 				             + $"{(worldOut > 0 ? outp * 100.0 / worldOut : 0),5:F1} "
 				             + $"{p.Culture,8} {cultMultiple,7:F2} {g.CulturalShadow(p),6} "
-				             + $"{g.SpaceshipStructural[n],3}/{g.SpaceshipComponent[n],2}/{g.SpaceshipModule[n],2} "
+				             + $"{g.Progress(n).SpaceshipStructural,3}/{g.Progress(n).SpaceshipComponent,2}/{g.Progress(n).SpaceshipModule,2} "
 				             + $"{(p.HasAdvance<Banking>() ? "yes" : "-"),4} {(p.HasAdvance<Philosophy>() ? "yes" : "-"),4}");
 			}
 
@@ -91,18 +91,18 @@ namespace CivOne.Tests
 			             + $"{g.GrossOutputOf(econLeader) * 100.0 / Math.Max(1, worldOut):F1}% of world output (needs >50%)");
 			_out.WriteLine($"CULTURAL : leader {cultLeader.TribeNamePlural} has shadow {g.CulturalShadow(cultLeader)} "
 			             + $"(needs {g.CulturalShadowTarget}) at {(live.Where(q => q != cultLeader).Max(q => q.Culture) is int r && r > 0 ? (double)cultLeader.Culture / r : 99):F2}x runner-up (needs 2x)");
-			int launched = live.Count(p => g.SpaceshipLaunchTurn[g.PlayerNumber(p)] != 0);
-			int withParts = live.Count(p => g.SpaceshipStructural[g.PlayerNumber(p)]
-			                              + g.SpaceshipComponent[g.PlayerNumber(p)]
-			                              + g.SpaceshipModule[g.PlayerNumber(p)] > 0);
+			int launched = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn != 0);
+			int withParts = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipStructural
+			                              + g.Progress(g.PlayerNumber(p)).SpaceshipComponent
+			                              + g.Progress(g.PlayerNumber(p)).SpaceshipModule > 0);
 			_out.WriteLine($"SPACE    : {withParts} civs hold parts, {launched} launched");
-			foreach (Player p in live.Where(p => g.SpaceshipLaunchTurn[g.PlayerNumber(p)] != 0)
-			                         .OrderBy(p => g.SpaceshipLaunchTurn[g.PlayerNumber(p)]))
+			foreach (Player p in live.Where(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn != 0)
+			                         .OrderBy(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn))
 			{
 				byte n = g.PlayerNumber(p);
 				bool mc = p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>());
-				_out.WriteLine($"           {p.TribeNamePlural,-14} launched turn {g.SpaceshipLaunchTurn[n],4} "
-				             + $"({Common.YearString((ushort)g.SpaceshipLaunchTurn[n])})  "
+				_out.WriteLine($"           {p.TribeNamePlural,-14} launched turn {g.Progress(n).SpaceshipLaunchTurn,4} "
+				             + $"({Common.YearString((ushort)g.Progress(n).SpaceshipLaunchTurn)})  "
 				             + $"missionControl={(mc ? "YES" : "no")}");
 			}
 			int mcHolders = live.Count(p => p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
@@ -313,13 +313,13 @@ namespace CivOne.Tests
 
 			// Earliest launcher, not any launcher: the race is decided by whoever gets there
 			// first, and reporting a straggler makes the science path look far later than it is.
-			Player? sci = live.Where(p => g.SpaceshipLaunchTurn[g.PlayerNumber(p)] != 0
+			Player? sci = live.Where(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn != 0
 			                           && p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()))
-			                  .OrderBy(p => g.SpaceshipLaunchTurn[g.PlayerNumber(p)])
+			                  .OrderBy(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn)
 			                  .FirstOrDefault();
 			Verdict("SCI current (AI-wired)", "launch + Mission Control 20t", sci is not null,
-				sci is null ? "nobody" : $"{sci.TribeNamePlural} launched turn {g.SpaceshipLaunchTurn[g.PlayerNumber(sci)]}"
-				            + $" -> would win ~turn {g.SpaceshipLaunchTurn[g.PlayerNumber(sci)] + 6 + 20}");
+				sci is null ? "nobody" : $"{sci.TribeNamePlural} launched turn {g.Progress(g.PlayerNumber(sci)).SpaceshipLaunchTurn}"
+				            + $" -> would win ~turn {g.Progress(g.PlayerNumber(sci)).SpaceshipLaunchTurn + 6 + 20}");
 		}
 	}
 }

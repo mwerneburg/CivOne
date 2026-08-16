@@ -34,13 +34,6 @@ namespace CivOne
 		private readonly Dictionary<byte, byte> _advanceOrigin = new();
 		private readonly List<ReplayData> _replayData = new();
 
-		// [0]=barbarians, [1+]=civs; 0 = not yet launched; sized to player count at init, resized by AddPlayer()
-		internal int[] SpaceshipLaunchTurn;
-		internal int[] SpaceshipArrivalTurn;
-		// SS part inventories — incremented when a city finishes a part; not stored as city buildings
-		internal int[] SpaceshipStructural;
-		internal int[] SpaceshipComponent;
-		internal int[] SpaceshipModule;
 
 		// Per-turn snapshots: each int[] is [gameTurn, value0, value1, ..., valueN].
 		// Three series, recorded together so their indices always line up — the report
@@ -130,8 +123,7 @@ namespace CivOne
 		// Player object. Nothing here is sized: see PlayerProgress for why that matters.
 		internal PlayerProgress Progress(int n) => _players[n].Progress;
 
-		// Victory progress, PER CIVILIZATION, indexed by player number the way
-		// SpaceshipLaunchTurn and its siblings already are.
+		// Victory progress, PER CIVILIZATION.
 		//
 		// These were four scalars belonging to the human, because the three checks that read
 		// them only ever evaluated HumanPlayer. That made four of the six victory paths
@@ -172,7 +164,7 @@ namespace CivOne
 		// have been a thumb on the scale that needed explaining forever. Player.DeclareWar
 		// already knew the aggressor and already exempted pact-honouring, so this is the same
 		// bookkeeping with the identity of the aggressor kept.
-		internal readonly Dictionary<byte, HashSet<byte>> StartedWars = new();
+
 
 		// A rival has won. Ends the run the way the 2100 score loss already does: the human
 		// is told what happened, the outcome is logged as a loss, and the game is over.
@@ -184,19 +176,16 @@ namespace CivOne
 		}
 
 		internal bool StartedWarWith(byte aggressor, byte victim)
-			=> StartedWars.TryGetValue(aggressor, out HashSet<byte> set) && set.Contains(victim);
+			=> Progress(aggressor).StartedWarsWith.Contains(victim);
 
 		internal void RecordWarStart(byte aggressor, byte victim)
-		{
-			if (!StartedWars.TryGetValue(aggressor, out HashSet<byte> set))
-				StartedWars[aggressor] = set = new HashSet<byte>();
-			set.Add(victim);
-		}
+			=> Progress(aggressor).StartedWarsWith.Add(victim);
 
+		// Both directions: peace clears the grievance whichever side drew first.
 		internal void ForgetWarStart(byte a, byte b)
 		{
-			if (StartedWars.TryGetValue(a, out HashSet<byte> sa)) sa.Remove(b);
-			if (StartedWars.TryGetValue(b, out HashSet<byte> sb)) sb.Remove(a);
+			Progress(a).StartedWarsWith.Remove(b);
+			Progress(b).StartedWarsWith.Remove(a);
 		}
 
 		// ── Senate grievances ────────────────────────────────────────────────
@@ -1182,11 +1171,6 @@ namespace CivOne
 			_players.Add(player);
 			player.Destroyed += PlayerDestroyed;
 			int n = _players.Count;
-			Array.Resize(ref SpaceshipLaunchTurn,  n);
-			Array.Resize(ref SpaceshipArrivalTurn, n);
-			Array.Resize(ref SpaceshipStructural,  n);
-			Array.Resize(ref SpaceshipComponent,   n);
-			Array.Resize(ref SpaceshipModule,      n);
 		}
 
 		// Wipe a civ's space programme back to nothing: no ship in flight, no parts, no
@@ -1200,12 +1184,12 @@ namespace CivOne
 		// starting over means the whole hull, some ten thousand shields.
 		internal void ResetSpaceProgramme(int p)
 		{
-			if (p < 0 || p >= SpaceshipLaunchTurn.Length) return;
-			SpaceshipLaunchTurn[p]  = 0;
-			SpaceshipArrivalTurn[p] = 0;
-			SpaceshipStructural[p]  = 0;
-			SpaceshipComponent[p]   = 0;
-			SpaceshipModule[p]      = 0;
+			if (p < 0 || p >= _players.Count || _players[p] is null) return;
+			Progress(p).SpaceshipLaunchTurn  = 0;
+			Progress(p).SpaceshipArrivalTurn = 0;
+			Progress(p).SpaceshipStructural  = 0;
+			Progress(p).SpaceshipComponent   = 0;
+			Progress(p).SpaceshipModule      = 0;
 		}
 
 		internal void ClearSpaceShipProduction(int playerIndex)
@@ -1601,8 +1585,8 @@ namespace CivOne
 						(int reach, int shadow) = CulturalReachAndShadow(p);
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
 							reach, shadow, GrossOutput(p), worldOut,
-							SpaceshipStructural[pn], SpaceshipComponent[pn], SpaceshipModule[pn],
-							SpaceshipLaunchTurn[pn],
+							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
+							Progress(pn).SpaceshipLaunchTurn,
 							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
 					}
 				}
@@ -2075,18 +2059,18 @@ namespace CivOne
 				{
 					if (_players[p].IsDestroyed()) continue;
 					if (_players[p] == HumanPlayer && !Settings.Instance.Autopilot) continue;
-					int structural = SpaceshipStructural[p];
-					int component  = SpaceshipComponent[p];
-					int module     = SpaceshipModule[p];
+					int structural = Progress(p).SpaceshipStructural;
+					int component  = Progress(p).SpaceshipComponent;
+					int module     = Progress(p).SpaceshipModule;
 					// Minimum: 1 engine (2 comps), 1 module set (3 mods), sufficient structure
 					int needed = SpaceshipStructuresNeeded(component, module);
 					if (component < 2 || module < 3 || structural < needed) continue;
-					if (SpaceshipLaunchTurn[p] != 0) continue;
+					if (Progress(p).SpaceshipLaunchTurn != 0) continue;
 
-					SpaceshipLaunchTurn[p] = _gameTurn;
-					SpaceshipArrivalTurn[p] = _gameTurn + SpaceshipTravelTurns(structural, component, module);
+					Progress(p).SpaceshipLaunchTurn = _gameTurn;
+					Progress(p).SpaceshipArrivalTurn = _gameTurn + SpaceshipTravelTurns(structural, component, module);
 					ClearSpaceShipProduction(p);
-					string eta = Common.YearString((ushort)SpaceshipArrivalTurn[p]);
+					string eta = Common.YearString((ushort)Progress(p).SpaceshipArrivalTurn);
 					GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,
 						$"The {_players[p].TribeNamePlural}",
 						"have launched a spaceship!",
@@ -2098,12 +2082,12 @@ namespace CivOne
 				// not a game-ender — show the event and continue.
 				int bestArrival = int.MaxValue;
 				for (int p = 1; p < _players.Count; p++)
-					if (SpaceshipArrivalTurn[p] > 0 && SpaceshipArrivalTurn[p] < bestArrival)
-						bestArrival = SpaceshipArrivalTurn[p];
+					if (Progress(p).SpaceshipArrivalTurn > 0 && Progress(p).SpaceshipArrivalTurn < bestArrival)
+						bestArrival = Progress(p).SpaceshipArrivalTurn;
 
 				if (bestArrival <= _gameTurn)
 				{
-					bool humanWins = SpaceshipArrivalTurn[PlayerNumber(HumanPlayer)] == bestArrival;
+					bool humanWins = Progress(PlayerNumber(HumanPlayer)).SpaceshipArrivalTurn == bestArrival;
 
 					if (SETISignalReceived && VisitorType == VisitorArchetype.Owners)
 					{
@@ -2113,7 +2097,7 @@ namespace CivOne
 						// contained nuisance, not a spacefaring species.
 						for (int p = 1; p < _players.Count; p++)
 						{
-							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+							if (Progress(p).SpaceshipArrivalTurn != bestArrival) continue;
 							ResetSpaceProgramme(p);
 							if (_players[p] == HumanPlayer)
 							{
@@ -2156,10 +2140,10 @@ namespace CivOne
 						// fifth ship to make the same crossing is not the same feat.
 						for (int p = 1; p < _players.Count; p++)
 						{
-							if (SpaceshipArrivalTurn[p] != bestArrival) continue;
+							if (Progress(p).SpaceshipArrivalTurn != bestArrival) continue;
 							if (_players[p] is null || _players[p].IsDestroyed()) continue;
 
-							SpaceshipArrivalTurn[p] = 0;
+							Progress(p).SpaceshipArrivalTurn = 0;
 							if (Progress(p).ColonyFounded) continue;
 							Progress(p).ColonyFounded = true;
 							Progress(p).ColonyOrder = _players.Count(x => x is not null && x.Progress.ColonyOrder > 0) + 1;

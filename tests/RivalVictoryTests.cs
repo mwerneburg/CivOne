@@ -71,6 +71,24 @@ namespace CivOne.Tests
 			Assert.False(g.StartedWarWith(h, r), "the human was blamed for a war it did not start");
 		}
 
+		// Peace clears it whichever side sues for it. The existing test has the AGGRESSOR
+		// making peace, which only exercises one half of ForgetWarStart — removing the other
+		// half killed nothing at all. This is the case that catches it: the victim ends the
+		// war, and the aggressor's grievance must go with it.
+		[Fact]
+		public void PeaceMadeByTheVictimAlsoClearsTheRecord()
+		{
+			(Game g, Player human, Player rival) = AWorld();
+			byte h = g.PlayerNumber(human), r = g.PlayerNumber(rival);
+			rival.DeclareWar(human);
+			Assert.True(g.StartedWarWith(r, h), "fixture: the rival's war was not recorded");
+
+			human.MakePeace(rival);
+
+			Assert.False(g.StartedWarWith(r, h),
+				"the aggressor kept its grievance after the victim made peace");
+		}
+
 		// ...and forgotten on peace, from both directions.
 		[Fact]
 		public void MakingPeaceClearsTheAggressorRecord()
