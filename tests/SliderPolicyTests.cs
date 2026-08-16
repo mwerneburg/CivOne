@@ -95,7 +95,8 @@ namespace CivOne.Tests
 						$"{p.TribeNamePlural} sliders sum past 10");
 				}
 
-				Assert.Single(states.Skip(states.Count - 4).Distinct());
+				Assert.True(states.Skip(states.Count - 4).Distinct().Count() == 1,
+					$"{p.TribeNamePlural} did not settle: {string.Join(" -> ", states)}");
 				if (trade > 0)
 					Assert.True(p.ScienceRate > 0,
 						$"{p.TribeNamePlural} has {trade} trade but ended on science rate 0");

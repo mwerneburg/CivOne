@@ -24,7 +24,7 @@ namespace CivOne.Tiles
 		// instead, and the two stack for the rare tile that can have both.
 		public override sbyte Food => (sbyte)((Irrigation ? 1 : 0) + (MoistureFarm ? 1 : 0));
 		public override sbyte Shield => (sbyte)(1 + (Special ? 3 : 0) + (Mine ? 1 : 0));
-		public override sbyte Trade => (sbyte)(Road || RailRoad ? 1 : 0);
+		public override sbyte Trade => (sbyte)(HasTransportLink ? 1 : 0);
 		public override sbyte IrrigationFoodBonus => -2;
 		public override byte IrrigationCost => 5;
 		public override sbyte MiningShieldBonus => -2;

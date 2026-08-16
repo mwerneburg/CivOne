@@ -198,6 +198,19 @@ namespace CivOne.Tiles
 		}
 		public virtual bool TransportTube { get; set; }
 
+		// Is there a surface link here at all, of any tier?
+		//
+		// Road, RailRoad and TransportTube mask each other on purpose — the renderer must draw
+		// only the highest tier present, so Road goes false the moment a railway is laid and
+		// RailRoad goes false the moment a tube is. Every RULE that asked "is there a road
+		// here" inherited that masking, which is not what any of them meant: a tubed grassland
+		// reported Road = false AND RailRoad = false, so Grassland.Trade returned 0, the
+		// government's road trade bonus was skipped, and the rail multiplier did not apply.
+		// Building the best transport in the game took a worked tile from 2 trade to none.
+		//
+		// Measured in a finished 2200 AD game: 694 tiles carried tubes.
+		public bool HasTransportLink => _road || _railroad || TransportTube;
+
 		// Terrace (Hills) and Moisture Farm (Desert). Both add food to ground irrigation
 		// cannot reach — irrigation needs fresh water in the cross, and the deep interior of
 		// a continent has none. Deliberately NOT available on Salt Flat: that terrain is meant

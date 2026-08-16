@@ -787,6 +787,29 @@ namespace CivOne
 		private const double CrisisRecovered = 0.30;
 		private bool _inCrisis;
 
+		// The lowest luxury rate this empire has actually proved it cannot hold, plus one.
+		// The wind-down refuses to return to it.
+		//
+		// The dead band below (raise above 12% unrest, lower below 5%) assumes one slider
+		// point is worth less than the gap between those thresholds. At 71 cities it is not:
+		// a single point took the Malians from under 5% unrest to over 12%, stepping clean
+		// over the band. The wind-down went 3 -> 2 -> 1, the raise put two points back, and it
+		// cycled forever — 5/3/2 -> 5/2/3 -> 5/1/4 -> 5/3/2. Hysteresis on _inCrisis cannot
+		// help, because the walk-down is driven by unrest, not by the crisis flag.
+		//
+		// Surfaced by a trade increase (the transport-tier fix) making the empire rich enough
+		// to reach 1, where it used to stop at 2. So the policy found a lower viable rate and
+		// then overshot it; this remembers the overshoot.
+		private int _luxuryFloor;
+
+		// ...and the floor is not permanent, or one bad turn in 500 BC would pin an empire
+		// forever. After this many consecutive quiet passes it relaxes by one and the civ
+		// re-probes the lower rate — which does mean a slow periodic dip rather than a true
+		// fixed point, deliberately: a civ that has since built temples should get its
+		// research back, and the cost of finding out is one luxury point every 20 turns.
+		private const int LuxuryFloorRelaxTurns = 20;
+		private int _quietPasses;
+
 		// Latched crisis state — call once per ConsiderSliders pass, before anything reads
 		// the thresholds, so every branch in that pass agrees about the situation.
 		private bool InCrisis(double unrest)
@@ -3370,14 +3393,42 @@ namespace CivOne
 				// outside the window; that is the same trade the "nearest, not most distant"
 				// note above already argues for.
 				const int MaxProbes = 4;
-				var reachable = Game.GetCities()
+				// Skip partners this caravan's home city is ALREADY routed to, and skip them
+				// before the probe cap so the four searches are spent on targets worth having.
+				//
+				// Routes are unique per partner (City.AddTradeRoute removes any existing route
+				// to the same city before adding), so a second delivery to the same place
+				// replaces the route rather than stacking it — it buys nothing but the one-time
+				// gold, which itself decays by a third once both civs have Railroad and again
+				// with Flight. Nothing here checked, and the target is the NEAREST foreign city,
+				// which is a stable choice: every caravan a city ever built walked to the same
+				// neighbour and re-sold it the same route.
+				City? home = unit.Home;
+				bool alreadyRouted(City c) => home is not null && home.TradeRoutes.Any(r => r.Partner == c);
+
+				var candidates = Game.GetCities()
 				    .Where(c => c.Player != Player && sameContinent(c))
+				    .Where(c => !alreadyRouted(c))
 				    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
 				    .Take(MaxProbes)
 				    .Where(FirstStepReachable)
 				    .ToList();
-				City target = reachable.FirstOrDefault(c => c.Size >= popFloor)
-				           ?? reachable.FirstOrDefault();
+				City target = candidates.FirstOrDefault(c => c.Size >= popFloor)
+				           ?? candidates.FirstOrDefault();
+
+				// Every nearby partner already routed. Falling back to a duplicate delivery is
+				// still better than idling at upkeep forever — the gold is small but real, and
+				// a refreshed commodity is not nothing — so try again without the filter.
+				if (target is null)
+				{
+					var repeats = Game.GetCities()
+					    .Where(c => c.Player != Player && sameContinent(c))
+					    .OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y))
+					    .Take(MaxProbes)
+					    .Where(FirstStepReachable)
+					    .ToList();
+					target = repeats.FirstOrDefault(c => c.Size >= popFloor) ?? repeats.FirstOrDefault();
+				}
 
 				if (target is not null) unit.Goto = new Point(target.X, target.Y);
 				// SkipTurn, not Sentry — an AI unit that sentries never wakes. See
@@ -4209,7 +4260,24 @@ namespace CivOne
 					// Pax Mercatoria is measured in gross output and in rivals economically
 					// bound to you, and the Caravan is the only unit that does both — a trade
 					// route raises output at both ends and counts as a binding.
-					if (Player.HasAdvance<Trade>()) Consider(new Caravan());
+					//
+					// Ceilinged, like the Conquest entry above and for a sharper reason: this
+					// was the ONE path entry with no bound at all. A delivered caravan is
+					// consumed, so the unit count never accumulates and no guard ever tripped —
+					// every city of a Commerce civ re-offered a Caravan every turn, forever,
+					// ahead of the entire infrastructure chain. That is what starved the
+					// aqueducts (see the growth-cap entry above).
+					//
+					// Deliberately the SAME ceiling the standard chain already applies further
+					// down — max(2, cities/6), counting in-flight units because a caravan is
+					// consumed on delivery. A commercial ambition should make a civ build
+					// caravans EARLIER, which is what this entry's position achieves; it should
+					// not let it build MORE than the rule everyone else follows. Two ceilings
+					// that disagree is just one of them being wrong.
+					int caravansAfoot = Game.GetUnits().Count(u => u.Owner == Game.PlayerNumber(Player)
+					                                            && u is Caravan);
+					if (Player.HasAdvance<Trade>() && caravansAfoot < Math.Max(2, Player.Cities.Length / 6))
+						Consider(new Caravan());
 					break;
 
 				case VictoryPath.Culture:

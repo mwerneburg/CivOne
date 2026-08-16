@@ -26,7 +26,7 @@ namespace CivOne.Tiles
 		public override byte Defense => 1;
 		public override sbyte Food => 0;
 		public override sbyte Shield => (sbyte)(Mine ? 1 : 0);
-		public override sbyte Trade => (sbyte)(Road || RailRoad ? 1 : 0);
+		public override sbyte Trade => (sbyte)(HasTransportLink ? 1 : 0);
 
 		// Negative bonus = "cannot be irrigated" in the same idiom Desert uses for its penalty;
 		// TileExtensions.AllowIrrigation reads the sign.

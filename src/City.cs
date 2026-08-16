@@ -379,7 +379,11 @@ namespace CivOne
 					if (!Player.AnarchyDespotism && tile.Special) output += 1;
 					break;
 			}
-			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			// Tube-aware: TransportTube masks RailRoad (BaseTile.HasTransportLink), so an
+			// upgraded tile silently LOST this multiplier. Rounding deliberately unchanged —
+			// the floor()/ceiling() correction belongs to trade, where a 1-yield tile is the
+			// common case; food and shields are mostly 2+ and would only be rebalanced.
+			if (tile.RailRoad || tile.TransportTube) output = (int)Math.Floor((double)output * 1.5);
 			if (tile.IsOcean && HasBuilding<SeaPlatform>()) output += 1;
 			// A Harbour feeds the whole worked ocean ring. Stacks with the Sea Platform:
 			// one is a fishing fleet, the other floating farmland, and a city that has
@@ -407,7 +411,11 @@ namespace CivOne
 					if (!Player.AnarchyDespotism && tile.Mine) output += 1;
 					break;
 			}
-			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
+			// Tube-aware: TransportTube masks RailRoad (BaseTile.HasTransportLink), so an
+			// upgraded tile silently LOST this multiplier. Rounding deliberately unchanged —
+			// the floor()/ceiling() correction belongs to trade, where a 1-yield tile is the
+			// common case; food and shields are mostly 2+ and would only be rebalanced.
+			if (tile.RailRoad || tile.TransportTube) output = (int)Math.Floor((double)output * 1.5);
 			// Sea Platform extends floating industry to the worked ocean ring (the center
 			// is already covered by the city-center floor above).
 			if (tile.IsOcean && !isCenter && HasBuilding<SeaPlatform>()) output += 1;
@@ -442,14 +450,13 @@ namespace CivOne
 			// (matches the shield floor in ShieldValue and the original Civ I rule).
 			if (tile.X == X && tile.Y == Y && output < 1) output = 1;
 
-			if (tile.RailRoad) output = (int)Math.Floor((double)output * 1.5);
 			switch (tile.Type)
 			{
 				case Terrain.Desert:
 				case Terrain.Grassland1:
 				case Terrain.Grassland2:
 				case Terrain.Plains:
-					if (!tile.Road) break;
+					if (!tile.HasTransportLink) break;
 					output += Player.Government.TradeBonus;
 					break;
 				case Terrain.Ocean:
@@ -468,6 +475,25 @@ namespace CivOne
 					output += Player.Government.SpecialResourceTradeBonus;
 					break;
 			}
+			// The transport ladder, applied AFTER the terrain and government bonuses and
+			// rounded UP. Both of those are corrections.
+			//
+			// It used to run first, on tile.Trade alone, and round down — so on a roaded
+			// grassland, which is most worked land in an empire, floor(1 * 1.5) = 1 and laying
+			// a railway across the country bought exactly nothing. It only ever paid on tiles
+			// already yielding 2 or more: ocean, rivers, and special jungle.
+			//
+			// Multiplying the improved value is also the right order on its own terms: a road
+			// lets goods move, a railway multiplies the throughput of the road beneath it.
+			//
+			// Tubes take the SAME 1.5 as rail, not more. They are water-only in practice — all
+			// 694 in a finished game sat on ocean, none on land — and ocean is already the
+			// richest trade terrain, so a 2.0 tier here was worth about a fifth of world output
+			// on its own. A tube still beats the rail it notionally replaces, because it now
+			// counts as a transport link at all (HasTransportLink), which the masking denied it.
+			if (output > 0 && (tile.RailRoad || tile.TransportTube))
+				output = (int)Math.Ceiling(output * 1.5);
+
 			if (output > 0 && HasWonder<Colossus>() && !Game.WonderObsolete<Colossus>()) output += 1;
 			if (Game.OlvirImprovements.TryGetValue((tile.X, tile.Y), out var olvirT))
 				output += OlvirTradeBonus(olvirT);

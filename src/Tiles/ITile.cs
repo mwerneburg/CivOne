@@ -39,6 +39,9 @@ namespace CivOne.Tiles
 		bool Road { get; set; }
 		bool RailRoad { get; set; }
 		bool TransportTube { get; set; }
+		// Any surface link, whatever tier — see BaseTile.HasTransportLink for why the three
+		// properties above cannot answer that question.
+		bool HasTransportLink { get; }
 
 		// Terracing (Hills) and moisture farming (Desert): two ways to get food out of ground
 		// that irrigation cannot reach, because it has no fresh water beside it.
