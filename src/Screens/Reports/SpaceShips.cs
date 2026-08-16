@@ -68,26 +68,11 @@ namespace CivOne.Screens.Reports
 			return y + barH + 2;
 		}
 
-		// Draw one roster row: symbol label, name, count fraction, set bar.
-		private int DrawRosterRow(char sym, string name, int built, int total,
-		                          int x, int y, int panelW, byte barColor)
-		{
-			int fh = 7;
-			// Symbol glyph box
-			this.FillRectangle(x, y, 9, 9, CassetteTheme.BORDER)
-			    .FillRectangle(x + 1, y + 1, 7, 7, CassetteTheme.BG2)
-			    .DrawText(sym.ToString(), 0, barColor, x + 1, y + 1);
-
-			// Name + fraction
-			byte countColor = (built >= total) ? CassetteTheme.OK : CassetteTheme.PHOS_DIM;
-			this.DrawText(name, 0, CassetteTheme.INK_HIGH, x + 12, y + 1)
-			    .DrawText($"{built}/{total}", 0, countColor, x + panelW - 3, y + 1, TextAlign.Right);
-
-			// Slot bar
-			DrawSetBar(built, total, x + 12, y + fh + 3, panelW - 15, 5, barColor);
-
-			return y + fh + 12;
-		}
+		// How many of ONE part type are built, given `total` parts of `perSet` types that
+		// arrive strictly in rotation (hab, life, solar / pod, thruster). Clamped to the
+		// number of columns drawn.
+		internal static int BuiltOfType(int total, int typeIndex, int perSet, int cols)
+			=> Math.Max(0, Math.Min(cols, (total - typeIndex + perSet - 1) / perSet));
 
 		// Corner bracket for the viewport HUD overlay
 		private void DrawCornerBracket(int x, int y, int rot)
@@ -114,8 +99,6 @@ namespace CivOne.Screens.Reports
 			int cmp = Count<SSComponent>(p);
 			int mod = Count<SSModule>(p);
 
-			int engines  = cmp / 2;
-			int modSets  = mod / 3;
 			int strNeeded = Game.SpaceshipStructuresNeeded(cmp, mod);
 			bool launched = Game.Instance.SpaceshipLaunchTurn[pid] != 0;
 			bool canLaunch = cmp >= 2 && mod >= 3 && str >= strNeeded && !launched;
@@ -165,12 +148,13 @@ namespace CivOne.Screens.Reports
 			DrawCornerBracket(vx2 - 1, vy2 - 1, 2);
 			DrawCornerBracket(vx1,     vy2 - 1, 3);
 
-			// Telemetry lines top-right (open sky area)
+			// Title only. ENGINES, MOD·SETS and STRUCTURE used to sit here too, and all three
+			// were saying what the roster panel now shows better: engines are the component
+			// columns, mod sets the module columns, structure the box grid. They were also the
+			// least legible text on the screen — PHOS_DIM over the bright hull trusses, which
+			// is why the mod-set count could not be read at all.
 			int tx0 = vx2 - 12, tly = vy1 + 4;
-			this.DrawText("ORBITAL SHIPYARD · L4",  0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right);      tly += 9;
-			this.DrawText($"ENGINES ·· {engines:D2}",      0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right); tly += 9;
-			this.DrawText($"MOD·SETS ·· {modSets:D2}",     0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right); tly += 9;
-			this.DrawText($"STRUCTURE · {str:D2}/{strNeeded:D2}", 0, str >= strNeeded ? CassetteTheme.OK : CassetteTheme.PHOS, tx0, tly, TextAlign.Right);
+			this.DrawText("ORBITAL SHIPYARD · L4", 0, CassetteTheme.PHOS_DIM, tx0, tly, TextAlign.Right);
 
 			// Telemetry lines bottom-right — anchored above the progress bar (barY = vy2-18)
 			int trx = vx2 - 4;
@@ -194,55 +178,58 @@ namespace CivOne.Screens.Reports
 			              barX, barY + 7);
 
 			// ── roster panel ──────────────────────────────────────────────────────
+			//
+			// Modules and components are GRIDS, and a COLUMN IS A SET.
+			//
+			// They used to be lists: one labelled progress bar per part, max(1, modSets + 1)
+			// sets of three rows. A maxed 12-module ship therefore wanted 15 rows plus set
+			// dividers — around 195px of a 169px panel for MODULES alone, which pushed
+			// COMPONENTS against the bottom edge and STRUCTURAL clean off it. The list grew
+			// with the ship and the panel did not, so the fuller the ship the less you could
+			// see of it.
+			//
+			// Three filled boxes down a module column is one complete set; two down a
+			// component column is one engine. Parts arrive in type order (hab, life, solar /
+			// pod, thruster), so the ragged right-hand edge shows exactly how far into the
+			// current set the yard has reached — the thing the divider lines were for.
+			//
+			// Rows are icon-only, which is what buys the width for eight engine columns; the
+			// key at the foot of the panel decodes the glyphs once.
 			int ry = headerH + 6;
 
-			// --- Modules ---
+			const int boxW = 8, boxH = 7, boxGap = 1;
+			int gridX = rosterX + 11;
+
+			int DrawPartRow(char glyph, int built, int cols, int y, byte colour)
+			{
+				this.DrawText(glyph.ToString(), 0, colour, rosterX + 1, y + 1);
+				for (int i = 0; i < cols; i++)
+				{
+					int sx = gridX + i * (boxW + boxGap);
+					this.FillRectangle(sx, y, boxW, boxH, CassetteTheme.BORDER)
+					    .FillRectangle(sx + 1, y + 1, boxW - 2, boxH - 2,
+					                   i < built ? colour : CassetteTheme.BG2);
+				}
+				return y + boxH + 2;
+			}
+
+			char[] modSyms  = { '\xE9', '\x2A', '#' };   // fallback ascii glyphs
+			char[] compSyms = { 'O', '>' };
+
+			// --- Modules: three types across the maximum number of sets ---
 			this.DrawText("MODULES", 0, CassetteTheme.OK, rosterX, ry); ry += 9;
 			this.FillRectangle(rosterX, ry, rosterW, 1, CassetteTheme.BORDER); ry += 3;
-
-			int modTotal  = Math.Max(3, ((modSets + 1) * 3));  // show at least 1 set
-			// Show in groups of 3 (each set: HAB · LSP · SOL)
-			string[] modNames = { "HAB DOME", "LIFE SUPP", "SOLAR ARR" };
-			char[]   modSyms  = { '\xE9', '\x2A', '#' };        // fallback ascii glyphs
-			for (int si = 0; si < Math.Max(1, modSets + 1); si++)
-			{
-				for (int mi = 0; mi < 3; mi++)
-				{
-					int idx   = si * 3 + mi;
-					int blt   = Math.Min(1, Math.Max(0, mod - idx));
-					ry = DrawRosterRow(modSyms[mi], modNames[mi], blt, 1,
-					                   rosterX, ry, rosterW, CassetteTheme.OK);
-				}
-				if (si < modSets) // set divider
-				{
-					this.FillRectangle(rosterX + 4, ry, rosterW - 8, 1, CassetteTheme.BG2);
-					ry += 3;
-				}
-			}
+			int modCols = Game.MAX_SS_MODULE / 3;
+			for (int mi = 0; mi < 3; mi++)
+				ry = DrawPartRow(modSyms[mi], BuiltOfType(mod, mi, 3, modCols), modCols, ry, CassetteTheme.OK);
 			ry += 4;
 
-			// --- Components ---
+			// --- Components: two types across the maximum number of engines ---
 			this.DrawText("COMPONENTS", 0, CassetteTheme.PHOS, rosterX, ry); ry += 9;
 			this.FillRectangle(rosterX, ry, rosterW, 1, CassetteTheme.BORDER); ry += 3;
-
-			string[] compNames = { "FUEL POD", "THRUSTER" };
-			char[]   compSyms  = { 'O', '>' };
-			int engSetsShow = Math.Max(1, engines + 1);
-			for (int ei = 0; ei < engSetsShow; ei++)
-			{
-				for (int ci = 0; ci < 2; ci++)
-				{
-					int idx = ei * 2 + ci;
-					int blt = Math.Min(1, Math.Max(0, cmp - idx));
-					ry = DrawRosterRow(compSyms[ci], compNames[ci], blt, 1,
-					                   rosterX, ry, rosterW, CassetteTheme.PHOS);
-				}
-				if (ei < engines)
-				{
-					this.FillRectangle(rosterX + 4, ry, rosterW - 8, 1, CassetteTheme.BG2);
-					ry += 3;
-				}
-			}
+			int cmpCols = Game.MAX_SS_COMPONENT / 2;
+			for (int ci = 0; ci < 2; ci++)
+				ry = DrawPartRow(compSyms[ci], BuiltOfType(cmp, ci, 2, cmpCols), cmpCols, ry, CassetteTheme.PHOS);
 			ry += 4;
 
 			// --- Structural ---
@@ -268,6 +255,14 @@ namespace CivOne.Screens.Reports
 			}
 			ry += rows * (segH + segGap) + 3;
 			this.DrawText($"{str} / {strNeeded} REQUIRED", 0, str >= strNeeded ? CassetteTheme.OK : CassetteTheme.PHOS, rosterX + 2, ry);
+			ry += 11;
+
+			// The key, and the reason the rows above can be icon-only. Modules on one line,
+			// components on the next, so the two vocabularies stay separate.
+			this.DrawText($"{modSyms[0]} HAB  {modSyms[1]} LIFE  {modSyms[2]} SOLAR",
+			              0, CassetteTheme.INK_MID, rosterX + 2, ry); ry += 8;
+			this.DrawText($"{compSyms[0]} FUEL POD  {compSyms[1]} THRUSTER",
+			              0, CassetteTheme.INK_MID, rosterX + 2, ry);
 
 			// ── footer ────────────────────────────────────────────────────────────
 			int fy = H - footerH;

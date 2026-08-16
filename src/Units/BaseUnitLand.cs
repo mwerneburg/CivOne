@@ -23,7 +23,16 @@ namespace CivOne.Units
 	{
 		protected override void MovementDone(ITile previousTile)
 		{
-			if (previousTile.IsOcean || Tile.IsOcean)
+			// Boarding or leaving a ship ends the turn. Crossing a bridge does not.
+			//
+			// This tested IsOcean alone, and a transport tube IS an ocean tile — so walking a
+			// road or rail to the shore and stepping onto the tube zeroed the movement the
+			// connected-tile rules below had just granted for free. The unit crossed one tube
+			// tile per turn and appeared to stop dead where the tube began. ValidMoveTarget
+			// already calls tubes and floating cities "walkable bridges for land units"; this
+			// is the same exemption, applied to the cost.
+			bool ShipWater(ITile t) => t.IsOcean && !t.TransportTube && t.City is null;
+			if (ShipWater(previousTile) || ShipWater(Tile))
 			{
 				MovesLeft = 0;
 				PartMoves = 0;
