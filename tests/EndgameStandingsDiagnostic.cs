@@ -89,8 +89,30 @@ namespace CivOne.Tests
 			Player cultLeader = live.OrderByDescending(p => p.Culture).First();
 			_out.WriteLine($"ECONOMIC : leader {econLeader.TribeNamePlural} holds "
 			             + $"{g.GrossOutputOf(econLeader) * 100.0 / Math.Max(1, worldOut):F1}% of world output (needs >50%)");
-			_out.WriteLine($"CULTURAL : leader {cultLeader.TribeNamePlural} has shadow {g.CulturalShadow(cultLeader)} "
-			             + $"(needs {Game.CulturalShadowTarget(g.CulturalReachAndShadow(cultLeader).reach)}) at {(live.Where(q => q != cultLeader).Max(q => q.Culture) is int r && r > 0 ? (double)cultLeader.Culture / r : 99):F2}x runner-up (needs 2x)");
+			// Reported against the BEST NEIGHBOUR, not the world's runner-up — that is what the
+			// rule compares, and a diagnostic printing the old global ratio would have said the
+			// Mongols were on 0.78x in the very run that proved the global test wrong.
+			(int clReach, int clShadow, long clBest) = g.CulturalReachAndShadow(cultLeader);
+			_out.WriteLine($"CULTURAL : leader {cultLeader.TribeNamePlural} has shadow {clShadow} "
+			             + $"(needs {Game.CulturalShadowTarget(clReach)}) at "
+			             + $"{(clBest > 0 ? (double)cultLeader.Culture / clBest : 99):F2}x best neighbour "
+			             + $"(needs {Game.CultureLeadMultiple}x)");
+
+			// The civ best placed on the LOCAL rule is often not the culture leader at all —
+			// that asymmetry is the whole reason the clause moved, so name it explicitly.
+			Player localBest = live
+				.Where(p => !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers
+				                             or Civilizations.TheThing or Civilizations.Skynet))
+				.OrderByDescending(p => { (int r2, int s2, long b2) = g.CulturalReachAndShadow(p);
+				                          return b2 > 0 ? (double)p.Culture / b2 : 0; })
+				.FirstOrDefault() ?? cultLeader;
+			(int lbReach, int lbShadow, long lbBest) = g.CulturalReachAndShadow(localBest);
+			_out.WriteLine($"           strongest LOCALLY: {localBest.TribeNamePlural} at "
+			             + $"{(lbBest > 0 ? (double)localBest.Culture / lbBest : 0):F2}x best neighbour, "
+			             + $"shadow {lbShadow}/{Game.CulturalShadowTarget(lbReach)} of reach {lbReach}"
+			             + (lbShadow >= Game.CulturalShadowTarget(lbReach)
+			                && lbBest > 0 && localBest.Culture >= lbBest * Game.CultureLeadMultiple
+			                ? "   << BOTH CLAUSES MET" : ""));
 			int launched = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn != 0);
 			int withParts = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipStructural
 			                              + g.Progress(g.PlayerNumber(p)).SpaceshipComponent
@@ -192,7 +214,25 @@ namespace CivOne.Tests
 			double cultLead = (double)cult1.Culture / Math.Max(1, cult2.Culture);
 			int cultShadow = g.CulturalShadow(cult1);
 			int cultTarget = Game.CulturalShadowTarget(g.CulturalReachAndShadow(cult1).reach);
-			Verdict("CULT current", "2x runner-up AND shadow >= target", cultLead >= 2.0 && cultShadow >= cultTarget,
+			// The shipping rule, judged locally for every civ — not just the culture leader,
+			// because the winner under a local clause need not lead the world.
+			Player? localWinner = null; double localLead = 0;
+			foreach (Player p in live)
+			{
+				if (p.Civilization is Civilizations.Olvir or Civilizations.TheOthers
+				                   or Civilizations.TheThing or Civilizations.Skynet) continue;
+				(int r3, int s3, long b3) = g.CulturalReachAndShadow(p);
+				if (b3 <= 0 || s3 < Game.CulturalShadowTarget(r3)) continue;
+				double ld = (double)p.Culture / b3;
+				if (ld >= Game.CultureLeadMultiple && ld > localLead) { localLead = ld; localWinner = p; }
+			}
+			Verdict("CULT current (local)", $"{Game.CultureLeadMultiple}x best NEIGHBOUR AND shadow >= target",
+				localWinner is not null,
+				localWinner is not null
+					? $"{localWinner.TribeNamePlural} {localLead:F2}x locally"
+					: "nobody meets both clauses");
+
+			Verdict("CULT old global rule", "2x world runner-up AND shadow >= target", cultLead >= 2.0 && cultShadow >= cultTarget,
 				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{cultTarget}");
 			Verdict("CULT 1.5x + shadow", "1.5x runner-up AND shadow >= target", cultLead >= 1.5 && cultShadow >= cultTarget,
 				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{cultTarget}");
