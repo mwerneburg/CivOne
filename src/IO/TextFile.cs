@@ -47,6 +47,21 @@ namespace CivOne.IO
 		// world like a bug in the map.
 		private static readonly Dictionary<string, string[]> _fallback = new()
 		{
+			// The opening address, shown once on the new-game screen and immediately followed
+			// by the list of what the tribe already knows — so its LAST line has to run into
+			// that list. Without this, asset-free mode dropped the whole address and left the
+			// player looking at a fragment: "Alphabet, and Roads."
+			//
+			// $RPLC1 is the leader name and $US the plural tribe name; NewGame substitutes
+			// both. Kept to 30-odd characters a line, which is what fits from x=88.
+			["KING/INIT"] = [
+				"In 4000 BCE, $RPLC1 rose to lead",
+				"the $US: a few hundred people, a",
+				"river worth staying beside, and",
+				"no memory of anywhere else.",
+				"",
+				"They came to you already knowing",
+			],
 			["ERROR/ZOC"] = [
 				"You cannot move directly from one",
 				"tile beside an enemy unit to",

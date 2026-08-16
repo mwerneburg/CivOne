@@ -8,6 +8,7 @@
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CivOne.Advances;
@@ -228,6 +229,44 @@ namespace CivOne.Screens
 			}
 		}
 
+		// What the tribe starts out knowing, as one sentence. Roads goes last and is always
+		// there because it is not an advance — it is the one thing every tribe can do from
+		// the first turn.
+		//
+		// This used to be inline: "{name}, " per advance and then a hard-coded "and Roads.",
+		// which only reads as English at three or more starting advances. At one it gave
+		// "Alphabet, and Roads." and at none it opened a sentence with "and".
+		internal static string KnownSentence(IEnumerable<string> advanceNames)
+		{
+			List<string> known = advanceNames.ToList();
+			known.Add("Roads");
+			return known.Count == 1
+				? $"{known[0]}."
+				: $"{string.Join(", ", known.Take(known.Count - 1))} and {known[known.Count - 1]}.";
+		}
+
+		// Greedy word wrap against the measured font, for the starting-advances sentence.
+		// Its length is not knowable up front: a tribe can start with none, and Advanced
+		// Flight is four times the width of Code. Always yields at least one line so an
+		// empty sentence cannot silently draw nothing.
+		internal static string[] WrapToWidth(string sentence, int width)
+		{
+			List<string> lines = new();
+			string line = "";
+			foreach (string word in sentence.Split(' '))
+			{
+				string candidate = line.Length == 0 ? word : $"{line} {word}";
+				if (line.Length > 0 && Resources.GetTextSize(0, candidate).Width > width)
+				{
+					lines.Add(line);
+					line = word;
+				}
+				else line = candidate;
+			}
+			lines.Add(line);
+			return lines.ToArray();
+		}
+
 		private void DrawInputBox(string text)
 		{
 			this.FillRectangle(OffsetX + 158, OffsetY + 88, 161, 33, 11)
@@ -271,17 +310,18 @@ namespace CivOne.Screens
 					yy += 8;
 					Log(line);
 				}
-				StringBuilder sb = new StringBuilder();
-				int i = 0;
-				foreach (IAdvance advance in Human.Advances.OrderBy(a => a.Id))
-				{
-					sb.Append($"{advance.Name}, ");
-					i++;
-					if (i % 2 == 0) sb.Append("|");
-				}
-				sb.Append("and Roads.");
+				// What the tribe starts out knowing, as one sentence. Roads goes last and is
+				// always there because it is not an advance — it is the one thing every tribe
+				// can do from the first turn.
+				//
+				// This used to append "{name}, " per advance and then a hard-coded "and Roads.",
+				// which only reads correctly at three or more starting advances. At one it gave
+				// "Alphabet, and Roads." and at none it opened a sentence with "and". It also
+				// broke the line after every second advance regardless of how long the names
+				// were, so the wrap is now on width.
+				string sentence = KnownSentence(Human.Advances.OrderBy(a => a.Id).Select(a => a.Name));
 
-				foreach (string line in sb.ToString().Split('|'))
+				foreach (string line in WrapToWidth(sentence, Width - (OffsetX + 88) - 4))
 				{
 					this.DrawText(line, 0, 5, OffsetX + 88, yy);
 					Log(line);
