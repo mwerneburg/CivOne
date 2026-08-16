@@ -208,8 +208,11 @@ namespace CivOne
 		{
 			int year = TurnToYear(turn);
 			if (zeroAd && year == 1) year = 0;
+			// BCE rather than BC. AD is left as it stands — changing it is a separate call,
+			// since BCE conventionally pairs with CE and the game says AD in a good many
+			// places besides this one (save names, the Hall of Fame, every report header).
 			if (year < 0)
-				return $"{-year} BC";
+				return $"{-year} BCE";
 			return $"{year} AD";
 		}
 
