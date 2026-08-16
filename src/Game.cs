@@ -1986,10 +1986,12 @@ namespace CivOne
 						continue;
 					}
 
-					int shadow   = CulturalShadow(claimant);
+					// One pass for both halves: the target is drawn from the reach, so asking
+					// for the shadow alone would mean walking the world's cities twice.
+					(int inRange, int shadow) = CulturalReachAndShadow(claimant);
 					int runnerUp = cultRivals.Max(p => p.Culture);
 					bool admired = claimant.Culture >= runnerUp * CultureLeadMultiple && claimant.Culture > 0;
-					bool reach   = shadow >= CulturalShadowTarget;
+					bool reach   = shadow >= CulturalShadowTarget(inRange);
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
 					// started is incompatible with being admired, but the Machines and the Registry
@@ -3574,10 +3576,27 @@ namespace CivOne
 		// How often the victory standings are sampled into the decision log.
 		internal const int VictoryStandingsInterval = 5;
 
-		// Cities in shadow needed for the win, scaled to the map the way the AI's expansion
-		// target is: 6 on a standard 80-wide world, 24 on a 320-wide epic one. A fixed count
-		// would be trivial on an epic map and impossible on a small one.
-		internal int CulturalShadowTarget => 6 * Math.Max(1, Map.WIDTH / 80);
+		// Cities in shadow needed for the win, as a fraction of the claimant's OWN reach.
+		//
+		// This used to scale with map width — 6 on a standard world, 24 on a 320-wide epic
+		// one. That was backwards, and measurably so. Reach is not a function of map size;
+		// it is a function of CROWDING, and widening the map spreads the civilizations out.
+		// So the epic map raised the bar and lowered the jump at the same time: in a
+		// measured 10-civ game the culture leader had a reach of 4 against a target of 24,
+		// and every other civ was likewise short — the path was not hard, it was arithmetically
+		// closed, and it had been closed in every run we have logged but the most crowded.
+		//
+		// Against your own reach the clause asks the same thing of everybody, whatever the
+		// map and however many neighbours it gave you: be the culture that most of the
+		// world within your range lives in.
+		//
+		// The floor is the one absolute: dominating two neighbours is not ascendancy, so a
+		// civ with almost nobody in range cannot win this way. That is a real exclusion and
+		// it is meant to be — a culture pulls people in, and with nobody to pull there is
+		// nothing to demonstrate. Unlike the old rule it is at least VISIBLE, because the
+		// score screen now shows the reach the target was drawn from.
+		internal const int CulturalShadowFloor = 6;
+		internal static int CulturalShadowTarget(int reach) => Math.Max(CulturalShadowFloor, reach * 3 / 5);
 
         // The runner-up must be beaten by this multiple: admiration, not a narrow lead.
         internal const int CultureLeadMultiple = 2;

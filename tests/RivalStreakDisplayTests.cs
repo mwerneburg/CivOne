@@ -83,6 +83,20 @@ namespace CivOne.Tests
 			Assert.Contains(faction, block);
 		}
 
+		// The shadow readout must show the REACH as well as the target. The target is three
+		// fifths of the reach, so on its own it looks like a number out of nowhere — and a
+		// player under the floor has to be able to see that the path is shut rather than
+		// merely losing it.
+		[Fact]
+		public void TheShadowReadoutShowsTheReachItsTargetCameFrom()
+		{
+			string src = ScreenSource();
+
+			Assert.Contains("Game.CulturalReachAndShadow(Human)", src);
+			Assert.Contains("OF {inRange} IN RANGE", src);
+			Assert.DoesNotContain("Game.CulturalShadowTarget}", src);   // the old no-argument property
+		}
+
 		// A rival on nothing is not news, and drawing "0/20" every turn would train the player
 		// to ignore the line that matters.
 		[Fact]

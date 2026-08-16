@@ -54,7 +54,9 @@ namespace CivOne.Tests
 			human.AddAdvance(new Philosophy(), false);
 			g.AddCity(human, 0, 40, 25)!.Size = 6;
 
-			// Six neighbours within the shadow — CulturalShadowTarget is 6 on an 80-wide map.
+			// Six neighbours within the shadow. The target is three fifths of reach with a
+			// floor of 6, so a reach of exactly 6 demands all six — the tightest fixture that
+			// still clears the bar.
 			int id = 1;
 			foreach ((int x, int y) in new[] { (38, 23), (42, 23), (38, 27), (42, 27), (37, 25), (43, 25) })
 			{
@@ -65,8 +67,9 @@ namespace CivOne.Tests
 			human.SetCulture(900);
 			foreach (Player p in rivals) p.SetCulture(100);
 
-			Assert.True(g.CulturalShadow(human) >= g.CulturalShadowTarget,
-				$"fixture is not admired: shadow {g.CulturalShadow(human)} of {g.CulturalShadowTarget}");
+			(int inRange, int shadow) = g.CulturalReachAndShadow(human);
+			Assert.True(shadow >= Game.CulturalShadowTarget(inRange),
+				$"fixture is not admired: shadow {shadow} of {Game.CulturalShadowTarget(inRange)} (reach {inRange})");
 			int before = human.MilestoneScore;
 
 			// Past the target on purpose: the rounds after the win are where an unlatched

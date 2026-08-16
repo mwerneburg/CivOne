@@ -218,13 +218,18 @@ namespace CivOne.Screens.Reports
 					for (int dx = 0; dx < GraphW; dx += 4)
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
-				int shadow = Game.CulturalShadow(Human);
+				// Reach as well as shadow: the target is three fifths of the reach, so without
+				// it the requirement looks arbitrary — and a player whose reach is under the
+				// floor needs to see WHY the path is shut to them rather than just watching a
+				// number they cannot move.
+				(int inRange, int shadow) = Game.CulturalReachAndShadow(Human);
+				int cultTarget = Game.CulturalShadowTarget(inRange);
 				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
 				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText($"CULTURAL ASCENDANCY STREAK {cultStreak}/20", 0, scol,
 					GraphRight - 4, GraphTop + 4, TextAlign.Right);
-				this.DrawText($"CITIES IN OUR SHADOW {shadow}/{Game.CulturalShadowTarget}", 0,
-					shadow >= Game.CulturalShadowTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
+				this.DrawText($"SHADOW {shadow}/{cultTarget} OF {inRange} IN RANGE", 0,
+					shadow >= cultTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
 				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST RIVAL ({bar})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);

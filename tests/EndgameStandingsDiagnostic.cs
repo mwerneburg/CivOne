@@ -64,7 +64,7 @@ namespace CivOne.Tests
 			_out.WriteLine($"save: {path}");
 			_out.WriteLine($"turn {g.GameTurn}  year {Common.YearString((ushort)g.GameTurn)}  "
 			             + $"SETI={g.SETISignalReceived}  visitor={g.VisitorType}  colonyFounded={g.Players.Count(x => x is not null && x.Progress.ColonyFounded)}");
-			_out.WriteLine($"world gross output {worldOut}   cultural shadow target {g.CulturalShadowTarget}");
+			_out.WriteLine($"world gross output {worldOut}   cultural shadow floor {Game.CulturalShadowFloor} (target = 3/5 of own reach)");
 			_out.WriteLine("");
 			_out.WriteLine($"{"civ",-14} {"cit",4} {"score",6} {"output",7} {"out%",5} "
 			             + $"{"culture",8} {"cult x",7} {"shadow",6} {"SS s/c/m",9} {"bank",4} {"phil",4}");
@@ -90,7 +90,7 @@ namespace CivOne.Tests
 			_out.WriteLine($"ECONOMIC : leader {econLeader.TribeNamePlural} holds "
 			             + $"{g.GrossOutputOf(econLeader) * 100.0 / Math.Max(1, worldOut):F1}% of world output (needs >50%)");
 			_out.WriteLine($"CULTURAL : leader {cultLeader.TribeNamePlural} has shadow {g.CulturalShadow(cultLeader)} "
-			             + $"(needs {g.CulturalShadowTarget}) at {(live.Where(q => q != cultLeader).Max(q => q.Culture) is int r && r > 0 ? (double)cultLeader.Culture / r : 99):F2}x runner-up (needs 2x)");
+			             + $"(needs {Game.CulturalShadowTarget(g.CulturalReachAndShadow(cultLeader).reach)}) at {(live.Where(q => q != cultLeader).Max(q => q.Culture) is int r && r > 0 ? (double)cultLeader.Culture / r : 99):F2}x runner-up (needs 2x)");
 			int launched = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipLaunchTurn != 0);
 			int withParts = live.Count(p => g.Progress(g.PlayerNumber(p)).SpaceshipStructural
 			                              + g.Progress(g.PlayerNumber(p)).SpaceshipComponent
@@ -191,10 +191,11 @@ namespace CivOne.Tests
 			Player cult2 = live.Where(p => p != cult1).OrderByDescending(p => p.Culture).First();
 			double cultLead = (double)cult1.Culture / Math.Max(1, cult2.Culture);
 			int cultShadow = g.CulturalShadow(cult1);
-			Verdict("CULT current", "2x runner-up AND shadow >= target", cultLead >= 2.0 && cultShadow >= g.CulturalShadowTarget,
-				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{g.CulturalShadowTarget}");
-			Verdict("CULT 1.5x + shadow", "1.5x runner-up AND shadow >= target", cultLead >= 1.5 && cultShadow >= g.CulturalShadowTarget,
-				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{g.CulturalShadowTarget}");
+			int cultTarget = Game.CulturalShadowTarget(g.CulturalReachAndShadow(cult1).reach);
+			Verdict("CULT current", "2x runner-up AND shadow >= target", cultLead >= 2.0 && cultShadow >= cultTarget,
+				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{cultTarget}");
+			Verdict("CULT 1.5x + shadow", "1.5x runner-up AND shadow >= target", cultLead >= 1.5 && cultShadow >= cultTarget,
+				$"{cult1.TribeNamePlural} {cultLead:F2}x, shadow {cultShadow}/{cultTarget}");
 
 			// Decompose the shadow into its two ingredients, because they respond to civ count
 			// in OPPOSITE directions and the headline number hides that.
@@ -237,8 +238,8 @@ namespace CivOne.Tests
 			// its owner holds under a third of your culture, so the shadow count IS a dominance
 			// test. The separate "2x the best rival" clause is a second, stricter one stacked on
 			// top — and it is the one that binds.
-			Verdict("CULT shadow only", "shadow >= target, no 2x clause", cultShadow >= g.CulturalShadowTarget,
-				$"{cult1.TribeNamePlural} shadow {cultShadow}/{g.CulturalShadowTarget}");
+			Verdict("CULT shadow only", "shadow >= target, no 2x clause", cultShadow >= cultTarget,
+				$"{cult1.TribeNamePlural} shadow {cultShadow}/{cultTarget}");
 
 			// Culture as an INTENSITY rather than a total, which is the obvious answer to
 			// "a cultural victory scored on totals is a biggest-empire victory". The question
@@ -249,16 +250,16 @@ namespace CivOne.Tests
 			Player dense2 = live.Where(p => p != dense1).OrderByDescending(PerCity).First();
 			double denseLead = PerCity(dense2) > 0 ? (double)PerCity(dense1) / PerCity(dense2) : 99;
 			Verdict("CULT per-city + shadow", "densest culture AND shadow >= target",
-				g.CulturalShadow(dense1) >= g.CulturalShadowTarget,
-				$"{dense1.TribeNamePlural} {PerCity(dense1)}/city ({denseLead:F2}x), shadow {g.CulturalShadow(dense1)}/{g.CulturalShadowTarget}");
+				g.CulturalShadow(dense1) >= Game.CulturalShadowTarget(g.CulturalReachAndShadow(dense1).reach),
+				$"{dense1.TribeNamePlural} {PerCity(dense1)}/city ({denseLead:F2}x), shadow {g.CulturalShadow(dense1)}/{Game.CulturalShadowTarget(g.CulturalReachAndShadow(dense1).reach)}");
 
 			// And the hybrid: totals still decide the shadow (so defection and the victory keep
 			// measuring the same thing), but the winner must ALSO be culturally dense — which
 			// filters out "won by being enormous" without decoupling the two mechanics.
 			int medianDense = live.Select(PerCity).OrderBy(v => v).ElementAt(live.Length / 2);
 			Verdict("CULT shadow + density floor", "shadow >= target AND >=1.25x median density",
-				cultShadow >= g.CulturalShadowTarget && PerCity(cult1) >= medianDense * 1.25,
-				$"{cult1.TribeNamePlural} shadow {cultShadow}/{g.CulturalShadowTarget}, "
+				cultShadow >= cultTarget && PerCity(cult1) >= medianDense * 1.25,
+				$"{cult1.TribeNamePlural} shadow {cultShadow}/{cultTarget}, "
 				+ $"{PerCity(cult1)}/city vs median {medianDense}");
 
 			// The civ-count-robust form. Express the win as a SHARE of the reachable field

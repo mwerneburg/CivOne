@@ -122,15 +122,54 @@ namespace CivOne.Tests
 			return dir!.FullName;
 		}
 
-		// The target scales with the map, like the AI's expansion target: a fixed count would
-		// be trivial on an epic world and unreachable on a small one.
-		[Fact]
-		public void TheTargetScalesWithTheMap()
+		// The target is drawn from the claimant's OWN reach, not from the map.
+		//
+		// It used to be 6 * (Map.WIDTH / 80), which is why this test used to assert 6 on an
+		// 80-wide world. That scaling was backwards: reach comes from crowding, and a wider
+		// map spreads civilizations apart, so the epic map raised the bar while lowering the
+		// jump. A measured 10-civ epic game had the culture leader on reach 4 against a
+		// target of 24.
+		//
+		// Above the floor the target must never exceed the reach it came from, or the rule
+		// re-closes itself the moment a civ is isolated.
+		[Theory]
+		[InlineData(10, 6)]    // floor holds: 3/5 of 10 is 6
+		[InlineData(20, 12)]
+		[InlineData(42, 25)]   // the crowded 16-civ game, which is the one that ever cleared it
+		public void TheTargetIsThreeFifthsOfReach(int reach, int expected)
 		{
-			Sim.NewGame(width: 80, height: 50);
-			int small = Game.Instance.CulturalShadowTarget;
+			Assert.Equal(expected, Game.CulturalShadowTarget(reach));
+		}
 
-			Assert.Equal(6, small);
+		// Anything at or above the floor must be winnable in principle. This is the property
+		// the old rule violated, and the reason the path never once resolved.
+		[Theory]
+		[InlineData(6)]
+		[InlineData(7)]
+		[InlineData(21)]
+		[InlineData(42)]
+		[InlineData(255)]
+		public void TheTargetIsNeverBeyondReach(int reach)
+		{
+			Assert.True(Game.CulturalShadowTarget(reach) <= reach,
+				$"reach {reach} demands {Game.CulturalShadowTarget(reach)} — arithmetically closed");
+		}
+
+		// Below the floor the path IS shut, deliberately: two neighbours in range is not a
+		// world that can admire you. Pinned so the exclusion stays a decision.
+		[Theory]
+		[InlineData(0)]
+		[InlineData(2)]
+		[InlineData(5)]
+		public void TooFewNeighboursMeansNoCulturalWin(int reach)
+		{
+			Assert.True(Game.CulturalShadowTarget(reach) > reach);
+			Assert.Equal(Game.CulturalShadowFloor, Game.CulturalShadowTarget(reach));
+		}
+
+		[Fact]
+		public void ANarrowLeadIsNotAdmiration()
+		{
 			Assert.True(Game.CultureLeadMultiple >= 2, "a narrow lead should not read as admiration");
 		}
 
