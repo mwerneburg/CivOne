@@ -500,7 +500,18 @@ namespace CivOne
 			return Polluted(tile, output);
 		}
 
-		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)));
+		// The circular economy: a bigger city is worth more than its tiles.
+		//
+		// +1 trade at size 5, +2 at 10, and so on — a city's own internal market, which the
+		// tile model has no way to express. Added to RAW trade rather than to the total, so it
+		// is subject to corruption like everything else a city earns: a distant metropolis
+		// under Despotism should not be handed incorruptible income.
+		//
+		// Knock-on, deliberate: RouteBonus reads a partner's BaseTrade, so trade routes to
+		// large cities are worth more. That is the same effect one step removed.
+		private int SizeTradeBonus => Size / 5;
+
+		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)) + SizeTradeBonus);
 
 		// Pre-corruption trade, for the AI's government comparison — it needs the
 		// denominator to judge what graft is actually costing the empire.
@@ -522,6 +533,29 @@ namespace CivOne
 		private int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
+
+		// What this city's economy is actually WORTH, as opposed to how much trade its tiles
+		// generate: the commerce chain applied to the whole of its trade.
+		//
+		// The economic victory and the Economic Output graph both read GrossOutput, which
+		// summed TradeTotal — so a civ that had built its entire multiplier chain read
+		// identically to one that had built none of it. Marketplace and Bank multiply taxes
+		// and luxuries downstream of TradeTotal, and none of it reached the figure the game
+		// judges an economy by.
+		//
+		// Sequential +50%, matching the Taxes and Luxuries getters exactly rather than
+		// inventing a second convention: 1.5x with a Marketplace, 2.25x with both. Science
+		// multipliers are deliberately NOT here — a University is not commerce.
+		internal int EconomicOutput
+		{
+			get
+			{
+				int output = TradeTotal;
+				if (HasBuilding<MarketPlace>()) output += output / 2;
+				if (HasBuilding<Bank>()) output += output / 2;
+				return output;
+			}
+		}
 
 		// Cultural weight per turn: faith, arts, and learning. Wonders radiate 3;
 		// obsolete wonders still count 1 — old glory endures. Accumulated into

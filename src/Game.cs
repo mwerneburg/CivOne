@@ -3651,7 +3651,10 @@ namespace CivOne
 		private int GrossOutput(Player p)
 		{
 			byte num = PlayerNumber(p);
-			int output = _cities.Where(c => c.Owner == num && c.Size > 0).Sum(c => c.TradeTotal);
+			// EconomicOutput, not TradeTotal: the commerce buildings are part of what an
+			// economy is worth. Note for anyone comparing runs — gross_out in decisions.jsonl
+			// changed meaning here, so figures from before Aug 2026 are not comparable.
+			int output = _cities.Where(c => c.Owner == num && c.Size > 0).Sum(c => c.EconomicOutput);
 			foreach (Player payer in p.TributePayers)
 				output += payer.TributeAmountTo(p);
 			return output;
