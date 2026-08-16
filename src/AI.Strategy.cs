@@ -4575,6 +4575,21 @@ namespace CivOne
 			if (Player.HasAdvance<CeremonialBurial>()  && !city.HasBuilding<Temple>())        Consider(new Temple());
 			if (Player.HasAdvance<Writing>()           && !city.HasBuilding<Library>())       Consider(new Library());
 			if (Player.HasAdvance<Currency>()          && !city.HasBuilding<MarketPlace>())   Consider(new MarketPlace());
+			// The second tier of both multiplier chains, which was simply absent: nothing ever
+			// passed a Bank or a University to Consider, so they reached a city only through the
+			// last-resort fallback that fires when it has run out of everything else. Exactly the
+			// shape of the spaceship-parts omission, and with the same signature in the data —
+			// measured on a finished 2200 AD world, 8% of cities held a Bank, and the only two
+			// civs with real coverage (Babylonians 44%, Guarani 30%) were the two small enough to
+			// exhaust their build lists and fall through.
+			//
+			// Both sit after their first tiers on purpose. The plan is ordered and a city builds
+			// the head of it, so Marketplace is always bought before Bank and Library before
+			// University without needing an explicit prerequisite — the cheaper half of each
+			// chain, which is also the better value, comes first on its own. EarnsItsKeep already
+			// keeps both out of cities with too little trade to multiply.
+			if (Player.HasAdvance<Banking>()           && !city.HasBuilding<Bank>())          Consider(new Bank());
+			if (Player.HasAdvance<Advances.University>() && !city.HasBuilding<UniversityBuilding>()) Consider(new UniversityBuilding());
 			// SAM Battery, gated on somebody actually flying — see SomebodyIsFlying. It is
 			// the one building with no city-output basis at all, so EarnsItsKeep has no
 			// honest break-even to compute for it and waved it through on Rocketry alone.
