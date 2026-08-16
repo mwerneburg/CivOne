@@ -63,7 +63,7 @@ namespace CivOne.Tests
 
 			_out.WriteLine($"save: {path}");
 			_out.WriteLine($"turn {g.GameTurn}  year {Common.YearString((ushort)g.GameTurn)}  "
-			             + $"SETI={g.SETISignalReceived}  visitor={g.VisitorType}  colonyFounded={g.ColonyFounded}");
+			             + $"SETI={g.SETISignalReceived}  visitor={g.VisitorType}  colonyFounded={g.Players.Count(x => x is not null && x.Progress.ColonyFounded)}");
 			_out.WriteLine($"world gross output {worldOut}   cultural shadow target {g.CulturalShadowTarget}");
 			_out.WriteLine("");
 			_out.WriteLine($"{"civ",-14} {"cit",4} {"score",6} {"output",7} {"out%",5} "

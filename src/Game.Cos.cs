@@ -176,11 +176,11 @@ namespace CivOne
 				players.Add(new CosPlayer
 				{
 					CivilizationId   = player.Civilization.Id,
-					EconStreak       = EconStreak[p],
-					CultureStreak    = CultureStreak[p],
-					ColonyFounded    = ColonyFounded[p],
-					DiasporaStreak   = DiasporaStreak[p],
-					ColonyOrder      = ColonyOrder[p],
+					EconStreak       = Progress(p).EconStreak,
+					CultureStreak    = Progress(p).CultureStreak,
+					ColonyFounded    = Progress(p).ColonyFounded,
+					DiasporaStreak   = Progress(p).DiasporaStreak,
+					ColonyOrder      = Progress(p).ColonyOrder,
 					StartedWarsWith  = StartedWars.TryGetValue((byte)p, out var sw) && sw.Count > 0
 					                   ? sw.Select(b => (int)b).ToArray() : null!,
 					LeaderName       = player.LeaderName,
@@ -310,10 +310,10 @@ namespace CivOne
 					// Legacy mirror of the human's progress — the live values are per player
 					// on CosPlayer now. Still written so an older build can read this save,
 					// and so the loader has something to restore from an older one.
-					EconStreak              = EconStreak[PlayerNumber(HumanPlayer)],
-					CultureStreak           = CultureStreak[PlayerNumber(HumanPlayer)],
-					ColonyFounded           = ColonyFounded[PlayerNumber(HumanPlayer)],
-					DiasporaStreak          = DiasporaStreak[PlayerNumber(HumanPlayer)],
+					EconStreak              = Progress(PlayerNumber(HumanPlayer)).EconStreak,
+					CultureStreak           = Progress(PlayerNumber(HumanPlayer)).CultureStreak,
+					ColonyFounded           = Progress(PlayerNumber(HumanPlayer)).ColonyFounded,
+					DiasporaStreak          = Progress(PlayerNumber(HumanPlayer)).DiasporaStreak,
 					// Legacy mirror, for older builds: the live record is per player on
 					// CosPlayer.StartedWarsWith.
 					HumanStartedWars        = StartedWars.TryGetValue(PlayerNumber(HumanPlayer), out var hsw) && hsw.Count > 0
@@ -430,16 +430,6 @@ namespace CivOne
 			SpaceshipStructural  = new int[slotCount];
 			SpaceshipComponent   = new int[slotCount];
 			SpaceshipModule      = new int[slotCount];
-			// Victory progress is sized here too. AddPlayer grows these for a live game, but
-			// the load path builds _players directly and never calls it — so they kept their
-			// initial length of 16 while slotCount reaches 19 (17 civs plus barbarians and the
-			// Olvir). Indexing threw, LoadCos swallowed it and returned false, and every save
-			// in the suite stopped loading.
-			EconStreak     = new uint[slotCount];
-			CultureStreak  = new uint[slotCount];
-			ColonyFounded  = new bool[slotCount];
-			DiasporaStreak = new uint[slotCount];
-			ColonyOrder    = new int[slotCount];
 
 			// Map must come first so tiles exist when cities set resource tiles
 			Map.Instance.LoadFromCos(cos.Map);
@@ -576,11 +566,11 @@ namespace CivOne
 				if (cos.Players[i].StartedWarsWith is not null)
 					foreach (int n in cos.Players[i].StartedWarsWith)
 						RecordWarStart((byte)i, (byte)n);
-				EconStreak[i]     = cos.Players[i].EconStreak;
-				CultureStreak[i]  = cos.Players[i].CultureStreak;
-				ColonyFounded[i]  = cos.Players[i].ColonyFounded;
-				DiasporaStreak[i] = cos.Players[i].DiasporaStreak;
-				ColonyOrder[i]    = cos.Players[i].ColonyOrder;
+				Progress(i).EconStreak     = cos.Players[i].EconStreak;
+				Progress(i).CultureStreak  = cos.Players[i].CultureStreak;
+				Progress(i).ColonyFounded  = cos.Players[i].ColonyFounded;
+				Progress(i).DiasporaStreak = cos.Players[i].DiasporaStreak;
+				Progress(i).ColonyOrder    = cos.Players[i].ColonyOrder;
 			}
 
 			MapRevealedNotified   = g.MapRevealedNotified;
@@ -615,12 +605,12 @@ namespace CivOne
 				foreach (var cp in cos.Players)
 					if (cp.EconStreak > 0 || cp.CultureStreak > 0 || cp.DiasporaStreak > 0
 					    || cp.ColonyFounded || cp.ColonyOrder > 0) { anyPerPlayer = true; break; }
-				if (!anyPerPlayer && hp < EconStreak.Length)
+				if (!anyPerPlayer)
 				{
-					EconStreak[hp]     = g.EconStreak;
-					CultureStreak[hp]  = g.CultureStreak;
-					ColonyFounded[hp]  = g.ColonyFounded;
-					DiasporaStreak[hp] = g.DiasporaStreak;
+					Progress(hp).EconStreak     = g.EconStreak;
+					Progress(hp).CultureStreak  = g.CultureStreak;
+					Progress(hp).ColonyFounded  = g.ColonyFounded;
+					Progress(hp).DiasporaStreak = g.DiasporaStreak;
 				}
 			}
 			// Legacy: a save from before the war record went per-civ carries only the human's.

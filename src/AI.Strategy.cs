@@ -71,8 +71,7 @@ namespace CivOne
 		private bool ProgrammeUnderWay()
 		{
 			byte me = Game.PlayerNumber(Player);
-			if (me >= Game.Instance.ColonyFounded.Length) return false;
-			return Game.Instance.SpaceshipArrivalTurn[me] > 0 || Game.Instance.ColonyFounded[me];
+			return Game.Instance.SpaceshipArrivalTurn[me] > 0 || Game.Instance.Progress(me).ColonyFounded;
 		}
 		// Not int.MinValue: the review test is `GameTurn - _pathChosenTurn >= interval`, and
 		// on turn 0 that subtraction overflowed to a large NEGATIVE number, so the first
@@ -4234,9 +4233,8 @@ namespace CivOne
 			// is urgent: every turn without it is a turn of the countdown not running.
 			{
 				byte mcMe = Game.PlayerNumber(Player);
-				bool needsLifeline = mcMe < Game.Instance.ColonyFounded.Length
-				                     && (Game.Instance.SpaceshipArrivalTurn[mcMe] > 0
-				                         || Game.Instance.ColonyFounded[mcMe]);
+				bool needsLifeline = Game.Instance.SpaceshipArrivalTurn[mcMe] > 0
+				                     || Game.Instance.Progress(mcMe).ColonyFounded;
 				if (needsLifeline && Player.ProductionAvailable(new MissionControl())
 				    && !Player.Cities.Any(x => x.HasBuilding<MissionControl>()))
 					Consider(new MissionControl());

@@ -45,15 +45,15 @@ namespace CivOne.Tests
 			(Game g, Player human, Player rival) = AWorld();
 			byte h = g.PlayerNumber(human), r = g.PlayerNumber(rival);
 
-			g.EconStreak[r] = 7;
-			g.CultureStreak[r] = 11;
-			g.DiasporaStreak[r] = 3;
-			g.ColonyFounded[r] = true;
+			g.Progress(r).EconStreak = 7;
+			g.Progress(r).CultureStreak = 11;
+			g.Progress(r).DiasporaStreak = 3;
+			g.Progress(r).ColonyFounded = true;
 
-			Assert.Equal(0u, g.EconStreak[h]);
-			Assert.Equal(0u, g.CultureStreak[h]);
-			Assert.Equal(0u, g.DiasporaStreak[h]);
-			Assert.False(g.ColonyFounded[h]);
+			Assert.Equal(0u, g.Progress(h).EconStreak);
+			Assert.Equal(0u, g.Progress(h).CultureStreak);
+			Assert.Equal(0u, g.Progress(h).DiasporaStreak);
+			Assert.False(g.Progress(h).ColonyFounded);
 		}
 
 		// War initiation is recorded for everyone, because the aggression clause on both
@@ -125,11 +125,11 @@ namespace CivOne.Tests
 		{
 			(Game g, Player human, Player rival) = AWorld();
 			byte r = g.PlayerNumber(rival);
-			g.EconStreak[r] = 9;
-			g.CultureStreak[r] = 4;
-			g.DiasporaStreak[r] = 6;
-			g.ColonyFounded[r] = true;
-			g.ColonyOrder[r] = 2;
+			g.Progress(r).EconStreak = 9;
+			g.Progress(r).CultureStreak = 4;
+			g.Progress(r).DiasporaStreak = 6;
+			g.Progress(r).ColonyFounded = true;
+			g.Progress(r).ColonyOrder = 2;
 			g.RecordWarStart(r, g.PlayerNumber(human));
 
 			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "rivalvictory.cos");
@@ -138,11 +138,11 @@ namespace CivOne.Tests
 			Assert.True(Game.LoadCos(path), "load failed");
 			Game g2 = Game.Instance;
 
-			Assert.Equal(9u, g2.EconStreak[r]);
-			Assert.Equal(4u, g2.CultureStreak[r]);
-			Assert.Equal(6u, g2.DiasporaStreak[r]);
-			Assert.True(g2.ColonyFounded[r]);
-			Assert.Equal(2, g2.ColonyOrder[r]);
+			Assert.Equal(9u, g2.Progress(r).EconStreak);
+			Assert.Equal(4u, g2.Progress(r).CultureStreak);
+			Assert.Equal(6u, g2.Progress(r).DiasporaStreak);
+			Assert.True(g2.Progress(r).ColonyFounded);
+			Assert.Equal(2, g2.Progress(r).ColonyOrder);
 			Assert.True(g2.StartedWarWith(r, g2.PlayerNumber(g2.HumanPlayer)));
 		}
 
@@ -153,9 +153,12 @@ namespace CivOne.Tests
 		// win Pax Mercatoria contradicts the rule that its economy counts toward the total
 		// precisely because an occupied world has no commercial hegemon. Pinned at the source
 		// because staging a Registry invasion to prove it would test the invasion.
+		// Anchored on the streak increment, not on a bounds guard: the first version used
+		// "EconStreak.Length", which was scaffolding that vanished the moment the arrays
+		// became a PlayerProgress object. An anchor has to be something the rule needs.
 		[Theory]
-		[InlineData("EconStreak.Length")]
-		[InlineData("CultureStreak.Length")]
+		[InlineData("Progress(cnum).EconStreak++")]
+		[InlineData("Progress(cnum).CultureStreak++")]
 		public void NeitherStreakVictoryCanBeClaimedByAStoryFaction(string anchor)
 		{
 			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
@@ -167,7 +170,7 @@ namespace CivOne.Tests
 			int at = src.IndexOf(anchor);
 			Assert.True(at > 0, $"the {anchor} loop has moved or been rewritten");
 			// The exclusion must sit on the claimant filter just above the guard.
-			string loop = src.Substring(System.Math.Max(0, at - 700), 700);
+			string loop = src.Substring(System.Math.Max(0, at - 2600), 2600);
 			Assert.Contains("Civilizations.TheOthers", loop);
 			Assert.Contains("Civilizations.Skynet", loop);
 		}
@@ -189,8 +192,8 @@ namespace CivOne.Tests
 			City hq = g.AddCity(rival, 0, 40, 25)!;
 			hq.Size = 4;
 			hq.AddBuilding(new MissionControl());
-			g.ColonyFounded[r] = true;
-			g.DiasporaStreak[r] = Game.DiasporaStreakTarget - 1;
+			g.Progress(r).ColonyFounded = true;
+			g.Progress(r).DiasporaStreak = Game.DiasporaStreakTarget - 1;
 			int humanBefore = human.MilestoneScore;
 			Sim.ClearTasks();
 
@@ -213,8 +216,8 @@ namespace CivOne.Tests
 			City hq = g.AddCity(human, 0, 40, 25)!;
 			hq.Size = 4;
 			hq.AddBuilding(new MissionControl());
-			g.ColonyFounded[h] = true;
-			g.DiasporaStreak[h] = Game.DiasporaStreakTarget - 1;
+			g.Progress(h).ColonyFounded = true;
+			g.Progress(h).DiasporaStreak = Game.DiasporaStreakTarget - 1;
 			int before = human.MilestoneScore;
 			Sim.ClearTasks();
 

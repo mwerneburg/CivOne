@@ -34,7 +34,7 @@ namespace CivOne.Tests
 			hq.Size = 4;
 			if (lifeline) hq.AddBuilding(new MissionControl());
 
-			g.ColonyFounded[g.PlayerNumber(g.HumanPlayer)] = true;
+			g.Progress(g.PlayerNumber(g.HumanPlayer)).ColonyFounded = true;
 			return (g, human, hq);
 		}
 
@@ -62,7 +62,7 @@ namespace CivOne.Tests
 
 			PlayRounds(g, 3);
 
-			Assert.Equal(3u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(3u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		// No colony, no clock — Mission Control on its own counts for nothing.
@@ -70,11 +70,11 @@ namespace CivOne.Tests
 		public void MissionControlWithoutAColonyCountsNothing()
 		{
 			(Game g, Player human, City hq) = AColonyAndItsLifeline();
-			g.ColonyFounded[g.PlayerNumber(g.HumanPlayer)] = false;
+			g.Progress(g.PlayerNumber(g.HumanPlayer)).ColonyFounded = false;
 
 			PlayRounds(g, 3);
 
-			Assert.Equal(0u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(0u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		// Losing the city resets the clock. This is the whole point of the building: a
@@ -85,12 +85,12 @@ namespace CivOne.Tests
 		{
 			(Game g, Player human, City hq) = AColonyAndItsLifeline();
 			PlayRounds(g, 3);
-			Assert.Equal(3u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(3u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 
 			hq.RemoveBuilding<MissionControl>();
 			PlayRounds(g, 1);
 
-			Assert.Equal(0u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(0u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		// ...and rebuilding starts a fresh twenty, not a resumed one.
@@ -105,7 +105,7 @@ namespace CivOne.Tests
 			hq.AddBuilding(new MissionControl());
 			PlayRounds(g, 2);
 
-			Assert.Equal(2u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(2u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		[Fact]
@@ -121,8 +121,8 @@ namespace CivOne.Tests
 			// first draft of this test read +600.
 			PlayRounds(g, (int)Game.DiasporaStreakTarget + 3);
 
-			Assert.True(g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)] >= Game.DiasporaStreakTarget,
-				$"streak reached only {g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]}");
+			Assert.True(g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak >= Game.DiasporaStreakTarget,
+				$"streak reached only {g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak}");
 			// 400, not 200: the first colony in a world now carries the first-mover premium
 			// (Game.DiasporaAward). A fixture that sets ColonyFounded directly leaves
 			// ColonyOrder at 0, which DiasporaAward reads as "the only colony we know of".
@@ -136,7 +136,7 @@ namespace CivOne.Tests
 		{
 			(Game g, Player human, City hq) = AColonyAndItsLifeline();
 			PlayRounds(g, 3);
-			Assert.Equal(3u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(3u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 
 			// Give the organism something to leave from. InfectCity is how a city changes
 			// hands to it; the departure razes whatever it holds.
@@ -149,8 +149,8 @@ namespace CivOne.Tests
 			Sim.ClearTasks();
 			g.ExecuteThingDeparture(thing.Cities.First());
 
-			Assert.False(g.ColonyFounded[g.PlayerNumber(g.HumanPlayer)], "the colony survived the organism");
-			Assert.Equal(0u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.False(g.Progress(g.PlayerNumber(g.HumanPlayer)).ColonyFounded, "the colony survived the organism");
+			Assert.Equal(0u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		// ...and it does not keep counting afterwards. Founding it again means another ship.
@@ -158,11 +158,11 @@ namespace CivOne.Tests
 		public void AfterTheBreachTheClockDoesNotRestartByItself()
 		{
 			(Game g, Player human, City hq) = AColonyAndItsLifeline();
-			g.ColonyFounded[g.PlayerNumber(g.HumanPlayer)] = false;   // as ExecuteThingDeparture leaves it
+			g.Progress(g.PlayerNumber(g.HumanPlayer)).ColonyFounded = false;   // as ExecuteThingDeparture leaves it
 
 			PlayRounds(g, 5);
 
-			Assert.Equal(0u, g.DiasporaStreak[g.PlayerNumber(g.HumanPlayer)]);
+			Assert.Equal(0u, g.Progress(g.PlayerNumber(g.HumanPlayer)).DiasporaStreak);
 		}
 
 		[Fact]
@@ -176,8 +176,8 @@ namespace CivOne.Tests
 			Sim.ResetState();
 			Assert.True(Game.LoadCos(path), "load failed");
 
-			Assert.True(Game.Instance.ColonyFounded[Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)], "the colony did not survive the save");
-			Assert.Equal(4u, Game.Instance.DiasporaStreak[Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)]);
+			Assert.True(Game.Instance.Progress(Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)).ColonyFounded, "the colony did not survive the save");
+			Assert.Equal(4u, Game.Instance.Progress(Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)).DiasporaStreak);
 		}
 
 		// The breach plate. EventArtScreen.FindPath returns null on a miss and the event

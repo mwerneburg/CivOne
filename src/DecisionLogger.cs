@@ -348,6 +348,25 @@ namespace CivOne
 			}));
 		}
 
+		// An autosave that failed, and why.
+		//
+		// PerformAutoSave catches everything and hands the message to IRuntime.Log, which is
+		// an EMPTY METHOD in Release builds. A 526-turn game once autosaved nothing at all and
+		// it went unnoticed for hours, discovered only by a stale file timestamp. This channel
+		// works in Release, and it is the one already read after a run — so a failure is now
+		// findable rather than merely thrown away.
+		internal static void LogAutosaveFailure(int turn, string kind, string message)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",    "autosave_failed"),
+				KV("game_id", _gameId),
+				KV("turn",    turn),
+				KV("error",   kind),
+				KV("message", message),
+			}));
+		}
+
 		// The visitor draw happens once per game and decides its whole ending, so the
 		// inputs are worth recording — a run that ends in invasion should be able to
 		// say how close it came to the other outcome.

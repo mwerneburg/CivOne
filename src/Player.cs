@@ -1190,6 +1190,9 @@ namespace CivOne
 		public static bool operator !=(Player? p1, byte p2)
 			=> p1 is null || !Game.TryGetPlayerNumber(p1, out byte n) || n != p2;
 		
+		// Built with the player, never sized, never out of step. See PlayerProgress.
+		internal PlayerProgress Progress { get; } = new PlayerProgress();
+
 		public Player(ICivilization civilization, string? customLeaderName = null, string? customTribeName = null, string? customTribeNamePlural = null)
 		{
 			_civilization = civilization;

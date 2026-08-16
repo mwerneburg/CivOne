@@ -125,6 +125,11 @@ namespace CivOne
 		// and the organism spreads (see ProcessThingOutbreaks).
 		internal readonly Dictionary<(int x, int y), uint> ThingOutbreaks = new();
 
+		// A civilization's victory progress, by player number. Delegates to the Player, which
+		// owns it — this exists only because most call sites hold a number rather than a
+		// Player object. Nothing here is sized: see PlayerProgress for why that matters.
+		internal PlayerProgress Progress(int n) => _players[n].Progress;
+
 		// Victory progress, PER CIVILIZATION, indexed by player number the way
 		// SpaceshipLaunchTurn and its siblings already are.
 		//
@@ -137,26 +142,6 @@ namespace CivOne
 		//
 		// The arrays are the whole of the symmetry fix; the checks that walk them follow.
 
-		// Economic dominance (Pax Mercatoria): consecutive turns this civ has held the
-		// winning conditions. HumanStartedWars stays global — it is a fact about the human's
-		// diplomacy, not a per-civ counter.
-		internal uint[] EconStreak = new uint[16];
-
-		// Cultural Ascendancy: consecutive turns holding the conditions below.
-		internal uint[] CultureStreak = new uint[16];
-
-		// Diaspora: a colony stands at Alpha Centauri II, and Mission Control still runs it
-		// from Earth. Set when this civ's ship arrives; cleared if the colony is lost.
-		internal bool[] ColonyFounded = new bool[16];
-
-		// Consecutive turns the colony has been supplied. Broken by losing Mission Control,
-		// reset to zero — the building can be rebuilt, but the clock starts again.
-		internal uint[] DiasporaStreak = new uint[16];
-
-		// Order of arrival at Alpha Centauri, for the first-mover premium: 0 = not landed,
-		// 1 = the first colony in this world, and so on. Persisted, because a game reloaded
-		// mid-flight must not hand out the first-landing prize twice.
-		internal int[] ColonyOrder = new int[16];
 
 		// Twenty, matching Pax Mercatoria and Cultural Ascendancy. Long enough that an
 		// enemy who wants to stop you has time to march on one known city.
@@ -1202,15 +1187,6 @@ namespace CivOne
 			Array.Resize(ref SpaceshipStructural,  n);
 			Array.Resize(ref SpaceshipComponent,   n);
 			Array.Resize(ref SpaceshipModule,      n);
-			// Victory progress rides the same indexing. Grown here rather than sized once at
-			// construction because AddPlayer is how the Olvir and the story factions join a
-			// game already in progress, and an unresized array would throw the moment one of
-			// them was evaluated for a win.
-			Array.Resize(ref EconStreak,     n);
-			Array.Resize(ref CultureStreak,  n);
-			Array.Resize(ref ColonyFounded,  n);
-			Array.Resize(ref DiasporaStreak, n);
-			Array.Resize(ref ColonyOrder,    n);
 		}
 
 		// Wipe a civ's space programme back to nothing: no ship in flight, no parts, no
@@ -1902,7 +1878,6 @@ namespace CivOne
 				                                       or Civilizations.Skynet or Civilizations.Olvir)).ToArray())
 				{
 					byte cnum = PlayerNumber(claimant);
-					if (cnum >= EconStreak.Length) continue;
 					bool isHuman = claimant == HumanPlayer;
 
 					Player[] econRivals = _players.Where(p => p is not null && p != claimant
@@ -1911,7 +1886,7 @@ namespace CivOne
 
 					if (!claimant.HasAdvance<Banking>() || econRivals.Length < 3)
 					{
-						EconStreak[cnum] = 0;   // world shrank below the floor mid-streak
+						Progress(cnum).EconStreak = 0;   // world shrank below the floor mid-streak
 						continue;
 					}
 
@@ -1951,18 +1926,18 @@ namespace CivOne
 
 					if (share && !aggressing && boundHalf)
 					{
-						EconStreak[cnum]++;
+						Progress(cnum).EconStreak++;
 						// Only the human gets told; the rest is somebody else's newspaper.
-						if (isHuman && EconStreak[cnum] == 1)
+						if (isHuman && Progress(cnum).EconStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our merchants dominate",
 								"world trade. Hold the markets",
 								"for 20 years."));
-						else if (isHuman && EconStreak[cnum] == 10)
+						else if (isHuman && Progress(cnum).EconStreak == 10)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
 								"The world's markets", "answer to us."));
 
-						if (EconStreak[cnum] >= 20 && !_econVictoryFired)
+						if (Progress(cnum).EconStreak >= 20 && !_econVictoryFired)
 						{
 							_econVictoryFired = true;
 							if (!isHuman)
@@ -1986,12 +1961,12 @@ namespace CivOne
 							return;
 						}
 					}
-					else if (EconStreak[cnum] > 0)
+					else if (Progress(cnum).EconStreak > 0)
 					{
 						string why = !share ? "Our share of world trade slipped."
 							: aggressing ? "Wars of our making unsettle the markets."
 							: "Too few nations bank with us.";
-						EconStreak[cnum] = 0;
+						Progress(cnum).EconStreak = 0;
 						if (isHuman)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"The markets waver.", why, "The streak is broken."));
@@ -2015,7 +1990,6 @@ namespace CivOne
 				                                       or Civilizations.Skynet or Civilizations.Olvir)).ToArray())
 				{
 					byte cnum = PlayerNumber(claimant);
-					if (cnum >= CultureStreak.Length) continue;
 					bool isHuman = claimant == HumanPlayer;
 
 					Player[] cultRivals = _players.Where(p => p is not null && p != claimant
@@ -2024,7 +1998,7 @@ namespace CivOne
 
 					if (!claimant.HasAdvance<Philosophy>() || cultRivals.Length < 3)
 					{
-						CultureStreak[cnum] = 0;
+						Progress(cnum).CultureStreak = 0;
 						continue;
 					}
 
@@ -2042,17 +2016,17 @@ namespace CivOne
 
 					if (admired && reach && !cultAggressing)
 					{
-						CultureStreak[cnum]++;
-						if (isHuman && CultureStreak[cnum] == 1)
+						Progress(cnum).CultureStreak++;
+						if (isHuman && Progress(cnum).CultureStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"The world looks to us.",
 								$"{shadow} foreign cities live in",
 								"our shadow. Hold for 20 years."));
-						else if (isHuman && CultureStreak[cnum] == 10)
+						else if (isHuman && Progress(cnum).CultureStreak == 10)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
 								"Our arts and learning", "are the world's measure."));
 
-						if (CultureStreak[cnum] >= 20 && !_cultVictoryFired)
+						if (Progress(cnum).CultureStreak >= 20 && !_cultVictoryFired)
 						{
 							_cultVictoryFired = true;
 							if (!isHuman)
@@ -2076,12 +2050,12 @@ namespace CivOne
 							return;
 						}
 					}
-					else if (CultureStreak[cnum] > 0)
+					else if (Progress(cnum).CultureStreak > 0)
 					{
 						string why = !admired ? "Our arts no longer stand above the world's."
 							: !reach ? "Fewer nations live in our shadow."
 							: "Wars of our making tarnish our name.";
-						CultureStreak[cnum] = 0;
+						Progress(cnum).CultureStreak = 0;
 						if (isHuman)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our influence wanes.", why, "The streak is broken."));
@@ -2186,9 +2160,9 @@ namespace CivOne
 							if (_players[p] is null || _players[p].IsDestroyed()) continue;
 
 							SpaceshipArrivalTurn[p] = 0;
-							if (p >= ColonyFounded.Length || ColonyFounded[p]) continue;
-							ColonyFounded[p] = true;
-							ColonyOrder[p] = ColonyOrder.Count(o => o > 0) + 1;
+							if (Progress(p).ColonyFounded) continue;
+							Progress(p).ColonyFounded = true;
+							Progress(p).ColonyOrder = _players.Count(x => x is not null && x.Progress.ColonyOrder > 0) + 1;
 
 							if (_players[p] == HumanPlayer)
 							{
@@ -2229,20 +2203,20 @@ namespace CivOne
 				         .Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0).ToArray())
 				{
 					byte dnum = PlayerNumber(colonist);
-					if (dnum >= ColonyFounded.Length || !ColonyFounded[dnum]) continue;
+					if (!Progress(dnum).ColonyFounded) continue;
 					bool isHuman = colonist == HumanPlayer;
 					bool lifeline = _cities.Any(c => c is not null && c.Owner == dnum && c.Size > 0
 						&& c.HasBuilding<Buildings.MissionControl>());
 
 					if (lifeline)
 					{
-						DiasporaStreak[dnum]++;
-						if (isHuman && DiasporaStreak[dnum] == 1)
+						Progress(dnum).DiasporaStreak++;
+						if (isHuman && Progress(dnum).DiasporaStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 								"Mission Control has the colony.",
 								"Resupply is running. Hold this",
 								$"city for {DiasporaStreakTarget} years."));
-						else if (isHuman && DiasporaStreak[dnum] == DiasporaStreakTarget / 2)
+						else if (isHuman && Progress(dnum).DiasporaStreak == DiasporaStreakTarget / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to independence!",
 								"Alpha Centauri II reports", "its first harvest."));
 
@@ -2250,7 +2224,7 @@ namespace CivOne
 						// and the queue takes several rounds to drain — during which this block
 						// keeps seeing a streak of 20 and awarding the 200 again. Caught by a
 						// test that expected +200 and read +600.
-						if (DiasporaStreak[dnum] >= DiasporaStreakTarget && !_diasporaFired)
+						if (Progress(dnum).DiasporaStreak >= DiasporaStreakTarget && !_diasporaFired)
 						{
 							_diasporaFired = true;
 							if (!isHuman)
@@ -2261,7 +2235,7 @@ namespace CivOne
 							}
 							// The first crossing is the achievement; a later one is a repeat of
 							// somebody else's. ColonyOrder is the arrival rank.
-							HumanPlayer.AwardMilestone(DiasporaAward(ColonyOrder[dnum]));
+							HumanPlayer.AwardMilestone(DiasporaAward(Progress(dnum).ColonyOrder));
 							DecisionLogger.EndGame(HumanPlayer.Score, "Diaspora", humanWon: true, turns: _gameTurn);
 							int diasFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Diaspora");
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
@@ -2274,9 +2248,9 @@ namespace CivOne
 							return;
 						}
 					}
-					else if (DiasporaStreak[dnum] > 0)
+					else if (Progress(dnum).DiasporaStreak > 0)
 					{
-						DiasporaStreak[dnum] = 0;
+						Progress(dnum).DiasporaStreak = 0;
 						if (isHuman)
 							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 								"We have lost Mission Control.",
@@ -4981,10 +4955,10 @@ namespace CivOne
 			// The human's colony specifically: the Ascension reaches for the one target in
 			// the sky with a return address, and that address is Earth's.
 			byte acHuman = PlayerNumber(HumanPlayer);
-			if (acHuman < ColonyFounded.Length && ColonyFounded[acHuman])
+			if (Progress(acHuman).ColonyFounded)
 			{
-				ColonyFounded[acHuman] = false;
-				DiasporaStreak[acHuman] = 0;
+				Progress(acHuman).ColonyFounded = false;
+				Progress(acHuman).DiasporaStreak = 0;
 				ResetSpaceProgramme(acHuman);
 				string? breachArt = Screens.EventArtScreen.FindPath("ColonyBreached");
 				if (breachArt is not null)
@@ -5180,11 +5154,40 @@ namespace CivOne
 			return candidates[Common.Random.Next(candidates.Count)];
 		}
 
+		// Latched so a persistent failure warns once rather than every turn, and clears on the
+		// next success so a transient one warns again if it returns.
+		private bool _autosaveFailureReported;
+
 		internal void PerformAutoSave()
 		{
 			long __a = TurnMetrics.Now;
-			try { SaveCos(Settings.Instance.AutoSavePath); }
-			catch (Exception ex) { Log($"Autosave failed: {ex.GetType().Name}: {ex.Message}"); }
+			try
+			{
+				SaveCos(Settings.Instance.AutoSavePath);
+				_autosaveFailureReported = false;
+			}
+			catch (Exception ex)
+			{
+				// Log() alone is not reporting: it is an EMPTY METHOD in Release builds
+				// (runtime/sdl/src/Runtime.cs), so this whole branch used to vanish without
+				// trace. A competition-17 game once threw here on every single turn — the
+				// per-player arrays were a slot short — and autosaved nothing for 526 turns.
+				// Nobody noticed until the file timestamp read four hours stale.
+				//
+				// So it goes to the decision log, which works in Release and is what gets read
+				// after a run, and it tells the player once. Losing a long game to a silent
+				// write failure is not a thing the game should let happen quietly.
+				Log($"Autosave failed: {ex.GetType().Name}: {ex.Message}");
+				DecisionLogger.LogAutosaveFailure((int)_gameTurn, ex.GetType().Name, ex.Message);
+				if (!_autosaveFailureReported)
+				{
+					_autosaveFailureReported = true;
+					GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+						"The chronicle is not being kept.",
+						$"Autosave failed: {ex.GetType().Name}.",
+						"Your progress is NOT being saved."));
+				}
+			}
 			finally { TurnMetrics.AddAutosave(__a); }
 		}
 

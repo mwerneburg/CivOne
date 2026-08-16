@@ -83,7 +83,7 @@ namespace CivOne.Tests
 		{
 			(Game g, Player p, City c) = ACivWithACity();
 			byte me = g.PlayerNumber(p);
-			g.ColonyFounded[me] = true;                      // landed
+			g.Progress(me).ColonyFounded = true;                      // landed
 			g.SpaceshipArrivalTurn[me] = 0;                  // no longer in flight
 
 			Assert.NotEqual("Diaspora", PathOf(p));          // fixture: not on the science path
@@ -140,7 +140,7 @@ namespace CivOne.Tests
 			g.SETISignalReceived = true;
 			Assert.Equal("Diaspora", PathOf(p));
 
-			g.ColonyFounded[me] = true;
+			g.Progress(me).ColonyFounded = true;
 
 			Assert.NotEqual("Diaspora", PathOf(p));
 		}

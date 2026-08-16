@@ -180,7 +180,7 @@ namespace CivOne.Screens.Reports
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
 				int shadow = Game.CulturalShadow(Human);
-				uint cultStreak = Game.CultureStreak[Game.PlayerNumber(Human)];
+				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
 				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText($"CULTURAL ASCENDANCY STREAK {cultStreak}/20", 0, scol,
 					GraphRight - 4, GraphTop + 4, TextAlign.Right);
@@ -357,7 +357,7 @@ namespace CivOne.Screens.Reports
 			// are banked. Nothing else in the game reports it.
 			if (_page == Page.Output)
 			{
-				uint econStreak = Game.EconStreak[Game.PlayerNumber(Human)];
+				uint econStreak = Game.Progress(Game.PlayerNumber(Human)).EconStreak;
 				string streak = $"PAX MERCATORIA STREAK {econStreak}/20";
 				byte col = econStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
