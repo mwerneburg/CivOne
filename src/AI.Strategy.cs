@@ -890,6 +890,10 @@ namespace CivOne
 			// between while happiness buildings do the real work.
 			if (unrest > 0.12)
 			{
+				// This rate needed intervention, so record it as one the empire cannot hold.
+				_luxuryFloor = Math.Max(_luxuryFloor, Player.LuxuriesRate + 1);
+				_quietPasses = 0;
+
 				// Deadlock break: a rioting city earns no gold, so the gold overlay's
 				// habit of pinning taxes high when broke only perpetuates the disorder.
 				// The tax floor is 3 normally, but 2 in a crisis — the old escape valve.
@@ -923,7 +927,17 @@ namespace CivOne
 				// the slider could only ever go up. Below 5% unrest the buildings are
 				// carrying it and the trade is better spent on research; between 5% and
 				// 12% hold, so the two thresholds cannot chase each other.
-				if (unrest < 0.05) Player.LuxuriesRate--;
+				if (unrest < 0.05)
+				{
+					// Quiet: bank it, and relax the floor once the empire has been settled
+					// long enough that the buildings have plausibly changed the answer.
+					if (++_quietPasses >= LuxuryFloorRelaxTurns && _luxuryFloor > 0)
+					{
+						_luxuryFloor--;
+						_quietPasses = 0;
+					}
+					if (Player.LuxuriesRate > _luxuryFloor) Player.LuxuriesRate--;
+				}
 				return;
 			}
 
