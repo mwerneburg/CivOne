@@ -741,11 +741,18 @@ namespace CivOne
 			return false;
 		}
 
+		// How many citizens are working tiles. The city centre works itself and consumes no
+		// citizen, so it does not count; tiles no longer inside CityTiles do not count either,
+		// which is what the ResourceTiles property already filters for.
+		//
+		// One definition, used by both UpdateSpecialists and SetResourceTile. They used to
+		// measure this differently — see the note on the capacity test in SetResourceTile for
+		// the hang that cost.
+		private int WorkedTileCount => Math.Max(0, ResourceTiles.Count() - 1);
+
 		private void UpdateSpecialists()
 		{
-			// Specialists fill the citizen slots not working a tile. ResourceTiles includes
-			// the city center, which doesn't consume a citizen — same formula as ComputeCitizens.
-			int specialists = Math.Max(0, _size - (ResourceTiles.Count() - 1));
+			int specialists = Math.Max(0, _size - WorkedTileCount);
 			while (_specialists.Count < specialists) _specialists.Add(Citizen.Entertainer);
 			while (_specialists.Count > specialists) _specialists.RemoveAt(_specialists.Count - 1);
 			InvalidateCache();
@@ -899,7 +906,19 @@ namespace CivOne
 
 		public void SetResourceTile(ITile tile)
 		{
-			if (tile is null || OccupiedTile(tile) || !CityTiles.Contains(tile) || (tile.X == X && tile.Y == Y) || (_resourceTiles.Count >= Size && !_resourceTiles.Contains(tile)))
+			// Capacity is measured the way UpdateSpecialists measures it: ResourceTiles minus
+			// the city centre, which works itself and consumes no citizen.
+			//
+			// This used to read `_resourceTiles.Count >= Size`, counting the RAW list. The two
+			// disagree by one whenever the centre is inside _resourceTiles — which a loaded
+			// save can produce, since SetResourceTiles(byte[]) restores whatever bitmap the
+			// file holds. A size-6 city with the centre among its six entries then had
+			// UpdateSpecialists reporting 6-(6-1)=1 idle citizen while this test reported the
+			// city full, and AutoAssignCitizens span forever between the two: the refusal
+			// below calls ResetResourceTiles, which rebuilds the identical six, so the next
+			// pass sees the same idle citizen and the same refusal. Observed as a hard hang at
+			// turn 328 of a 13-civ game — Khmer, Ctesiphon.
+			if (tile is null || OccupiedTile(tile) || !CityTiles.Contains(tile) || (tile.X == X && tile.Y == Y) || (WorkedTileCount >= Size && !_resourceTiles.Contains(tile)))
 			{
 				ResetResourceTiles();
 				return;
@@ -1334,7 +1353,15 @@ namespace CivOne
 			{
 				ITile idle = BestIdleTile();
 				if (idle is null) break;
+				// Belt and braces: stop if the placement changed nothing. The capacity test in
+				// SetResourceTile can refuse a tile BestIdleTile is happy to keep offering, and
+				// when it does, nothing in the rest of this body moves — the turn-328 hang was
+				// exactly that fixed point. The off-by-one that caused it is fixed at source,
+				// but a loop whose termination depends on another method's arithmetic agreeing
+				// with this one should not be one bug away from hanging the game again.
+				int before = _specialists.Count;
 				SetResourceTile(idle);
+				if (_specialists.Count >= before) break;
 				if ((order && IsInDisorder) || (growth && GrowthBlocked && FoodIncome > 0))
 				{
 					SetResourceTile(idle);   // toggles it back off
