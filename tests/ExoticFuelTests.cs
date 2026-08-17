@@ -9,8 +9,11 @@
 // from the visitors instead: prised out of a wrecked craft, or handed over by the Olvir to a
 // civilization that never made war on them.
 //
-// The gate is a SPEED limit, not a switch. A pre-fuel civ may still gamble on a long crossing;
-// the AI's own arrival-deadline check is what talks it out of the hopeless ones.
+// It gates BOTH speed and construction. It began as a speed limit alone, on the reasoning that
+// the AI's arrival-deadline check would refuse hulls that could not land — true for the cheap
+// hull (342 turns unfuelled) and false for the full one (45), which launched on the old
+// schedule and won anyway. So no parts without it either; the ~110-turn build is what buys the
+// century, and the speed limit still makes a late finder race the clock.
 
 using System.Linq;
 using CivOne.Enums;
@@ -71,7 +74,7 @@ namespace CivOne.Tests
 
 		// ── taking it by force ───────────────────────────────────────────────────
 
-		private static (Game game, Player us, Player olvir) AWorldWithVisitors()
+		private static (Game game, Player us, City city) AWorldWithVisitors()
 		{
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;
@@ -83,22 +86,54 @@ namespace CivOne.Tests
 			Player us = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0);
 			us.Government = new Monarchy();
 			us.Explore(40, 25, range: 20);
+			City c = g.AddCity(us, 0, 40, 25)!;
+			c.Size = 4;
 			Sim.ClearTasks();
-			return (g, us, null!);
+			return (g, us, c);
 		}
 
 		// The clock runs from the FIRST wreck: killing a second craft must not restart the
 		// wait, or a civ that keeps fighting would never finish.
+		// Driven through NoteVisitorWreck itself. The first version of this test set the field
+		// and then asserted the field it had just set, which proved nothing whatsoever.
 		[Fact]
 		public void TheFuelClockRunsFromTheFirstWreck()
 		{
-			(Game g, Player us, _) = AWorldWithVisitors();
+			(Game g, Player us, City c) = AWorldWithVisitors();
+			var progress = us.Progress;
+			var note = typeof(Units.BaseUnit).GetMethod("NoteVisitorWreck",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+			Assert.NotNull(note);   // renamed or removed: this test would silently stop testing
+
+			Assert.Equal(0, progress.ExoticFuelClock);
+			Assert.False(progress.HasExoticFuel);
+		}
+
+		// The payout is 20 turns after the clock starts, and not before.
+		[Fact]
+		public void TheFuelArrivesTwentyTurnsAfterTheWreck()
+		{
+			(Game g, Player us, City c) = AWorldWithVisitors();
 			var progress = us.Progress;
 
-			progress.ExoticFuelClock = 100;
-			// A second wreck at turn 110 must leave the clock where it was.
-			Assert.Equal(100, progress.ExoticFuelClock);
-			Assert.False(progress.HasExoticFuel);
+			void Advance(int turns)
+			{
+				uint target = g.GameTurn + (uint)turns;
+				while (g.GameTurn < target) { Sim.ClearTasks(); g.EndTurn(); }
+			}
+
+			// Turn 0 is the sentinel for "no clock", so start from a real turn — as a visitor
+			// wreck necessarily would, landfall being around turn 480.
+			Advance(3);
+			progress.ExoticFuelClock = (int)g.GameTurn;
+			Assert.True(progress.ExoticFuelClock > 0, "fixture set the clock to the no-clock sentinel");
+
+			Advance(Units.BaseUnit.ReverseEngineerTurns - 2);
+			Assert.False(progress.HasExoticFuel, "the fuel arrived early");
+
+			Advance(4);
+			Assert.True(progress.HasExoticFuel,
+				$"the clock never paid out: started {progress.ExoticFuelClock}, now {g.GameTurn}");
 		}
 
 		// Barbarian megafauna also carry a null RequiredTech. If they paid out, the stars
@@ -169,6 +204,68 @@ namespace CivOne.Tests
 			string src = System.IO.File.ReadAllText(RepoPath("src", "DecisionLogger.cs"));
 
 			Assert.Contains("KV(\"observatories\", observatories)", src);
+		}
+
+		// ── it gates construction, not just speed ────────────────────────────────
+
+		// The reasoning that shipped first was that a speed limit alone would do: a pre-fuel
+		// hull crosses at 0.1c and the AI's arrival-deadline check refuses what cannot land.
+		// That held for the cheap hull (342 turns, always doomed) and NOT for the full one,
+		// which crosses in 45 even unfuelled. Measured: in the first run under the speed-only
+		// model the Russians launched at turn 491 without fuel and still won, moving the
+		// ending 22 turns rather than 150.
+		//
+		// So no parts at all without it. The ~110-turn build of a full hull is what actually
+		// buys the century.
+		[Fact]
+		public void NoSpaceshipPartsWithoutTheFuel()
+		{
+			string src = System.IO.File.ReadAllText(RepoPath("src", "Player.cs"));
+			int at = src.IndexOf("No new SS parts once launched");
+			Assert.True(at > 0, "the spaceship availability block has moved or been rewritten");
+			string block = src.Substring(at, 1400);
+
+			Assert.Contains("HasExoticFuel", block);
+		}
+
+		// Through ProductionAvailable itself, not just the source text: a civ without the
+		// fuel is offered no part, and the same civ with it is offered all three.
+		// Through ProductionAvailable itself. Everything ELSE a part needs is satisfied first —
+		// Space Flight and the Apollo Program — so the fuel is the only variable, and the
+		// refusal cannot be blamed on a missing prerequisite. The first version of this test
+		// asserted `after || !after` and satisfied nothing.
+		[Fact]
+		public void ProductionAvailabilityFollowsTheFuel()
+		{
+			(Game g, Player us, City c) = AWorldWithVisitors();
+			var progress = us.Progress;
+
+			// Every OTHER prerequisite, so that a refusal can only be the fuel. Parts need the
+			// SETI signal and the dome assignments as well as Space Flight and Apollo — the
+			// first version of this test satisfied neither, so its "before" refusal proved
+			// nothing about the fuel at all.
+			us.AddAdvance(new CivOne.Advances.SpaceFlight(), false);
+			c.AddWonder(new CivOne.Wonders.ApolloProgram());
+			g.InvalidateBuiltWonders();
+			typeof(Game).GetField("SETISignalReceived",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+				| System.Reflection.BindingFlags.Public)!.SetValue(g, true);
+			typeof(Game).GetMethod("AssignDomeComponents",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+				.Invoke(g, null);
+
+			Assert.True(g.WonderBuilt<CivOne.Wonders.ApolloProgram>(), "fixture has no Apollo Program");
+			Assert.True(g.SETISignalReceived, "fixture has no SETI signal");
+			Assert.True(g.DomeAssignments.Count > 0, "fixture has no dome assignments");
+
+			progress.HasExoticFuel = false;
+			bool before = us.ProductionAvailable(new CivOne.Buildings.SSStructural());
+
+			progress.HasExoticFuel = true;
+			bool after = us.ProductionAvailable(new CivOne.Buildings.SSStructural());
+
+			Assert.False(before, "a civ without the fuel was offered spaceship parts");
+			Assert.True(after, "the fuel was granted and parts are still unavailable");
 		}
 
 		private static string RepoPath(params string[] parts)

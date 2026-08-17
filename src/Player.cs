@@ -697,6 +697,24 @@ namespace CivOne
 				if (Game.Progress(Game.PlayerNumber(this)).SpaceshipLaunchTurn != 0)
 					return false;
 
+				// ...and none at all without the exotic fuel.
+				//
+				// This began as a SPEED limit alone — a pre-fuel hull crossed at 0.1c and the
+				// AI's arrival-deadline check was expected to refuse anything that could not
+				// land in time. That reasoning held only for the CHEAP hull, which takes 342
+				// turns unfuelled and is always doomed. A full 51/16/12 crosses in 45 even at
+				// 0.1c, clears the deadline easily, and launches on the old schedule: measured
+				// in the first run under the speed-limit model, the Russians launched at turn
+				// 491 unfuelled and still won, moving the ending by 22 turns rather than 150.
+				//
+				// So the fuel gates construction too. The sequence becomes fuel -> build ->
+				// fly, and the ~110-turn build of a full hull is what actually buys the
+				// century: landfall t480 -> fuel t500 -> launch ~t610 -> win ~t675, inside the
+				// t730 deadline. The speed limit stays, because a civ that gets the fuel late
+				// should still be racing the clock rather than merely waiting for it.
+				if (!Game.Progress(Game.PlayerNumber(this)).HasExoticFuel)
+					return false;
+
 				// Hull limits (Game.MAX_SS_*). Completed parts are never added to the city's
 				// building list, so the usual "already built" filter in AvailableProduction
 				// can't retire them — without this the part stays on offer forever and the

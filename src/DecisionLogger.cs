@@ -323,7 +323,7 @@ namespace CivOne
 		// cultural figures are the expensive part (a covered-tile set per civ), so they come
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
-			int reach, int shadow, long bestNeighbour, int observatories, int grossOutput, int worldOutput, int structural,
+			int reach, int shadow, long bestNeighbour, int observatories, bool hasFuel, int grossOutput, int worldOutput, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -346,6 +346,10 @@ namespace CivOne
 				// them the exotic fuel — is gated on how many CIVS are listening, so this is
 				// the only field that can say when that clock actually starts.
 				KV("observatories", observatories),
+				// Whether this civ can cross at 0.2c, and now whether it may build at all.
+				// Without it the log cannot say why a ship launched when it did — inferring
+				// it from flight arithmetic worked once and should not have to again.
+				KV("has_fuel",    hasFuel),
 				KV("gross_out",   grossOutput),
 				KV("world_out",   worldOutput),
 				KV("ss_struct",   structural),

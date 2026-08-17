@@ -168,6 +168,10 @@ namespace CivOne.Tests
 			g.DomeAssignments[1] = new System.Collections.Generic.List<Wonder> { Wonder.DomeSensorNet };
 			p.AddAdvance(new SpaceFlight(), false);
 			foreach (City x in p.Cities) x.AddWonder(new Wonders.ApolloProgram());
+			// Parts also need the exotic fuel now. These tests are about how the AI CHOOSES a
+			// hull, not about the gate in front of it, so the fuel is granted outright — the
+			// gate has its own tests in ExoticFuelTests.
+			g.Progress(g.PlayerNumber(p)).HasExoticFuel = true;
 			Assert.Equal("Diaspora", PathName(p));
 			Assert.True(p.ProductionAvailable(new SSStructural()), "fixture: ship parts are not available");
 
@@ -196,6 +200,10 @@ namespace CivOne.Tests
 			g.DomeAssignments[1] = new System.Collections.Generic.List<Wonder> { Wonder.DomeSensorNet };
 			p.AddAdvance(new SpaceFlight(), false);
 			foreach (City x in p.Cities) x.AddWonder(new Wonders.ApolloProgram());
+			// Parts also need the exotic fuel now. These tests are about how the AI CHOOSES a
+			// hull, not about the gate in front of it, so the fuel is granted outright — the
+			// gate has its own tests in ExoticFuelTests.
+			g.Progress(g.PlayerNumber(p)).HasExoticFuel = true;
 			Assert.Equal("Diaspora", PathName(p));
 
 			// Fill the ship to whatever this civ decided to aim for. Parts are still
@@ -227,6 +235,10 @@ namespace CivOne.Tests
 			g.DomeAssignments[1] = new System.Collections.Generic.List<Wonder> { Wonder.DomeSensorNet };
 			p.AddAdvance(new SpaceFlight(), false);
 			foreach (City x in p.Cities) x.AddWonder(new Wonders.ApolloProgram());
+			// Parts also need the exotic fuel now. These tests are about how the AI CHOOSES a
+			// hull, not about the gate in front of it, so the fuel is granted outright — the
+			// gate has its own tests in ExoticFuelTests.
+			g.Progress(g.PlayerNumber(p)).HasExoticFuel = true;
 			Assert.Equal("Conquest", PathName(p));
 
 			IProduction[] plan = Plan(p, c);
