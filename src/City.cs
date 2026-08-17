@@ -1161,9 +1161,18 @@ namespace CivOne
 			//   disorder.
 
 			// Sync specialist list length with current city size and worked tiles.
+			//
+			// Clamped at zero. Without it, a city working more than Size+1 tiles gives a
+			// NEGATIVE target, the second condition stays true at Count == 0, and Last()
+			// throws on an empty list — a hard crash on a very hot path, since this runs
+			// through Citizens -> UnhappyCitizens -> IsInDisorder. Reached while stepping the
+			// turn-328 city by hand, so it is not merely theoretical; the capacity fix in
+			// SetResourceTile makes it hard to arrive at, but this loop should not depend on
+			// another method's arithmetic to stay safe.
 			int resourceCount = ResourceTiles.Count();
-			while (_specialists.Count < Size - (resourceCount - 1)) _specialists.Add(Citizen.Entertainer);
-			while (_specialists.Count > Size - (resourceCount - 1)) _specialists.Remove(_specialists.Last());
+			int wanted = Math.Max(0, Size - (resourceCount - 1));
+			while (_specialists.Count < wanted) _specialists.Add(Citizen.Entertainer);
+			while (_specialists.Count > wanted) _specialists.RemoveAt(_specialists.Count - 1);
 
 			int happyCount = (int)Math.Floor((double)Luxuries / 2);
 			if (Player.HasWonder<HangingGardens>() && !Game.WonderObsolete<HangingGardens>()) happyCount++;
@@ -1395,7 +1404,16 @@ namespace CivOne
 				// with this one should not be one bug away from hanging the game again.
 				int before = _specialists.Count;
 				SetResourceTile(idle);
-				if (_specialists.Count >= before) break;
+				if (_specialists.Count >= before)
+				{
+					// Say so. A guard that breaks silently turns a beachball into a city that
+					// quietly stops placing citizens, which is the harder of the two to ever
+					// notice — and noticing is the whole reason the turn-328 hang got fixed.
+					Log($"{Name}: citizen governor made no progress placing a specialist "
+					  + $"(size {Size}, worked {WorkedTileCount}, specialists {_specialists.Count}) "
+					  + "- the city reads as full and idle at once");
+					break;
+				}
 				if ((order && IsInDisorder) || (growth && GrowthBlocked && FoodIncome > 0))
 				{
 					SetResourceTile(idle);   // toggles it back off
@@ -2804,8 +2822,16 @@ namespace CivOne
 
 						System.Action transferCity = () =>
 						{
-							while (this.Units.Length > 0)
+							// Bounded: DisbandUnit is trusted to remove the unit, and if it ever
+							// does not, this loop would spin forever holding the whole game —
+							// inside a screen callback, where there is nothing to interrupt it.
+							// One pass per unit present, and stop if a pass changes nothing.
+							for (int guard = this.Units.Length; guard > 0 && this.Units.Length > 0; guard--)
+							{
+								int before = this.Units.Length;
 								Game.DisbandUnit(this.Units[0]);
+								if (this.Units.Length >= before) break;
+							}
 							this.Owner = admired.Owner;
 							previousOwner.IsDestroyed();
 							if (Human == admired.Owner)

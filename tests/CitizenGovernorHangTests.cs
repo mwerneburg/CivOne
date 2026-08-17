@@ -180,5 +180,75 @@ namespace CivOne.Tests
 
 			Assert.Equal(c.Size, c.ResourceTiles.Count() - 1);
 		}
+
+		// ── the guards around it ─────────────────────────────────────────────────
+
+		// ComputeCitizens synced the specialist list against `Size - (resourceCount - 1)` with
+		// no floor. A city working more than Size+1 tiles makes that negative, the shrink loop
+		// stays true at Count == 0, and Last() throws on an empty list — a hard crash on the
+		// path Citizens -> UnhappyCitizens -> IsInDisorder, which runs constantly.
+		//
+		// Reached while stepping the turn-328 city by hand, so not theoretical.
+		[Fact]
+		public void ACityWorkingMoreTilesThanItsSizeDoesNotThrow()
+		{
+			(Game g, City c) = ACityBlindToItsOwnCentre();
+
+			// Eight worked entries on a size-6 city: resourceCount - 1 exceeds Size, so the
+			// old arithmetic asked for a negative number of specialists.
+			var tiles = (System.Collections.Generic.IList<ITile>)typeof(City)
+				.GetField("_resourceTiles", BindingFlags.NonPublic | BindingFlags.Instance)!
+				.GetValue(c)!;
+			tiles.Clear();
+			foreach ((int dx, int dy) in new[] { (-1,0), (1,0), (0,-1), (0,1), (-1,-1), (1,1), (-2,0), (2,0) })
+				tiles.Add(Map.Instance[c.X + dx, c.Y + dy]);
+			c.InvalidateCache();
+
+			Assert.True(c.ResourceTiles.Count() - 1 > c.Size,
+				$"fixture is not over-subscribed: {c.ResourceTiles.Count() - 1} worked vs size {c.Size}");
+
+			// Any of these reaches ComputeCitizens.
+			WithWatchdog("IsInDisorder", () => { _ = c.IsInDisorder; });
+			WithWatchdog("Citizens",     () => { _ = c.Citizens.ToArray(); });
+		}
+
+		// The defection transfer disbands the garrison in a loop, inside a screen callback
+		// where a spin would hold the whole game with nothing able to interrupt it. Pinned at
+		// source: staging a cultural defection with an undisbandable unit is a heavy fixture
+		// for a two-line guard.
+		[Fact]
+		public void TheDefectionUnitLoopIsBounded()
+		{
+			string src = CitySource();
+			int at = src.IndexOf("System.Action transferCity");
+			Assert.True(at > 0, "the defection transfer has moved or been rewritten");
+			string block = src.Substring(at, 600);
+
+			Assert.DoesNotContain("while (this.Units.Length > 0)", block);
+			Assert.Contains("if (this.Units.Length >= before) break;", block);
+		}
+
+		// A guard that breaks silently trades a beachball for a city that quietly stops
+		// placing citizens — harder to notice, and noticing is what got the hang fixed.
+		[Fact]
+		public void TheGovernorSaysSoWhenItMakesNoProgress()
+		{
+			string src = CitySource();
+			int at = src.IndexOf("if (_specialists.Count >= before)");
+			Assert.True(at > 0, "the progress guard has moved or been rewritten");
+			string block = src.Substring(at, 500);
+
+			Assert.Contains("Log(", block);
+			Assert.Contains("citizen governor made no progress", block);
+		}
+
+		private static string CitySource()
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			Assert.NotNull(dir);
+			return System.IO.File.ReadAllText(System.IO.Path.Combine(dir!.FullName, "src", "City.cs"));
+		}
 	}
 }
