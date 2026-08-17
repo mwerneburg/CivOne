@@ -153,5 +153,84 @@ namespace CivOne.Tests
 			Assert.Equal(System.Math.Max(0, c.RawTradeForAi - c.Corruption), c.TradeTotal);
 			Assert.True(c.TradeTotal < c.RawTradeForAi, "corruption took nothing");
 		}
+
+		// ── zero worked tiles ────────────────────────────────────────────────────
+
+		// A city can be stripped to zero worked tiles when several of them are blocked at
+		// once — foreign units crossing, a neighbour claiming them. UpdateResources only ever
+		// RELOCATED tiles, never added, so such a city worked its centre alone, turned every
+		// citizen into an entertainer, and starved: a capital at -7 food with its whole
+		// population making music.
+		//
+		// The recovery is scoped to AI cities on purpose, and that distinction is the reason
+		// this needs a test rather than a comment. A human sitting at zero worked tiles may
+		// have chosen it — all musicians for happiness under Republic — and refilling would
+		// overwrite that every turn. An AI never assigns specialists anywhere, so for the AI
+		// the state is always involuntary.
+		private static (Game game, Player owner, City city) AStrippedCity(bool human)
+		{
+			(Game g, Player p, City c) = ATradingCity(size: 4);
+			// ATradingCity hands back the FIRST real player, who is the human by default — so
+			// the AI case has to move the human elsewhere, or both cases test the same thing.
+			g.HumanPlayer = human ? p
+				: g.Players.First(q => q is not null && q != p && g.PlayerNumber(q) != 0);
+
+			var tiles = (System.Collections.Generic.IList<CivOne.Tiles.ITile>)typeof(City)
+				.GetField("_resourceTiles", System.Reflection.BindingFlags.NonPublic
+				                          | System.Reflection.BindingFlags.Instance)!.GetValue(c)!;
+			tiles.Clear();
+			c.InvalidateCache();
+			return (g, p, c);
+		}
+
+		[Fact]
+		public void AnAiCityStrippedToZeroTilesRefills()
+		{
+			(Game g, Player p, City c) = AStrippedCity(human: false);
+			Assert.NotEqual(p, g.HumanPlayer);
+
+			var raw = (System.Collections.Generic.IList<CivOne.Tiles.ITile>)typeof(City)
+				.GetField("_resourceTiles", System.Reflection.BindingFlags.NonPublic
+				                          | System.Reflection.BindingFlags.Instance)!.GetValue(c)!;
+			int cityTiles = ((System.Collections.Generic.IEnumerable<CivOne.Tiles.ITile>)
+				typeof(City).GetProperty("CityTiles", System.Reflection.BindingFlags.NonPublic
+					| System.Reflection.BindingFlags.Instance)!.GetValue(c)!).Count();
+
+			c.UpdateResources();
+
+			Assert.True(c.ResourceTiles.Count() - 1 > 0,
+				$"no refill: size={c.Size} rawBefore=0 rawAfter={raw.Count} "
+				+ $"cityTiles={cityTiles} filtered={c.ResourceTiles.Count()} "
+				+ $"human={g.HumanPlayer?.TribeNamePlural} owner={c.Player.TribeNamePlural} "
+				+ $"autopilot={Settings.Instance.Autopilot}");
+		}
+
+		// ...and the player's own allocation is left alone.
+		[Fact]
+		public void AHumanCityStrippedToZeroTilesIsLeftAlone()
+		{
+			(Game g, Player p, City c) = AStrippedCity(human: true);
+			Assert.Equal(p, g.HumanPlayer);
+
+			c.UpdateResources();
+
+			Assert.Equal(0, c.ResourceTiles.Count() - 1);
+		}
+
+		// The enumeration bug that shipped alongside it: RelocateResourceTile mutates the
+		// worked-tile set, so the invalid-tile scan must be materialised before iterating.
+		[Fact]
+		public void TheInvalidTileScanIsMaterialisedBeforeIterating()
+		{
+			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(dir!.FullName, "src", "City.cs"));
+			int at = src.IndexOf("public void UpdateResources()");
+			Assert.True(at > 0, "UpdateResources has moved or been rewritten");
+			string block = src.Substring(at, 1600);
+
+			Assert.Contains("InvalidTile(t)).ToList()", block);
+		}
 	}
 }
