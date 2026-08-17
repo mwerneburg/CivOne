@@ -2587,7 +2587,18 @@ namespace CivOne
 			BuildingSold = false;
 			GameTask.Enqueue(new ProcessScience(Player));
 
-			if (Shields == 0 && !DequeueProduction() && (Player != Human || Settings.Instance.Autopilot))
+			// Re-plan on completion (Shields back to 0) — OR when the city earns nothing, which
+			// is a state it can never leave on its own.
+			//
+			// `Shields == 0` alone meant a city with no shield income was never re-planned at
+			// all: it holds whatever it had accumulated, never completes, and the trigger is
+			// permanently false. Measured in run 733f10ec — Kyoto, the Japanese capital, sat
+			// on 3 accumulated shields with 0 income, building a Militia costing 10, from
+			// around turn 357 until the game ended at 617. The AI was never asked again. The
+			// civ finished on one city with a gross output of 1, and left no trace in the
+			// decision log, because a city that is never re-planned is never logged.
+			if ((Shields == 0 || ShieldIncome <= 0) && !DequeueProduction()
+			    && (Player != Human || Settings.Instance.Autopilot))
 				Player.AI?.CityProduction(this);
 		}
 
