@@ -268,6 +268,45 @@ namespace CivOne.Tests
 			Assert.True(after, "the fuel was granted and parts are still unavailable");
 		}
 
+		// ── the visitors are not in the race ─────────────────────────────────────
+
+		// The Olvir crossed interstellar space to get here. They are not waiting to
+		// rediscover their own drive, and the Diaspora refuses story factions as claimants —
+		// so fuel would only buy them production they can never cash in.
+		//
+		// Observed in run 733f10ec: the gift loop iterated every player, the Olvir held
+		// has_fuel from turn 545, and 89% of their output went to defenders while they built
+		// toward a race they were barred from winning.
+		[Theory]
+		[InlineData("TheOthers")]
+		[InlineData("TheThing")]
+		[InlineData("Skynet")]
+		[InlineData("Olvir")]
+		public void StoryFactionsAreExcludedFromTheGift(string faction)
+		{
+			string src = System.IO.File.ReadAllText(RepoPath("src", "Game.cs"));
+			int at = src.IndexOf("foreach (Player claimant in _players.Where(p => p is not null && !p.IsDestroyed()\n\t\t\t\t         && PlayerNumber(p) != 0\n\t\t\t\t         && !(p.Civilization is");
+			if (at < 0) at = src.IndexOf("byte fnum = PlayerNumber(claimant);") - 700;
+			Assert.True(at > 0, "the fuel grant loop has moved or been rewritten");
+			string block = src.Substring(at, 900);
+
+			Assert.Contains(faction, block);
+		}
+
+		// ...and they do not salvage it either, including from each other.
+		[Theory]
+		[InlineData("TheOthers")]
+		[InlineData("Olvir")]
+		public void StoryFactionsDoNotSalvageTheFuel(string faction)
+		{
+			string src = System.IO.File.ReadAllText(RepoPath("src", "Units", "BaseUnit.cs"));
+			int at = src.IndexOf("private void NoteVisitorWreck");
+			Assert.True(at > 0, "NoteVisitorWreck has moved or been rewritten");
+			string block = src.Substring(at, 700);
+
+			Assert.Contains($"Civilizations.{faction}", block);
+		}
+
 		private static string RepoPath(params string[] parts)
 		{
 			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);

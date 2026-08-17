@@ -997,6 +997,11 @@ namespace CivOne.Units
 		private void NoteVisitorWreck(IUnit loser)
 		{
 			if (!IsVisitorCraft(loser)) return;
+			// ...and the visitors do not salvage their own, nor do the other story factions
+			// salvage anything. Same exclusion as the gift, for the same reason: none of them
+			// may claim the Diaspora, so fuel would only buy them wasted production.
+			if (Player.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+			                        or Civilizations.Skynet or Civilizations.Olvir) return;
 			PlayerProgress progress = Player.Progress;
 			if (progress.HasExoticFuel || progress.ExoticFuelClock != 0) return;
 			progress.ExoticFuelClock = (int)Game.GameTurn;

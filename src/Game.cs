@@ -1832,8 +1832,17 @@ namespace CivOne
 				// By welcome: the Olvir simply hand it over, OlvirFuelGiftTurns after landfall
 				// — but only to a civ that has not made war on them. They are refugees; the
 				// price of the stars is having been decent to the people who brought them.
+				// Story factions are excluded, as they are from every victory they cannot
+				// claim. The Olvir crossed interstellar space to get here — they are not
+				// waiting to rediscover their own drive — and the Diaspora refuses them as
+				// claimants anyway, so a hull they build can never win. Left in, they took the
+				// gift along with everyone else and spent their production on a race they are
+				// barred from: observed in run 733f10ec, where they held has_fuel from turn
+				// 545 with nothing to gain by it.
 				foreach (Player claimant in _players.Where(p => p is not null && !p.IsDestroyed()
-				         && PlayerNumber(p) != 0).ToArray())
+				         && PlayerNumber(p) != 0
+				         && !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+				                              or Civilizations.Skynet or Civilizations.Olvir)).ToArray())
 				{
 					byte fnum = PlayerNumber(claimant);
 					PlayerProgress fp = Progress(fnum);
