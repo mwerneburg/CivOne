@@ -1288,10 +1288,24 @@ namespace CivOne
 			return Math.Min(100, 70 + engineBonus + moduleBonus);
 		}
 
-		// Score contribution: hab_modules × 500 × success% / 100
+		// Score contribution: hab_modules × 500 × success% / 100, counting only COMPLETE
+		// module sets.
+		//
+		// Modules fly in threes — habitation, life support, solar — and every other formula
+		// here divides by three: SpaceshipStructuresNeeded, SpaceshipSuccessPct. This one
+		// counted the raw total, so orphan modules projected colonists that would never be
+		// aboard. Observed in a 13-civ game where the auto-launch caught two civs mid-set: the
+		// Lakota at 23/9/5 were credited 2,250 against 1,350 actually carried, and the Maori at
+		// 11/4/5 1,900 against 1,140.
+		//
+		// This figure is drawn by the spaceship report and never added to Player.Score (see
+		// DiasporaAward), so the cost was a misleading projection rather than a wrong result —
+		// and it now tells a player something true: the 4th and 5th modules buy nothing until
+		// the 6th completes the set.
 		internal static int SpaceshipScore(int module, int component)
 		{
-			return module * 500 * SpaceshipSuccessPct(component, module) / 100;
+			int carried = (module / 3) * 3;
+			return carried * 500 * SpaceshipSuccessPct(component, module) / 100;
 		}
 
 		// Internal so the AI can ask "would this hull arrive before the game ends" before

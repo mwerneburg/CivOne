@@ -198,5 +198,67 @@ namespace CivOne.Tests
 				Assert.False((bool)wants!.Invoke(strategy, new object[] { part })!,
 					$"{part.GetType().Name} was still wanted by an abandoned programme");
 		}
+
+		// ── modules fly in threes ────────────────────────────────────────────────
+
+		// Habitation, life support, solar. SpaceshipStructuresNeeded and SpaceshipSuccessPct
+		// both divide by three; SpaceshipScore counted the raw total, so orphan modules
+		// projected colonists that would never be aboard.
+		//
+		// The auto-launch gate fires at `module >= 3`, so a civ building toward six launches on
+		// whatever it holds that turn — which is how a 13-civ game produced two ships at five
+		// modules, the Lakota at 23/9/5 and the Maori at 11/4/5.
+		[Theory]
+		[InlineData(3,  3)]    // one set, nothing wasted
+		[InlineData(4,  3)]    // one orphan
+		[InlineData(5,  3)]    // the observed case
+		[InlineData(6,  6)]
+		[InlineData(8,  6)]
+		[InlineData(12, 12)]
+		public void OnlyCompleteModuleSetsCarryColonists(int modules, int equivalent)
+		{
+			Sim.EnsureRuntime();
+
+			Assert.Equal(Game.SpaceshipScore(equivalent, 16), Game.SpaceshipScore(modules, 16));
+		}
+
+		// ...and a completed set must still be worth something, or the rule above could be
+		// satisfied by returning zero.
+		[Fact]
+		public void CompletingASetRaisesTheProjection()
+		{
+			Sim.EnsureRuntime();
+
+			Assert.True(Game.SpaceshipScore(6, 16) > Game.SpaceshipScore(5, 16),
+				"the sixth module must pay for itself");
+			Assert.True(Game.SpaceshipScore(3, 16) > 0, "one set must be worth something");
+		}
+
+		// The exact figures from the run that exposed it, so the arithmetic is pinned and not
+		// merely the direction.
+		[Fact]
+		public void TheObservedHullsAreScoredOnOneSet()
+		{
+			Sim.EnsureRuntime();
+
+			Assert.Equal(90, Game.SpaceshipSuccessPct(9, 5));
+			Assert.Equal(1350, Game.SpaceshipScore(5, 9));    // Lakota 23/9/5, was 2250
+			Assert.Equal(76, Game.SpaceshipSuccessPct(4, 5));
+			Assert.Equal(1140, Game.SpaceshipScore(5, 4));    // Maori 11/4/5, was 1900
+		}
+
+		// Structure and success already counted sets. Pinned alongside so the three formulas
+		// cannot drift apart again — that disagreement is the whole bug.
+		[Theory]
+		[InlineData(3)]
+		[InlineData(4)]
+		[InlineData(5)]
+		public void StructureAndSuccessAlreadyIgnoreOrphans(int modules)
+		{
+			Sim.EnsureRuntime();
+
+			Assert.Equal(Game.SpaceshipStructuresNeeded(16, 3), Game.SpaceshipStructuresNeeded(16, modules));
+			Assert.Equal(Game.SpaceshipSuccessPct(16, 3), Game.SpaceshipSuccessPct(16, modules));
+		}
 	}
 }
