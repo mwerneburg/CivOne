@@ -175,6 +175,12 @@ namespace CivOne.Tests
 			g.HumanPlayer = human ? p
 				: g.Players.First(q => q is not null && q != p && g.PlayerNumber(q) != 0);
 
+			// Autopilot is a STATIC singleton that five other test files set to true and none
+			// of them reset. Under it the human's cities are governed like an AI's, which is
+			// exactly the distinction under test here — so this passed alone and failed in the
+			// suite depending on what ran first. Pinned rather than assumed.
+			Settings.Instance.Autopilot = false;
+
 			var tiles = (System.Collections.Generic.IList<CivOne.Tiles.ITile>)typeof(City)
 				.GetField("_resourceTiles", System.Reflection.BindingFlags.NonPublic
 				                          | System.Reflection.BindingFlags.Instance)!.GetValue(c)!;

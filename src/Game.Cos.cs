@@ -186,6 +186,7 @@ namespace CivOne
 					SpaceshipStructural  = Progress(p).SpaceshipStructural,
 					SpaceshipComponent   = Progress(p).SpaceshipComponent,
 					SpaceshipModule      = Progress(p).SpaceshipModule,
+					HasExoticFuel        = Progress(p).HasExoticFuel,
 					StartedWarsWith  = Progress(p).StartedWarsWith.Count > 0
 					                   ? Progress(p).StartedWarsWith.Select(b => (int)b).ToArray() : null!,
 					LeaderName       = player.LeaderName,
@@ -569,6 +570,9 @@ namespace CivOne
 				Progress(i).SpaceshipStructural  = cos.Players[i].SpaceshipStructural;
 				Progress(i).SpaceshipComponent   = cos.Players[i].SpaceshipComponent;
 				Progress(i).SpaceshipModule      = cos.Players[i].SpaceshipModule;
+				// Older saves have no such field; false is right for a game played entirely
+				// under the old model where every hull crossed at 0.2c.
+				Progress(i).HasExoticFuel        = cos.Players[i].HasExoticFuel ?? false;
 				if (cos.Players[i].StartedWarsWith is not null)
 					foreach (int n in cos.Players[i].StartedWarsWith)
 						RecordWarStart((byte)i, (byte)n);

@@ -41,6 +41,11 @@ namespace CivOne.Buildings
 		// reworded, since the table is the more useful thing to put in its place.
 		private static string[] Page2()
 		{
+			// The reader's own civilization, when there is one — the Civilopedia is also
+			// browsable outside a game, where "no fuel" is the honest default.
+			bool hasFuel = Game.Started && Game.Instance.HumanPlayer is not null
+				&& Game.Instance.Progress(Game.PlayerNumber(Game.Instance.HumanPlayer)).HasExoticFuel;
+
 			var lines = new List<string>
 			{
 				"Requires PLASTICS.",
@@ -49,13 +54,17 @@ namespace CivOne.Buildings
 				"and fuel; an unmatched one",
 				"adds nothing to your speed.",
 				"",
-				"CROSSING TIME (4.4 LIGHT YEARS)",
+				hasFuel ? "CROSSING TIME (4.4 LIGHT YEARS)"
+				        : "CROSSING TIME - NO EXOTIC FUEL",
 				" ENGINES MODULES  YEARS  SPEED",
 			};
 			foreach ((int comp, int module) in new[] { (16, 3), (16, 12), (8, 6), (4, 3), (2, 3) })
 			{
+				// The table shows what THIS civilization would achieve, which is the only
+				// honest answer once speed depends on the fuel: quoting 0.2c to a civ that
+				// cannot reach it would be the spaceship report's phantom colonists again.
 				float years = Game.SpaceshipFlightYears(
-					Game.SpaceshipStructuresNeeded(comp, module), comp, module);
+					Game.SpaceshipStructuresNeeded(comp, module), comp, module, hasFuel);
 				int milliC = (int)Math.Round(4.4f / years * 1000f);
 				lines.Add($"   {comp / 2,-8}{module / 3,-7}{years,4:F0}   .{milliC:D3}c");
 			}

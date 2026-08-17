@@ -46,6 +46,30 @@ namespace CivOne
 		// crossing has proved nothing new, and Game.DiasporaAward reads this to say so.
 		public int ColonyOrder;
 
+		// ── the fuel ─────────────────────────────────────────────────────────
+		// Whether this civilization can cross at 0.2c. Deliberately NOT an Advance: by the
+		// time a game reaches the space race a civ is finishing three or four advances a
+		// turn with hundreds of future techs behind it, so a position in the research tree
+		// is a clock that has already run out. It cannot be researched at all — it is taken
+		// from the visitors, by salvage or by gift, which is also where the fiction puts it.
+		//
+		// Without it a hull still flies, at half the speed (Game.MinimumFlightYears): the
+		// gate is a SPEED limit, not a switch, so an early civ may still gamble on a long
+		// crossing and the AI's own arrival-deadline check will talk it out of the hopeless
+		// ones without needing a new rule.
+		public bool HasExoticFuel;
+
+		// Turn on which this civ first beat a visitor craft, 0 if it never has. Twenty turns
+		// later its engineers have the fuel — the same clock BaseUnit.ReverseEngineerTurns
+		// runs for ordinary salvage, and for the same reason: the interesting part is the
+		// wait, not the kill.
+		//
+		// Held on the PLAYER rather than on the wreck. Tracking it per-unit would need a new
+		// persisted field on every unit in the game to mark six of them, and would lose the
+		// clock if the captured craft were later killed — which is not how understanding
+		// works once your engineers have already opened the thing up.
+		public int ExoticFuelClock;
+
 		// ── the ship itself ──────────────────────────────────────────────────
 		// Parts are counted on the civilization rather than held by a city, which is what
 		// lets several cities contribute to one hull.

@@ -83,8 +83,26 @@ namespace CivOne
 		// you've met them.
 		internal bool VisitorsArrived;
 
+		// The turn the visitors made landfall. Every fuel route is measured from HERE rather
+		// than from an absolute turn, so tuning the SETI gate moves the whole schedule
+		// together instead of leaving the peaceful route stranded on a fixed date.
+		internal uint VisitorsArrivedTurn;
+
+		// How long after landfall the Olvir share their drive with civilizations that have
+		// not made war on them. Set so the peaceful route lands in the same window as the
+		// salvage one (a wreck plus twenty turns), rather than making pacifism strictly
+		// slower than violence — the two should be alternatives, not a ranking.
+		internal const int OlvirFuelGiftTurns = 50;
+
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;
+
+		// How many DIFFERENT civilizations must hold an Observatory before the Tau Ceti
+		// signal is detected. Five was the old count of BUILDINGS; as a count of civs it is
+		// a much later condition, because it waits on the fifth-fastest rather than the
+		// fastest. Not yet tuned against a measured run — the standings log now carries
+		// observatory counts so one game will say exactly where this lands.
+		internal const int SetiListeningCivs = 5;
 
 		// Turn on which the Tau Ceti approach warning fires (0 = not scheduled)
 		internal uint TauCetiEscalationTurn;
@@ -1245,7 +1263,19 @@ namespace CivOne
 		// the floor, so this anchors on the best case and lets the spread fall where it falls:
 		// a maxed ship now takes 22 years and a one-engine ship 171, which is what a bad
 		// design should cost. Configuration finally matters.
-		internal const float MinimumFlightYears = 22f;   // 4.4 ly at 0.2c
+		internal const float MinimumFlightYears = 22f;   // 4.4 ly at 0.2c, WITH the fuel
+
+		// Without it, half the speed: 0.1c, so the best hull takes 44 years and the minimum
+		// one 342 — which cannot arrive inside a game that ends in 2200 from any realistic
+		// launch date. That is the intended effect. Every early launch we have logged was a
+		// cheap hull thrown at the problem the moment it was buildable (24-55 turns of
+		// build, all before 1850); at 0.1c the AI's own arrival-deadline check refuses those
+		// hulls without needing a new rule, so the rush disappears on its own.
+		//
+		// A SPEED limit rather than a switch, deliberately: a civ that starts early enough
+		// may still gamble on a long crossing, which keeps the pre-fuel era a real choice
+		// instead of a locked door.
+		internal const float PreFuelFlightMultiplier = 2f;
 
 		private static float ThrustToMass(int structural, int component, int module)
 			=> Math.Max(1, component / 2) / (4445f + component * 4 + module * 4 + structural);
@@ -1267,8 +1297,11 @@ namespace CivOne
 			return best;
 		}
 
-		internal static float SpaceshipFlightYears(int structural, int component, int module)
-			=> MinimumFlightYears * (_bestThrustToMass / ThrustToMass(structural, component, module));
+		// hasFuel is the civilization's own: two civs launching identical hulls on the same
+		// turn arrive at different times if one of them took the fuel off the visitors.
+		internal static float SpaceshipFlightYears(int structural, int component, int module, bool hasFuel)
+			=> MinimumFlightYears * (hasFuel ? 1f : PreFuelFlightMultiplier)
+			 * (_bestThrustToMass / ThrustToMass(structural, component, module));
 
 		internal static int SpaceshipStructuresNeeded(int component, int module)
 		{
@@ -1310,9 +1343,9 @@ namespace CivOne
 
 		// Internal so the AI can ask "would this hull arrive before the game ends" before
 		// committing an empire's production to it.
-		internal static int SpaceshipTravelTurns(int structural, int component, int module)
+		internal static int SpaceshipTravelTurns(int structural, int component, int module, bool hasFuel)
 		{
-			return Math.Max(1, (int)Math.Ceiling(SpaceshipFlightYears(structural, component, module)));
+			return Math.Max(1, (int)Math.Ceiling(SpaceshipFlightYears(structural, component, module, hasFuel)));
 		}
 
 		// ── Pollution / Global Warming ───────────────────────────────────────────
@@ -1597,8 +1630,9 @@ namespace CivOne
 					{
 						byte pn = PlayerNumber(p);
 						(int reach, int shadow, long bestNear) = CulturalReachAndShadow(p);
+						int observatories = p.Cities.Count(c => c.HasBuilding<Observatory>());
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
-							reach, shadow, bestNear, GrossOutput(p), worldOut,
+							reach, shadow, bestNear, observatories, GrossOutput(p), worldOut,
 							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
 							Progress(pn).SpaceshipLaunchTurn,
 							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
@@ -1626,12 +1660,24 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new SouthPoleIntelReport(gameYear)));
 				}
 
-				// SETI is a world-wide program, not a wonder: once five Observatories
-				// exist anywhere on Earth, the Tau Ceti signal is detected five turns
-				// later. Once scheduled it stays scheduled, even if observatories are
-				// later lost — the transmission is already en route.
+				// SETI is a world-wide program, not a wonder: the Tau Ceti signal is
+				// detected five turns after enough of the world is listening. Once
+				// scheduled it stays scheduled, even if observatories are later lost —
+				// the transmission is already en route.
+				//
+				// The test counts CIVILIZATIONS, not buildings. It used to be five
+				// Observatories of any owner, which fires on the FASTEST civ: one science
+				// power with five observatory cities detected the signal for the whole
+				// planet, and detection landed early enough (the fifth observatory around
+				// turn 265-321 in logged games) that every other victory path was still
+				// gathering itself when the visitors made landfall a hundred turns later.
+				//
+				// Waiting on the fifth-fastest civ is a later and far more stable clock,
+				// and it scales with the size of the field on its own.
 				if (!SETISignalReceived && SETISignalTurn == 0 &&
-					_cities.Count(c => c.HasBuilding<Observatory>()) >= 5)
+					_players.Count(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0
+					                 && p.Cities.Any(c => c.HasBuilding<Observatory>()))
+						>= SetiListeningCivs)
 				{
 					SETISignalTurn = (uint)(_gameTurn + 5);
 				}
@@ -1734,6 +1780,7 @@ namespace CivOne
 				{
 					OlvirArrivalTurn = 0;
 					VisitorsArrived = true; // first contact — unlocks the post-contact tech tree
+					VisitorsArrivedTurn = _gameTurn;
 
 					// The Owners ("The Others") arrive to reclaim humanity — a cinematic ending.
 					// A defended world (dome complete) becomes a disputed claim and humanity
@@ -1771,6 +1818,46 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
 						EventArtScreen.FindPath("MeetTheOlvir")!, artCaption)));
 					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
+				}
+
+				// ── the exotic fuel ──────────────────────────────────────────────
+				// Two routes, both measured from landfall so that tuning the SETI gate moves
+				// the whole schedule together rather than stranding one of them on a fixed
+				// date.
+				//
+				// By force: beat a visitor craft, wait BaseUnit.ReverseEngineerTurns, and your
+				// engineers have its drive. Started in BaseUnit.NoteVisitorWreck.
+				//
+				// By welcome: the Olvir simply hand it over, OlvirFuelGiftTurns after landfall
+				// — but only to a civ that has not made war on them. They are refugees; the
+				// price of the stars is having been decent to the people who brought them.
+				foreach (Player claimant in _players.Where(p => p is not null && !p.IsDestroyed()
+				         && PlayerNumber(p) != 0).ToArray())
+				{
+					byte fnum = PlayerNumber(claimant);
+					PlayerProgress fp = Progress(fnum);
+					if (fp.HasExoticFuel) continue;
+
+					bool salvaged = fp.ExoticFuelClock != 0
+					             && _gameTurn - fp.ExoticFuelClock >= Units.BaseUnit.ReverseEngineerTurns;
+
+					bool gifted = false;
+					if (VisitorsArrived && VisitorType == VisitorArchetype.Refugees
+					    && VisitorsArrivedTurn > 0 && _gameTurn - VisitorsArrivedTurn >= OlvirFuelGiftTurns)
+					{
+						Player? olvir = _players.FirstOrDefault(p => p is not null
+							&& p.Civilization is Civilizations.Olvir && !p.IsDestroyed());
+						gifted = olvir is not null && !claimant.IsAtWar(olvir)
+						      && !StartedWarWith(fnum, PlayerNumber(olvir));
+					}
+
+					if (!salvaged && !gifted) continue;
+					fp.HasExoticFuel = true;
+					if (claimant == HumanPlayer)
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							gifted ? "The Olvir have shared their drive." : "We have their drive.",
+							"Our ships can cross at a fifth",
+							"the speed of light."));
 				}
 
 				// Olvir proximity alarm: once the visitors are on the ground and expanding,
@@ -2106,7 +2193,8 @@ namespace CivOne
 					if (Progress(p).SpaceshipLaunchTurn != 0) continue;
 
 					Progress(p).SpaceshipLaunchTurn = _gameTurn;
-					Progress(p).SpaceshipArrivalTurn = _gameTurn + SpaceshipTravelTurns(structural, component, module);
+					Progress(p).SpaceshipArrivalTurn = _gameTurn
+						+ SpaceshipTravelTurns(structural, component, module, Progress(p).HasExoticFuel);
 					ClearSpaceShipProduction(p);
 					string eta = Common.YearString((ushort)Progress(p).SpaceshipArrivalTurn);
 					GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,

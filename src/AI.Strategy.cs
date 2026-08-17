@@ -209,6 +209,11 @@ namespace CivOne
 			// Used to turn a hull's price into a build TIME, which is what the deadline needs.
 			int toShipPerTurn = Math.Max(1, perTurn / SpaceshipOutputShare);
 
+			// This civ's own fuel. Without it every crossing takes twice as long, which is
+			// what makes the deadline check below refuse the cheap hulls that produced every
+			// early launch we have logged.
+			bool HasFuel = Game.Instance.Progress(Game.PlayerNumber(Player)).HasExoticFuel;
+
 			(int component, int module) best = (0, 0);
 			for (int engines = 1; engines * 2 <= Game.MAX_SS_COMPONENT; engines++)
 			for (int modSets = 1; modSets * 3 <= Game.MAX_SS_MODULE; modSets++)
@@ -224,7 +229,7 @@ namespace CivOne
 				// slower to build and faster to cross, so this is a genuine trade rather than
 				// a simple ceiling — sometimes the answer is MORE engines, not fewer.
 				int buildTurns = (cost + toShipPerTurn - 1) / toShipPerTurn;
-				int flightTurns = Game.SpaceshipTravelTurns(structNeeded, comp, module);
+				int flightTurns = Game.SpaceshipTravelTurns(structNeeded, comp, module, HasFuel);
 				if (Game.Instance.GameTurn + buildTurns + flightTurns > ArrivalDeadline) continue;
 
 				// Bigger is better, and modules outrank engines: score is habitation modules
@@ -245,7 +250,7 @@ namespace CivOne
 			if (best.component == 0)
 			{
 				int minStruct = Game.SpaceshipStructuresNeeded(2, 3);
-				if (Game.Instance.GameTurn + Game.SpaceshipTravelTurns(minStruct, 2, 3) <= ArrivalDeadline)
+				if (Game.Instance.GameTurn + Game.SpaceshipTravelTurns(minStruct, 2, 3, HasFuel) <= ArrivalDeadline)
 					best = (2, 3);
 			}
 			return best;

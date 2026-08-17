@@ -217,6 +217,10 @@ namespace CivOne.Persistence
 		public int SpaceshipStructural { get; set; }
 		public int SpaceshipComponent { get; set; }
 		public int SpaceshipModule { get; set; }
+		// Nullable: absent on saves written before the fuel existed, which reads as "no
+		// civilization has it". That is the correct answer for those games — they were
+		// played under a model where every hull crossed at 0.2c.
+		public bool? HasExoticFuel { get; set; }
 		// Player numbers this civ declared war on (pact-honouring excluded). Was
 		// CosGame.HumanStartedWars when only the human could win a streak victory.
 		public int[] StartedWarsWith { get; set; } = null!;

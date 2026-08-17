@@ -499,6 +499,10 @@ namespace CivOne.Units
 					// (Screens.DestroyUnit). Every other loss path passes no credit.
 					// ...unless we can use it. Salvage takes the unit intact instead of
 					// destroying it; the loser is out one unit either way.
+					// Beating a visitor craft starts the fuel clock, whether it is taken
+					// intact or blown apart. Their drive is the only place the exotic fuel
+					// exists, and prising it out of a wreck is the whole point.
+					if (unit is not null) NoteVisitorWreck(unit);
 					if (unit is not null && Salvage(unit)) { }
 					else if (unit is not null && !Screens.DestroyUnit.ResolveIfUnseen(unit, true, Player))
 					{
@@ -976,6 +980,31 @@ namespace CivOne.Units
 		// else is destroyed as before — this is not a general "capture units" rule, it is the
 		// narrow case where taking the wreck home is worth more than the kill.
 		internal const int SalvageChance = 25;
+
+		// A craft belonging to the visitors, whoever they turned out to be. Barbarian
+		// megafauna and the other unbuildables are NOT this: they also carry a null
+		// RequiredTech, and letting them pay out would hand the stars to anyone who shot a
+		// monster.
+		internal static bool IsVisitorCraft(IUnit u)
+		{
+			Player owner = Game.Instance.GetPlayer(u.Owner);
+			return owner is not null
+				&& owner.Civilization is Civilizations.Olvir or Civilizations.TheOthers;
+		}
+
+		// Start this civ's fuel clock the first time it beats one. Idempotent: the clock runs
+		// from the FIRST wreck, so killing a second craft does not restart the wait.
+		private void NoteVisitorWreck(IUnit loser)
+		{
+			if (!IsVisitorCraft(loser)) return;
+			PlayerProgress progress = Player.Progress;
+			if (progress.HasExoticFuel || progress.ExoticFuelClock != 0) return;
+			progress.ExoticFuelClock = (int)Game.GameTurn;
+			DecisionLogger.LogSalvage("visitor-wreck", Player, loser, 0, null);
+			if (Human == Owner)
+				GameTask.Enqueue(Message.General($"We have broken open a {loser.Name}.",
+					$"Give our engineers {ReverseEngineerTurns} years", "and they will have its drive."));
+		}
 
 		// Called on a won attack, BEFORE the defender is destroyed. True = taken instead.
 		private bool Salvage(IUnit loser)

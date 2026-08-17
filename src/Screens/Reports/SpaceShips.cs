@@ -103,7 +103,8 @@ namespace CivOne.Screens.Reports
 			bool launched = Game.Instance.Progress(pid).SpaceshipLaunchTurn != 0;
 			bool canLaunch = cmp >= 2 && mod >= 3 && str >= strNeeded && !launched;
 			int successPct = Game.SpaceshipSuccessPct(cmp, mod);
-			float flightYrs = Game.SpaceshipFlightYears(str, cmp, mod);
+			bool hasFuel = Game.Instance.Progress(pid).HasExoticFuel;
+			float flightYrs = Game.SpaceshipFlightYears(str, cmp, mod, hasFuel);
 			int score = Game.SpaceshipScore(mod, cmp);
 
 			// ── layout constants ─────────────────────────────────────────────────
@@ -331,7 +332,8 @@ namespace CivOne.Screens.Reports
 						// call it directly.
 						Game.Instance.Progress(pid).SpaceshipLaunchTurn = Game.Instance.GameTurn;
 						Game.Instance.Progress(pid).SpaceshipArrivalTurn = Game.Instance.GameTurn
-							+ (int)Math.Ceiling(Game.SpaceshipFlightYears(str, cmp, mod));
+							+ (int)Math.Ceiling(Game.SpaceshipFlightYears(str, cmp, mod,
+								Game.Instance.Progress(pid).HasExoticFuel));
 						Game.Instance.ClearSpaceShipProduction(pid);
 						Game.Instance.PerformAutoSave();
 						string eta = Common.YearString((ushort)Game.Instance.Progress(pid).SpaceshipArrivalTurn);

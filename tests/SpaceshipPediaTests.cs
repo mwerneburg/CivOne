@@ -18,6 +18,12 @@ namespace CivOne.Tests
 	{
 		public SpaceshipPediaTests() => Sim.EnsureRuntime();
 
+		// The page quotes the READER'S crossing times, which now depend on whether their
+		// civilization has the exotic fuel. With no game loaded there is no human and no
+		// fuel, so the page shows the 0.1c table — and the test must compute the same thing
+		// or it would be comparing two different models and calling the difference a bug.
+		private const bool PageFuelState = false;
+
 		private static string[] Page2() => new SSComponent().GetPageText(2);
 
 		// The numbers on the page are the numbers the game flies.
@@ -29,7 +35,7 @@ namespace CivOne.Tests
 			foreach ((int comp, int module) in new[] { (16, 3), (16, 12), (8, 6), (4, 3), (2, 3) })
 			{
 				int years = (int)System.Math.Round(Game.SpaceshipFlightYears(
-					Game.SpaceshipStructuresNeeded(comp, module), comp, module));
+					Game.SpaceshipStructuresNeeded(comp, module), comp, module, PageFuelState));
 				Assert.True(page.Any(l => l.Contains($" {comp / 2,-8}{module / 3,-7}")
 				                       && l.Contains(years.ToString())),
 					$"no row for {comp / 2} engines / {module / 3} module sets at {years} years:\n"
@@ -37,12 +43,16 @@ namespace CivOne.Tests
 			}
 		}
 
-		// The headline fact the table exists to teach: nothing gets there faster than 0.2c.
+		// The headline fact the table exists to teach: there is a ceiling, and it is the fuel
+		// that sets it. With no game loaded the reader has no fuel, so the page shows the
+		// 0.1c table and says so in the heading — quoting 0.2c to a civ that cannot reach it
+		// would be the spaceship report's phantom colonists all over again.
 		[Fact]
-		public void TheTableShowsTheLightSpeedCeiling()
+		public void TheTableShowsTheCeilingTheReaderCanActuallyReach()
 		{
-			Assert.Contains(Page2(), l => l.Contains(".200c"));
-			Assert.Contains(Page2(), l => l.Contains("4.4 LIGHT YEARS"));
+			Assert.Contains(Page2(), l => l.Contains(PageFuelState ? ".200c" : ".100c"));
+			Assert.Contains(Page2(), l => l.Contains(PageFuelState ? "4.4 LIGHT YEARS"
+			                                                      : "NO EXOTIC FUEL"));
 		}
 
 		// ...and the worst ship is shown as genuinely dreadful, since that is the decision the

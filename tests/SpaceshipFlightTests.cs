@@ -15,6 +15,10 @@ namespace CivOne.Tests
 {
 	public class SpaceshipFlightTests
 	{
+		// Every flight figure here is the FUELLED case. 0.2c is what the exotic fuel buys;
+		// without it every crossing takes twice as long, which ExoticFuelTests pins
+		// separately. These remain the numbers the model is anchored on.
+
 		// The formula tests touch Game's static members without ever building a game, which
 		// runs its static constructor — and that reaches Resources and NREs with no runtime
 		// registered. They passed initially only because they happened to run after a test
@@ -35,7 +39,7 @@ namespace CivOne.Tests
 			for (int mod = 3; mod <= Game.MAX_SS_MODULE; mod += 3)
 			{
 				int str = Game.SpaceshipStructuresNeeded(comp, mod);
-				double c = FractionOfC(Game.SpaceshipFlightYears(str, comp, mod));
+				double c = FractionOfC(Game.SpaceshipFlightYears(str, comp, mod, hasFuel: true));
 				Assert.True(c <= 0.2001, $"hull {str}/{comp}/{mod} cruises at {c:F3}c");
 			}
 		}
@@ -49,7 +53,7 @@ namespace CivOne.Tests
 			for (int comp = 2; comp <= Game.MAX_SS_COMPONENT; comp += 2)
 			for (int mod = 3; mod <= Game.MAX_SS_MODULE; mod += 3)
 				fastest = System.Math.Min(fastest,
-					Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(comp, mod), comp, mod));
+					Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(comp, mod), comp, mod, hasFuel: true));
 
 			Assert.Equal(22.0, fastest, 1);
 			Assert.Equal(0.2, FractionOfC(fastest), 3);
@@ -62,8 +66,8 @@ namespace CivOne.Tests
 		[Fact]
 		public void CarryingMoreColonistsCostsSpeed()
 		{
-			float light = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(16, 3), 16, 3);
-			float laden = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(16, 12), 16, 12);
+			float light = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(16, 3), 16, 3, hasFuel: true);
+			float laden = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(16, 12), 16, 12, hasFuel: true);
 
 			Assert.True(laden > light,
 				$"a full hull ({laden:F1}y) should be slower than a light one ({light:F1}y)");
@@ -74,7 +78,7 @@ namespace CivOne.Tests
 		[Fact]
 		public void TheMinimumHullIsRuinouslySlow()
 		{
-			float years = Game.SpaceshipFlightYears(15, 2, 3);
+			float years = Game.SpaceshipFlightYears(15, 2, 3, hasFuel: true);
 
 			Assert.True(years > 150, $"minimum hull crosses in {years:F0} years, expected >150");
 			Assert.True(FractionOfC(years) < 0.03, "a one-engine ship should be well under 0.03c");
@@ -87,7 +91,7 @@ namespace CivOne.Tests
 			float prev = float.MaxValue;
 			for (int comp = 2; comp <= Game.MAX_SS_COMPONENT; comp += 2)
 			{
-				float years = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(comp, 3), comp, 3);
+				float years = Game.SpaceshipFlightYears(Game.SpaceshipStructuresNeeded(comp, 3), comp, 3, hasFuel: true);
 				Assert.True(years < prev, $"{comp} components was not faster than {comp - 2}");
 				prev = years;
 			}
@@ -131,19 +135,38 @@ namespace CivOne.Tests
 			Assert.Equal(730, AI.ArrivalDeadline);
 		}
 
-		// The boundary pair, and the reason it is these two turns: a minimum hull crosses in
-		// 173 turns, so a poor civ starting at 550 lands at 723 and completes the countdown,
-		// while one starting at 560 lands at 733 — in time to arrive, too late to win. Under
-		// the old arrive-by-750 rule both built a ship; only the second changes.
+		// The boundary pair, and the reason it is these two turns: a FUELLED minimum hull
+		// crosses in 173 turns, so a poor civ starting at 550 lands at 723 and completes the
+		// countdown, while one starting at 560 lands at 733 — in time to arrive, too late to
+		// win. The floor exists to say "try anyway" against a budget that says no.
 		[Fact]
 		public void APoorCivStillTriesWhenTheMinimumHullCanFinishTheCountdown()
 		{
 			(Game g, Player p) = ACivWithOutput(cities: 1, turn: 550);
+			g.Progress(g.PlayerNumber(p)).HasExoticFuel = true;
 
 			(int comp, int module) = AI.Instance(p).SpaceshipTarget();
 
 			Assert.Equal(2, comp);
 			Assert.Equal(3, module);
+		}
+
+		// ...and WITHOUT the fuel it does not try, which is the whole point of the gate.
+		//
+		// Unfuelled the minimum hull takes 342 turns, so from any realistic launch date it
+		// lands after the game has ended — and the AI's existing arrival-deadline check
+		// refuses it without needing a new rule. Every early launch in seventeen logged games
+		// was exactly this hull, thrown at the problem before 1850; this is what stops them.
+		[Fact]
+		public void APoorCivDoesNotTryWithoutTheFuel()
+		{
+			(Game g, Player p) = ACivWithOutput(cities: 1, turn: 550);
+			Assert.False(g.Progress(g.PlayerNumber(p)).HasExoticFuel, "fixture already has fuel");
+
+			(int comp, int module) = AI.Instance(p).SpaceshipTarget();
+
+			Assert.Equal(0, comp);
+			Assert.Equal(0, module);
 		}
 
 		[Fact]

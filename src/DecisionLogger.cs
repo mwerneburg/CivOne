@@ -323,7 +323,7 @@ namespace CivOne
 		// cultural figures are the expensive part (a covered-tile set per civ), so they come
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
-			int reach, int shadow, long bestNeighbour, int grossOutput, int worldOutput, int structural,
+			int reach, int shadow, long bestNeighbour, int observatories, int grossOutput, int worldOutput, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -342,6 +342,10 @@ namespace CivOne
 				// against THIS, not against the world's best, so without it the log cannot
 				// reproduce the decision it is meant to explain.
 				KV("best_near",   bestNeighbour),
+				// Observatories held. The SETI signal — and with it the visitors, and with
+				// them the exotic fuel — is gated on how many CIVS are listening, so this is
+				// the only field that can say when that clock actually starts.
+				KV("observatories", observatories),
 				KV("gross_out",   grossOutput),
 				KV("world_out",   worldOutput),
 				KV("ss_struct",   structural),
