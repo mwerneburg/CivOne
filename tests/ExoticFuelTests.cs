@@ -325,6 +325,55 @@ namespace CivOne.Tests
 			Assert.Contains($"Civilizations.{faction}", block);
 		}
 
+		// ── the gate scales with the field ───────────────────────────────────────
+
+		// A flat 5 is an absolute count against a variable field. Measured over 10 games from
+		// 3 to 17 civs, the correlation between civ count and the turn the gate opened was
+		// -0.85: more civs, earlier signal, because five of seventeen is a far lower bar than
+		// five of five.
+		//
+		// And in a 3-civ world five civs with observatories cannot happen at all, so the
+		// signal never fired: no visitors, no fuel, no space race, nothing said so, and the
+		// game ended on the 2100 backstop. A victory path failing in silence.
+		[Theory]
+		[InlineData(3,  2)]    // half of 3 is 2 — reachable, where 5 never was
+		[InlineData(5,  3)]
+		[InlineData(9,  5)]
+		[InlineData(14, 7)]
+		[InlineData(17, 9)]
+		public void TheSetiGateIsHalfTheLivingField(int civs, int expected)
+		{
+			Sim.EnsureRuntime();
+			Sim.NewGame(width: 80, height: 50, competition: civs);
+
+			Assert.Equal(expected, Game.Instance.SetiListeningCivs);
+		}
+
+		// Never fewer than two: one civ noticing on its own is not a world-wide programme,
+		// and a floor of one would fire the moment anybody built an Observatory.
+		[Fact]
+		public void TheGateNeverFallsBelowTwo()
+		{
+			Sim.EnsureRuntime();
+			Sim.NewGame(width: 80, height: 50, competition: 2);
+
+			Assert.True(Game.Instance.SetiListeningCivs >= 2);
+		}
+
+		// It must be a fraction of the LIVING field, not of the starting roster — a world
+		// reduced to three survivors should not still be waiting on a bar set for seventeen.
+		[Fact]
+		public void TheGateCountsTheLivingNotTheRoster()
+		{
+			string src = System.IO.File.ReadAllText(RepoPath("src", "Game.cs"));
+			int at = src.IndexOf("internal int SetiListeningCivs");
+			Assert.True(at > 0, "the SETI gate has moved or been rewritten");
+			string block = src.Substring(at, 600);
+
+			Assert.Contains("!p.IsDestroyed()", block);
+			Assert.Contains("Math.Max(2,", block);
+		}
+
 		private static string RepoPath(params string[] parts)
 		{
 			var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);

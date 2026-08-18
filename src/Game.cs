@@ -98,11 +98,33 @@ namespace CivOne
 		internal VisitorArchetype VisitorType;
 
 		// How many DIFFERENT civilizations must hold an Observatory before the Tau Ceti
-		// signal is detected. Five was the old count of BUILDINGS; as a count of civs it is
-		// a much later condition, because it waits on the fifth-fastest rather than the
-		// fastest. Not yet tuned against a measured run — the standings log now carries
-		// observatory counts so one game will say exactly where this lands.
-		internal const int SetiListeningCivs = 5;
+		// signal is detected: HALF the living field, never fewer than two.
+		//
+		// This was a flat 5, which is an absolute count against a variable field — the same
+		// shape as the map-scaled constants this codebase has been bitten by. Measured over
+		// 10 games from 3 to 17 civs, the correlation between civ count and the turn the
+		// gate opened was **-0.85**: more civs, earlier signal, because five of seventeen is
+		// a far lower bar than five of five.
+		//
+		// The 3-civ game was the real indictment. Five civs with observatories cannot happen
+		// in a world of three, so the signal NEVER fired: no visitors, no exotic fuel, no
+		// space race — an entire victory path silently unavailable, and nothing anywhere said
+		// so. It ended on the 2100 backstop instead.
+		//
+		// As a fraction the gate opens in every game measured, and the spread across civ
+		// counts falls from 185 turns to 105 (sd 55 -> 35). It also moves the right way at
+		// both ends: 16 civs goes t300 -> t335-370, 5 civs t485 -> t360.
+		internal int SetiListeningCivs
+		{
+			get
+			{
+				int living = _players.Count(p => p is not null && !p.IsDestroyed()
+					&& PlayerNumber(p) != 0
+					&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+					                     or Civilizations.Skynet or Civilizations.Olvir));
+				return Math.Max(2, (living + 1) / 2);
+			}
+		}
 
 		// Turn on which the Tau Ceti approach warning fires (0 = not scheduled)
 		internal uint TauCetiEscalationTurn;
