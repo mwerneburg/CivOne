@@ -304,7 +304,12 @@ namespace CivOne.Tests
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
 
 			Assert.Contains("bool foremost = claimant.Culture > 0 && densityRivals.All(p =>", src);
-			Assert.Contains("cultPerHead > (double)p.Culture / rp", src);
+			// A rank with a modest margin, NOT a dominance ratio. The distinction is the whole
+			// design: late leads run 1.02-1.21x, so a 2x-style bar is unclearable, while rank
+			// alone froze into a coronation once the ordering settled.
+			Assert.Contains("cultPerHead >= (double)p.Culture / rp * CultureLeadMargin", src);
+			Assert.True(Game.CultureLeadMargin < Game.CultureLeadMultiple,
+				"the margin has grown into a dominance bar");
 			// the retired clauses
 			Assert.DoesNotContain("bool reach   = shadow >= CulturalShadowTarget(inRange);", src);
 			Assert.DoesNotContain("claimant.Culture >= bestNeighbour * CultureLeadMultiple", src);
@@ -453,6 +458,45 @@ namespace CivOne.Tests
 			us.SetCulture(60000);
 
 			Assert.Equal(0u, StreakAfterATurn(g, us));
+		}
+
+		// A lead of a nose must not run out a hundred-turn clock. Rank alone gave culture 6 of
+		// 8 games in a batch across 3-16 civs, five at turn 499-501 — the earliest the gate and
+		// hold allow — with ZERO lead changes after 1850 in four of them. The ordering freezes
+		// once culture per head converges, so the gate certified the 1850 leader rather than
+		// opening a contest.
+		[Fact]
+		public void ANarrowLeadDoesNotAccrue()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+			Player rival = g.Players.First(p => p is not null && p != us && g.PlayerNumber(p) != 0
+			                                 && p.Cities.Any(c => c.Size > 0));
+			// Equal populations in this fixture, so culture is the whole ratio. Just inside
+			// the margin: 6000 vs 5600 is 1.07x, under the 1.10x required.
+			rival.SetCulture(5600);
+
+			Assert.Equal(0u, StreakAfterATurn(g, us));
+		}
+
+		// ...and a clear lead does.
+		[Fact]
+		public void AClearLeadStillAccrues()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+			Player rival = g.Players.First(p => p is not null && p != us && g.PlayerNumber(p) != 0
+			                                 && p.Cities.Any(c => c.Size > 0));
+			rival.SetCulture(4000);   // 1.5x, comfortably over
+
+			Assert.True(StreakAfterATurn(g, us) > 0, "a clear cultural lead earned no streak");
+		}
+
+		// The margin is deliberately modest — it separates the dominant from the marginal, it
+		// is not a second dominance bar. Late leads measured 1.02-1.21x, so anything much
+		// higher closes the path again.
+		[Fact]
+		public void TheMarginIsModest()
+		{
+			Assert.InRange(Game.CultureLeadMargin, 1.05, 1.30);
 		}
 	}
 }

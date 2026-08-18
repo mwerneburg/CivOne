@@ -2156,12 +2156,27 @@ namespace CivOne
 					// Big enough to be a society rather than a relic.
 					bool populous = claimantPop * CultureFloorShare >= biggestPop;
 
-					// First in the world, among civs that clear the same floor.
+					// First in the world by a MARGIN, among civs that clear the same floor.
+					//
+					// Rank alone was not enough, and a batch of 8 runs across 3-16 civs said so
+					// plainly: culture took 6 of them, five at turn 499-501 — the earliest turn
+					// the gate and hold allow. Lead changes ran 2-15 across a whole game but
+					// 0-3 after 1850, and zero in four of those five. The ordering freezes once
+					// culture per head converges, so the gate was certifying whoever happened
+					// to lead at 1850 rather than opening a contest.
+					//
+					// A margin makes the streak BREAKABLE, which is what puts the contest back:
+					// late leads run 1.02-1.21x, so a civ ahead by a nose loses its streak and
+					// starts again. Measured over the same 8 runs, the longest post-1850 hold
+					// at this margin reaches the required 100 turns in 3 of them — and the two
+					// clearest, e916088c and c907ab24, hold it at 1.20x and 1.15x respectively.
+					// Those are dominant cultures; the ones that fall away were winning on
+					// 1.02-1.09x.
 					bool foremost = claimant.Culture > 0 && densityRivals.All(p =>
 					{
 						long rp = Math.Max(1, p.Cities.Sum(c => (int)c.Size));
 						if (rp * CultureFloorShare < biggestPop) return true;   // too small to rank
-						return cultPerHead > (double)p.Culture / rp;
+						return cultPerHead >= (double)p.Culture / rp * CultureLeadMargin;
 					});
 
 					bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;
@@ -3816,6 +3831,11 @@ namespace CivOne
 		// which would be an unscaled constant of exactly the kind this codebase keeps
 		// tripping over.
 		internal const int CultureGateYear = 1850;
+
+		// How far ahead of every ranking rival the leader must be. Not a dominance bar — it
+		// is deliberately small — but enough that a lead of a nose does not run out a
+		// hundred-turn clock unopposed. See the note on `foremost` for the measurements.
+		internal const double CultureLeadMargin = 1.10;
 
 		// Turns the lead must be held. Leads change hands a median of 12 times a game and the
 		// longest single hold measured was 235 turns, so this is a real contest rather than a
