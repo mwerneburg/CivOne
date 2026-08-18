@@ -605,6 +605,18 @@ namespace CivOne
 		// should cost what population spent on another costs.
 		internal const int TaxmanOutput = 2;
 
+		// How much of itself a Culture-path city will deliberately spend on artists.
+		//
+		// A fifth of the citizens, and nothing under size 6 — below that every citizen is
+		// load-bearing and a city that gives one up stops being a city. The fraction is not
+		// invented: the Russians of run `cdf540c7` reached 95 artists across 22 cities of
+		// around size 25 with no deliberate pull at all, purely from growth caps — about a
+		// sixth of their population, supplying 31% of their culture income. So this puts the
+		// intentional version where the accidental one already went, rather than somewhere
+		// new that would need its own balancing.
+		internal const int ArtistCityFloor = 6;
+		internal const int ArtistPerPopulace = 5;
+
 		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
 		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));
 		internal short TradeScience => (short)(_cachedTradeScience ??= (short)(TradeTotal - TradeLuxuries - TradeTaxes));
@@ -813,6 +825,13 @@ namespace CivOne
 		// measure this differently — see the note on the capacity test in SetResourceTile for
 		// the hang that cost.
 		private int WorkedTileCount => Math.Max(0, ResourceTiles.Count() - 1);
+
+		// The specialist count as ComputeCitizens derives it: every citizen the worked tiles do
+		// not account for. `_specialists.Count` is NOT that number mid-pass — SetResourceTile
+		// syncs the list when a citizen TAKES a tile but not when one gives one up, so during a
+		// run of pulls the field reads stale-low and a loop counting on it runs until something
+		// else stops it. Measured: a size-10 city bought 4 artists against a quota of 2.
+		private int SpecialistCount => Math.Max(0, Size - WorkedTileCount);
 
 		private void UpdateSpecialists()
 		{
@@ -1418,9 +1437,21 @@ namespace CivOne
 			if (Size == 0) return;
 			if (!order && !growth) return;   // not enrolled: do not touch this city at all
 
+			// Read once. The Path getter re-derives through ChoosePath on its review turns,
+			// and this runs per city per turn; it is wanted twice below.
+			AI.VictoryPath? path = Player.AI?.Path;
+			int artistQuota = path == AI.VictoryPath.Culture && Size >= ArtistCityFloor
+				? Size / ArtistPerPopulace : 0;
+
 			// 1. Put specialists back to work, one at a time, while it is safe to — the cure
 			//    has to be released when the disease goes, or an aqueduct never gets its
 			//    farmers back.
+			//
+			//    Down to the artist quota, not to zero. Below that floor the release pass and
+			//    the deliberate pull in step 4 would each undo the other every turn: the city
+			//    would give up its artists, buy them back, and pay a full cache invalidation
+			//    per citizen for the round trip. The quota is 0 for everyone else, so this is
+			//    the same loop it always was for them.
 			//
 			//    The revert below is a CHURN guard, not a correctness one, and the test suite
 			//    says so: deleting it fails nothing. Without it this releases every specialist
@@ -1428,7 +1459,7 @@ namespace CivOne
 			//    allocation after ~2xSize tile toggles per city per turn, each invalidating the
 			//    city cache. That is pure waste on a 500-city late game, which this project has
 			//    been bitten by before.
-			while (_specialists.Count > 0)
+			while (_specialists.Count > artistQuota)
 			{
 				ITile idle = BestIdleTile();
 				if (idle is null) break;
@@ -1467,7 +1498,41 @@ namespace CivOne
 			//    Food-heaviest first, because those are the tiles being wasted.
 			while (growth && GrowthBlocked && FoodIncome > 0 && PullWorkerToSpecialist(foodFirst: true)) { }
 
-			// 4. Type them. Entertainers only where order actually needs one — the rest are
+			// 4. Culture bought on purpose, rather than as a rebate on a city that was stuck
+			//    anyway. Steps 2 and 3 only ever produce a specialist as a BYPRODUCT of a riot
+			//    or a growth cap, so a civilization chasing Cultural Ascendancy could not
+			//    invest in culture at all — it could only be paid back for its own problems.
+			//    Measured across the 7-game batch of 18 Aug: the Culture-path Babylonians (3
+			//    cities), Persians (19 small ones) and Khmer made ZERO artists all game, while
+			//    the Russians made 95 purely because their cities were capped.
+			//
+			//    Only the artist is worth buying deliberately, and the arithmetic says which:
+			//    a worked tile contributes NOTHING to culture, so the trade is a clean loss of
+			//    food and shields for a clean gain on the measure — and since the victory is
+			//    per HEAD, the slower growth that follows raises the ratio a second time. The
+			//    same move for a taxman goes the other way: EconomicOutput adds his 2 gold
+			//    AFTER the Marketplace and Bank multipliers, so a citizen worth 6 on a
+			//    developed trade tile is worth 2 as a specialist, and deliberately making
+			//    taxmen would LOWER the Pax Mercatoria standing it was meant to raise.
+			//
+			//    A food floor of 1, where steps 2 and 3 accept 0. Those two are spending a
+			//    surplus that was already being thrown away, or buying off a riot that stops
+			//    the city dead either way; this one is a choice made by a healthy city, and at
+			//    a floor of 0 it would quietly freeze itself at its current size forever.
+			//    Culture per head REWARDS that, which is exactly why it must not be allowed.
+			//    The count comes from SpecialistCount, not from `_specialists.Count`. The field
+			//    is stale-low during a run of pulls — SetResourceTile syncs the list when a
+			//    citizen TAKES a tile and not when one gives one up — and a size-10 city
+			//    bought 4 artists against a quota of 2 before this was understood.
+			while (SpecialistCount < artistQuota
+			       && PullWorkerToSpecialist(foodFirst: false, foodFloor: 1)) { }
+			//    ...and then bring the list up to the citizens just freed, or step 5 types an
+			//    empty list and every artist bought here comes back an Entertainer. Steps 2
+			//    and 3 get this for nothing: their loop conditions read IsInDisorder and
+			//    GrowthBlocked, both of which recompute the citizens on the way past.
+			UpdateSpecialists();
+
+			// 5. Type them. Entertainers only where order actually needs one — the rest are
 			//    better as scientists, or taxmen when the treasury is thin.
 			//
 			//    The revert here is NOT conditional on `order`, and that is the whole point.
@@ -1480,10 +1545,17 @@ namespace CivOne
 			//    A civ chasing Cultural Ascendancy spends its spare citizens on culture instead.
 			//    That victory is measured as culture per HEAD of population, so an artist moves
 			//    it twice: the numerator rises by ArtistCulture and the denominator does not.
-			//    Nothing else a specialist can do touches it — a Taxman's gold and a
-			//    Scientist's beakers are both invisible to every victory in the game.
-			Citizen preferred = Player.AI?.Path == AI.VictoryPath.Culture ? Citizen.Artist
-			                  : Player.Gold < LeanTreasury ? Citizen.Taxman
+			//    Nothing else a specialist can do touches it — a Scientist's beakers are
+			//    invisible to every victory in the game.
+			//
+			//    A Commerce civ takes the taxman whatever its treasury looks like. Its gold now
+			//    reaches GrossOutput, which is the Pax Mercatoria measure, so for that civ the
+			//    choice is no longer gold-versus-research but progress-versus-none. Buying
+			//    citizens for it is still wrong (see step 4); typing the ones it already has
+			//    costs nothing at all.
+			Citizen preferred = path == AI.VictoryPath.Culture   ? Citizen.Artist
+			                  : path == AI.VictoryPath.Commerce  ? Citizen.Taxman
+			                  : Player.Gold < LeanTreasury       ? Citizen.Taxman
 			                  : Citizen.Scientist;
 			for (int i = 0; i < _specialists.Count; i++)
 			{
@@ -1538,7 +1610,11 @@ namespace CivOne
 		// Take the least valuable worked tile out of production, making its citizen a
 		// specialist. Returns false when there is nothing left to give up — no worked tiles,
 		// or giving one up would push the city into famine.
-		private bool PullWorkerToSpecialist(bool foodFirst)
+		// foodFloor is what the city must still be earning AFTER the citizen walks off the
+		// tile. Zero for the two involuntary pulls (a rioting city and a capped one are both
+		// already stopped); one for the deliberate pull, so a healthy city cannot buy culture
+		// by freezing its own growth.
+		private bool PullWorkerToSpecialist(bool foodFirst, int foodFloor = 0)
 		{
 			ITile[] worked = _resourceTiles.ToArray();
 			if (worked.Length == 0) return false;
@@ -1553,7 +1629,7 @@ namespace CivOne
 			foreach (ITile tile in order)
 			{
 				SetResourceTile(tile);                       // worked -> specialist
-				if (FoodIncome >= 0) return true;
+				if (FoodIncome >= foodFloor) return true;
 				SetResourceTile(tile);                       // would starve; put it back
 			}
 			return false;
