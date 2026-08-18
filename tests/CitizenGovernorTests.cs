@@ -57,8 +57,12 @@ namespace CivOne.Tests
 			return (g, ai, c);
 		}
 
+		// All FOUR specialist types. The Artist was added later and omitting it here made this
+		// helper silently under-count — a culture-path civ parks its spare citizens as artists,
+		// so "the cap parked some citizens" read as zero and the precondition failed.
 		private static int Specialists(City c) => c.Citizens.Count(z =>
-			z == Citizen.Entertainer || z == Citizen.Taxman || z == Citizen.Scientist);
+			z == Citizen.Entertainer || z == Citizen.Taxman
+			|| z == Citizen.Scientist || z == Citizen.Artist);
 
 		// The defect, stated directly: a rioting AI city buys its way out with entertainers.
 		[Fact]
@@ -104,7 +108,11 @@ namespace CivOne.Tests
 			// Below one citizen's rations: nothing further can be given up without starving.
 			Assert.True(c.FoodIncome < 2, $"still farming a surplus it cannot use: {c.FoodIncome}");
 			Assert.True(c.FoodIncome < before);
-			Assert.True(c.Citizens.Any(z => z == Citizen.Scientist || z == Citizen.Taxman),
+			// Artist counts: a civ chasing Cultural Ascendancy spends spare citizens on
+			// culture, which is earning something — and is the whole point of the specialist.
+			// The rule under test is that freed citizens are PUT TO WORK, not which work.
+			Assert.True(c.Citizens.Any(z => z == Citizen.Scientist || z == Citizen.Taxman
+			                             || z == Citizen.Artist),
 				"the freed citizens should be earning something");
 		}
 

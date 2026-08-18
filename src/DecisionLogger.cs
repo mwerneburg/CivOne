@@ -23,7 +23,7 @@ using CivOne.Units;
 //
 // Schema (flat, intentionally simple for easy pandas/numpy ingestion):
 //
-//   type          string   "settler" | "city_prod" | "game_outcome" | "salvage"
+//   type          string   "settler" | "city_prod" | "game_outcome" | "salvage" | "defection"
 //   game_id       string   8-char hex, one per GAME — survives save/load, so a resumed
 //                          run keeps one identity and its game_outcome scores all of it
 //   session_id    string   8-char hex, one per LOAD. Two sessions sharing a game_id are a
@@ -68,6 +68,20 @@ using CivOne.Units;
 //   unit          string   what was taken
 //   held_turns    int      0 at capture, the full clock at payout
 //   advance       string   what it taught, "" at capture
+//
+//   --- victory_standings fields, selected ---
+//   populace      int      total city size, the denominator of culture per head
+//   artists       int      Artist specialists at work (the save clips at 12/city; this does not)
+//   econ_streak   int      consecutive turns the Pax Mercatoria claim has held
+//   cult_streak   int      consecutive turns the Cultural Ascendancy claim has held
+//
+//   --- defection fields (a city changing flags for culture, not for arms) ---
+//   city          string   the city that changed hands
+//   city_size     int      size at the moment it defected (the rule only takes small ones)
+//   from          string   the civilization that lost it
+//   to            string   the civilization whose culture pulled it
+//   from_cult     int      accumulated culture, loser
+//   to_cult       int      accumulated culture, winner
 //
 //   --- game_outcome fields ---
 //   score         int      human player's final score
@@ -311,6 +325,30 @@ namespace CivOne
 			}));
 		}
 
+		// A city that changed flags for culture rather than for arms.
+		//
+		// The peaceful defection is the only place culture reaches out and takes something,
+		// and nothing recorded it: it needs a small rioting city, an ungarrisoned one, a
+		// neighbour at peace with triple the culture, AND an 8%-a-turn roll, so "it never
+		// happens" and "it happens quietly" look identical in a finished save. The Artist
+		// specialist raises exactly the number this rule reads, which is the question the
+		// next run is meant to answer.
+		internal static void LogDefection(City city, Player from, Player to)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",      "defection"),
+				KV("game_id",   _gameId),
+				KV("turn",      Game.Instance?.GameTurn ?? 0),
+				KV("city",      city?.Name ?? "?"),
+				KV("city_size", (int)(city?.Size ?? 0)),
+				KV("from",      from?.Civilization?.NamePlural ?? "?"),
+				KV("to",        to?.Civilization?.NamePlural ?? "?"),
+				KV("from_cult", from?.Culture ?? 0),
+				KV("to_cult",   to?.Culture ?? 0),
+			}));
+		}
+
 		// Where every civilization stands on every victory metric, one record per civ.
 		//
 		// This exists because the endgame investigation could only read FINISHED saves, and
@@ -324,7 +362,7 @@ namespace CivOne
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
 			int reach, int shadow, long bestNeighbour, int observatories, bool hasFuel, int populace,
-			int grossOutput, int worldOutput, int structural,
+			int artists, int grossOutput, int worldOutput, uint econStreak, uint cultStreak, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -358,8 +396,25 @@ namespace CivOne
 				// not exist; per-populace favours dense small civs more strongly and needs
 				// its own numbers before any threshold is set.
 				KV("populace",    populace),
+				// Artists at work. The specialist is optional — the governor only reaches for
+				// one when a citizen has nothing better to do — so the rule can be right and
+				// the mechanic still dead. A finished save cannot answer it either: it stores
+				// only the first twelve specialists per city, so a size-38 city reads back
+				// clipped. Counted live, and per sample, so adoption has a trajectory.
+				KV("artists",     artists),
 				KV("gross_out",   grossOutput),
 				KV("world_out",   worldOutput),
+				// The two streaks, as the game itself is carrying them.
+				//
+				// Share and culture per head are visible in the fields above, but a claim is
+				// broken by clauses that are NOT logged — Banking, three surviving rivals, half
+				// the rivals bound by trade, a war of your own making. So a run can show a civ
+				// holding 54% of world output for 150 turns and 58% for 65 more, with Pax
+				// Mercatoria never firing, and the log cannot say which clause did it. The
+				// streak is already computed and stored; logging it costs nothing and turns
+				// "why did nothing happen" into "it broke at turn N", which is answerable.
+				KV("econ_streak", econStreak),
+				KV("cult_streak", cultStreak),
 				KV("ss_struct",   structural),
 				KV("ss_comp",     component),
 				KV("ss_module",   module),

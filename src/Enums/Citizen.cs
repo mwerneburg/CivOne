@@ -19,6 +19,12 @@ namespace CivOne.Enums
 		UnhappyFemale = 5,
 		Taxman = 6,
 		Scientist = 7,
-		Entertainer = 8
+		Entertainer = 8,
+		// Culture, as a use for a citizen. The other three specialists convert population
+		// into gold, science or contentment; nothing converted it into culture, so the only
+		// way to raise culture was buildings — which every civ builds alike, which is why
+		// culture per head converges to within a few percent across a whole field and the
+		// victory margin had to be set as low as 1.10x. This is the lever that was missing.
+		Artist = 9
 	}
 }

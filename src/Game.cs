@@ -1655,8 +1655,10 @@ namespace CivOne
 						int observatories = p.Cities.Count(c => c.HasBuilding<Observatory>());
 						bool hasFuel = Progress(pn).HasExoticFuel;
 						int populace = p.Cities.Sum(c => (int)c.Size);
+						int artists = p.Cities.Sum(c => c.Citizens.Count(z => z == Citizen.Artist));
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
-							reach, shadow, bestNear, observatories, hasFuel, populace, GrossOutput(p), worldOut,
+							reach, shadow, bestNear, observatories, hasFuel, populace, artists, GrossOutput(p), worldOut,
+							Progress(pn).EconStreak, Progress(pn).CultureStreak,
 							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
 							Progress(pn).SpaceshipLaunchTurn,
 							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));
@@ -4935,6 +4937,7 @@ namespace CivOne
 				foreach (IUnit u in city.Units.ToArray())
 					u.SetHome(null);
 				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, mnum));
+				DecisionLogger.LogDefection(city, owner, magnet);
 				string oldTribe = owner.TribeNamePlural;
 				city.Owner = mnum;
 				city.ResetResourceTiles();

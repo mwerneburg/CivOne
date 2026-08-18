@@ -238,5 +238,84 @@ namespace CivOne.Tests
 
 			Assert.Contains("InvalidTile(t)).ToList()", block);
 		}
+
+		// ── the taxman counts ────────────────────────────────────────────────────
+
+		// Symmetry with the Artist. Culture per head became something a civ can spend
+		// population on; gold was not — a civ could turn every citizen into a taxman, double
+		// its treasury, and its Pax Mercatoria standing would not move a point, because
+		// GrossOutput reads TradeTotal and the taxman's contribution landed downstream of it.
+		// A mechanic promising something the victory did not honour.
+		[Fact]
+		public void ATaxmanRaisesEconomicOutput()
+		{
+			(Game g, Player p, City c) = ATradingCity();
+			int before = c.EconomicOutput;
+
+			Specialists(c).Add(CivOne.Enums.Citizen.Taxman);
+			c.InvalidateCache();
+
+			Assert.Equal(before + City.TaxmanOutput, c.EconomicOutput);
+		}
+
+		// ...and the empire-wide figure the victory actually reads moves with it.
+		[Fact]
+		public void TheEmpireWideFigureCountsTaxmen()
+		{
+			(Game g, Player p, City c) = ATradingCity();
+			int before = g.GrossOutputOf(p);
+
+			Specialists(c).Add(CivOne.Enums.Citizen.Taxman);
+			c.InvalidateCache();
+
+			Assert.True(g.GrossOutputOf(p) > before,
+				$"gross output ignored the taxman: {before} -> {g.GrossOutputOf(p)}");
+		}
+
+		// The other specialists must not. An entertainer keeping a city in order is not
+		// economic output, and an artist is culture — if every specialist counted, the choice
+		// between them would mean nothing.
+		[Theory]
+		[InlineData(7)]   // Scientist
+		[InlineData(8)]   // Entertainer
+		[InlineData(9)]   // Artist
+		public void OtherSpecialistsDoNotRaiseEconomicOutput(int kind)
+		{
+			(Game g, Player p, City c) = ATradingCity();
+			int before = c.EconomicOutput;
+
+			Specialists(c).Add((CivOne.Enums.Citizen)kind);
+			c.InvalidateCache();
+
+			Assert.Equal(before, c.EconomicOutput);
+		}
+
+		// Flat, not multiplied: a specialist is worth what a specialist is worth, and must not
+		// also be leveraged by the buildings that leverage tile trade.
+		[Fact]
+		public void TheTaxmanIsNotMultipliedByTheCommerceChain()
+		{
+			(Game g, Player p, City c) = ATradingCity();
+			c.AddBuilding(new MarketPlace());
+			c.AddBuilding(new Bank());
+			int before = c.EconomicOutput;
+
+			Specialists(c).Add(CivOne.Enums.Citizen.Taxman);
+			c.InvalidateCache();
+
+			Assert.Equal(before + City.TaxmanOutput, c.EconomicOutput);
+		}
+
+		// The two levers cost the same, so choosing between culture and commerce is a trade.
+		[Fact]
+		public void TheTwoSpecialistLeversCostTheSame()
+		{
+			Assert.Equal(City.ArtistCulture, City.TaxmanOutput);
+		}
+
+		private static System.Collections.Generic.IList<CivOne.Enums.Citizen> Specialists(City c) =>
+			(System.Collections.Generic.IList<CivOne.Enums.Citizen>)typeof(City)
+				.GetField("_specialists", System.Reflection.BindingFlags.NonPublic
+				                        | System.Reflection.BindingFlags.Instance)!.GetValue(c)!;
 	}
 }

@@ -640,7 +640,16 @@ namespace CivOne.Units
 
 				if (foreignByTarget && foreignByHere && !ownUnitOnTarget)
 				{
-					if (Human == Owner)
+					// Only when a PERSON is driving. Under Autopilot the AI moves the human's
+					// units too, so a refusal that a player would see once — because a person
+					// makes one move and reads the note — fires on every blocked attempt the
+					// AI makes with them. Each one is a modal error the task queue must then
+					// dwell on and dismiss, which is why this is the one notice that visibly
+					// stutters an unattended run while every other message passes unnoticed.
+					//
+					// Nobody is reading it in that mode, and the AI does not need telling: it
+					// re-plans the move regardless.
+					if (Human == Owner && !Settings.Instance.Autopilot)
 						GameTask.Enqueue(Message.Error("-- Civilization Note --", TextFile.Instance.GetGameText($"ERROR/ZOC")));
 					return false;
 				}

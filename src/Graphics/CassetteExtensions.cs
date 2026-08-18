@@ -114,7 +114,8 @@ namespace CivOne.Graphics
 
 			bool isHappy      = citizen == Citizen.HappyMale   || citizen == Citizen.HappyFemale;
 			bool isUnhappy    = citizen == Citizen.UnhappyMale || citizen == Citizen.UnhappyFemale;
-			bool isSpecialist = citizen == Citizen.Taxman || citizen == Citizen.Scientist || citizen == Citizen.Entertainer;
+			bool isSpecialist = citizen == Citizen.Taxman || citizen == Citizen.Scientist
+			                 || citizen == Citizen.Entertainer || citizen == Citizen.Artist;
 
 			byte head = CassetteTheme.INK_HIGH;
 			byte body = CitizenTokenColor(citizen);
@@ -124,6 +125,7 @@ namespace CivOne.Graphics
 			{
 				byte badgeCol = citizen == Citizen.Taxman    ? CassetteTheme.PHOS_DIM
 				              : citizen == Citizen.Scientist ? CassetteTheme.CYAN
+				              : citizen == Citizen.Artist    ? CassetteTheme.ALERT
 				              :                                CassetteTheme.PHOS;
 				if (citizen == Citizen.Taxman)
 				{
@@ -138,6 +140,15 @@ namespace CivOne.Graphics
 					// Atom — plus sign
 					bitmap.FillRectangle(ox + 2, oy,     1, 3, badgeCol);
 					bitmap.FillRectangle(ox + 1, oy + 1, 3, 1, badgeCol);
+				}
+				else if (citizen == Citizen.Artist)
+				{
+					// Artist — an open frame, distinct at 3px from the coin's filled square
+					bitmap.FillRectangle(ox + 1, oy,     3, 1, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 2, 3, 1, badgeCol);
+					bitmap.FillRectangle(ox + 1, oy + 1, 1, 1, badgeCol);
+					bitmap.FillRectangle(ox + 3, oy + 1, 1, 1, badgeCol);
+					bitmap.FillRectangle(ox + 2, oy + 1, 1, 1, CassetteTheme.INK_HIGH);
 				}
 				else
 				{

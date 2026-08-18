@@ -553,6 +553,22 @@ namespace CivOne
 				int output = TradeTotal;
 				if (HasBuilding<MarketPlace>()) output += output / 2;
 				if (HasBuilding<Bank>()) output += output / 2;
+
+				// Taxmen, added AFTER the multipliers — exactly where the Taxes getter puts
+				// them, so the victory measures what the city screen shows.
+				//
+				// The symmetry with the Artist is the point. Culture per head is now something
+				// a civ can spend population on; without this, gold was not: a civ could turn
+				// every citizen into a taxman, double its treasury, and its Pax Mercatoria
+				// standing would not move a point, because GrossOutput reads TradeTotal and the
+				// taxman's contribution landed downstream of it. A mechanic that promises
+				// something the victory does not honour — the same shape as the phantom
+				// colonists and the drawn-and-discarded +6000.
+				//
+				// Flat and unmultiplied, like the Artist's culture: a specialist is worth what
+				// a specialist is worth, and should not also be leveraged by the buildings the
+				// tiles are leveraged by.
+				output += _specialists.Count(c => c == Citizen.Taxman) * TaxmanOutput;
 				return output;
 			}
 		}
@@ -574,7 +590,21 @@ namespace CivOne
 			// pinned at zero, not excluded anywhere. These are the entries they can reach.
 			+ (HasBuilding<Buildings.BreedingShrine>() ? 2 : 0)
 			+ (HasBuilding<Buildings.CascadeCathedral>() ? 5 : 0)
-			+ Wonders.Sum(w => Game.WonderObsolete(w) ? 1 : 3);
+			+ Wonders.Sum(w => Game.WonderObsolete(w) ? 1 : 3)
+			// Artists: the one way to spend population on culture rather than earn it from
+			// buildings. Two apiece, matching what a Taxman or Scientist yields, so the
+			// trade-off between them is a real choice and not a foregone one.
+			+ _specialists.Count(c => c == Citizen.Artist) * ArtistCulture;
+		// What one artist adds per turn. Deliberately the same 2 a Taxman adds to gold and a
+		// Scientist to science: population spent on culture should cost what population spent
+		// on anything else costs.
+		internal const int ArtistCulture = 2;
+
+		// What one taxman adds to the figure the economic victory reads. Deliberately the same
+		// 2 as the Artist's culture and the Taxman's own gold: population spent on one thing
+		// should cost what population spent on another costs.
+		internal const int TaxmanOutput = 2;
+
 		internal short TradeTaxes => (short)(_cachedTradeTaxes ??= (short)Math.Round(((double)TradeTotal / 10) * Player.TaxesRate, MidpointRounding.AwayFromZero));
 		internal short TradeLuxuries => (short)(_cachedTradeLuxuries ??= (short)Math.Round(((double)(TradeTotal - TradeTaxes) / (10 - Player.TaxesRate)) * Player.LuxuriesRate, MidpointRounding.AwayFromZero));
 		internal short TradeScience => (short)(_cachedTradeScience ??= (short)(TradeTotal - TradeLuxuries - TradeTaxes));
@@ -856,10 +886,14 @@ namespace CivOne
 						continue;
 				}
 			}
-			// Encode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist (2 bits each, up to 12)
+			// Encode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist, 3=Artist. Two bits
+			// each, up to 12 — the Artist took the value the field already had room for, so no
+			// save written before it can be misread.
 			for (int i = 0; i < _specialists.Count && i < 12; i++)
 			{
-				int type = _specialists[i] == Citizen.Taxman ? 1 : _specialists[i] == Citizen.Scientist ? 2 : 0;
+				int type = _specialists[i] == Citizen.Taxman ? 1
+				         : _specialists[i] == Citizen.Scientist ? 2
+				         : _specialists[i] == Citizen.Artist ? 3 : 0;
 				output[3 + i / 4] |= (byte)(type << (i % 4 * 2));
 			}
 			return output;
@@ -901,13 +935,15 @@ namespace CivOne
 			// two rows of a pole; drop them so the yield sums don't dereference null.
 			_resourceTiles.RemoveAll(t => t is null);
 
-			// Decode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist (2 bits each, up to 12)
+			// Decode specialist types: 0=Entertainer, 1=Taxman, 2=Scientist, 3=Artist (2 bits each)
 			_specialists.Clear();
 			int specialistCount = Math.Max(0, Size - _resourceTiles.Count);
 			for (int i = 0; i < specialistCount && i < 12; i++)
 			{
 				int type = (gameData[3 + i / 4] >> (i % 4 * 2)) & 0x3;
-				_specialists.Add(type == 1 ? Citizen.Taxman : type == 2 ? Citizen.Scientist : Citizen.Entertainer);
+				_specialists.Add(type == 1 ? Citizen.Taxman
+				               : type == 2 ? Citizen.Scientist
+				               : type == 3 ? Citizen.Artist : Citizen.Entertainer);
 			}
 		}
 
@@ -1441,7 +1477,14 @@ namespace CivOne
 			//    city in GROWTH would find the governor had started a riot. Caught by the
 			//    negative check that conflated the two switches — the test passed because this
 			//    bug undid the conflation, which is a fine way to learn you have two.
-			Citizen preferred = Player.Gold < LeanTreasury ? Citizen.Taxman : Citizen.Scientist;
+			//    A civ chasing Cultural Ascendancy spends its spare citizens on culture instead.
+			//    That victory is measured as culture per HEAD of population, so an artist moves
+			//    it twice: the numerator rises by ArtistCulture and the denominator does not.
+			//    Nothing else a specialist can do touches it — a Taxman's gold and a
+			//    Scientist's beakers are both invisible to every victory in the game.
+			Citizen preferred = Player.AI?.Path == AI.VictoryPath.Culture ? Citizen.Artist
+			                  : Player.Gold < LeanTreasury ? Citizen.Taxman
+			                  : Citizen.Scientist;
 			for (int i = 0; i < _specialists.Count; i++)
 			{
 				if (_specialists[i] != Citizen.Entertainer) { _specialists[i] = preferred; InvalidateCache(); continue; }
@@ -1519,7 +1562,8 @@ namespace CivOne
 		internal void ChangeSpecialist(int index)
 		{
 			while (_specialists.Count < (index + 1)) _specialists.Add(Citizen.Entertainer);
-			_specialists[index] = (Citizen)((((int)_specialists[index] - 5) % 3) + 6);
+			// Four types now, not three: Taxman(6) -> Scientist(7) -> Entertainer(8) -> Artist(9).
+			_specialists[index] = (Citizen)((((int)_specialists[index] - 5) % 4) + 6);
 			InvalidateCache();
 		}
 

@@ -16,7 +16,7 @@ namespace CivOne.Tests
 	{
 		// A specialist is worth 2 of its own kind, and nothing to the other two rows.
 		[Fact]
-		public void CyclingASpecialist_MovesExactlyOneOfTheThreeOutputs()
+		public void CyclingASpecialist_MovesExactlyOneOutput()
 		{
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;
@@ -35,10 +35,22 @@ namespace CivOne.Tests
 			// Specialists start as Entertainers.
 			short lux0 = city.Luxuries, tax0 = city.Taxes, sci0 = city.Science;
 
+			// Four stops since the Artist was added: Entertainer -> Artist -> Taxman ->
+			// Scientist -> Entertainer. The Artist is the one that moves NONE of these three,
+			// because what it produces is culture — which is exactly why it was worth adding.
+			int cult0 = city.CultureRate;
+
+			city.ChangeSpecialist(0);   // -> Artist
+			Assert.Equal(lux0 - 2, city.Luxuries);
+			Assert.Equal(tax0,     city.Taxes);
+			Assert.Equal(sci0,     city.Science);
+			Assert.Equal(cult0 + City.ArtistCulture, city.CultureRate);
+
 			city.ChangeSpecialist(0);   // -> Taxman
 			Assert.Equal(lux0 - 2, city.Luxuries);
 			Assert.Equal(tax0 + 2, city.Taxes);
 			Assert.Equal(sci0,     city.Science);
+			Assert.Equal(cult0,    city.CultureRate);
 
 			city.ChangeSpecialist(0);   // -> Scientist
 			Assert.Equal(lux0 - 2, city.Luxuries);
