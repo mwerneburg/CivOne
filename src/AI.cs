@@ -41,6 +41,40 @@ namespace CivOne
 		private const int SettlerRetries = 4;
 		private readonly System.Collections.Generic.Dictionary<IUnit, int> _settlerMisses = new();
 
+		// Where each unit has already stood this turn, so it cannot be walked back onto a tile
+		// it has left.
+		//
+		// A step between a railed tile and a city costs NOTHING — cities are rail waypoints,
+		// which is the rule as intended and as the original game had it (BaseUnitLand
+		// .MovementDone). A unit that oscillates across such a step therefore never runs out of
+		// moves, and the turn never ends. Measured in a 17-civ run that stopped at turn 487
+		// (1937 AD) with the process at 100% CPU: an Ottoman Knights shuttled between (176,27)
+		// and its own coastal city of Quierzy 144,164 times in seventy seconds, MovesLeft
+		// pinned at 2 the whole way, with two more units behind it doing the same.
+		//
+		// The cheap fixes are both wrong. Charging for the step would rewrite the movement
+		// economy for the human as well; a step budget per unit would cut short the long rail
+		// journeys the network exists for. A unit going somewhere never revisits a tile, so
+		// only the oscillation is refused.
+		private uint _steppedTurn;
+		private readonly System.Collections.Generic.Dictionary<IUnit,
+			System.Collections.Generic.HashSet<(int, int)>> _stepped = new();
+
+		// True when this unit has already occupied (x,y) earlier in this same turn.
+		private bool AlreadyStoodOn(IUnit unit, int x, int y)
+		{
+			if (_steppedTurn != Game.GameTurn) { _stepped.Clear(); _steppedTurn = Game.GameTurn; }
+			return _stepped.TryGetValue(unit, out var tiles) && tiles.Contains((x, y));
+		}
+
+		private void RecordStep(IUnit unit, int x, int y)
+		{
+			if (_steppedTurn != Game.GameTurn) { _stepped.Clear(); _steppedTurn = Game.GameTurn; }
+			if (!_stepped.TryGetValue(unit, out var tiles))
+				_stepped[unit] = tiles = new System.Collections.Generic.HashSet<(int, int)>();
+			tiles.Add((x, y));
+		}
+
 		// War-state tracking for peace initiatives.
 		// Turns of appetite for a war the constitution forbids. A Republic or Democracy
 		// cannot declare war (AI.Strategy.ConsiderWar), cannot build attackers and cannot
@@ -736,7 +770,24 @@ namespace CivOne
 				}
 
 				// Land unit just disembarked — still on an ocean tile. Step straight to land.
-				if (unit.Class == UnitClass.Land && unit.Tile.IsOcean)
+				//
+				// ...unless the water it is standing on holds a CITY or a transport tube. A
+				// coastal city can sit on an ocean tile, and a land unit standing in one has
+				// not disembarked anywhere: it is the garrison. This rule marched it out of its
+				// own city, AssignMission sent it back in, and because a step between a railed
+				// tile and a city costs nothing (BaseUnitLand.MovementDone — cities are rail
+				// waypoints), neither leg spent a movement point. The turn then never ended.
+				//
+				// Measured in a 17-civ run stopped at turn 487 (1937 AD), 100% CPU and a window
+				// that could not repaint: one Ottoman Knights bounced between (176,27) and its
+				// own city of Quierzy 288,641 times in eighty seconds with MovesLeft pinned at
+				// 2, a Riflemen behind it doing the same.
+				//
+				// The predicate is BaseUnitLand's own ShipWater — ocean, no tube, no city —
+				// which already draws this line for movement cost. The AI simply was not asking
+				// the same question.
+				if (unit.Class == UnitClass.Land && unit.Tile.IsOcean
+				    && unit.Tile.City is null && !unit.Tile.TransportTube)
 				{
 					ITile land = unit.Tile.GetBorderTiles()
 					    .Where(t => t is not null && !t.IsOcean && !t.Units.Any(u => u.Owner != unit.Owner))
@@ -864,6 +915,19 @@ namespace CivOne
 							return;
 						}
 					}
+
+					// Refuse a step back onto ground this unit has already left this turn. See
+					// _stepped: a rail-to-city step is free, so an oscillation across one costs
+					// nothing and runs until the process is killed.
+					if (AlreadyStoodOn(unit, next.X, next.Y))
+					{
+						Log($"[AI] {unit.GetType().Name} P{unit.Owner} at ({unit.X},{unit.Y}) "
+						  + $"would step back to ({next.X},{next.Y}), already held this turn — stopping it here");
+						unit.Goto = Point.Empty;
+						unit.SkipTurn();
+						return;
+					}
+					RecordStep(unit, unit.X, unit.Y);
 
                     if (!unit.MoveTo(next.X - unit.X, next.Y - unit.Y))
                     {
