@@ -198,12 +198,30 @@ namespace CivOne.Tests
 		// The log has to be able to answer when that clock starts, or the gate cannot be
 		// tuned from a run — the same gap that left the cultural question unanswerable until
 		// best_near was recorded.
-		[Fact]
-		public void ObservatoriesAreRecordedInTheStandings()
+		//
+		// `populace` is here for the same reason and a different question: culture per
+		// POPULACE is the candidate replacement for the cultural shadow rule, and it has so
+		// far only been measurable as a per-CITY proxy. A threshold set on a proxy is a
+		// threshold set on the wrong number.
+		[Theory]
+		[InlineData("observatories")]
+		[InlineData("has_fuel")]
+		[InlineData("populace")]
+		public void TheStandingsCarryWhatTheGatesAreTunedOn(string field)
 		{
 			string src = System.IO.File.ReadAllText(RepoPath("src", "DecisionLogger.cs"));
 
-			Assert.Contains("KV(\"observatories\", observatories)", src);
+			Assert.Contains($"KV(\"{field}\"", src);
+		}
+
+		// Populace is total city SIZE, not a city count — the two diverge sharply, and the
+		// per-city proxy is exactly what could not settle the question.
+		[Fact]
+		public void PopulaceIsPopulationNotCityCount()
+		{
+			string src = System.IO.File.ReadAllText(RepoPath("src", "Game.cs"));
+
+			Assert.Contains("int populace = p.Cities.Sum(c => (int)c.Size);", src);
 		}
 
 		// ── it gates construction, not just speed ────────────────────────────────

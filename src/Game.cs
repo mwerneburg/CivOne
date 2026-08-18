@@ -1632,8 +1632,9 @@ namespace CivOne
 						(int reach, int shadow, long bestNear) = CulturalReachAndShadow(p);
 						int observatories = p.Cities.Count(c => c.HasBuilding<Observatory>());
 						bool hasFuel = Progress(pn).HasExoticFuel;
+						int populace = p.Cities.Sum(c => (int)c.Size);
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
-							reach, shadow, bestNear, observatories, hasFuel, GrossOutput(p), worldOut,
+							reach, shadow, bestNear, observatories, hasFuel, populace, GrossOutput(p), worldOut,
 							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
 							Progress(pn).SpaceshipLaunchTurn,
 							p.Cities.Any(c => c.Size > 0 && c.HasBuilding<Buildings.MissionControl>()));

@@ -323,7 +323,8 @@ namespace CivOne
 		// cultural figures are the expensive part (a covered-tile set per civ), so they come
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
-			int reach, int shadow, long bestNeighbour, int observatories, bool hasFuel, int grossOutput, int worldOutput, int structural,
+			int reach, int shadow, long bestNeighbour, int observatories, bool hasFuel, int populace,
+			int grossOutput, int worldOutput, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -350,6 +351,13 @@ namespace CivOne
 				// Without it the log cannot say why a ship launched when it did — inferring
 				// it from flight arithmetic worked once and should not have to again.
 				KV("has_fuel",    hasFuel),
+				// Total city size, NOT the city count. Culture per POPULACE is the candidate
+				// replacement for the shadow rule — a measure every civ can compete on,
+				// rather than one the map generator decides by parking your neighbours near
+				// or far. Measured so far only as a per-CITY proxy, because this field did
+				// not exist; per-populace favours dense small civs more strongly and needs
+				// its own numbers before any threshold is set.
+				KV("populace",    populace),
 				KV("gross_out",   grossOutput),
 				KV("world_out",   worldOutput),
 				KV("ss_struct",   structural),
