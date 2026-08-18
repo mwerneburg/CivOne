@@ -3756,6 +3756,12 @@ namespace CivOne
 			             .First() == city;
 		}
 
+		// How long a city may reasonably spend on a wonder. At 600 shields this admits a
+		// city making 6 a turn and refuses one making 2 — which is the case that produced a
+		// 274-turn half-built Adam Smith's. Generous on purpose: a wonder SHOULD be a long
+		// project, just not a life sentence.
+		private const int WonderHorizonTurns = 100;
+
 		private IWonder? SelectWonder(City city, StrategyStance stance)
 		{
 			if (!IsTopProductionCity(city)) return null;
@@ -3768,11 +3774,30 @@ namespace CivOne
 					return assigned;
 			}
 
+			// ...nor one this city could not finish in a lifetime.
+			//
+			// IsTopProductionCity above is RELATIVE to the civ's own cities, so a one-city
+			// civ's only city is always "top" however feeble it is. Measured in run f991d45c:
+			// Tenochtitlan, the Aztec capital and their only city for all 631 turns, held 2
+			// shields a turn and was given Adam Smith's Trading House at turn 357. By the end
+			// it had 288 of the 600 shields — 274 turns for under half — and its civilization
+			// finished on one city with 30,000 gold it could not spend, because the rush-buy
+			// clinch for a wonder needs 70% completion and they were at 48%.
+			//
+			// A wonder is a commitment of hundreds of shields. A city that cannot make that
+			// inside WonderHorizonTurns should be building something it can actually use.
+			// Deliberately placed AFTER the dome-component block above: those are assigned by
+			// the story rather than chosen, and are not this rule's business.
+			bool CanFinish(IWonder w) =>
+				city.ShieldIncome > 0
+				&& city.ProductionCost(w) / city.ShieldIncome <= WonderHorizonTurns;
+
 			// Never start a wonder that is already built or already obsolete — an
 			// obsolete wonder is pure shield waste, and the stance lists below used
 			// to allow it.
 			bool Buildable(IWonder w) =>
-				!Game.WonderBuilt(w) && !Game.WonderObsolete(w) && Player.ProductionAvailable(w);
+				!Game.WonderBuilt(w) && !Game.WonderObsolete(w) && Player.ProductionAvailable(w)
+				&& CanFinish(w);
 
 			// Catch-up: a civ well behind the tech leader takes the Great Library
 			// first — its entire effect (free advances known by two other civs) is
