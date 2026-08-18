@@ -159,24 +159,60 @@ namespace CivOne.Graphics
 			string t = "";
 			while (text.Length > 0)
 			{
-				if (text.IndexOf(' ') == -1)
+				int space = text.IndexOf(' ');
+				// Last segment: no space left, so this is the tail of the entry. It must be
+				// FLUSHED here — the original reached the flush below by falling through, and
+				// an early `continue` silently dropped the final line.
+				if (space == -1)
 				{
 					if (t.Length > 0 && GetTextSize(6, string.Join(" ", t, text)).Width < 294)
-						text = string.Join(" ", t, text);
-					else if (t.Length > 0)
-						textLines.Add(t);
-					t = text;
+					{
+						textLines.Add(string.Join(" ", t, text));
+					}
+					else
+					{
+						if (t.Length > 0) textLines.Add(t);
+						textLines.Add(text);
+					}
+					t = "";
 					text = "";
-				}
-				else if (GetTextSize(6, t + text.Substring(0, text.IndexOf(' '))).Width < 294)
-				{
-					if (t.Length > 0) t += " ";
-					t += text.Substring(0, text.IndexOf(' '));
-					text = text.Substring(text.IndexOf(' ')).Trim();
 					continue;
 				}
-				textLines.Add(t);
-				t = "";
+
+				string word = text.Substring(0, space);
+				if (GetTextSize(6, t + word).Width < 294)
+				{
+					if (t.Length > 0) t += " ";
+					t += word;
+					text = text.Substring(space).Trim();
+					continue;
+				}
+
+				// The word does not fit on the current line. If the line already holds
+				// something, flush it and try the word again on a fresh one.
+				if (t.Length > 0)
+				{
+					textLines.Add(t);
+					t = "";
+					continue;
+				}
+
+				// ...but if the line is ALREADY empty the word cannot be made to fit at all,
+				// and this is where the loop used to hang: the old code flushed `t`, set it to
+				// "", and went round again WITHOUT consuming any of `text` — so a word wider
+				// than the column produced an infinite loop appending empty strings to a
+				// growing list. At font 6 a glyph is 10px and the column is 294, so any
+				// 30-character token does it.
+				//
+				// Observed as a hard hang mid-game: 100% of a core, memory climbing, and a
+				// window that would not even repaint its cursor, because the main thread never
+				// returned from here. The headless harness sails past it, since nothing there
+				// renders text.
+				//
+				// Emit the over-long word on a line of its own and consume it. It will overrun
+				// the column, which is a cosmetic fault; not consuming it is a frozen game.
+				textLines.Add(word);
+				text = text.Substring(space).Trim();
 			}
 			return textLines.ToArray();
 		}
