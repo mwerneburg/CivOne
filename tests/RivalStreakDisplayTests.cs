@@ -7,9 +7,9 @@
 // looked exactly like a rival sitting on nothing, so the race was invisible from inside it —
 // and losing to a Pax Mercatoria you never saw coming is not a fair loss.
 //
-// Also pinned here: the dashed bar must show what the RULE measures — twice the best culture
-// among your NEIGHBOURS, since that is what the victory compares you to. It must never be a
-// function of the viewer's own culture, which would be a bar you could never clear.
+// Also pinned here: the readout must show what the RULE measures. That is now culture per
+// head of population and your rank in it — the cultural shadow was retired because the map
+// generator, not play, decided who could ever qualify.
 
 using System.Linq;
 
@@ -39,23 +39,40 @@ namespace CivOne.Tests
 			Assert.Contains($"LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).{field})", src);
 		}
 
-		// The bar is the one the RULE applies: twice the best culture among the player's
-		// neighbours, not twice the world's best. A bar drawn from the world's best would show
-		// a target nobody is judged against — the Mongols of the 13-civ run dominated every
-		// neighbour they had and would still have watched a line set by a civ two thousand
-		// tiles away.
-		//
-		// Viewer and story-faction exclusions now come free: CulturalReachAndShadow skips its
-		// own owner and refuses the story factions at source, so the screen cannot drift from
-		// the rule by forgetting one.
+		// The readout must show what the victory JUDGES: culture per head, your rank in it,
+		// and whether the clock has opened. It used to draw the cultural shadow, which the
+		// rule no longer uses at all — and a readout of a retired rule is worse than none,
+		// because it tells a player to work on something that cannot win.
 		[Fact]
-		public void TheBarIsTwiceTheBestNEIGHBOUR()
+		public void TheReadoutShowsCulturePerHeadAndRank()
 		{
 			string src = ScreenSource();
 
-			Assert.Contains("bestNeighbour * Game.CultureLeadMultiple", src);
-			Assert.Contains("BEST NEIGHBOUR", src);
-			Assert.DoesNotContain("int best = Game.Players", src);   // the old world-wide max
+			Assert.Contains("CULTURE PER HEAD", src);
+			Assert.Contains("RANK {myRank}/{order.Length}", src);
+			Assert.DoesNotContain("IN RANGE", src);          // the retired shadow readout
+			Assert.DoesNotContain("BEST NEIGHBOUR", src);    // the retired local bar
+		}
+
+		// A player under the populace floor cannot rank at all, and must be told that rather
+		// than shown a number they cannot move — the same reason reach used to be drawn.
+		[Fact]
+		public void APlayerTooSmallToRankIsToldSo()
+		{
+			string src = ScreenSource();
+
+			Assert.Contains("TOO FEW PEOPLE TO RANK", src);
+			Assert.Contains("CultureFloorShare", src);
+		}
+
+		// ...and before the gate year the path is sealed, which the screen says outright.
+		[Fact]
+		public void TheGateYearIsShownWhileItIsShut()
+		{
+			string src = ScreenSource();
+
+			Assert.Contains("SEALED UNTIL", src);
+			Assert.Contains("CultureGateYear", src);
 		}
 
 		// The rival readout answers to the same exclusions as the victory rule: a civ that
@@ -72,20 +89,6 @@ namespace CivOne.Tests
 			string block = src.Substring(at, 900);
 
 			Assert.Contains(faction, block);
-		}
-
-		// The shadow readout must show the REACH as well as the target. The target is three
-		// fifths of the reach, so on its own it looks like a number out of nowhere — and a
-		// player under the floor has to be able to see that the path is shut rather than
-		// merely losing it.
-		[Fact]
-		public void TheShadowReadoutShowsTheReachItsTargetCameFrom()
-		{
-			string src = ScreenSource();
-
-			Assert.Contains("Game.CulturalReachAndShadow(Human)", src);
-			Assert.Contains("OF {inRange} IN RANGE", src);
-			Assert.DoesNotContain("Game.CulturalShadowTarget}", src);   // the old no-argument property
 		}
 
 		// A rival on nothing is not news, and drawing "0/20" every turn would train the player

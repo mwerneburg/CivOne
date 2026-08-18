@@ -67,9 +67,13 @@ namespace CivOne.Tests
 			human.SetCulture(900);
 			foreach (Player p in rivals) p.SetCulture(100);
 
-			(int inRange, int shadow, long bestNear) = g.CulturalReachAndShadow(human);
-			Assert.True(shadow >= Game.CulturalShadowTarget(inRange),
-				$"fixture is not admired: shadow {shadow} of {Game.CulturalShadowTarget(inRange)} (reach {inRange})");
+			// The victory is now: first in culture per HEAD, populous enough to rank, after
+			// the gate year, held for CultureHoldTurns. Staging a hundred turns of holding
+			// would be testing the clock rather than the latch, so the streak is driven to
+			// the brink and the rounds after it are what this test is actually about.
+			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			g.Progress(g.PlayerNumber(human)).CultureStreak = Game.CultureHoldTurns - 1;
+			Assert.True(Common.TurnToYear(g.GameTurn) >= Game.CultureGateYear, "fixture is before the gate");
 			int before = human.MilestoneScore;
 
 			// Past the target on purpose: the rounds after the win are where an unlatched
@@ -87,7 +91,7 @@ namespace CivOne.Tests
 		// EconomicHegemonyTests pins the exclusions it cannot cheaply stage.
 		[Theory]
 		[InlineData("Progress(cnum).EconStreak >= 20", "_econVictoryFired")]
-		[InlineData("Progress(cnum).CultureStreak >= 20", "_cultVictoryFired")]
+		[InlineData("Progress(cnum).CultureStreak >= CultureHoldTurns", "_cultVictoryFired")]
 		[InlineData("Common.TurnToYear(_gameTurn) >= 2100", "_scoreVictoryFired")]
 		public void EveryStandingConditionEndingIsLatched(string condition, string latch)
 		{

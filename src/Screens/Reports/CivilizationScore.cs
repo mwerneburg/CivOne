@@ -200,38 +200,58 @@ namespace CivOne.Screens.Reports
 
 			// ── Cultural ascendancy threshold ────────────────────────────────
 
-			// The bar THIS player must clear: twice the best culture among their NEIGHBOURS —
-			// the civs with a city inside their reach — not the world's best. That is the rule
-			// the victory applies, and a bar drawn from the world's best would show a target
-			// nobody is judged against: a Mongol player dominating every neighbour would watch
-			// a line they were never asked to clear, set by a civ on the far side of the map.
+			// What the cultural victory now judges: culture per HEAD of population, your rank
+			// in it, and whether the clock has opened yet.
 			//
-			// Flat, because it is a live comparison rather than a historical curve: the culture
-			// series records each civ, not the bar. Every civ has its own bar, so one line
-			// cannot show the whole race; the rival-streak readout below covers that.
+			// This used to draw the cultural shadow — foreign cities within five tiles under
+			// half your culture — which the victory no longer uses at all. A readout of a
+			// retired rule is worse than none: it tells a player to work on something that
+			// cannot win. Reach was decided by the map generator anyway, which is why the rule
+			// went.
 			if (_page == Page.Culture)
 			{
-				// Reach and the local best both come off one pass, the same one the victory
-				// uses. Reach is drawn as well as shadow because the target is three fifths of
-				// it — without that the requirement looks arbitrary, and a player under the
-				// floor needs to see WHY the path is shut rather than watching a number they
-				// cannot move.
-				(int inRange, int shadow, long bestNeighbour) = Game.CulturalReachAndShadow(Human);
-				int bar = (int)(bestNeighbour * Game.CultureLeadMultiple);
+				long OwnPop(Player p) => Math.Max(1, p.Cities.Sum(c => (int)c.Size));
+				double PerHead(Player p) => (double)p.Culture / OwnPop(p);
+
+				Player[] ranked = Game.Players
+					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
+					         && !(p.Civilization is Barbarian)
+					         && !(p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
+					                             or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir)
+					         && p.Cities.Any(c => c.Size > 0))
+					.ToArray();
+				long biggest = ranked.Select(OwnPop).DefaultIfEmpty(1).Max();
+				Player[] eligible = ranked.Where(p => OwnPop(p) * Game.CultureFloorShare >= biggest).ToArray();
+				Player[] order = eligible.OrderByDescending(PerHead).ToArray();
+
+				int myRank = Array.IndexOf(order, Human) + 1;
+				bool qualifies = OwnPop(Human) * Game.CultureFloorShare >= biggest;
+				bool open = Common.TurnToYear(Game.GameTurn) >= Game.CultureGateYear;
+
+				// The bar: the leader's culture per head, expressed as the total THIS player
+				// would need at their own population to match it. That keeps the dashed line
+				// on the same axis as the culture series it is drawn over.
+				double best = order.Length > 0 ? PerHead(order[0]) : 0;
+				int bar = (int)(best * OwnPop(Human));
 				int by  = GraphBottom - (int)(bar * pxPerScore);
 				if (bar > 0 && by >= GraphTop && by <= GraphBottom)
 					for (int dx = 0; dx < GraphW; dx += 4)
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
-				int cultTarget = Game.CulturalShadowTarget(inRange);
 				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
 				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
-				this.DrawText($"CULTURAL ASCENDANCY STREAK {cultStreak}/20", 0, scol,
+				this.DrawText($"CULTURAL ASCENDANCY {cultStreak}/{Game.CultureHoldTurns}", 0, scol,
 					GraphRight - 4, GraphTop + 4, TextAlign.Right);
-				this.DrawText($"SHADOW {shadow}/{cultTarget} OF {inRange} IN RANGE", 0,
-					shadow >= cultTarget ? CassetteTheme.OK : CassetteTheme.INK_LOW,
+
+				string standing = !qualifies ? "TOO FEW PEOPLE TO RANK"
+					: myRank > 0 ? $"CULTURE PER HEAD {PerHead(Human):F0} - RANK {myRank}/{order.Length}"
+					           : $"CULTURE PER HEAD {PerHead(Human):F0}";
+				this.DrawText(standing, 0,
+					(qualifies && myRank == 1) ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
-				this.DrawText($"- - -  {Game.CultureLeadMultiple}x BEST NEIGHBOUR ({bar})", 0, CassetteTheme.ALERT,
+
+				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYear} AD", 0,
+					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
 					GraphTop + 4 + 3 * (fh + 1));

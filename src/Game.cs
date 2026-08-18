@@ -2116,16 +2116,58 @@ namespace CivOne
 					// your own culture; the global lead needs to beat the richest region's
 					// leader. Nobody can be both, and in four logged games nobody was.
 					//
-					// Lowering the multiple would not have fixed it: late-game leads ran
-					// 1.10-1.28x, and the civ clearing even 1.5x was the one with reach 2,
-					// which can never build a shadow at all.
+					// REPLACED the cultural shadow, 18 Aug 2026. The shadow asked you to dominate
+					// foreign cities within five tiles — which the MAP GENERATOR decides, not
+					// play. Measured across 21 games: the Maori reached 0 foreign cities, the
+					// Guarani 1, the Japanese 2-5. Those civilizations were excluded from the
+					// path before making a single decision, and no amount of culture fixed it.
+					// It fired exactly once in 21 games (Mongols, `88388c31`, reach 6 against a
+					// floor of 6 — the bare minimum).
 					//
-					// Not redundant with the shadow: the target is three fifths of reach, so a
-					// civ can shadow six neighbours while a seventh, stronger one sits in range
-					// and this clause still stops them.
-					bool admired = claimant.Culture > 0 && inRange > 0
-					            && claimant.Culture >= bestNeighbour * CultureLeadMultiple;
-					bool reach   = shadow >= CulturalShadowTarget(inRange);
+					// Now: hold the highest culture per HEAD of population. Every civ can
+					// compete on it, isolated or not, and it rewards a cultured society rather
+					// than a large one — a wide empire of Temples no longer beats a dense one
+					// of Cathedrals simply by being wide.
+					//
+					// Three clauses, and all three are needed. Measured in run `1ac32cee`:
+					//
+					//   RANK, not ratio. Culture per head converges as a game runs — everyone
+					//   builds the same things — so late leads run 1.02-1.21x and any ratio
+					//   bar is unclearable. Being FIRST is the achievable form.
+					//
+					//   POPULACE FLOOR, relative. Culture is a cumulative stock and population
+					//   is not, so a stunted civ's ratio climbs forever: the frozen one-city
+					//   Japanese of `733f10ec` led every density measure in the game. A share
+					//   of the largest civ's populace scales with the map; an absolute number
+					//   would not.
+					//
+					//   DATE GATE. Early leads are trivial — at turn 200 the leader held 31.9
+					//   against 14.3, a fine ratio over almost no culture, and would have won
+					//   around turn 310 on a hold alone. The gate says a golden age is a thing
+					//   you sustain into the modern era, not a lead you take in antiquity.
+					long claimantPop = Math.Max(1, claimant.Cities.Sum(c => (int)c.Size));
+					double cultPerHead = (double)claimant.Culture / claimantPop;
+
+					Player[] densityRivals = cultRivals.Where(p => p.Cities.Any(c => c.Size > 0)).ToArray();
+					long biggestPop = densityRivals
+						.Select(p => (long)p.Cities.Sum(c => (int)c.Size))
+						.Concat(new[] { claimantPop }).DefaultIfEmpty(1).Max();
+
+					// Big enough to be a society rather than a relic.
+					bool populous = claimantPop * CultureFloorShare >= biggestPop;
+
+					// First in the world, among civs that clear the same floor.
+					bool foremost = claimant.Culture > 0 && densityRivals.All(p =>
+					{
+						long rp = Math.Max(1, p.Cities.Sum(c => (int)c.Size));
+						if (rp * CultureFloorShare < biggestPop) return true;   // too small to rank
+						return cultPerHead > (double)p.Culture / rp;
+					});
+
+					bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;
+
+					bool admired = populous && foremost && modern;
+					bool reach   = true;   // geography no longer gates this path
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
 					// started is incompatible with being admired, but the Machines and the Registry
@@ -2140,13 +2182,13 @@ namespace CivOne
 						if (isHuman && Progress(cnum).CultureStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"The world looks to us.",
-								$"{shadow} foreign cities live in",
-								"our shadow. Hold for 20 years."));
-						else if (isHuman && Progress(cnum).CultureStreak == 10)
+								"No people are more cultured.",
+								$"Hold the first rank {CultureHoldTurns} years."));
+						else if (isHuman && Progress(cnum).CultureStreak == CultureHoldTurns / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
 								"Our arts and learning", "are the world's measure."));
 
-						if (Progress(cnum).CultureStreak >= 20 && !_cultVictoryFired)
+						if (Progress(cnum).CultureStreak >= CultureHoldTurns && !_cultVictoryFired)
 						{
 							_cultVictoryFired = true;
 							if (!isHuman)
@@ -3759,7 +3801,27 @@ namespace CivOne
 		internal static int CulturalShadowTarget(int reach) => Math.Max(CulturalShadowFloor, reach * 3 / 5);
 
         // The runner-up must be beaten by this multiple: admiration, not a narrow lead.
+        // Retained for the score screen's rival bar; the victory itself is now a RANK.
         internal const int CultureLeadMultiple = 2;
+
+		// A claimant must hold at least 1/this of the largest civilization's populace. Keeps
+		// the stunted out — a frozen one-city civ's culture-per-head climbs forever, because
+		// culture accumulates and its population does not — without hard-coding a number that
+		// would mean something different on another map.
+		internal const int CultureFloorShare = 4;
+
+		// The clock cannot start before this year. Culture per head converges late and is
+		// trivially unequal early: at turn 200 of run 1ac32cee the leader held 31.9 against
+		// 14.3 over almost no culture at all. Deliberately a DATE and not a culture threshold,
+		// which would be an unscaled constant of exactly the kind this codebase keeps
+		// tripping over.
+		internal const int CultureGateYear = 1850;
+
+		// Turns the lead must be held. Leads change hands a median of 12 times a game and the
+		// longest single hold measured was 235 turns, so this is a real contest rather than a
+		// coronation. At 100, run 1ac32cee resolves around turn 500-535 against a Diaspora
+		// that landed at 593 — the two paths racing, which is the point.
+		internal const uint CultureHoldTurns = 100;
 
 		private int GrossOutput(Player p)
 		{

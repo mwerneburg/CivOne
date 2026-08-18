@@ -252,73 +252,11 @@ namespace CivOne.Tests
 		// The two tests above prove CulturalReachAndShadow REPORTS the right neighbour, but a
 		// negative check showed they pass just as happily when the victory block ignores it —
 		// they assert the comparison themselves rather than driving the rule. This one stages
-		// the Mongol shape and lets the game decide.
-		[Fact]
-		public void TheStreakAccruesDespiteATitanOnTheFarSideOfTheWorld()
-		{
-			Sim.NewGame(width: 80, height: 50);
-			Game g = Game.Instance;
-			for (int y = 20; y <= 30; y++)
-			for (int x = 30; x <= 70; x++)
-				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
-			Map.Instance.RecalculateContinentsIfDirty();
 
-			Player human = g.HumanPlayer;
-			Player[] others = g.Players
-				.Where(p => p is not null && p != human && g.PlayerNumber(p) != 0).Take(4).ToArray();
-			Player[] neighbours = others.Take(3).ToArray();
-			Player titan = others[3];
-
-			foreach (Player p in others.Append(human))
-			{
-				p.Government = new Monarchy();
-				p.Explore(40, 25, range: 34);
-			}
-			human.AddAdvance(new Advances.Philosophy(), false);
-			g.AddCity(human, 0, 40, 25)!.Size = 6;
-
-			int id = 1;
-			foreach ((int x, int y) in new[] { (38, 23), (42, 23), (38, 27), (42, 27), (37, 25), (43, 25) })
-			{
-				g.AddCity(neighbours[id % neighbours.Length], id, x, y)!.Size = 3;
-				id++;
-			}
-			// Far out of the 5-tile reach, and overwhelming: five times our culture. Under the
-			// old world-wide clause this alone denied the ascendancy.
-			g.AddCity(titan, 9, 68, 25)!.Size = 3;
-
-			human.SetCulture(900);
-			foreach (Player p in neighbours) p.SetCulture(100);
-			titan.SetCulture(4500);
-			Sim.ClearTasks();
-
-			(int reach, int shadow, long bestNeighbour) = g.CulturalReachAndShadow(human);
-			Assert.Equal(6, reach);
-			Assert.True(shadow >= Game.CulturalShadowTarget(reach), "fixture does not clear the shadow clause");
-			Assert.Equal(100, bestNeighbour);
-			Assert.True(titan.Culture > human.Culture * Game.CultureLeadMultiple,
-				"fixture: the titan must be strong enough to deny a world-wide lead");
-
-			uint target = g.GameTurn + 22u;
-			while (g.GameTurn < target) { Sim.ClearTasks(); g.EndTurn(); }
-
-			Assert.True(g.Progress(g.PlayerNumber(human)).CultureStreak >= 20,
-				$"streak reached only {g.Progress(g.PlayerNumber(human)).CultureStreak} — "
-				+ "the lead is still being judged against the world, not the neighbourhood");
-		}
 
 		// The victory block must read the LOCAL figure. Pinned at the source because staging a
 		// full 20-turn streak with a distant titan is a heavy fixture, and because the failure
-		// mode is silent: the clause simply never fires and the path looks merely difficult.
-		[Fact]
-		public void TheVictoryClauseComparesAgainstTheBestNeighbour()
-		{
-			string src = System.IO.File.ReadAllText(
-				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
 
-			Assert.Contains("claimant.Culture >= bestNeighbour * CultureLeadMultiple", src);
-			Assert.DoesNotContain("claimant.Culture >= runnerUp * CultureLeadMultiple", src);
-		}
 
 		[Fact]
 		public void ANarrowLeadIsNotAdmiration()
@@ -352,6 +290,169 @@ namespace CivOne.Tests
 			Assert.True(Game.LoadCos(path), "load failed");
 
 			Assert.Equal(7u, Game.Instance.Progress(Game.Instance.PlayerNumber(Game.Instance.HumanPlayer)).CultureStreak);
+		}
+
+		// ── the rule that replaced the shadow ────────────────────────────────────
+
+		// Rank, not ratio. Culture per head converges as a game runs — everyone builds the
+		// same things — so measured late leads ran 1.02-1.21x and any ratio bar is
+		// unclearable. Being FIRST is the achievable form, and it is what the code asks.
+		[Fact]
+		public void TheVictoryIsAFirstRankNotARatio()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			Assert.Contains("bool foremost = claimant.Culture > 0 && densityRivals.All(p =>", src);
+			Assert.Contains("cultPerHead > (double)p.Culture / rp", src);
+			// the retired clauses
+			Assert.DoesNotContain("bool reach   = shadow >= CulturalShadowTarget(inRange);", src);
+			Assert.DoesNotContain("claimant.Culture >= bestNeighbour * CultureLeadMultiple", src);
+		}
+
+		// The populace floor. Culture is a cumulative stock and population is not, so a
+		// stunted civ's culture per head climbs forever: the frozen one-city Japanese of run
+		// 733f10ec led every density measure in that game. Relative to the largest civ, so it
+		// scales with the map rather than needing a new number per world size.
+		[Fact]
+		public void AStuntedCivCannotRank()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			Assert.Contains("bool populous = claimantPop * CultureFloorShare >= biggestPop;", src);
+			Assert.True(Game.CultureFloorShare > 1, "a floor share of 1 admits everybody");
+		}
+
+		// The date gate. At turn 200 of run 1ac32cee the leader held 31.9 against 14.3 — a
+		// fine ratio over almost no culture — and a hold alone would have handed them the game
+		// around turn 310. A golden age is sustained into the modern era, not seized in
+		// antiquity.
+		[Fact]
+		public void TheClockCannotStartBeforeTheGateYear()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			Assert.Contains("bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;", src);
+			Assert.True(Game.CultureGateYear >= 1500, "a gate this early gates nothing");
+		}
+
+		// The hold has to be long enough to be a contest. Leads changed hands a median of 12
+		// times a game across 21 measured runs; a short hold would make this a coronation.
+		[Fact]
+		public void TheHoldIsLongEnoughToBeContested()
+		{
+			Assert.True(Game.CultureHoldTurns >= 50,
+				$"a {Game.CultureHoldTurns}-turn hold is not a contest");
+		}
+
+		// The whole point of the change: geography no longer decides who may compete. An
+		// isolated civ — the Maori reached ZERO foreign cities across a whole game, the
+		// Guarani one — is now judged on the same measure as everyone else.
+		[Fact]
+		public void GeographyNoLongerGatesThePath()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+			int at = src.IndexOf("bool admired = populous && foremost && modern;");
+			Assert.True(at > 0, "the cultural clause has moved or been rewritten");
+			string block = src.Substring(at, 200);
+
+			Assert.Contains("geography no longer gates this path", block);
+		}
+
+		// ── driven through EndTurn, not read off the source ──────────────────────
+
+		// The source assertions above pin the clause LINE; dropping any one clause from it
+		// killed the same single test, which is not coverage of a victory condition. These
+		// drive the rule and watch the streak.
+		private static (Game game, Player us) AWorldReadyForAscendancy()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			for (int y = 18; y <= 32; y++)
+			for (int x = 30; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player us = g.HumanPlayer;
+			Player[] rivals = g.Players
+				.Where(p => p is not null && p != us && g.PlayerNumber(p) != 0).Take(3).ToArray();
+			foreach (Player p in rivals.Append(us))
+			{
+				p.Government = new Monarchy();
+				p.Explore(40, 25, range: 20);
+			}
+			us.AddAdvance(new Advances.Philosophy(), false);
+
+			// Equal populations, so culture per head is decided by culture alone.
+			g.AddCity(us, 0, 40, 25)!.Size = 6;
+			int id = 1;
+			foreach (Player r in rivals) g.AddCity(r, id, 34 + id++ * 3, 30)!.Size = 6;
+
+			us.SetCulture(6000);
+			foreach (Player r in rivals) r.SetCulture(600);
+
+			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			Sim.ClearTasks();
+			return (g, us);
+		}
+
+		// A full round, not one EndTurn: EndTurn ends the CURRENT player's turn, and the
+		// victory checks run once the turn itself advances. A single call left the streak at
+		// zero and looked like the rule failing.
+		private static uint StreakAfterATurn(Game g, Player us)
+		{
+			// Bounded: an unbounded wait on GameTurn hangs the suite when a fixture cannot
+			// advance, which it did here before this guard.
+			uint target = g.GameTurn + 2u;
+			for (int i = 0; i < 400 && g.GameTurn < target; i++) { Sim.ClearTasks(); g.EndTurn(); }
+			Assert.True(g.GameTurn >= target, $"the fixture could not advance a turn (stuck at {g.GameTurn})");
+			return g.Progress(g.PlayerNumber(us)).CultureStreak;
+		}
+
+		[Fact]
+		public void TheStreakAccruesForTheForemostCulture()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+
+			Assert.True(StreakAfterATurn(g, us) > 0, "the leading culture earned no streak");
+		}
+
+		// Second place earns nothing — it is a rank, and only one civ holds it.
+		[Fact]
+		public void ASecondPlaceCultureEarnsNothing()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+			Player rival = g.Players.First(p => p is not null && p != us && g.PlayerNumber(p) != 0
+			                                 && p.Cities.Any(c => c.Size > 0));
+			rival.SetCulture(60000);   // now far ahead of us per head
+
+			Assert.Equal(0u, StreakAfterATurn(g, us));
+		}
+
+		// Before the gate year, nothing accrues however dominant the culture.
+		[Fact]
+		public void NothingAccruesBeforeTheGateYear()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+			g.GameTurn = 300;
+			Assert.True(Common.TurnToYear(g.GameTurn) < Game.CultureGateYear, "fixture is past the gate");
+
+			Assert.Equal(0u, StreakAfterATurn(g, us));
+		}
+
+		// ...and a civ too small to rank earns nothing, however cultured per head. This is the
+		// stunted-civ case: culture accumulates, population does not.
+		[Fact]
+		public void ACivBelowThePopulaceFloorEarnsNothing()
+		{
+			(Game g, Player us) = AWorldReadyForAscendancy();
+			foreach (City c in us.Cities) c.Size = 1;   // a relic beside its neighbours
+			us.SetCulture(60000);
+
+			Assert.Equal(0u, StreakAfterATurn(g, us));
 		}
 	}
 }
