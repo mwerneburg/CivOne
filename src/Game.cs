@@ -3892,9 +3892,32 @@ namespace CivOne
 
 		// Turns the lead must be held. Leads change hands a median of 12 times a game and the
 		// longest single hold measured was 235 turns, so this is a real contest rather than a
-		// coronation. At 100, run 1ac32cee resolves around turn 500-535 against a Diaspora
-		// that landed at 593 — the two paths racing, which is the point.
-		internal const uint CultureHoldTurns = 100;
+		// coronation.
+		//
+		// Cut from 100 to 75 on the batch of 19 Aug 2026 — six games, 5 to 16 civilizations,
+		// the first run on the median populace floor. Culture took NONE of them, and the best
+		// streak in each game fell as the field grew:
+		//
+		//     civs   civs that RANK   best streak
+		//      16          13              35
+		//      14          10              55
+		//      12           9              88
+		//      10           8              50
+		//       7           6              95
+		//       5           5              71
+		//
+		// The margin must beat EVERY ranking civilization on EVERY turn, so each extra civ that
+		// clears the floor is another chance to be pipped for a turn and sent back to zero.
+		// Widening the floor — the right fix for a path whose own pursuers were disqualified —
+		// therefore made the hold harder in the same stroke, and the two knobs are coupled: a
+		// shorter hold helps most in a crowded game, which is exactly where the margin bites
+		// hardest.
+		//
+		// At 75 these six produce two coronations, the Franks on 95 and the Indians on 88,
+		// against four Diasporas. The margin is deliberately NOT the knob that moved: every one
+		// of those six streaks died to a rival genuinely overtaking on the measure, which is
+		// the contest working as designed.
+		internal const uint CultureHoldTurns = 75;
 
 		private int GrossOutput(Player p)
 		{

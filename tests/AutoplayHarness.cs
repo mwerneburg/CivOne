@@ -98,7 +98,21 @@ namespace CivOne.Tests
 			// Pinned by default so A/B comparisons measure the code, not a different map.
 			short seed = short.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_SEED"), out short sd) ? sd : (short)4242;
 			int diff = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_DIFFICULTY"), out int d) ? d : 0;
-			Sim.NewGame(width: 80, height: 50, competition: 7, difficulty: diff, seed: seed);
+
+			// Sweep knobs. The default is the old 80x50 generated world with 7 rivals, so every
+			// existing invocation behaves exactly as it did.
+			//
+			// CIVONE_HARNESS_MAP=earth-epic is what a batch should use. On a GENERATED map the
+			// seed decides the continents, so a 13-civ run and a 7-civ run differ in the shape
+			// of the planet as well as in the size of the field, and no amount of repetition
+			// separates the two. Earth holds the ground still and lets the seed vary only the
+			// die rolls — same world, independent histories, one variable at a time.
+			int civs = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_CIVS"), out int nc) ? nc : 7;
+			int w = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_WIDTH"), out int ww) ? ww : 80;
+			int h = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_HEIGHT"), out int hh) ? hh : 50;
+			string map = Environment.GetEnvironmentVariable("CIVONE_HARNESS_MAP") ?? "generated";
+
+			Sim.NewGame(width: w, height: h, competition: civs, difficulty: diff, seed: seed, map: map);
 			Settings.Instance.Autopilot = true;
 
 			var lines = new System.Collections.Generic.List<string>();
@@ -110,13 +124,17 @@ namespace CivOne.Tests
 			}
 
 			int every = Math.Max(1, turns / 20);
-			Report($"seed {seed}, {turns} turns, difficulty {diff} (contentFloor {6 - diff}, empireFree {Math.Max(6, 12 - diff)})");
+			Report($"seed {seed}, {turns} turns, difficulty {diff} (contentFloor {6 - diff}, "
+			     + $"empireFree {Math.Max(6, 12 - diff)}), map {map} {Map.WIDTH}x{Map.HEIGHT}, "
+			     + $"{civs} rivals, storage {Settings.Instance.StorageDirectory}");
 			Report(Snapshot(0));
 			int reached = Sim.RunTurns(turns, turn =>
 			{
 				if (turn % every == 0) Report(Snapshot(turn));
-			});
+			}, stop: Sim.GameDecided);
 			Report(Snapshot(reached));
+			if (Sim.GameDecided())
+				Report($"decided at turn {reached} — see game_outcome in decisions.jsonl");
 
 			Assert.True(reached > 0, "the harness must advance the game at least one turn");
 

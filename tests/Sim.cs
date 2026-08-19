@@ -58,18 +58,38 @@ namespace CivOne.Tests
 
 		// Register the stub runtime once per process. RuntimeHandler.Register throws
 		// on a second call, so guard on whether a runtime is already present.
+		//
+		// CIVONE_HARNESS_STORAGE names the storage directory, which is what makes parallel
+		// sweeps possible: everything the game writes — decisions.jsonl, autosave.cos, the
+		// hall of fame — hangs off it, so two runs sharing one directory would interleave
+		// their logs and fight over the same autosave. A run per directory keeps them
+		// independent, and the sweep script collects the logs afterwards. Unset, it is a
+		// throwaway temp directory as before.
 		public static void EnsureRuntime()
 		{
 			if (_runtimeRegistered) return;
 			if (RuntimeHandler.Runtime is null)
 			{
-				string dir = System.IO.Path.Combine(
-					System.IO.Path.GetTempPath(),
-					"civone-tests-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+				string dir = Environment.GetEnvironmentVariable("CIVONE_HARNESS_STORAGE") ?? "";
+				if (string.IsNullOrEmpty(dir))
+					dir = System.IO.Path.Combine(
+						System.IO.Path.GetTempPath(),
+						"civone-tests-" + Guid.NewGuid().ToString("N").Substring(0, 8));
 				System.IO.Directory.CreateDirectory(dir);
 				RuntimeHandler.Register(new TestRuntime(dir));
 			}
 			_runtimeRegistered = true;
+		}
+
+		// The repo root, found by walking up to the project file — the same trick a dozen
+		// tests use to read source files.
+		public static string RepoRoot()
+		{
+			var dir = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
+			while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CivOne.csproj")))
+				dir = dir.Parent;
+			if (dir is null) throw new System.IO.FileNotFoundException("could not find the repo root from " + AppContext.BaseDirectory);
+			return dir.FullName;
 		}
 
 		// Null the Game and Map singletons so the next CreateGame/LoadCos starts clean
@@ -116,7 +136,19 @@ namespace CivOne.Tests
 		// and the queue moves on — that is the whole trick that makes headless autoplay work.
 		//
 		// Returns the turn actually reached (may be short of the target if the loop stalls).
-		public static int RunTurns(int turns, Action<int>? onTurn = null)
+		// True once a victory has been recorded — DecisionLogger.EndGame is the one thing that
+		// clears the active flag, and every victory path calls it. Without this a sweep run
+		// keeps grinding turns after the game is decided: the win enqueues a GameOver task,
+		// which cannot complete with no renderer, so the loop drops it and plays on to the turn
+		// cap. On an epic map that is an hour of nothing.
+		public static bool GameDecided()
+		{
+			var f = typeof(DecisionLogger).GetField("_active",
+				BindingFlags.NonPublic | BindingFlags.Static);
+			return f is not null && !(bool)f.GetValue(null)!;
+		}
+
+		public static int RunTurns(int turns, Action<int>? onTurn = null, Func<bool>? stop = null)
 		{
 			EnsureRuntime();
 			const int StuckLimit = 200;
@@ -148,7 +180,12 @@ namespace CivOne.Tests
 				}
 
 				int now = (int)Game.Instance.GameTurn;
-				if (now != lastSeen) { lastSeen = now; onTurn?.Invoke(now); }
+				if (now != lastSeen)
+				{
+					lastSeen = now;
+					onTurn?.Invoke(now);
+					if (stop is not null && stop()) break;
+				}
 			}
 			return (int)Game.Instance.GameTurn;
 		}
@@ -229,14 +266,39 @@ namespace CivOne.Tests
 		// A/B runs); pass 0 to opt out and take a clock-seeded world.
 		public const short DefaultSeed = 1234;
 
+		// `map` is "generated" (the default, and what every scenario test wants), or "earth-epic"
+		// / "earth-standard" to play the real board.
+		//
+		// The distinction matters for sweeps and not much else. A generated map changes shape
+		// with the seed, so a run at 13 civs and a run at 7 civs differ in continent layout as
+		// well as in field size, and the two effects cannot be separated afterwards. Earth holds
+		// the planet still: the seed then varies only the die rolls, so several runs of the same
+		// world produce independent histories on identical ground. That is the control.
 		public static void NewGame(int width = 80, int height = 50, int competition = 7,
-		                           int difficulty = 0, short seed = DefaultSeed)
+		                           int difficulty = 0, short seed = DefaultSeed,
+		                           string map = "generated")
 		{
 			EnsureRuntime();
 			ResetState();
 			if (seed != 0) Common.SetRandomSeed(seed);
 
-			Map.Instance.Generate(width: width, height: height);
+			switch (map)
+			{
+				case "earth-epic":
+					StageEarthBin("earth_epic.bin");
+					if (!Map.Instance.LoadEarthEpic())
+						throw new InvalidOperationException("LoadEarthEpic refused; the map was already loaded");
+					break;
+				case "earth-standard":
+					StageEarthBin("earth_standard.bin");
+					Map.Instance.LoadMap();
+					break;
+				case "generated":
+					Map.Instance.Generate(width: width, height: height);
+					break;
+				default:
+					throw new ArgumentException($"unknown map '{map}' — use generated, earth-epic or earth-standard");
+			}
 			Stopwatch sw = Stopwatch.StartNew();
 			while (!Map.Instance.Ready)
 			{
@@ -250,6 +312,22 @@ namespace CivOne.Tests
 				c => c.PreferredPlayerNumber >= 1 && c.PreferredPlayerNumber <= competition);
 			Game.CreateGame(difficulty, competition, tribe, "Tester", "Test", "Testers");
 			System.IO.Directory.CreateDirectory(Settings.Instance.SavesDirectory);
+		}
+
+		// Put the Earth board where Map.ResolveEarthBin looks FIRST — the data directory —
+		// because its other two candidates are relative to the executable, and a test binary
+		// lives at tests/bin/<cfg>/net10.0 rather than the five-deep runtime path those
+		// candidates were written for. Copying rather than changing the search order keeps
+		// this entirely on the test side.
+		private static void StageEarthBin(string fileName)
+		{
+			string target = System.IO.Path.Combine(Settings.Instance.DataDirectory, fileName);
+			if (System.IO.File.Exists(target)) return;
+			string source = System.IO.Path.Combine(RepoRoot(), "resources", fileName);
+			if (!System.IO.File.Exists(source))
+				throw new System.IO.FileNotFoundException($"no {fileName} in resources/", source);
+			System.IO.Directory.CreateDirectory(Settings.Instance.DataDirectory);
+			System.IO.File.Copy(source, target);
 		}
 	}
 }

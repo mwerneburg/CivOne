@@ -379,11 +379,19 @@ namespace CivOne.Tests
 
 		// The hold has to be long enough to be a contest. Leads changed hands a median of 12
 		// times a game across 21 measured runs; a short hold would make this a coronation.
+		//
+		// The ceiling is measured too, and it is not arbitrary. The gate opens in 1850 (turn
+		// 400) and the space race lands its Diaspora between turns 534 and 624 across the six
+		// games of 19 Aug 2026 — so a hold longer than about 130 turns cannot resolve before
+		// the rocket does, whatever the claimant does on the ground. A path that cannot finish
+		// first is not competing.
 		[Fact]
-		public void TheHoldIsLongEnoughToBeContested()
+		public void TheHoldIsLongEnoughToBeContestedAndShortEnoughToFinishFirst()
 		{
 			Assert.True(Game.CultureHoldTurns >= 50,
 				$"a {Game.CultureHoldTurns}-turn hold is not a contest");
+			Assert.True(Game.CultureHoldTurns <= 130,
+				$"a {Game.CultureHoldTurns}-turn hold cannot mature before the earliest measured Diaspora");
 		}
 
 		// The whole point of the change: geography no longer decides who may compete. An
