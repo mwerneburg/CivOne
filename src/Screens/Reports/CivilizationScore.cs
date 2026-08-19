@@ -220,12 +220,14 @@ namespace CivOne.Screens.Reports
 					                             or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir)
 					         && p.Cities.Any(c => c.Size > 0))
 					.ToArray();
-				long biggest = ranked.Select(OwnPop).DefaultIfEmpty(1).Max();
-				Player[] eligible = ranked.Where(p => OwnPop(p) * Game.CultureFloorShare >= biggest).ToArray();
+				// The same floor the victory uses, off the same helper, so the readout cannot
+				// tell a player they rank when the rule says otherwise.
+				long floor = Game.CulturalPopulaceFloor(ranked.Select(OwnPop));
+				Player[] eligible = ranked.Where(p => OwnPop(p) >= floor).ToArray();
 				Player[] order = eligible.OrderByDescending(PerHead).ToArray();
 
 				int myRank = Array.IndexOf(order, Human) + 1;
-				bool qualifies = OwnPop(Human) * Game.CultureFloorShare >= biggest;
+				bool qualifies = OwnPop(Human) >= floor;
 				bool open = Common.TurnToYear(Game.GameTurn) >= Game.CultureGateYear;
 
 				// The bar: the leader's culture per head, expressed as the total THIS player

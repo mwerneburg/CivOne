@@ -317,16 +317,50 @@ namespace CivOne.Tests
 
 		// The populace floor. Culture is a cumulative stock and population is not, so a
 		// stunted civ's culture per head climbs forever: the frozen one-city Japanese of run
-		// 733f10ec led every density measure in that game. Relative to the largest civ, so it
-		// scales with the map rather than needing a new number per world size.
+		// 733f10ec led every density measure in that game. Relative to the field, so it scales
+		// with the map rather than needing a new number per world size.
+		//
+		// Driven through the real helper rather than pinned on the source: the old version of
+		// this test asserted a line of code, which said nothing about what the line computed.
 		[Fact]
 		public void AStuntedCivCannotRank()
 		{
-			string src = System.IO.File.ReadAllText(
-				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+			// One relic among ordinary nations.
+			long floor = Game.CulturalPopulaceFloor(new long[] { 3, 200, 250, 300, 400, 500 });
 
-			Assert.Contains("bool populous = claimantPop * CultureFloorShare >= biggestPop;", src);
-			Assert.True(Game.CultureFloorShare > 1, "a floor share of 1 admits everybody");
+			Assert.True(3 < floor, $"the one-city relic ranks against a floor of {floor}");
+			Assert.True(200 >= floor, $"an ordinary nation is excluded by a floor of {floor}");
+		}
+
+		// ...and the floor follows the MEDIAN, not the largest empire in the world. Run
+		// 6da02a4d is the measurement: the Lakota on 1,718 populace put a quarter-of-the-
+		// largest floor at 421, which refused Persia (297), the Khmer (244) and Japan (204) —
+		// every civilization on the Culture path in that game, all three buying artists, none
+		// of them able to rank. The Ascendancy went to a Conquest civ with no artists at all.
+		[Fact]
+		public void OneVastEmpireDoesNotDisqualifyTheField()
+		{
+			// The final populations of run 6da02a4d, Aztec rump and Lakota giant included.
+			long[] world = { 3, 155, 204, 244, 277, 297, 333, 413, 430, 537, 568, 1072, 1317, 1718 };
+			long floor = Game.CulturalPopulaceFloor(world);
+
+			Assert.True(204 >= floor, $"Japan, on 15 cities, cannot rank against a floor of {floor}");
+			Assert.True(244 >= floor, $"the Khmer, on 27 cities, cannot rank against {floor}");
+			Assert.True(297 >= floor, $"Persia, on 35 cities, cannot rank against {floor}");
+			Assert.True(3 < floor, $"the three-population Aztec rump ranks against {floor}");
+
+			// The old rule, stated as the thing this must no longer do.
+			Assert.True(floor < 1718 / 4, "the floor is still being drawn from the largest empire");
+		}
+
+		// A world of equals still has a floor — half of everyone is not a special case.
+		[Fact]
+		public void TheFloorSurvivesAFlatField()
+		{
+			long floor = Game.CulturalPopulaceFloor(new long[] { 400, 400, 400, 400 });
+
+			Assert.True(floor > 0 && floor <= 400, $"floor {floor} is unusable in a flat field");
+			Assert.True(400 >= floor, "nobody can rank in a world where every civ is identical");
 		}
 
 		// The date gate. At turn 200 of run 1ac32cee the leader held 31.9 against 14.3 — a

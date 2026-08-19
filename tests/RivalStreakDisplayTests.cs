@@ -62,7 +62,9 @@ namespace CivOne.Tests
 			string src = ScreenSource();
 
 			Assert.Contains("TOO FEW PEOPLE TO RANK", src);
-			Assert.Contains("CultureFloorShare", src);
+			// Off the shared helper, so the readout and the rule cannot disagree about
+			// who is too small — they did not use to share anything at all.
+			Assert.Contains("CulturalPopulaceFloor", src);
 		}
 
 		// ...and before the gate year the path is sealed, which the screen says outright.

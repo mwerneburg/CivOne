@@ -39,7 +39,7 @@ namespace CivOne.Tests
 
 			Player[] live = g.Players.Where(p => p is not null && !p.IsDestroyed() && g.PlayerNumber(p) != 0).ToArray();
 			long Pop(Player p) => Math.Max(1, p.Cities.Sum(c => (int)c.Size));
-			long biggest = live.Select(Pop).DefaultIfEmpty(1).Max();
+			long floor = Game.CulturalPopulaceFloor(live.Select(Pop));
 
 			_out.WriteLine($"{path}  turn {g.GameTurn} ({Common.YearString(g.GameTurn)})");
 			_out.WriteLine("civ                per-head   pop  phil  pplous  foremost  war(started)  streak");
@@ -48,11 +48,11 @@ namespace CivOne.Tests
 			{
 				long pop = Pop(p);
 				double per = (double)p.Culture / pop;
-				bool populous = pop * Game.CultureFloorShare >= biggest;
+				bool populous = pop >= floor;
 				bool foremost = p.Culture > 0 && live.Where(q => q != p && q.Cities.Any(c => c.Size > 0)).All(q =>
 				{
 					long rp = Pop(q);
-					if (rp * Game.CultureFloorShare < biggest) return true;
+					if (rp < floor) return true;
 					return per >= (double)q.Culture / rp * Game.CultureLeadMargin;
 				});
 
@@ -69,7 +69,7 @@ namespace CivOne.Tests
 					+ $"{(foremost ? "yes" : "NO "),-8}  {warNote,-12}  {streak,6}");
 			}
 			_out.WriteLine("* = war of their own making (breaks the streak).  "
-				+ $"floor 1/{Game.CultureFloorShare} of {biggest} pop, margin {Game.CultureLeadMargin}x, "
+				+ $"floor {floor} pop (1/{Game.CultureFloorShare} of the median), margin {Game.CultureLeadMargin}x, "
 				+ $"hold {Game.CultureHoldTurns}t from {Game.CultureGateYear} AD");
 		}
 

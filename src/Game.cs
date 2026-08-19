@@ -2173,12 +2173,13 @@ namespace CivOne
 					double cultPerHead = (double)claimant.Culture / claimantPop;
 
 					Player[] densityRivals = cultRivals.Where(p => p.Cities.Any(c => c.Size > 0)).ToArray();
-					long biggestPop = densityRivals
+					long popFloor = CulturalPopulaceFloor(densityRivals
 						.Select(p => (long)p.Cities.Sum(c => (int)c.Size))
-						.Concat(new[] { claimantPop }).DefaultIfEmpty(1).Max();
+						.Concat(new[] { claimantPop }));
 
-					// Big enough to be a society rather than a relic.
-					bool populous = claimantPop * CultureFloorShare >= biggestPop;
+					// Big enough to be a society rather than a relic. See CultureFloorShare for
+					// why this is measured against the median civilization and not the largest.
+					bool populous = claimantPop >= popFloor;
 
 					// First in the world by a MARGIN, among civs that clear the same floor.
 					//
@@ -2199,7 +2200,7 @@ namespace CivOne
 					bool foremost = claimant.Culture > 0 && densityRivals.All(p =>
 					{
 						long rp = Math.Max(1, p.Cities.Sum(c => (int)c.Size));
-						if (rp * CultureFloorShare < biggestPop) return true;   // too small to rank
+						if (rp < popFloor) return true;                         // too small to rank
 						return cultPerHead >= (double)p.Culture / rp * CultureLeadMargin;
 					});
 
@@ -3843,11 +3844,39 @@ namespace CivOne
         // Retained for the score screen's rival bar; the victory itself is now a RANK.
         internal const int CultureLeadMultiple = 2;
 
-		// A claimant must hold at least 1/this of the largest civilization's populace. Keeps
-		// the stunted out — a frozen one-city civ's culture-per-head climbs forever, because
+		// A claimant must hold at least 1/this of the MEDIAN civilization's populace. Keeps the
+		// stunted out — a frozen one-city civ's culture-per-head climbs forever, because
 		// culture accumulates and its population does not — without hard-coding a number that
 		// would mean something different on another map.
-		internal const int CultureFloorShare = 4;
+		//
+		// Measured against the median rather than the LARGEST, which is what it used to be,
+		// and the difference decided a game. In run `6da02a4d` (17 civs, 2084 AD) the Lakota
+		// ended on 1,718 populace, so a quarter-of-the-largest floor stood at 421 — and every
+		// civilization actually pursuing the path was refused by it: Persia on 35 cities and
+		// 297 people, the Khmer on 27 and 244, Japan on 15 and 204. All three were buying
+		// artists, all three had climbed the per-head table (Persia from 3.8 at turn 300 to
+		// 133.6), and none of them could rank. The Cultural Ascendancy went instead to the
+		// Mongols — 72 cities, no artists, on the CONQUEST path — who cleared the floor at 537
+		// and won on accumulated temples.
+		//
+		// The clause exists to exclude a relic, not a mid-sized nation. "A quarter of the
+		// biggest empire alive" is a bar set by whoever expanded hardest; half the median is a
+		// bar set by what a normal civilization in this world looks like. On the same game the
+		// median was 373 and the floor 186 — which admits all three, and still refuses the
+		// three-population Aztec rump by two orders of magnitude.
+		internal const int CultureFloorShare = 2;
+
+		// One definition, used by the victory rule and by the score screen that explains it, so
+		// the two cannot drift — the same reason CulturalReachAndShadow returns its bar.
+		internal static long CulturalPopulaceFloor(IEnumerable<long> populaces)
+		{
+			long[] sorted = populaces.Where(p => p > 0).OrderBy(p => p).ToArray();
+			if (sorted.Length == 0) return 1;
+			long median = (sorted.Length % 2 == 1)
+				? sorted[sorted.Length / 2]
+				: (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
+			return Math.Max(1, median / CultureFloorShare);
+		}
 
 		// The clock cannot start before this year. Culture per head converges late and is
 		// trivially unequal early: at turn 200 of run 1ac32cee the leader held 31.9 against
