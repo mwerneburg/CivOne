@@ -4452,21 +4452,7 @@ namespace CivOne
 		// upgrades per turn along the full chain, ancient stragglers included.
 		private void ApplyNanobotUpgrades(Player owner)
 		{
-			(UnitType from, UnitType to, IAdvance req)[] chain =
-			{
-				(UnitType.Militia,    UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Phalanx,    UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Legion,     UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Musketeers, UnitType.Riflemen,   new Conscription()),
-				(UnitType.Riflemen,   UnitType.MechInf,    new LaborUnion()),
-				(UnitType.Chariot,    UnitType.Knights,    new Chivalry()),
-				(UnitType.Knights,    UnitType.Cavalry,    new HorsebackRiding()),
-				(UnitType.Cavalry,    UnitType.Armor,      new Automobile()),
-				(UnitType.Catapult,   UnitType.Cannon,     new Metallurgy()),
-				(UnitType.Cannon,     UnitType.Artillery,  new Robotics()),
-				(UnitType.Frigate,    UnitType.Ironclad,   new SteamEngine()),
-				(UnitType.Ironclad,   UnitType.Cruiser,    new Combustion()),
-			};
+			var chain = NanobotUpgradeChain;
 			byte ownerNum = PlayerNumber(owner);
 			int budget = 3;
 			foreach (var (from, to, req) in chain)
@@ -5541,21 +5527,50 @@ namespace CivOne
 			_units.Add(upgraded);
 		}
 
+		// One upgrade ladder, shared by Leonardo's Workshop and the Nanobot Factory.
+		//
+		// It used to be two copies, and both carried the same inverted rung:
+		//
+		//     (UnitType.Knights,  UnitType.Cavalry,  new HorsebackRiding()),
+		//
+		// Knights are 4/2/2 and need Chivalry; Cavalry are 2/1/2 and need Horseback Riding,
+		// which every civilization has by the bronze age. So the "upgrade" ran DOWNHILL and its
+		// gate was always open: from the turn the workshop was finished it converted one knight
+		// per turn — three, with the factory — into a weaker, older unit, until a player's whole
+		// mounted arm had decayed. Reported from a game where the knights turned into cavalry
+		// steadily enough that it looked like a curse.
+		//
+		// Two copies is how one wrong rung became two wrong rungs. One table now, and a test
+		// walks it asserting that no rung ever leads to a weaker unit.
+		internal static readonly (UnitType from, UnitType to, IAdvance req)[] UnitUpgradeChain =
+		{
+			(UnitType.Militia,    UnitType.Musketeers, new Gunpowder()),
+			(UnitType.Phalanx,    UnitType.Musketeers, new Gunpowder()),
+			(UnitType.Legion,     UnitType.Musketeers, new Gunpowder()),
+			(UnitType.Musketeers, UnitType.Riflemen,   new Conscription()),
+			(UnitType.Riflemen,   UnitType.MechInf,    new LaborUnion()),
+			(UnitType.Chariot,    UnitType.Knights,    new Chivalry()),
+			(UnitType.Cavalry,    UnitType.Knights,    new Chivalry()),
+			(UnitType.Catapult,   UnitType.Cannon,     new Metallurgy()),
+			(UnitType.Cannon,     UnitType.Artillery,  new Robotics()),
+		};
+
+		// What the factory can do that the workshop cannot: the late rungs, and the sea.
+		// Knights reach Armor here rather than Cavalry doing so — with the ladder the right way
+		// up a cavalryman becomes a knight first, so hanging Armor off Cavalry left the top of
+		// the mounted line unreachable.
+		internal static readonly (UnitType from, UnitType to, IAdvance req)[] NanobotUpgradeChain =
+			UnitUpgradeChain.Concat(new (UnitType from, UnitType to, IAdvance req)[]
+			{
+				(UnitType.Knights,    UnitType.Armor,      new Automobile()),
+				(UnitType.Frigate,    UnitType.Ironclad,   new SteamEngine()),
+				(UnitType.Ironclad,   UnitType.Cruiser,    new Combustion()),
+			}).ToArray();
+
 		private void ApplyLeonardoUpgrade(Player owner)
 		{
 			// One free unit upgrade per turn for the wonder owner.
-			(UnitType from, UnitType to, IAdvance req)[] chain =
-			{
-				(UnitType.Militia,    UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Phalanx,    UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Legion,     UnitType.Musketeers, new Gunpowder()),
-				(UnitType.Musketeers, UnitType.Riflemen,   new Conscription()),
-				(UnitType.Riflemen,   UnitType.MechInf,    new LaborUnion()),
-				(UnitType.Chariot,    UnitType.Knights,    new Chivalry()),
-				(UnitType.Knights,    UnitType.Cavalry,    new HorsebackRiding()),
-				(UnitType.Catapult,   UnitType.Cannon,     new Metallurgy()),
-				(UnitType.Cannon,     UnitType.Artillery,  new Robotics()),
-			};
+			var chain = UnitUpgradeChain;
 			byte ownerNum = (byte)PlayerNumber(owner);
 			foreach (var (from, to, req) in chain)
 			{
