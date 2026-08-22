@@ -281,10 +281,19 @@ namespace CivOne.Units
 		{
 			// Non-combat land units refuse to walk into enemies. Diplomat and Caravan have
 			// their own Confront overrides for their special interactions with foreign cities;
-			// they end up here only if those overrides don't catch the case. Settlers and
-			// Hydro Engineer have Attack=0 — sending them into combat is suicide and the AI
-			// pathfinder doesn't avoid enemy-occupied tiles, so guard at the boundary.
-			if (Class == UnitClass.Land && (this is Diplomat || this is Caravan || this is Settlers || this is HydroEngineer))
+			// they end up here only if those overrides don't catch the case. Sending an unarmed
+			// unit into combat is suicide and the AI pathfinder doesn't avoid enemy-occupied
+			// tiles, so guard at the boundary.
+			//
+			// Gated on ATTACK, not on a list of type names. The list read Diplomat, Caravan,
+			// Settlers and HydroEngineer — and left out the EXPLORER, which has attack 0 like
+			// every one of them. An explorer could therefore walk into an undefended city and
+			// take it; a size-1 city taken is destroyed outright, so an unarmed scout razed a
+			// city the turn after it was founded. Reported from a game, 20 Aug 2026.
+			//
+			// Every unarmed land unit belongs here, including the next one somebody adds — that
+			// is the whole reason this is a property and not a roster.
+			if (Class == UnitClass.Land && Attack == 0)
 			{
 				return false;
 			}

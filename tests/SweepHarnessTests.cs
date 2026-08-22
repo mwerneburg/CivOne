@@ -13,6 +13,7 @@
 // which is the one thing the whole design is meant to prevent.
 
 using System.Linq;
+using CivOne.Advances;
 using System.Reflection;
 
 namespace CivOne.Tests
@@ -62,6 +63,65 @@ namespace CivOne.Tests
 			Assert.Equal(50, Map.HEIGHT);
 			int land = Map.Instance.AllTiles().Count(t => t is not null && !t.IsOcean);
 			Assert.True(land > 80 * 50 / 10, $"only {land} land tiles; this is not Earth");
+		}
+
+		// The human has to research. Headless there is no screen to answer, so its
+		// CurrentResearch stayed null for entire games: at turn 688 of a sweep run the human
+		// held 63 cities — the largest empire in that world — and TWO advances, against 44 to
+		// 84 for every AI. The cost was not to the human but to the WORLD: a quarter of its
+		// cities built no Observatory, so the SETI signal, the visitors, the exotic fuel and
+		// the spaceship all came late or never, and Cultural Ascendancy won 10 of 14 games
+		// against a rival the test rig had crippled.
+		[Fact]
+		public void TheHumanKeepsResearchingWithNobodyToAskIt()
+		{
+			Sim.NewGame(width: 40, height: 30, competition: 4);
+			Player human = Game.Instance.HumanPlayer;
+			int before = human.Advances.Length;
+			human.CurrentResearch = null;
+
+			Sim.KeepHumanResearching();
+
+			Assert.NotNull(human.CurrentResearch);
+			Assert.Equal(before, human.Advances.Length);   // chosen, not granted
+		}
+
+		// ...and it moves ON when one completes. AddAdvance banks the advance but leaves
+		// CurrentResearch pointing at it, relying on a TechSelect screen to pick the next —
+		// which never runs here, so the same technology completed turn after turn. Measured at
+		// turn 682: the human held 171 advances of which 83 were distinct, every one banked
+		// twice, against 83 of 83 for every AI. Half a fix made the harness human the strongest
+		// civilization in the world, which is worse for a sweep than leaving it in the stone age.
+		[Fact]
+		public void TheHumanDoesNotResearchTheSameAdvanceTwice()
+		{
+			Sim.NewGame(width: 40, height: 30, competition: 4);
+			Player human = Game.Instance.HumanPlayer;
+			Sim.KeepHumanResearching();
+			IAdvance chosen = human.CurrentResearch!;
+			Assert.NotNull(chosen);
+
+			// Complete it the way the game does, leaving CurrentResearch where AddAdvance does.
+			human.AddAdvance(chosen, false);
+			human.CurrentResearch = chosen;
+
+			Sim.KeepHumanResearching();
+
+			Assert.True(human.CurrentResearch is null || human.CurrentResearch.Id != chosen.Id,
+				$"still researching {chosen.Name}, which it already knows");
+		}
+
+		// ...and the sweep actually calls it. The helper working is no use if the run loop
+		// never reaches for it, and that is precisely how the bug went unnoticed.
+		[Fact]
+		public void TheHarnessAsksEveryTurn()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(Sim.RepoRoot(), "tests", "AutoplayHarness.cs"));
+			int at = src.IndexOf("Sim.RunTurns(");
+			Assert.True(at > 0, "the harness turn loop has moved");
+
+			Assert.Contains("Sim.KeepHumanResearching()", src.Substring(0, at + 400));
 		}
 
 		// An unknown map name is a typo in a sweep script, and a typo must not quietly hand

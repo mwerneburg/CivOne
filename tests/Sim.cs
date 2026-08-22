@@ -7,6 +7,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using CivOne;
 using CivOne.Enums;
@@ -124,18 +125,45 @@ namespace CivOne.Tests
 		private static void SetStaticField(Type type, string name, object value)
 			=> type.GetField(name, BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, value);
 
-		// Drive N game turns headlessly.
+		// Headless, the human never researches anything, and it poisons a whole sweep.
 		//
-		// The turn machinery runs through GameTask: EndTurn advances the current player and
-		// queues Turn tasks for its units, cities and player pass, and those tasks are what
-		// call AI.Move and City.NewTurn. Pumping the queue therefore plays the game.
+		// Choosing an advance opens a screen. In the SDL runtime under Autopilot the autopilot
+		// tick answers it with a synthetic Enter; here there is no renderer, so RunTurns drops
+		// the task after 200 stuck updates and the human's CurrentResearch stays null forever.
+		// Measured at turn 688 of a sweep game: the human held 63 cities — the largest empire in
+		// that world — and TWO advances, against 44 to 84 for every AI.
 		//
-		// The catch is UI tasks. A screen task parks at the head of the queue waiting for a
-		// Closed event that never comes without a renderer, and Update() then returns false
-		// forever. So a task that fails to progress `StuckLimit` times in a row is dropped
-		// and the queue moves on — that is the whole trick that makes headless autoplay work.
+		// The damage is not to the human. A quarter of the world's cities produce no science,
+		// build no Observatory, and never join the count of civilizations listening for the SETI
+		// signal — so the signal comes late, the visitors come late, the exotic fuel comes late,
+		// and the spaceship launches at turn 650 or never. In 11 of 14 sweep games nothing ever
+		// launched, which handed Cultural Ascendancy a walkover against a rival that had been
+		// crippled by the test rig rather than by play.
 		//
-		// Returns the turn actually reached (may be short of the target if the loop stalls).
+		// Under Autopilot the AI drives the human's cities and units already; this is the same
+		// exception applied to the one decision that was still waiting for a person.
+		//
+		// Choosing is only half of it. When research COMPLETES, Player.AddAdvance enqueues a
+		// TechSelect screen and leaves CurrentResearch pointing at the advance just finished —
+		// the screen is what moves the human on to the next one. Headless the screen never runs,
+		// so the same technology completes turn after turn: measured at turn 682, the human held
+		// 171 advances of which only 83 were distinct, every one of them banked twice, while
+		// every AI held 83 of 83. Setting research in motion without this made the harness human
+		// stronger than any civilization in the game rather than merely functional.
+		public static void KeepHumanResearching()
+		{
+			Player human = Game.Instance?.HumanPlayer!;
+			if (human is null) return;
+
+			// Already known? Then the screen that should have moved us on never ran.
+			if (human.CurrentResearch is not null
+			    && human.Advances.Any(a => a.Id == human.CurrentResearch.Id))
+				human.CurrentResearch = null;
+
+			if (human.CurrentResearch is not null) return;
+			AI.Instance(human).ChooseResearch();
+		}
+
 		// True once a victory has been recorded — DecisionLogger.EndGame is the one thing that
 		// clears the active flag, and every victory path calls it. Without this a sweep run
 		// keeps grinding turns after the game is decided: the win enqueues a GameOver task,
@@ -148,6 +176,19 @@ namespace CivOne.Tests
 			return f is not null && !(bool)f.GetValue(null)!;
 		}
 
+		// Drive N game turns headlessly.
+		//
+		// The turn machinery runs through GameTask: EndTurn advances the current player and
+		// queues Turn tasks for its units, cities and player pass, and those tasks are what
+		// call AI.Move and City.NewTurn. Pumping the queue therefore plays the game.
+		//
+		// The catch is UI tasks. A screen task parks at the head of the queue waiting for a
+		// Closed event that never comes without a renderer, and Update() then returns false
+		// forever. So a task that fails to progress `StuckLimit` times in a row is dropped
+		// and the queue moves on — that is the whole trick that makes headless autoplay work.
+		//
+		// Returns the turn actually reached (may be short of the target if the loop stalls).
+		// Headless, the human never researches anything, and it poisons a whole sweep.
 		public static int RunTurns(int turns, Action<int>? onTurn = null, Func<bool>? stop = null)
 		{
 			EnsureRuntime();
@@ -276,7 +317,7 @@ namespace CivOne.Tests
 		// world produce independent histories on identical ground. That is the control.
 		public static void NewGame(int width = 80, int height = 50, int competition = 7,
 		                           int difficulty = 0, short seed = DefaultSeed,
-		                           string map = "generated")
+		                           string map = "generated", bool varyHuman = false)
 		{
 			EnsureRuntime();
 			ResetState();
@@ -307,9 +348,22 @@ namespace CivOne.Tests
 				System.Threading.Thread.Sleep(20);
 			}
 
-			var tribe = System.Linq.Enumerable.First(
+			// Which civilization the human plays. Every scenario test wants the same one every
+			// time, so that stays the default.
+			//
+			// A SWEEP wants the opposite. Taking the first eligible civ gave the human Rome in
+			// all twelve runs of a batch, from the same Earth start, so whatever that position
+			// is worth was worth it twelve times over — and it is worth a lot: the harness human
+			// reached 52 cities by turn 220 against the best AI's 21, which leaves a field of
+			// small backward civs behind it. That shows up as culture-per-head margins of
+			// 1.12-2.31 where real games run 1.03-1.15, and a batch of uncontested coronations.
+			// Rotating with the seed spreads the human across the roster instead.
+			var eligible = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(
 				Common.Civilizations,
-				c => c.PreferredPlayerNumber >= 1 && c.PreferredPlayerNumber <= competition);
+				c => c.PreferredPlayerNumber >= 1 && c.PreferredPlayerNumber <= competition));
+			var tribe = (varyHuman && eligible.Length > 0)
+				? eligible[Math.Abs((int)seed) % eligible.Length]
+				: eligible[0];
 			Game.CreateGame(difficulty, competition, tribe, "Tester", "Test", "Testers");
 			System.IO.Directory.CreateDirectory(Settings.Instance.SavesDirectory);
 		}

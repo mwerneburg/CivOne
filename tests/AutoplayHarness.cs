@@ -97,7 +97,12 @@ namespace CivOne.Tests
 
 			// Pinned by default so A/B comparisons measure the code, not a different map.
 			short seed = short.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_SEED"), out short sd) ? sd : (short)4242;
-			int diff = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_DIFFICULTY"), out int d) ? d : 0;
+			// Prince (2), because that is what the real runs are played at and difficulty is not
+			// cosmetic here: it slows the HUMAN's research and nobody else's (Player.cs — the AI
+			// always pays the Chieftain rate). At 0 the harness human researched at the cheapest
+			// rate in the game and reached 49 cities by turn 220 while the AIs held 3 to 12,
+			// which is not a world worth tuning against.
+			int diff = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_DIFFICULTY"), out int d) ? d : 2;
 
 			// Sweep knobs. The default is the old 80x50 generated world with 7 rivals, so every
 			// existing invocation behaves exactly as it did.
@@ -112,8 +117,16 @@ namespace CivOne.Tests
 			int h = int.TryParse(Environment.GetEnvironmentVariable("CIVONE_HARNESS_HEIGHT"), out int hh) ? hh : 50;
 			string map = Environment.GetEnvironmentVariable("CIVONE_HARNESS_MAP") ?? "generated";
 
-			Sim.NewGame(width: w, height: h, competition: civs, difficulty: diff, seed: seed, map: map);
+			// Cursed wonders default OFF here, which is the opposite of the code default and
+			// deliberate: the profile the real runs use has CursedWonders=0, and a test world
+			// where Gozira and the Grey Goo are loose is not the world being tuned. The knob is
+			// here so the arc can still be exercised on purpose.
+			bool cursed = (Environment.GetEnvironmentVariable("CIVONE_HARNESS_CURSED") ?? "0") != "0";
+
+			Sim.NewGame(width: w, height: h, competition: civs, difficulty: diff, seed: seed, map: map,
+			            varyHuman: true);
 			Settings.Instance.Autopilot = true;
+			Settings.Instance.CursedWonders = cursed;
 
 			var lines = new System.Collections.Generic.List<string>();
 			void Report(string s)
@@ -126,10 +139,14 @@ namespace CivOne.Tests
 			int every = Math.Max(1, turns / 20);
 			Report($"seed {seed}, {turns} turns, difficulty {diff} (contentFloor {6 - diff}, "
 			     + $"empireFree {Math.Max(6, 12 - diff)}), map {map} {Map.WIDTH}x{Map.HEIGHT}, "
-			     + $"{civs} rivals, storage {Settings.Instance.StorageDirectory}");
+			     + $"{civs} rivals, cursed {cursed}, storage {Settings.Instance.StorageDirectory}");
 			Report(Snapshot(0));
 			int reached = Sim.RunTurns(turns, turn =>
 			{
+				// Headless parity: nothing answers the human's research screen here. See
+				// Sim.KeepHumanResearching — without it the largest civ in the world sits on
+				// two advances all game and the space race never happens.
+				Sim.KeepHumanResearching();
 				if (turn % every == 0) Report(Snapshot(turn));
 			}, stop: Sim.GameDecided);
 			Report(Snapshot(reached));
