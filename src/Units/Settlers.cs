@@ -81,6 +81,33 @@ namespace CivOne.Units
 		// cannot reach.
 		internal void TestEnableAutoImprove() => AutoImprove = true;
 
+		// ── Cancelling a standing order ─────────────────────────────────────────
+		//
+		// RoadTo, AutoClean and AutoImprove are standing modes: each one re-issues Goto from
+		// NewTurn every turn for as long as it is set. Nothing the player could do cancelled
+		// them. Give the settler a new destination and NewTurn overwrote it that same turn and
+		// walked the unit back; Sentry, Fortify and "No Orders" never touched the flags; and
+		// the menu HID the entry that turned a mode on once it was on, so there was no off
+		// switch to find. The only exits were arriving at RoadTo — never, if the target sits
+		// across water — or running the world clean of pollution and unimproved tiles, which
+		// an industrial empire never does. Reported as settlers that refuse to change orders
+		// and have to be disbanded.
+		//
+		// MovementDone:311 already names the narrow version of this ("the settler that keeps
+		// returning to the same square to blink at it") and fixes only that one.
+		//
+		// Clearing all three together is deliberate: they are one concept to the player — the
+		// settler is doing something by itself — and a cancel that left one of the three
+		// running is the same bug with a longer reproduction.
+		internal void CancelAutomation()
+		{
+			RoadTo = Point.Empty;
+			AutoClean = false;
+			AutoImprove = false;
+		}
+
+		internal bool Automated => !RoadTo.IsEmpty || AutoClean || AutoImprove;
+
 		internal bool IsTileClaimed(int tx, int ty) =>
 			Game.GetUnits().OfType<Settlers>().Any(s =>
 				s != this && s.Owner == Owner &&
@@ -1007,6 +1034,18 @@ namespace CivOne.Units
 			.SetShortcut("y")
 			.OnSelect((s, a) => BuildCamp());
 
+		// 'u' for un-automate: the label has no free letter ('c' is centre-on-unit, 'a' and
+		// 'n' are taken), and MenuAutoCleanPollution already set the precedent that a
+		// shortcut need not appear in its own label.
+		private MenuItem<int> MenuCancelAutomation() => MenuItem<int>
+			.Create("Cancel Automation")
+			.SetShortcut("u")
+			.OnSelect((s, a) =>
+			{
+				CancelAutomation();
+				Goto = Point.Empty;
+			});
+
 		private MenuItem<int> MenuAutoImprove() => MenuItem<int>
 			.Create("Auto-Improve")
 			.SetShortcut("e")
@@ -1102,6 +1141,13 @@ namespace CivOne.Units
 				if (!AutoImprove)
 				{
 					yield return MenuAutoImprove();
+				}
+				// The off switch. Both entries above are hidden while their mode runs, so
+				// without this there is no menu path back to a settler taking orders — which
+				// is why the report ended in "I had to disband one".
+				if (Automated)
+				{
+					yield return MenuCancelAutomation();
 				}
 				//
 				yield return MenuWait();

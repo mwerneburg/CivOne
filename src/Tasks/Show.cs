@@ -97,6 +97,10 @@ namespace CivOne.Tasks
 						gx = land.X;
 						gy = land.Y;
 					}
+					// A new destination cancels whatever the settler was doing on its own.
+					// Without this the standing mode overwrites this Goto in NewTurn and
+					// marches the unit straight back — see Settlers.CancelAutomation.
+					if (Game.ActiveUnit is Settlers redirected) redirected.CancelAutomation();
 					Game.ActiveUnit.Goto = new Point(gx, gy);
 				};
 				return new Show(gotoScreen);
@@ -114,6 +118,9 @@ namespace CivOne.Tasks
 				{
 					if (gotoScreen.X == -1 || gotoScreen.Y == -1) return;
 					int gx = gotoScreen.X, gy = gotoScreen.Y;
+					// Likewise: one standing mode at a time, or the two take turns
+					// overwriting each other's Goto and the settler oscillates.
+					settlers.CancelAutomation();
 					settlers.RoadTo = new Point(gx, gy);
 					if (settlers.X == gx && settlers.Y == gy)
 					{
