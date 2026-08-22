@@ -21,6 +21,10 @@ namespace CivOne.Wonders
 			"",
 			"It greatly increases the SCIENCE",
 			"that city produces.",
+			"",
+			"Most of what he wrote was not",
+			"about motion, and the college",
+			"keeps all of it.",
 		};
 
 		private static readonly string[] _page2 =

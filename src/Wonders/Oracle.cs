@@ -23,6 +23,10 @@ namespace CivOne.Wonders
 			"Temple in your empire provides",
 			"double the happiness bonus while",
 			"this wonder stands.",
+			"",
+			"A place built to be answered in",
+			"should be asked only what you",
+			"would want answered.",
 		};
 
 		private static readonly string[] _page2 =

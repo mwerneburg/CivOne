@@ -21,15 +21,19 @@ namespace CivOne.Wonders
 			"",
 			"Your naval units sail the open sea",
 			"safely and put out as VETERANS.",
+			"",
+			"A light that burns too long over",
+			"the wrong waters is said to be",
+			"answered from below.",
 		};
 
 		private static readonly string[] _page2 =
 		{
 			"Requires MAP MAKING.",
 			"",
-			"But a light that burns too long",
-			"over the wrong waters may wake the",
-			"LEVIATHAN from the deep.",
+			"Veteran hulls from the first day",
+			"of the war are worth more than any",
+			"harbour.",
 			"",
 			"Obsolete once MAGNETISM brings the",
 			"compass.",

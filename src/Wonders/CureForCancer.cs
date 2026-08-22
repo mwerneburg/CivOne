@@ -21,6 +21,10 @@ namespace CivOne.Wonders
 			"",
 			"Every city in your empire gains",
 			"one more HAPPY citizen.",
+			"",
+			"The trials were stopped early.",
+			"It worked far better than anyone",
+			"had planned for.",
 		};
 
 		private static readonly string[] _page2 =

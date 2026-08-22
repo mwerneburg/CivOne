@@ -21,17 +21,24 @@ namespace CivOne.Wonders
 			"",
 			"Once it is built, ANY civilization",
 			"may construct NUCLEAR weapons.",
+			"",
+			"The bomb is loosed upon the world",
+			"for all, not just its maker.",
+			"",
+			"Older tales insist the first blast",
+			"wakes something that was sleeping.",
 		};
 
 		private static readonly string[] _page2 =
 		{
 			"Requires NUCLEAR FISSION.",
 			"",
-			"The bomb is loosed upon the world",
-			"for all, not just its maker.",
+			"There is no taking it back. Every",
+			"rival with the theory can build",
+			"the weapon the moment you finish",
+			"the project.",
 			"",
-			"And some say the blast wakes",
-			"something worse — GOZIRA.",
+			"Consider who else is close.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;

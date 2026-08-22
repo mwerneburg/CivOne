@@ -22,6 +22,9 @@ namespace CivOne.Wonders
 			"Your cities defend as if all had",
 			"CITY WALLS — a strong bonus",
 			"against attackers.",
+			"",
+			"A wall tells those outside it",
+			"exactly where the wealth is kept.",
 		};
 
 		private static readonly string[] _page2 =

@@ -22,6 +22,10 @@ namespace CivOne.Wonders
 			"No citizen in that city is ever",
 			"UNHAPPY — it can never fall into",
 			"disorder.",
+			"",
+			"The company will perform anything",
+			"that is put in front of them.",
+			"Anything at all.",
 		};
 
 		private static readonly string[] _page2 =

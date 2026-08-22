@@ -22,6 +22,11 @@ namespace CivOne.Wonders
 			"While they stand you may adopt ANY",
 			"government, and switching costs no",
 			"turns of ANARCHY.",
+			"",
+			"They are aligned to something.",
+			"The builders left no record of",
+			"what, only of how carefully it",
+			"was measured.",
 		};
 
 		private static readonly string[] _page2 =
