@@ -607,6 +607,20 @@ namespace CivOne
 				// actually met the visitors — not just detecting their SETI signal. Detecting
 				// the signal lets you prepare (probe, dome); arrival lets you study them.
 				bool contacted = Game.Started && (Game.Instance?.VisitorsArrived ?? false);
+
+				// ...but never for the Machines. They wake at war with every civilization and
+				// stay that way, so they are the one power in the world that never meets the
+				// visitors: what they know of alien technology is only what they seized along
+				// with a city, which is why this gate and not a ban on holding it.
+				//
+				// The other three story factions are already turned away from research outright
+				// in AI.ChooseResearch — the horde has no laboratories, the organism does not
+				// study, the Registry landed knowing everything. Skynet was simply never given
+				// a clause, and took the ordinary path by default. This is the narrow version of
+				// one: the Machines still study everything terrestrial, which is the whole
+				// premise of an intelligence explosion. It is the ALIEN branch that belongs to
+				// civilizations who met the aliens.
+				if (Civilization is Skynet) contacted = false;
 				bool any = false;
 				foreach (IAdvance advance in Common.Advances.Where(a => !_advances.Contains(a.Id) && !(a is FutureTech)))
 				{
