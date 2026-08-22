@@ -869,8 +869,18 @@ namespace CivOne
 			set => _firstExplorer = value;
 		}
 
+		// Slot 0 never claims. It is the Barbarians, who roam early and wide and score
+		// nothing — in one turn-379 game they held 3,736 of the world's 16,085 claims, 23%
+		// of the map locked away from every civ that could have earned from it. It is also
+		// what PlayerNumber returns for a Player belonging to no game (see its comment), and
+		// a detached player stamping tiles as barbarian is the same loss by another route.
+		//
+		// Refusing the claim leaves the tile at 255, so the first real civ through still
+		// takes it. That is the point: a legion walking past a river in 3000 BC should not
+		// deny it to the settlers who arrive in 1200 AD.
 		internal bool ClaimTile(int x, int y, byte playerIdx)
 		{
+			if (playerIdx == 0) return false;
 			if (FirstExplorer[x, y] != 255) return false;
 			FirstExplorer[x, y] = playerIdx;
 			return true;

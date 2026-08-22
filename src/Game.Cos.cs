@@ -716,6 +716,14 @@ namespace CivOne
 				for (int y = 0; y < Map.HEIGHT; y++)
 				{
 					byte pIdx = FirstExplorer[x, y];
+					// Release claims the Barbarians took before ClaimTile stopped granting
+					// them. Without this an in-progress game keeps its dead claims forever
+					// and the fix does nothing for any save already on disk.
+					if (pIdx == 0)
+					{
+						FirstExplorer[x, y] = 255;
+						continue;
+					}
 					if (pIdx < _players.Count)
 						_players[pIdx].ExplorationCredits++;
 				}
