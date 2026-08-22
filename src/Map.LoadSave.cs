@@ -121,9 +121,12 @@ namespace CivOne
 						case Terrain.Hills: b = 12; break;
 						// Civ 1's MAP format has no code for wooded slopes, and the default here is
 						// OCEAN — exporting a hill as sea would drown the continent. Degrade to bare
-						// Hills instead: lossy, but it is still a hill. (SaltFlat has the same hole
-						// and still falls through to Ocean; not touched here.)
+						// Hills instead: lossy, but it is still a hill.
 						case Terrain.ForestedHills: b = 12; break;
+						// SaltFlat has the same hole and was still falling through to Ocean, which
+						// is the drowning this file already refuses to do for wooded hills. Desert
+						// is the honest degrade: dry, bare, and above sea level.
+						case Terrain.SaltFlat: b = 14; break;
 						case Terrain.Mountains: b = 13; break;
 						case Terrain.Desert: b = 14; break;
 						case Terrain.Arctic: b = 15; break;
@@ -311,6 +314,8 @@ namespace CivOne
 			// engine-generated one: poles enforced, freshwater lakes detected,
 			// continent labels computed (used by AI strategy), huts placed.
 			CreatePoles();
+			// Wooded slopes, which the file format cannot carry. See WoodExistingHills.
+			WoodExistingHills();
 			ComputeFreshwaterLakes();
 			EnsureFreshwaterReachability();
 			EnsureMaritimeFreshwater();

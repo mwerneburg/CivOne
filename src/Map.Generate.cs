@@ -1068,6 +1068,32 @@ namespace CivOne
 		// behind every other seeded caller.
 		private void CreateForestedHills()
 		{
+			var wooded = ForestedHillCandidates();
+			foreach (var (x, y) in wooded)
+				_tiles[x, y] = new ForestedHills(x, y, TileIsSpecial(x, y));
+			Log("Map: {0} forested hills", wooded.Count);
+		}
+
+		// The same rule applied to a board that already exists — an Earth loaded from
+		// resources/earth_*.bin, which has no code for wooded slopes and so arrives with
+		// several thousand bare hills, a good share of them standing in forest.
+		//
+		// The tile's OWN Special is carried across rather than recomputed: on the generated
+		// path specials come from TileIsSpecial, but on a loaded board Coal came out of the
+		// file, and asking the generator about it would move the resource.
+		internal void WoodExistingHills()
+		{
+			var wooded = ForestedHillCandidates();
+			foreach (var (x, y) in wooded)
+				_tiles[x, y] = new ForestedHills(x, y, _tiles[x, y].Special);
+			Log("Map: {0} forested hills (loaded board)", wooded.Count);
+		}
+
+		// One definition of what makes a hill wooded, shared by the generator and the loader,
+		// so the two boards cannot drift into different-looking worlds. Deterministic: no roll
+		// is made here, which is what lets a loaded Earth stay reproducible.
+		private List<(int x, int y)> ForestedHillCandidates()
+		{
 			var wooded = new List<(int x, int y)>();
 			for (int y = 0; y < HEIGHT; y++)
 			for (int x = 0; x < WIDTH; x++)
@@ -1088,11 +1114,9 @@ namespace CivOne
 				if (nearWoods && (x + 2 * y) % 3 != 0) wooded.Add((x, y));
 			}
 
-			// Collected first, converted after: converting in place would let a hill that just
-			// went wooded seed its neighbour, and the whole range would carpet over.
-			foreach (var (x, y) in wooded)
-				_tiles[x, y] = new ForestedHills(x, y, TileIsSpecial(x, y));
-			Log("Map: {0} forested hills", wooded.Count);
+			// Collected, not converted in place: a hill that went wooded would otherwise seed
+			// its neighbour and the whole range would carpet over.
+			return wooded;
 		}
 
 		private void CreateMountainRanges()
