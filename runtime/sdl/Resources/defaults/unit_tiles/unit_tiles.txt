@@ -389,3 +389,140 @@
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#
+# ============================================================================
+# BLANK TEMPLATES — units with no 16x16 section in this file.
+#
+# Each grid below is 16 rows of 16 zeros (0 = transparent). Palette indices
+# follow the same convention as the sections above: 9-13 are the cassette
+# greens/greys used by most of the hand-drawn units, 0 shows the background.
+#
+# A 32x32 grid (1024 values) under the same section name would instead
+# override the unit's GARRISON icon; see FlushTxtSection in BaseUnit.cs.
+# ============================================================================
+#
+# ------------------------------------------------------------------------
+#
+# CRUISE MISSILE (UnitType 38) — genuinely blank in play.
+# 
+# Free.GetUnit has no case for it, so it falls all the way through to
+# the bare generic chassis with no letter and no silhouette. This and
+# the Reaper Drone are the only two units in the game that currently
+# draw as an empty box.
+#
+#   To use: delete the '# ' from the header AND all sixteen rows below it.
+#   Uncommenting the rows without the header appends them to the section
+#   above, which silently corrupts that unit's art instead.
+#
+#[CruiseMissile]
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#
+# ------------------------------------------------------------------------
+#
+# REAPER DRONE (UnitType 39) — genuinely blank in play, as above.
+# 
+# It replaced the Fighter, which does have art (Fighter.png), so a
+# drone-era map shows armed aircraft as empty boxes.
+#
+#   To use: delete the '# ' from the header AND all sixteen rows below it.
+#   Uncommenting the rows without the header appends them to the section
+#   above, which silently corrupts that unit's art instead.
+#
+#[ReaperDrone]
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#
+# ------------------------------------------------------------------------
+#
+# HYDRO ENGINEER (UnitType 29) — NOT blank; lower priority.
+# 
+# Free.GetUnit draws it a hand-made 10x10 sprite (a rig over water), so
+# it already renders. A section here would only replace that with
+# something in the 16x16 house style.
+#
+#   To use: delete the '# ' from the header AND all sixteen rows below it.
+#   Uncommenting the rows without the header appends them to the section
+#   above, which silently corrupts that unit's art instead.
+#
+#[HydroEngineer]
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#
+# ------------------------------------------------------------------------
+#
+# SEA CARAVAN (UnitType 30) — INERT UNLESS YOU CHANGE CODE FIRST.
+# 
+# Sprites/Unit.cs:29 rewrites the art type before the override lookup
+# runs:
+# 
+#     UnitType artType = unit.Type == UnitType.SeaCaravan
+#         ? UnitType.Sail : unit.Type;
+# 
+# So the Sea Caravan is drawn with the Sail's art by design, and a
+# [SeaCaravan] section is never consulted. Drop that alias if you want
+# the Sea Caravan to have a hull of its own.
+#
+#   To use: delete the '# ' from the header AND all sixteen rows below it.
+#   Uncommenting the rows without the header appends them to the section
+#   above, which silently corrupts that unit's art instead.
+#
+#[SeaCaravan]
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+#  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0

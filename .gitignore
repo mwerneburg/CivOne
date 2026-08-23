@@ -9,6 +9,18 @@
 **/sounds/**
 **/obj/**
 **/design/**
+sweeps/
+.claude/
+.gitignore
+28_minute_analysis.txt
+CLAUDE-old.md
+ahpush.sh
+build.sh
+claude_continue.txt
+go.sh
+map.sh
+opus5_chat.txt.gz
+redo.sh
 
 # Bundled engine defaults (leader/event/improvement art + data) are embedded into the SDL
 # build and MUST be tracked, even though they live under a data/ directory the rule above
