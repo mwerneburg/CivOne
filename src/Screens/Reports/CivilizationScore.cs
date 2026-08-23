@@ -45,21 +45,32 @@ namespace CivOne.Screens.Reports
 
 		private string PageTitle => _page switch
 		{
-			Page.Culture => "CULTURAL WEIGHT",
+			Page.Culture => "CULTURE PER HEAD",
 			Page.Output  => "ECONOMIC OUTPUT",
 			_            => "CIVILIZATION SCORE",
 		};
 
+		// The culture page plots culture PER HEAD, which is what Cultural Ascendancy is
+		// decided on. It used to plot raw culture, and that is a different race with a
+		// different leader: in game 3de868a5 the human's raw-culture curve towered over the
+		// field from turn 170 while the Lakota — on a third of the culture — led the measure
+		// that counts and were running the victory clock. The graph said comfortable; the
+		// rule said losing.
+		//
+		// Derived on demand from two recorded series rather than stored pre-divided, so the
+		// curve divides exactly as the rule does. A game saved before PopulaceHistory existed
+		// has no populace samples; those turns are dropped rather than drawn as zero, which
+		// would paint a cliff at the join.
 		private System.Collections.Generic.IReadOnlyList<int[]> Series => _page switch
 		{
-			Page.Culture => Game.CultureHistory,
+			Page.Culture => Game.CulturePerHeadHistory(),
 			Page.Output  => Game.OutputHistory,
 			_            => Game.ScoreHistory,
 		};
 
 		private int LiveValue(Player p) => _page switch
 		{
-			Page.Culture => p.Culture,
+			Page.Culture => (int)(p.Culture / Math.Max(1, p.Cities.Sum(c => (int)c.Size))),
 			Page.Output  => Game.GrossOutputOf(p),
 			_            => p.Score,
 		};
@@ -230,11 +241,12 @@ namespace CivOne.Screens.Reports
 				bool qualifies = OwnPop(Human) >= floor;
 				bool open = Common.TurnToYear(Game.GameTurn) >= Game.CultureGateYear;
 
-				// The bar: the leader's culture per head, expressed as the total THIS player
-				// would need at their own population to match it. That keeps the dashed line
-				// on the same axis as the culture series it is drawn over.
+				// The bar: the leader's culture per head. It used to be converted into "the
+				// total this player would need at their own population to match it", because
+				// the series underneath was raw culture. The series IS per head now, so the
+				// leader's figure goes on the axis unchanged and the conversion is gone.
 				double best = order.Length > 0 ? PerHead(order[0]) : 0;
-				int bar = (int)(best * OwnPop(Human));
+				int bar = (int)best;
 				int by  = GraphBottom - (int)(bar * pxPerScore);
 				if (bar > 0 && by >= GraphTop && by <= GraphBottom)
 					for (int dx = 0; dx < GraphW; dx += 4)

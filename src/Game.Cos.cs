@@ -375,6 +375,7 @@ namespace CivOne
 					CoexistenceFired        = _coexistenceFired,
 					ScoreHistory         = _scoreHistory.Select(s => s.ToList()).ToList(),
 					CultureHistory       = _cultureHistory.Select(s => s.ToList()).ToList(),
+					PopulaceHistory      = _populaceHistory.Select(s => s.ToList()).ToList(),
 					OutputHistory        = _outputHistory.Select(s => s.ToList()).ToList(),
 					ReplayData           = replay,
 					Transmissions        = Transmissions.Select(t => new CosTransmission { Type = t.Type, Year = t.Year }).ToList()
@@ -704,6 +705,9 @@ namespace CivOne
 			if (g.CultureHistory is not null)
 				foreach (var entry in g.CultureHistory)
 					_cultureHistory.Add(entry.ToArray());
+			if (g.PopulaceHistory is not null)
+				foreach (var entry in g.PopulaceHistory)
+					_populaceHistory.Add(entry.ToArray());
 			if (g.OutputHistory is not null)
 				foreach (var entry in g.OutputHistory)
 					_outputHistory.Add(entry.ToArray());

@@ -45,6 +45,48 @@ namespace CivOne
 		private readonly List<int[]> _cultureHistory = new();
 		internal IReadOnlyList<int[]> CultureHistory => _cultureHistory;
 
+		// Populace, recorded alongside culture so the culture graph can plot culture PER HEAD
+		// — the measure the victory actually judges, and the one a player cannot reconstruct
+		// from a raw-culture curve.
+		//
+		// Stored as populace rather than as a pre-divided per-head figure so the graph divides
+		// with the same expression the rule uses. Same principle as CulturalPopulaceFloor
+		// having one definition: a readout that computes its own version of the measure will
+		// eventually disagree with the rule, and the player believes the readout.
+		private readonly List<int[]> _populaceHistory = new();
+		internal IReadOnlyList<int[]> PopulaceHistory => _populaceHistory;
+
+		// Culture per head, per recorded turn — the series the culture graph plots, because it
+		// is the series Cultural Ascendancy is decided on. Raw culture is a different race with
+		// a different leader: in game 3de868a5 the human's raw curve towered over the field
+		// from turn 170 while the Lakota, on a third of the culture, led the measure that counts
+		// and were running the victory clock.
+		//
+		// Derived rather than stored so it divides exactly as the rule does. A game saved before
+		// _populaceHistory existed has no populace samples for its early turns; those are
+		// dropped rather than drawn as zero, which would paint a cliff at the join.
+		//
+		// Here rather than in the report so the definition sits beside the two series it
+		// divides, for the same reason CulturalPopulaceFloor has one home.
+		internal static IReadOnlyList<int[]> CulturePerHeadHistory()
+		{
+			Game g = Instance;
+			var culture = g._cultureHistory;
+			var populace = g._populaceHistory;
+			int n = Math.Min(culture.Count, populace.Count);
+			var rows = new List<int[]>(n);
+			for (int i = 0; i < n; i++)
+			{
+				int[] c = culture[i], q = populace[i];
+				var row = new int[c.Length];
+				row[0] = c[0];                                     // turn stamp
+				for (int pi = 1; pi < c.Length && pi < q.Length; pi++)
+					row[pi] = c[pi] / Math.Max(1, q[pi]);
+				rows.Add(row);
+			}
+			return rows;
+		}
+
 		// Gross output is the Pax Mercatoria metric itself (GrossOutput) rather than gold or
 		// taxes: the victory is judged on trade arrows plus tribute, so the graph a player
 		// reads to gauge progress has to be the quantity the check actually uses.
@@ -64,6 +106,7 @@ namespace CivOne
 
 			_scoreHistory.Add(Snapshot(p => p.Score));
 			_cultureHistory.Add(Snapshot(p => p.Culture));
+			_populaceHistory.Add(Snapshot(p => p.Cities.Sum(c => (int)c.Size)));
 			_outputHistory.Add(Snapshot(GrossOutput));
 		}
 
@@ -825,6 +868,12 @@ namespace CivOne
 		// where a test expecting +200 read +600, then confirmed present here.
 		private bool _econVictoryFired = false;
 		private bool _cultVictoryFired = false;
+
+		// Latch for the "admired, but the aggressor" advisory. Deliberately NOT saved: it
+		// costs one repeat of the message per session, and a player who reloads into a game
+		// they have been quietly locked out of for a hundred turns is the player who most
+		// needs telling.
+		private bool _cultBlockedNotified = false;
 		private bool _scoreVictoryFired = false;
 
 		internal static readonly Wonders.IWonder[] DomeFiveComponents =
@@ -2222,9 +2271,13 @@ namespace CivOne
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
 					// started is incompatible with being admired, but the Machines and the Registry
 					// were never yours to decline.
-					bool cultAggressing = _players.Any(p => p is not null && !p.IsDestroyed()
+					// Kept as the player rather than a bool so the advisory below can NAME the
+					// war. "Wars of our making" told a player there was a problem without
+					// telling them which war to end.
+					Player? cultVictim = _players.FirstOrDefault(p => p is not null && !p.IsDestroyed()
 						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
 						&& claimant.IsAtWar(p) && StartedWarWith(cnum, PlayerNumber(p)));
+					bool cultAggressing = cultVictim is not null;
 
 					if (admired && reach && !cultAggressing)
 					{
@@ -2271,6 +2324,35 @@ namespace CivOne
 						if (isHuman)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our influence wanes.", why, "The streak is broken."));
+					}
+
+					// Admired by every measure the rule takes, and stopped by the one clause a
+					// player cannot see.
+					//
+					// The broken-streak advisory above only speaks when there was a streak to
+					// lose. A civilization blocked from ever STARTING one hears nothing at all,
+					// which is how a player holds the first rank for a hundred straight turns —
+					// populous, foremost by 1.36x, decades past the gate — and never learns that
+					// an unresolved war they declared is zeroing the clock every single turn.
+					// Observed in game 3de868a5: qualified from turn 485 to the end at 587, hold
+					// required 75, streak never left zero.
+					//
+					// Latched so it says this once, and re-armed the moment the block clears, so
+					// making peace and then starting another war says it again.
+					if (isHuman && admired && reach && cultAggressing)
+					{
+						if (!_cultBlockedNotified)
+						{
+							_cultBlockedNotified = true;
+							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+								"No people are more cultured.",
+								$"But we drew first blood on the {cultVictim!.TribeNamePlural}.",
+								"There is no ascendancy without peace."));
+						}
+					}
+					else if (isHuman)
+					{
+						_cultBlockedNotified = false;
 					}
 				}
 

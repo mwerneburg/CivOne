@@ -145,6 +145,7 @@ namespace CivOne.Persistence
 		// Each inner list: [gameTurn, score0, score1, ..., scoreN]
 		public List<List<int>> ScoreHistory { get; set; } = null!;
 		public List<List<int>> CultureHistory { get; set; } = null!;
+		public List<List<int>> PopulaceHistory { get; set; } = null!;
 		public List<List<int>> OutputHistory { get; set; } = null!;
 		public List<CosReplayEntry> ReplayData { get; set; } = null!;
 		public List<CosTransmission> Transmissions { get; set; } = null!;
