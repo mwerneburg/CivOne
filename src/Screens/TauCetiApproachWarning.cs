@@ -96,8 +96,11 @@ namespace CivOne.Screens
 			lines.AddRange(new[]
 			{
 				"",
-				"OPTION B: ACCELERATE ALPHA CENTAURI COLONIZATION.",
+				"OPTION B: ALPHA CENTAURI COLONIZATION. NOT PRESENTLY POSSIBLE.",
 				"  Establish human presence beyond Earth before arrival.",
+				"  Blocker: propulsion. No drive we hold reaches Centauri in time,",
+				"  and no yard can begin a hull it cannot move.",
+				"  Council notes: whatever is approaching crossed further, faster.",
 				"  Risk: colony may be isolated. Benefit: species continuity.",
 				"",
 				"OPTION C: COORDINATE PLANETARY DEFENSE.",

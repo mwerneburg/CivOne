@@ -1947,11 +1947,20 @@ namespace CivOne
 
 					if (!salvaged && !gifted) continue;
 					fp.HasExoticFuel = true;
+					// Announces the DOOR, not the speed.
+					//
+					// This message was written when the exotic fuel was a speed limit and
+					// nothing else, so it reported a better crossing time. The fuel is now
+					// what gates construction (Player.cs:729) — before it, not one spaceship
+					// part can be laid — so the news is that Directive 7 stops being theory.
+					// Measured in game 3de868a5: the council recommended Centauri colonization
+					// in 1782 and the first part became buildable in 1990.
 					if (claimant == HumanPlayer)
 						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 							gifted ? "The Olvir have shared their drive." : "We have their drive.",
-							"Our ships can cross at a fifth",
-							"the speed of light."));
+							"Directive 7 is no longer theory:",
+							"the yards can lay a hull today.",
+							"Crossing speed: a fifth of light."));
 				}
 
 				// Olvir proximity alarm: once the visitors are on the ground and expanding,
