@@ -544,6 +544,16 @@ namespace CivOne.Screens.GamePlayPanels
 					Game.ActiveUnit.Pillage();
 					break;
 				case 'R':
+					// The Hydro Engineer builds its sea tube on 'r' — the sea's road. Orders
+					// .BuildRoad cannot serve it: Road() refuses anything that is not a
+					// Settlers and raises a "SETTLERS" error, so without this the key would
+					// advertise an order in the menu and complain when pressed.
+					//
+					// Settlers keep the direct path deliberately. Their own menu also declares
+					// 'r', but it calls Settlers.BuildRoad() where this enqueues the Orders
+					// task, and re-routing the most-used key in the game to a different
+					// implementation is not something this change needs to do.
+					if (Game.ActiveUnit is not Settlers && ActivateUnitMenuShortcut("r")) return true;
 					GameTask.Enqueue(Orders.BuildRoad(Game.ActiveUnit));
 					break;
 				case 'S':

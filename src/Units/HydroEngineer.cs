@@ -152,9 +152,13 @@ namespace CivOne.Units
 			.SetShortcut("b")
 			.OnSelect((s, a) => FoundFloatingCity());
 
+		// 'r', not 't'. The tube is the sea's road, so it takes the key a player already
+		// builds roads and rail with on land — and 't' never worked anyway: GameMap.KeyDown
+		// claims 'T' for the terrain view and returns before the active unit's menu is ever
+		// consulted, so this order was reachable by mouse alone.
 		private MenuItem<int> MenuBuildTube() => MenuItem<int>
 			.Create("Build Sea Tube")
-			.SetShortcut("t")
+			.SetShortcut("r")
 			.OnSelect((s, a) => BuildSeaTube());
 
 		private MenuItem<int> MenuBuildAquafarm() => MenuItem<int>
@@ -162,9 +166,17 @@ namespace CivOne.Units
 			.SetShortcut("a")
 			.OnSelect((s, a) => BuildSeaAquafarm());
 
+		// Moved off 'r' to make room for the tube. 'l' for Land, and it costs nothing: every
+		// letter is already spoken for at the map layer, but shortcuts only need to be unique
+		// within ONE unit's menu — GameMap forwards 'L' to whatever the active unit calls 'l',
+		// which is "Lower to Plains" on a Settlers and this on a Hydro Engineer.
+		//
+		// 'r' did not work here either. GameMap's case 'R' went straight to Orders.BuildRoad,
+		// whose Road() refuses anything that is not a Settlers and pops a "SETTLERS" error, so
+		// pressing it on a Hydro Engineer produced a complaint rather than an order.
 		private MenuItem<int> MenuReclaimLand() => MenuItem<int>
 			.Create("Reclaim Land")
-			.SetShortcut("r")
+			.SetShortcut("l")
 			.OnSelect((s, a) => ReclaimLand());
 
 		public override IEnumerable<MenuItem<int>> MenuItems
