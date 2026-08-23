@@ -257,9 +257,14 @@ namespace CivOne.Screens.Reports
 				this.DrawText($"CULTURAL ASCENDANCY {cultStreak}/{Game.CultureHoldTurns}", 0, scol,
 					GraphRight - 4, GraphTop + 4, TextAlign.Right);
 
+				// TRUNCATED, to match the legend and the curve. :F0 ROUNDS, so a player on 41.5
+				// per head read "CULTURE PER HEAD 42" beside a legend entry saying 41 — two
+				// numbers for one quantity, on the same screen, one line apart. The ranking
+				// still uses the full-precision PerHead; only the display is squared up.
+				int shown = (int)PerHead(Human);
 				string standing = !qualifies ? "TOO FEW PEOPLE TO RANK"
-					: myRank > 0 ? $"CULTURE PER HEAD {PerHead(Human):F0} - RANK {myRank}/{order.Length}"
-					           : $"CULTURE PER HEAD {PerHead(Human):F0}";
+					: myRank > 0 ? $"CULTURE PER HEAD {shown} - RANK {myRank}/{order.Length}"
+					           : $"CULTURE PER HEAD {shown}";
 				this.DrawText(standing, 0,
 					(qualifies && myRank == 1) ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);

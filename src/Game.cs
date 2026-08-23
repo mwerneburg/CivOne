@@ -72,14 +72,30 @@ namespace CivOne
 		{
 			Game g = Instance;
 			var culture = g._cultureHistory;
-			var populace = g._populaceHistory;
-			int n = Math.Min(culture.Count, populace.Count);
-			var rows = new List<int[]>(n);
-			for (int i = 0; i < n; i++)
+
+			// PAIRED BY TURN STAMP, NOT BY INDEX.
+			//
+			// Index pairing was wrong for every save written before _populaceHistory existed —
+			// which was all of them. Such a save loads with a culture series running from 4000
+			// BCE and an empty populace series that starts filling at the turn of the load, so
+			// index 0 of one sits four thousand years from index 0 of the other. Taking
+			// min(count) then drew the OLDEST culture samples against today's populations:
+			// reported from a game at 1851 AD whose culture page was labelled 3980 BCE to 3660
+			// BCE.
+			//
+			// Keyed rather than aligned from the tail: both series are appended in the same
+			// place on the same turn, so the tails do line up today — but a lookup cannot be
+			// knocked out of step by a future series that skips a turn, and this one already
+			// went wrong once by assuming the two lists move together.
+			var byTurn = new Dictionary<int, int[]>(g._populaceHistory.Count);
+			foreach (int[] q in g._populaceHistory) byTurn[q[0]] = q;
+
+			var rows = new List<int[]>(byTurn.Count);
+			foreach (int[] c in culture)
 			{
-				int[] c = culture[i], q = populace[i];
+				if (!byTurn.TryGetValue(c[0], out int[] q)) continue;   // no populace for this turn
 				var row = new int[c.Length];
-				row[0] = c[0];                                     // turn stamp
+				row[0] = c[0];                                          // turn stamp
 				for (int pi = 1; pi < c.Length && pi < q.Length; pi++)
 					row[pi] = c[pi] / Math.Max(1, q[pi]);
 				rows.Add(row);

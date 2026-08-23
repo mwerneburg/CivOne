@@ -101,6 +101,74 @@ namespace CivOne.Tests
 				$"the curve still ranks by total culture (big={bigPlot}, small={smallPlot})");
 		}
 
+		// A SAVE WRITTEN BEFORE PopulaceHistory EXISTED — which is every save on disk when
+		// this shipped, and the case the graph is actually used in.
+		//
+		// Reported from a loaded game at 1851 AD: the culture page drew only the first few
+		// turns of the game, labelled 3980 BCE to 3660 BCE, with today's numbers in them.
+		//
+		// The derivation paired culture[i] with populace[i] from the START of both lists.
+		// After a load the culture history runs from 4000 BCE and the populace history begins
+		// at the turn the save was loaded, so index 0 of one is four thousand years from
+		// index 0 of the other. Every pair was mismatched, and taking min(count) meant the
+		// graph showed the OLDEST culture samples rather than the newest.
+		//
+		// TheTwoSeriesStayInStep passed throughout: in a fresh game both lists start together
+		// and never diverge. The only way to see this is to make them diverge the way a load
+		// does.
+		[Fact]
+		public void AShortPopulaceHistoryStillPlotsTheRECENTTurns()
+		{
+			(Game g, Player _, Player __) = AWorldWhereTotalAndPerHeadDisagree();
+			uint target = g.GameTurn + 8u;
+			for (int i = 0; i < 1600 && g.GameTurn < target; i++) { Sim.ClearTasks(); g.EndTurn(); }
+			Assert.True(Game.Instance.CultureHistory.Count >= 6, "not enough history to test with");
+
+			// What loading a pre-PopulaceHistory save leaves behind: a long culture series and
+			// an empty populace one, which then starts filling from the current turn.
+			var populace = (System.Collections.Generic.List<int[]>)typeof(Game)
+				.GetField("_populaceHistory", System.Reflection.BindingFlags.NonPublic
+				                            | System.Reflection.BindingFlags.Instance)!
+				.GetValue(Game.Instance)!;
+			populace.Clear();
+
+			ushort resumed = Game.Instance.GameTurn;
+			uint target2 = Game.Instance.GameTurn + 3u;
+			for (int i = 0; i < 600 && Game.Instance.GameTurn < target2; i++)
+				{ Sim.ClearTasks(); Game.Instance.EndTurn(); }
+
+			var plotted = Game.CulturePerHeadHistory();
+			Assert.NotEmpty(plotted);
+
+			// Every sample must be from AFTER the load, not from the opening turns.
+			foreach (int[] row in plotted)
+				Assert.True(row[0] >= resumed,
+					$"the graph is plotting turn {row[0]}, from before the populace history began "
+					+ $"(resumed at {resumed}) — the two series are being paired by index");
+		}
+
+		// ...and the pairing is right, not merely late: each row divides the culture and the
+		// populace RECORDED ON THAT TURN.
+		[Fact]
+		public void EachPlottedSampleDividesTheSameTurnsFigures()
+		{
+			(Game g, Player _, Player __) = AWorldWhereTotalAndPerHeadDisagree();
+			uint target = g.GameTurn + 6u;
+			for (int i = 0; i < 1200 && g.GameTurn < target; i++) { Sim.ClearTasks(); g.EndTurn(); }
+
+			var culture  = Game.Instance.CultureHistory.ToDictionary(r => r[0]);
+			var populace = Game.Instance.PopulaceHistory.ToDictionary(r => r[0]);
+
+			foreach (int[] row in Game.CulturePerHeadHistory())
+			{
+				Assert.True(culture.ContainsKey(row[0]) && populace.ContainsKey(row[0]),
+					$"plotted a turn ({row[0]}) that is not in both source series");
+				int[] c = culture[row[0]], q = populace[row[0]];
+				for (int pi = 1; pi < row.Length; pi++)
+					Assert.Equal(c[pi] / System.Math.Max(1, q[pi]), row[pi]);
+			}
+		}
+
 		// The page must not go on calling it something else. "CULTURAL WEIGHT" over a per-head
 		// axis is the same mislabelling in a different place.
 		[Fact]
@@ -111,6 +179,22 @@ namespace CivOne.Tests
 
 			Assert.Contains("Page.Culture => \"CULTURE PER HEAD\"", src);
 			Assert.DoesNotContain("\"CULTURAL WEIGHT\"", src);
+		}
+
+		// One quantity, one number. The readout used :F0 (rounds) while the legend and the
+		// curve use an int cast (truncates), so a civ on 41.5 per head was shown as 42 beside
+		// a legend entry reading 41 — one line apart on the same screen.
+		[Fact]
+		public void TheReadoutAndTheLegendShowTheSameNumber()
+		{
+			string src = File.ReadAllText(Path.Combine(Sim.RepoRoot(),
+				"src", "Screens", "Reports", "CivilizationScore.cs"));
+			int at = src.IndexOf("string standing =");
+			Assert.True(at > 0, "the standing readout has moved");
+			string block = src.Substring(System.Math.Max(0, at - 300), 700);
+
+			Assert.DoesNotContain("PerHead(Human):F0", block);
+			Assert.Contains("(int)PerHead(Human)", block);
 		}
 
 		// Saves carry it, or a loaded game draws a flat line for everything before the load.
