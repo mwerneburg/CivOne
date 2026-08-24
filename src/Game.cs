@@ -97,7 +97,12 @@ namespace CivOne
 				var row = new int[c.Length];
 				row[0] = c[0];                                          // turn stamp
 				for (int pi = 1; pi < c.Length && pi < q.Length; pi++)
-					row[pi] = c[pi] / Math.Max(1, q[pi]);
+					// A civilization with no people has no culture per head. Max(1, 0) turned
+					// a city-less civ's ENTIRE accumulated culture into a per-head figure —
+					// Skynet, holding 726 culture and no cities, read as 726 per head and set
+					// the graph's axis to 800 while every civ actually playing sat under 65.
+					// The victory rule agrees: it requires a city with people to rank at all.
+					row[pi] = q[pi] > 0 ? c[pi] / q[pi] : 0;
 				rows.Add(row);
 			}
 			return rows;

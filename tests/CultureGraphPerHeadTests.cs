@@ -181,6 +181,70 @@ namespace CivOne.Tests
 			Assert.DoesNotContain("\"CULTURAL WEIGHT\"", src);
 		}
 
+		// Reported from a game at 1870 AD: the axis ran to 800 while every civilization on
+		// screen sat between 10 and 64, squashing all seven curves into the bottom eighth.
+		//
+		// The cause was a civ with culture and NO PEOPLE. Decoded from the save: Skynet held
+		// 726 culture and zero city population, and dividing by Math.Max(1, 0) published that
+		// 726 as a per-head figure. NiceInterval then rounded the axis up to exactly 800.
+		//
+		// Skynet was not even in the legend. It set the scale for a graph it does not appear
+		// on.
+		[Fact]
+		public void ACivilizationWithNoPeopleHasNoCulturePerHead()
+		{
+			(Game g, Player big, Player small) = AWorldWhereTotalAndPerHeadDisagree();
+			Player ghost = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0
+			                                 && p != big && p != small && p.Cities.Length == 0);
+			ghost.SetCulture(726);                 // culture, no cities — Skynet's exact shape
+
+			uint target = g.GameTurn + 2u;
+			for (int i = 0; i < 400 && g.GameTurn < target; i++) { Sim.ClearTasks(); g.EndTurn(); }
+
+			int[] row = Game.CulturePerHeadHistory()[^1];
+			int col = Game.Instance.PlayerNumber(ghost) + 1;
+
+			Assert.Equal(0, row[col]);
+		}
+
+		// ...and the effect that mattered: nothing on the plotted series exceeds what the
+		// civilizations with people actually hold, so the axis fits them.
+		[Fact]
+		public void TheSeriesNeverExceedsTheLivingCivilizations()
+		{
+			(Game g, Player big, Player small) = AWorldWhereTotalAndPerHeadDisagree();
+			Player ghost = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0
+			                                 && p != big && p != small && p.Cities.Length == 0);
+			ghost.SetCulture(100000);
+
+			uint target = g.GameTurn + 2u;
+			for (int i = 0; i < 400 && g.GameTurn < target; i++) { Sim.ClearTasks(); g.EndTurn(); }
+
+			long Pop(Player p) => System.Math.Max(1, p.Cities.Sum(c => (int)c.Size));
+			int living = (int)System.Math.Max(big.Culture / Pop(big), small.Culture / Pop(small));
+
+			foreach (int[] row in Game.CulturePerHeadHistory())
+				for (int pi = 1; pi < row.Length; pi++)
+					Assert.True(row[pi] <= living,
+						$"column {pi} plots {row[pi]}, above every civilization that has people ({living})");
+		}
+
+		// The axis must be scaled by what it draws. The scan used to walk every column ever
+		// recorded — barbarians, destroyed civs, story factions — none of which are drawn or
+		// listed.
+		[Fact]
+		public void TheAxisIsScaledOnlyByTheCivilizationsItDraws()
+		{
+			string src = File.ReadAllText(Path.Combine(Sim.RepoRoot(),
+				"src", "Screens", "Reports", "CivilizationScore.cs"));
+			int at = src.IndexOf("int maxScore = 1;");
+			Assert.True(at > 0, "the axis range calculation has moved");
+			string block = src.Substring(System.Math.Max(0, at - 400), 800);
+
+			Assert.Contains("foreach (int pi in columns)", block);
+			Assert.DoesNotContain("for (int pi = 1; pi < snap.Length; pi++)", block);
+		}
+
 		// One quantity, one number. The readout used :F0 (rounds) while the legend and the
 		// curve use an int cast (truncates), so a civ on 41.5 per head was shown as 42 beside
 		// a legend entry reading 41 — one line apart on the same screen.

@@ -120,12 +120,24 @@ namespace CivOne.Screens.Reports
 
 			// ── score range ─────────────────────────────────────────────────
 
+			// Scaled to the civilizations actually DRAWN, not to every column in the snapshot.
+			//
+			// The scan used to walk `pi = 1 .. snap.Length`, which is every player slot ever
+			// recorded — barbarians, destroyed civs, and the story factions, none of which are
+			// in `players` and none of which get a line. So the axis could be set by something
+			// that is not on the graph and is not in the legend, and the civs that ARE drawn
+			// were squashed into the bottom of it.
+			//
+			// Snapshot writes slot i to column i+1 (see Game.RecordScoreSnapshot), which is
+			// what makes the column lookup safe.
+			int[] columns = players.Select(p => Game.PlayerNumber(p) + 1).ToArray();
+
 			int maxScore = 1;
 			if (n > 0)
 			{
 				foreach (var snap in history)
-					for (int pi = 1; pi < snap.Length; pi++)
-						if (snap[pi] > maxScore) maxScore = snap[pi];
+					foreach (int pi in columns)
+						if (pi < snap.Length && snap[pi] > maxScore) maxScore = snap[pi];
 			}
 			foreach (var p in players)
 				if (LiveValue(p) > maxScore) maxScore = LiveValue(p);
