@@ -4581,7 +4581,10 @@ namespace CivOne
 			{
 				while (budget > 0 && owner.HasAdvance(req))
 				{
-					IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from);
+					// A loaded Frigate at sea is not a candidate: the Ironclad it would become
+					// has no deck for its passengers. See WouldStrandCargo.
+					IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from
+					                                       && !WouldStrandCargo(u, to));
 					if (target is null) break;
 					UpgradeUnit(target, to, 0);
 					budget--;
@@ -5625,9 +5628,29 @@ namespace CivOne
 		}
 
 
+		// A hull at sea carries its passengers in the TILE, not in the unit — "aboard" is
+		// nothing but a land unit standing on ocean with enough berths under it. So a refit
+		// that shrinks the deck drowns them without ever touching them: a Frigate carries two,
+		// an Ironclad carries none, and the free upgrade turned a loaded Frigate mid-crossing
+		// into a warship whose Settler and escort had nothing to stand on. Reported from a
+		// voyage to Australia.
+		//
+		// A city tile is solid ground for this purpose (a floating city included) — units in
+		// port are garrisoned, not carried.
+		internal static bool WouldStrandCargo(IUnit unit, UnitType targetType)
+		{
+			if (unit is null || !unit.Tile.IsOcean || unit.Tile.City is not null) return false;
+			int aboard = unit.Tile.Units.Count(u => u.Class == UnitClass.Land);
+			if (aboard == 0) return false;
+			int berths = unit.Tile.Units.Where(u => u is IBoardable && u != unit).Sum(u => ((IBoardable)u).Cargo)
+			           + ((PeekUnit(targetType) as IBoardable)?.Cargo ?? 0);
+			return aboard > berths;
+		}
+
 		public void UpgradeUnit(IUnit unit, UnitType targetType, int cost)
 		{
 			if (unit is null || !_units.Contains(unit)) return;
+			if (WouldStrandCargo(unit, targetType)) return;
 			Player player = GetPlayer(unit.Owner);
 			if (player.Gold < cost) return;
 
@@ -5697,7 +5720,10 @@ namespace CivOne
 			foreach (var (from, to, req) in chain)
 			{
 				if (!owner.HasAdvance(req)) continue;
-				IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from);
+				// Skip a loaded hull rather than spend the turn's one free upgrade on a refit
+				// UpgradeUnit will refuse — see WouldStrandCargo.
+				IUnit target = _units.FirstOrDefault(u => u.Owner == ownerNum && u.Type == from
+				                                       && !WouldStrandCargo(u, to));
 				if (target is null) continue;
 				UpgradeUnit(target, to, 0);
 				return;
