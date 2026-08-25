@@ -877,6 +877,9 @@ namespace CivOne
 		{
 			Log("Map: Calculate continent and ocean sizes");
 
+			// Tube links are keyed on continent ids, which this method is about to reassign.
+			InvalidateTubeLinks();
+
 			// BFS flood-fill: find all connected regions of same land/ocean type.
 			// The map wraps horizontally but not vertically.
 			var regions = new List<List<ITile>>();
@@ -984,6 +987,11 @@ namespace CivOne
 
 		private void NumberWaterBodies(IEnumerable<City>? cities = null)
 		{
+			// A city gained or lost on ocean is a floating city, and those are stepping stones
+			// in a tube network — see Map.ContinentsLinkedByTube. This runs on exactly those
+			// events (Game.RefreshWaterBodiesIfCoastal).
+			InvalidateTubeLinks();
+
 			// Snapshot city positions ONCE. ITile.City is Game.GetCity(x,y), a linear LINQ
 			// scan over every city in the world — and Sailable is evaluated for every tile
 			// and again for each of its eight neighbours. That made this O(map x cities x 9):

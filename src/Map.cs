@@ -404,6 +404,102 @@ namespace CivOne
 		// which is the distinction every call site needs and several used to spell by hand.
 		public static bool NamedContinent(byte id) => id != 0 && id != MiscContinent;
 
+		// ── Continents welded together by transport tube ─────────────────────
+		//
+		// The land short-circuit in Common.GotoStepInner answers "can a land unit walk from
+		// here to there" out of one byte: two different NAMED continents have no land route
+		// between them. A tube makes that byte lie. A tube tile is ocean a land unit may cross
+		// — GotoStepInner's own passable test says so, and so does a floating city — so a
+		// finished tube run welds two continents into a single land network.
+		//
+		// Reported after a tube was laid from Iberia to New Brunswick: a unit ordered across
+		// it walked as far as the city at the Iberian end and stopped, never stepping onto the
+		// tube. From the first tube tile the identical order worked all the way to Lake
+		// Superior — an ocean tile carries no named continent, so the short-circuit did not
+		// fire and the search actually ran.
+		//
+		// Rebuilt only when a tube tile flips, when the water map changes (founding or losing
+		// a floating city), or when the continents are renumbered. Answered from a 256-entry
+		// union-find in between, which is what keeps the short-circuit worth having.
+		private static bool _tubeLinksDirty = true;
+		private byte[]? _tubeLink;
+
+		internal static void InvalidateTubeLinks() => _tubeLinksDirty = true;
+
+		// Do two named continents belong to one walkable network? Only if tubes and floating
+		// cities actually join them.
+		internal bool ContinentsLinkedByTube(byte a, byte b)
+		{
+			if (a == b) return true;
+			if (_tubeLink is null || _tubeLinksDirty) RebuildTubeLinks();
+			return LinkRoot(a) == LinkRoot(b);
+		}
+
+		private byte LinkRoot(byte id)
+		{
+			byte[] link = _tubeLink!;
+			while (link[id] != id)
+			{
+				link[id] = link[link[id]];   // path halving
+				id = link[id];
+			}
+			return id;
+		}
+
+		private void RebuildTubeLinks()
+		{
+			_tubeLinksDirty = false;
+			_tubeLink ??= new byte[256];
+			for (int i = 0; i < 256; i++) _tubeLink[i] = (byte)i;
+
+			// What a land unit may stand on at sea. Keep this in step with the `passable`
+			// test in Common.GotoStepInner: an ocean tile with a tube or a city on it.
+			bool Connector(ITile t) => t is not null && t.IsOcean && (t.TransportTube || t.City is not null);
+
+			var seen = new bool[WIDTH * HEIGHT];
+			var queue = new Queue<int>();
+			for (int sy = 0; sy < HEIGHT; sy++)
+			for (int sx = 0; sx < WIDTH; sx++)
+			{
+				if (seen[sy * WIDTH + sx] || !Connector(_tiles[sx, sy])) continue;
+
+				// One connected network: flood it, and union every named continent it touches.
+				// A tube that reaches only one shore unions nothing, which is the right answer
+				// for a crossing still under construction.
+				byte first = 0;
+				seen[sy * WIDTH + sx] = true;
+				queue.Enqueue(sy * WIDTH + sx);
+				while (queue.Count > 0)
+				{
+					int pos = queue.Dequeue();
+					int cx = pos % WIDTH, cy = pos / WIDTH;
+					for (int dy = -1; dy <= 1; dy++)
+					for (int dx = -1; dx <= 1; dx++)
+					{
+						if (dx == 0 && dy == 0) continue;
+						int nx = (cx + dx + WIDTH) % WIDTH, ny = cy + dy;
+						if (ny < 0 || ny >= HEIGHT) continue;
+						ITile n = _tiles[nx, ny];
+						if (Connector(n))
+						{
+							if (seen[ny * WIDTH + nx]) continue;
+							seen[ny * WIDTH + nx] = true;
+							queue.Enqueue(ny * WIDTH + nx);
+						}
+						else if (n is not null && !n.IsOcean && NamedContinent(n.ContinentId))
+						{
+							if (first == 0) first = n.ContinentId;
+							else
+							{
+								byte ra = LinkRoot(first), rb = LinkRoot(n.ContinentId);
+								if (ra != rb) _tubeLink[rb] = ra;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// Water counterpart of MiscContinent / NamedContinent. A ship's reachability
 		// question ("can I sail there at all") is the same question a land unit answers
 		// for free from ContinentId, and answering it with A* costs a full flood of the

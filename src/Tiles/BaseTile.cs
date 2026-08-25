@@ -196,7 +196,20 @@ namespace CivOne.Tiles
 			get => _railroad && !TransportTube;
 			set => _railroad = value;
 		}
-		public virtual bool TransportTube { get; set; }
+		private bool _transportTube;
+		public virtual bool TransportTube
+		{
+			get => _transportTube;
+			// A tube is ocean a LAND unit may cross, so laying one (or pillaging it) changes
+			// which continents are reachable on foot. That question is answered from a cached
+			// union-find — see Map.ContinentsLinkedByTube — which has to be told.
+			set
+			{
+				if (_transportTube == value) return;
+				_transportTube = value;
+				Map.InvalidateTubeLinks();
+			}
+		}
 
 		// Is there a surface link here at all, of any tier?
 		//

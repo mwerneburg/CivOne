@@ -313,6 +313,15 @@ namespace CivOne
 			ITile tile = Map.Instance[nx, ny];
 			if (tile is null) return null;
 
+			// Passability, unlike cost, is not optional. A tube pillaged or sunk out from under
+			// a committed plan turns the unit's next step into open ocean, and the plan would
+			// keep handing it a move it cannot make. Mirrors `passable` in GotoStepInner,
+			// goal-tile exemption included.
+			bool passable = unit.Class == UnitClass.Land
+				? (!tile.IsOcean || tile.City is not null || tile.TransportTube)
+				: unit.Class == UnitClass.Water ? (tile.IsOcean || tile.City is not null) : true;
+			if (!passable && !(nx == gx && ny == gy)) return null;
+
 			// The one staleness that matters. Terrain the planner costed can change (a road
 			// gets built, making some other route cheaper) but that only costs optimality, and
 			// the plan expires on arrival anyway. A unit moving onto our next tile is different:
@@ -352,6 +361,11 @@ namespace CivOne
 			// them and A* would just exhaust the open set. Short-circuit to avoid an
 			// expensive futile search. ContinentId 15 ("misc") is conservatively allowed —
 			// it covers tiny islands and polar bands where the check would be unreliable.
+			//
+			// Unless a tube joins them. "Different continents" stopped meaning "no land route"
+			// the day a land unit could walk across the sea bed, and this refused to plan the
+			// crossing at all: the unit marched to the terminal city and stopped there. See
+			// Map.ContinentsLinkedByTube, which is a cached lookup, not a search.
 			if (unit.Class == UnitClass.Land)
 			{
 				ITile src = map[sx, sy];
@@ -359,7 +373,8 @@ namespace CivOne
 				if (src is not null && dst is not null
 				    && Map.NamedContinent(src.ContinentId)
 				    && Map.NamedContinent(dst.ContinentId)
-				    && src.ContinentId != dst.ContinentId)
+				    && src.ContinentId != dst.ContinentId
+				    && !map.ContinentsLinkedByTube(src.ContinentId, dst.ContinentId))
 					return null;
 			}
 			// Same oracle for ships, and it matters far more here: a land unit that cannot
