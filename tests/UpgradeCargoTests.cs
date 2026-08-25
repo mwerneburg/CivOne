@@ -5,7 +5,7 @@
 // Reported from a crossing to Australia: a Frigate carrying a Settler and its escort became
 // an Ironclad, and the two units aboard were gone. Nothing killed them on purpose — "aboard"
 // in this game is not a property of the ship, it is a land unit standing on an ocean tile
-// with enough berths under it. A Frigate carries two, an Ironclad carries none, so the free
+// with enough berths under it. A Frigate carries four, an Ironclad carries none, so the free
 // upgrade from the Nanobot Factory removed the deck and left them floating.
 //
 // UpgradeUnit now refuses a refit that would leave more land units on the tile than the new

@@ -161,9 +161,9 @@ namespace CivOne
 		}
 
 		// A route that has stopped paying is dropped — the caravan's work has been undone by
-		// distance, a dead partner, or a war. Both ends go together: RouteBonus reads the
-		// PARTNER's trade, so the same pair is worth different amounts from each side and a
-		// one-sided prune would leave a phantom the other city still counts.
+		// distance, a dead partner, or a war. Both ends go together: only one of the two
+		// cities may be walked in a given pass (a razed partner never runs its own prune), and
+		// a one-sided removal would leave a phantom the other city still counts.
 		internal void PruneWorthlessRoutes()
 		{
 			foreach (TradeRoute route in _tradeRoutes.Where(r => r.Value <= 0).ToArray())
@@ -507,7 +507,7 @@ namespace CivOne
 		// is subject to corruption like everything else a city earns: a distant metropolis
 		// under Despotism should not be handed incorruptible income.
 		//
-		// Knock-on, deliberate: RouteBonus reads a partner's BaseTrade, so trade routes to
+		// Knock-on, deliberate: RouteBonus reads both cities' BaseTrade, so trade routes to
 		// large cities are worth more. That is the same effect one step removed.
 		private int SizeTradeBonus => Size / 5;
 
@@ -519,6 +519,21 @@ namespace CivOne
 
 		private int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
 
+		// Civ 1's rule: (distance + 10) x (trade of BOTH cities) / 24, halved for a partner on
+		// the same continent and halved again for a partner of the same civilization. Both ends
+		// of a route are worth the same, because both read the same sum.
+		//
+		// This used to multiply the PARTNER's trade alone. Distance and both halvings are
+		// symmetric, so that one substitution was the whole difference between the ends of a
+		// route: each city was paid out of the other's economy. Rich-to-poor caravans became
+		// foreign aid. Measured in a 1894 AD game, on the human's 109 foreign routes: 3,073
+		// trade to the human, 5,494 to the rivals. St. Petersburg (size 18) to Belle Fourche
+		// (size 3) paid 9 one way and 171 the other, and the Lakota — whose own tiles made 259
+		// trade across 38 cities — were running an economy of 3,282 almost entirely on routes
+		// with the player who was trying to out-earn them.
+		//
+		// The two old figures summed to this one, so nobody loses income by the change: the
+		// poorer end keeps what it had and the richer end stops subsidising it.
 		private int RouteBonus(City partner)
 		{
 			if (partner.X == 255) return 0;
@@ -527,7 +542,7 @@ namespace CivOne
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
 			if (Owner == partner.Owner) multiplier *= 0.5f;
-			return (int)(multiplier * (float)(distance + 10) * partner.BaseTrade / 24);
+			return (int)(multiplier * (float)(distance + 10) * (BaseTrade + partner.BaseTrade) / 24);
 		}
 
 		private int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));

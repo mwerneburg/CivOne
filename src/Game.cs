@@ -5630,7 +5630,7 @@ namespace CivOne
 
 		// A hull at sea carries its passengers in the TILE, not in the unit — "aboard" is
 		// nothing but a land unit standing on ocean with enough berths under it. So a refit
-		// that shrinks the deck drowns them without ever touching them: a Frigate carries two,
+		// that shrinks the deck drowns them without ever touching them: a Frigate carries four,
 		// an Ironclad carries none, and the free upgrade turned a loaded Frigate mid-crossing
 		// into a warship whose Settler and escort had nothing to stand on. Reported from a
 		// voyage to Australia.
