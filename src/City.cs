@@ -166,9 +166,16 @@ namespace CivOne
 		// distance, a dead partner, or a war. Both ends go together: only one of the two
 		// cities may be walked in a given pass (a razed partner never runs its own prune), and
 		// a one-sided removal would leave a phantom the other city still counts.
+		// A wartime route is worth 0 and is NOT worthless: RouteBonus pays nothing while the
+		// two owners are fighting, so pruning on value alone would delete exactly the routes
+		// the war was supposed to merely interrupt, and peace could never restore them.
+		private bool SuspendedByWar(City partner)
+			=> partner.X != 255 && Owner != partner.Owner
+			&& Game.GetPlayer(Owner).IsAtWar(Game.GetPlayer(partner.Owner));
+
 		internal void PruneWorthlessRoutes()
 		{
-			foreach (TradeRoute route in _tradeRoutes.Where(r => r.Value <= 0).ToArray())
+			foreach (TradeRoute route in _tradeRoutes.Where(r => r.Value <= 0 && !SuspendedByWar(r.Partner)).ToArray())
 			{
 				route.Partner.RemoveTradeRoutesTo(this);
 				RemoveTradeRoutesTo(route.Partner);

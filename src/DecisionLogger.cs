@@ -83,6 +83,15 @@ using CivOne.Units;
 //   from_cult     int      accumulated culture, loser
 //   to_cult       int      accumulated culture, winner
 //
+//   --- war fields ---
+//   aggressor     string   civilization that declared, NamePlural
+//   defender      string   civilization declared upon
+//   is_human      bool     the aggressor is the human player
+//   against_human bool     the defender is the human player
+//   honouring_pact bool    true when the declaration was a defense pact being honoured —
+//                          those do NOT break the declarer's victory streaks
+//   routes_cut    int      trade routes between the two at the moment of declaration
+//
 //   --- game_outcome fields ---
 //   score         int      human player's final score
 //   victory       string   victory type label
@@ -320,6 +329,44 @@ namespace CivOne
 		// Who allied against whom, and whether the trigger was a strong neighbour or a
 		// runaway world power — the two cases are tuned separately, so the log has to
 		// tell them apart.
+		// Who drew first, and when.
+		//
+		// Wars were the one major event the log never recorded, and they are the event most
+		// likely to explain a run: both streak victories break on a war of your own making,
+		// and a declaration deletes or suspends every trade route between the two civs, which
+		// in a developed empire is most of its economy. Two runs in a row had to be
+		// reconstructed from the wreckage — a streak that broke while the share was still
+		// healthy, an 86% output collapse over five turns — with the war itself inferred from
+		// the shape of the hole rather than read.
+		//
+		// `honouring_pact` separates the aggressor from the dragged-in: only a war a civ
+		// STARTED breaks its streak (Game.RecordWarStart uses the same flag), so a log that
+		// did not distinguish them would answer the question wrongly rather than not at all.
+		internal static void LogWar(Player aggressor, Player defender, bool honouringPact)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",           "war"),
+				KV("game_id",        _gameId),
+				KV("turn",           Game.Instance?.GameTurn ?? 0),
+				KV("aggressor",      aggressor?.Civilization?.NamePlural ?? "?"),
+				KV("defender",       defender?.Civilization?.NamePlural ?? "?"),
+				KV("is_human",       aggressor is not null && aggressor.IsHuman),
+				KV("against_human",  defender is not null && defender.IsHuman),
+				KV("honouring_pact", honouringPact),
+				KV("routes_cut",     RoutesBetween(aggressor, defender)),
+			}));
+		}
+
+		private static int RoutesBetween(Player? a, Player? b)
+		{
+			Game? g = Game.Instance;
+			if (g is null || a is null || b is null) return 0;
+			byte an = g.PlayerNumber(a), bn = g.PlayerNumber(b);
+			return g.GetCities().Where(c => c.Owner == an)
+			        .Sum(c => c.TradeRoutes.Count(r => r.Partner.Owner == bn));
+		}
+
 		internal static void LogDefensePact(Player signer, Player partner, Player hegemon, bool global)
 		{
 			if (!_active) return;

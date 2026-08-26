@@ -535,11 +535,24 @@ namespace CivOne
 			if (!_honoringPacts)
 				Game.RecordWarStart(ownNumber, enemyNumber);
 
-			// Break all trade routes between the two civs
-			foreach (City city in Game.GetCities().Where(c => c.Owner == ownNumber))
-				city.RemoveTradeRoutesTo(enemy);
-			foreach (City city in Game.GetCities().Where(c => c.Owner == enemyNumber))
-				city.RemoveTradeRoutesTo(this);
+			// Logged BEFORE the routes are counted as suspended, so routes_cut records what
+			// the war actually interrupted.
+			DecisionLogger.LogWar(this, enemy, _honoringPacts);
+
+			// Trade routes between the two are SUSPENDED, not destroyed. City.RouteBonus
+			// already pays nothing while the owners are at war, so suspension needs no code
+			// of its own — what it needed was for this to stop deleting them, and for the
+			// pruner to stop mistaking a wartime zero for a worthless route
+			// (City.PruneWorthlessRoutes).
+			//
+			// They used to be deleted outright, and peace did not bring them back: every
+			// route had to be re-established by a fresh caravan. That was a fair price when a
+			// route was worth a few trade. Under Civ 1's formula it is not — measured on a
+			// developed Frankish empire, route income was 11,305 of 13,491 total trade, 84% of
+			// the economy — so one declaration was a permanent amputation rather than a cost
+			// of war, and the AI will make it on your behalf on autopilot. Observed: a war
+			// around turn 473 took world output from 53,324 to 17,260 in five turns and it
+			// never recovered.
 
 			// Notify the human player
 			if (this == Human)
