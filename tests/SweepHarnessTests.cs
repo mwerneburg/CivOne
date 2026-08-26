@@ -31,7 +31,7 @@ namespace CivOne.Tests
 			Sim.NewGame(width: 40, height: 30, competition: 3);
 			Assert.False(Sim.GameDecided(), "a game that just started is not over");
 
-			DecisionLogger.EndGame(0, "Test", humanWon: false, turns: 1);
+			DecisionLogger.EndGame(0, "Test", humanWon: false, turns: 1, null);
 
 			Assert.True(Sim.GameDecided(), "the run did not notice the game ending");
 		}

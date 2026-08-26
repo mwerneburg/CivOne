@@ -1091,7 +1091,9 @@ namespace CivOne
 			if (!Game.GetCities().Any(x => this == x.Owner) && !Game.Instance.GetUnits().Any(x => this == x.Owner))
 			{
 				if (IsHuman)
-					DecisionLogger.EndGame(Score, "Destroyed", humanWon: false, turns: Game.Instance.GameTurn);
+					// No winner to name: the last human city and unit are simply gone, and the
+					// conqueror is not knowable here — several civs may have taken a share.
+					DecisionLogger.EndGame(Score, "Destroyed", humanWon: false, turns: Game.Instance.GameTurn, null);
 				GameTask.Enqueue(Turn.GameOver(this));
 			}
 

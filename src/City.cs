@@ -114,6 +114,7 @@ namespace CivOne
 		private int?          _cachedCorruption;
 		private int?          _cachedBaseTrade;
 		private int?          _cachedTradeRouteBonus;
+		private int?          _cachedScoringRouteBonus;
 		private int?          _cachedTradeTotal;
 		private short?        _cachedTradeTaxes;
 		private short?        _cachedTradeLuxuries;
@@ -131,6 +132,7 @@ namespace CivOne
 			_cachedCorruption     = null;
 			_cachedBaseTrade      = null;
 			_cachedTradeRouteBonus = null;
+			_cachedScoringRouteBonus = null;
 			_cachedTradeTotal     = null;
 			_cachedTradeTaxes     = null;
 			_cachedTradeLuxuries  = null;
@@ -549,6 +551,37 @@ namespace CivOne
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
 
+		// ── Money and points are different questions ─────────────────────────
+		//
+		// Every route above still PAYS: TradeTotal is the gold, luxuries and science the city
+		// actually collects, and nothing here touches it. What follows is only what counts
+		// toward Pax Mercatoria and the Economic Output graph.
+		//
+		// Two rules, both aimed at the same hole. Routes are unbounded and worth more the more
+		// of them you have, so the economic victory was a counting exercise: found cities, wire
+		// every pair together, and a civ of n cities can lay n(n-1) routes and score off its own
+		// internal traffic. That is not commerce. A civilization already knows where its own
+		// cities are and what they make; the caravan exists to reach somebody who does NOT.
+		//
+		//   1. Only EXTERNAL routes score. Internal ones still pay in full.
+		//   2. Only the best ScoringRoutes of them score, per city.
+		//
+		// The cap is a partial reinstatement of Civ 1's three-per-city, kept for the reason the
+		// original had it and not for the reason it was removed: the old cap made an arriving
+		// foreign caravan silently EVICT a route you had built, and routes are still uncapped
+		// so nothing gets evicted. It is the scoreboard that is capped, not the trade.
+		internal const int ScoringRoutes = 5;
+
+		private int ScoringRouteBonus => (int)(_cachedScoringRouteBonus ??= _tradeRoutes
+			.Where(r => r.Partner.Owner != Owner)
+			.Select(r => RouteBonus(r.Partner))
+			.OrderByDescending(v => v)
+			.Take(ScoringRoutes)
+			.Sum());
+
+		// The trade a city is JUDGED on. See ScoringRouteBonus for why it is not TradeTotal.
+		internal int ScoringTrade => BaseTrade + ScoringRouteBonus;
+
 		// What this city's economy is actually WORTH, as opposed to how much trade its tiles
 		// generate: the commerce chain applied to the whole of its trade.
 		//
@@ -565,7 +598,10 @@ namespace CivOne
 		{
 			get
 			{
-				int output = TradeTotal;
+				// ScoringTrade, not TradeTotal: internal routes and everything past the
+				// best ScoringRoutes external ones pay the city but do not score. See
+				// ScoringRouteBonus.
+				int output = ScoringTrade;
 				if (HasBuilding<MarketPlace>()) output += output / 2;
 				if (HasBuilding<Bank>()) output += output / 2;
 

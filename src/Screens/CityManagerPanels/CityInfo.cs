@@ -68,7 +68,13 @@ namespace CivOne.Screens.CityManagerPanels
 				int ly = 18;
 				output.DrawText($"Food:    {_city.FoodIncome:+#;-#;0}", 0, 15, 4, ly); ly += fh + 1;
 				output.DrawText($"Shields: {_city.ShieldIncome:+#;-#;0}", 0, 15, 4, ly); ly += fh + 1;
-				output.DrawText($"Trade:   {_city.TradeTotal}", 0, 15, 4, ly); ly += fh + 1;
+				// "Output", not "Trade", and the two are no longer the same number: this is
+				// EconomicOutput — what the city is worth on the Economic Output graph and to
+				// Pax Mercatoria — with the commerce buildings counted and the routes that do
+				// not score left out (City.ScoringRouteBonus). The trade arrows the city
+				// actually collects are the Lux/Tax/Sci line below.
+				output.DrawText($"Output:  {_city.EconomicOutput}", 0, 15, 4, ly); ly += fh + 1;
+				output.DrawText($"Culture: {_city.CultureRate:+#;-#;0}", 0, 15, 4, ly); ly += fh + 1;
 				output.DrawText($"Lux/Tax/Sci: {_city.TradeLuxuries}/{_city.TradeTaxes}/{_city.TradeScience}", 0, 9, 4, ly);
 				return output;
 			}

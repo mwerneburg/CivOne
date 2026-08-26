@@ -274,7 +274,7 @@ namespace CivOne
 		// is told what happened, the outcome is logged as a loss, and the game is over.
 		private void RivalVictory(Player winner, string victory, string headline, string l1, string l2)
 		{
-			DecisionLogger.EndGame(HumanPlayer.Score, victory, humanWon: false, turns: _gameTurn);
+			DecisionLogger.EndGame(HumanPlayer.Score, victory, humanWon: false, turns: _gameTurn, winner);
 			GameTask.Enqueue(Message.Newspaper(null!, headline, l1, l2));
 			GameTask.Enqueue(Turn.GameOver(HumanPlayer));
 		}
@@ -1192,7 +1192,7 @@ namespace CivOne
 			if (destroyed is Civilizations.TheOthers && !pseudoPlayer)
 			{
 				HumanPlayer.AwardMilestone(200);
-				DecisionLogger.EndGame(HumanPlayer.Score, "Repossession", humanWon: true, turns: _gameTurn);
+				DecisionLogger.EndGame(HumanPlayer.Score, "Repossession", humanWon: true, turns: _gameTurn, HumanPlayer);
 				int repoFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Repossession");
 				string? repoArt = Screens.EventArtScreen.FindPath("Repossession");
 				if (repoArt is not null)
@@ -2045,7 +2045,7 @@ namespace CivOne
 					if (!SETISignalReceived)
 					{
 						// Classic game (no alien arc): the Dome is the end.
-						DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn);
+						DecisionLogger.EndGame(HumanPlayer.Score, "Dome", humanWon: true, turns: _gameTurn, HumanPlayer);
 						int domeFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Dome Victory");
 						GameTask domeFt;
 						GameTask.Enqueue(domeFt = Show.Screen(new Screens.Reports.FinalScore("Dome Victory")));
@@ -2156,7 +2156,7 @@ namespace CivOne
 								return;
 							}
 							HumanPlayer.AwardMilestone(150);
-							DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn, HumanPlayer);
 							int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
 							string? econArt = Screens.EventArtScreen.FindPath("PaxMercatoria");
 							if (econArt is not null)
@@ -2331,7 +2331,7 @@ namespace CivOne
 								return;
 							}
 							HumanPlayer.AwardMilestone(150);
-							DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn, HumanPlayer);
 							int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
 							string? cultArt = Screens.EventArtScreen.FindPath("CulturalAscendancy");
 							if (cultArt is not null)
@@ -2561,7 +2561,7 @@ namespace CivOne
 							// The first crossing is the achievement; a later one is a repeat of
 							// somebody else's. ColonyOrder is the arrival rank.
 							HumanPlayer.AwardMilestone(DiasporaAward(Progress(dnum).ColonyOrder));
-							DecisionLogger.EndGame(HumanPlayer.Score, "Diaspora", humanWon: true, turns: _gameTurn);
+							DecisionLogger.EndGame(HumanPlayer.Score, "Diaspora", humanWon: true, turns: _gameTurn, HumanPlayer);
 							int diasFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Diaspora");
 							GameTask.Enqueue(Show.EventArt("spaceshiparrived",
 								"DIASPORA — HUMANITY IS NO LONGER A SINGLE TARGET"));
@@ -2597,7 +2597,7 @@ namespace CivOne
 
 					if (winner == HumanPlayer)
 					{
-						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: true, turns: _gameTurn);
+						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: true, turns: _gameTurn, HumanPlayer);
 						int scoreFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Score Victory");
 						GameTask.Enqueue(Message.Newspaper(null!, "The year is 2100!", $"Your score: {HumanPlayer.Score}", "You lead the world!"));
 						GameTask scoreFt;
@@ -2606,7 +2606,7 @@ namespace CivOne
 					}
 					else
 					{
-						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: false, turns: _gameTurn);
+						DecisionLogger.EndGame(HumanPlayer.Score, "Score", humanWon: false, turns: _gameTurn, winner);
 						GameTask.Enqueue(Turn.GameOver(HumanPlayer));
 					}
 					return;
@@ -2655,7 +2655,7 @@ namespace CivOne
 					Log($"{ending}: {sharedCities}/{olvir?.Cities.Length ?? 0} Olvir cities and "
 					  + $"{sharedWorks}/{OlvirImprovements.Count} improvements within {ShareRadius} tiles — award {coexistence}");
 
-					DecisionLogger.EndGame(HumanPlayer.Score, ending, humanWon: true, turns: _gameTurn);
+					DecisionLogger.EndGame(HumanPlayer.Score, ending, humanWon: true, turns: _gameTurn, HumanPlayer);
 					int coexFame = EndSequence.SaveAndGetIndex(HumanPlayer, ending);
 					GameTask.Enqueue(Message.Newspaper(null!, "The year is 2200.",
 						(olvir?.Cities.Length ?? 0) > 0 ? "Two species share one Earth." : "Earth endures, alone.",
@@ -2850,7 +2850,7 @@ namespace CivOne
 			if (!_conquestVictoryFired && !_players.Any(x => Game.PlayerNumber(x) != 0 && x != Human && !x.IsDestroyed()))
 			{
 				_conquestVictoryFired = true;
-				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn);
+				DecisionLogger.EndGame(HumanPlayer.Score, "Conquest", humanWon: true, turns: _gameTurn, HumanPlayer);
 				int conquestFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Conquest Victory");
 				GameTask conquest;
 				GameTask.Enqueue(Message.Newspaper(null!, "Your civilization", "has conquered", "the entire planet!"));
@@ -3705,7 +3705,7 @@ namespace CivOne
 
 				// The dome held: humanity survives as a negotiating peer, not recovered cargo.
 				HumanPlayer.AwardMilestone(150);
-				DecisionLogger.EndGame(HumanPlayer.Score, "Disputed Claim", humanWon: true, turns: _gameTurn);
+				DecisionLogger.EndGame(HumanPlayer.Score, "Disputed Claim", humanWon: true, turns: _gameTurn, HumanPlayer);
 				int fame = EndSequence.SaveAndGetIndex(HumanPlayer, "Disputed Claim");
 				GameTask ft;
 				GameTask.Enqueue(ft = Show.Screen(new FinalScore("Disputed Claim")));

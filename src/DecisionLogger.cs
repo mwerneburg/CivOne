@@ -88,6 +88,9 @@ using CivOne.Units;
 //   victory       string   victory type label
 //   human_won     bool
 //   turns         int      total turns played
+//   winner        string   civilization that ended the game, NamePlural — joins to the
+//                          `civ` of victory_standings. "?" only if it could not be named
+//   winner_leader string   that civilization's leader at the end
 //
 // Future outcome annotations will use:
 //   type="outcome", ref=<decision_id>, turn, metric_name, metric_value
@@ -150,7 +153,12 @@ namespace CivOne
 			}
 		}
 
-		internal static void EndGame(int score, string victory, bool humanWon, int turns)
+		// `winner` is the civilization that ended the game, in the same NamePlural spelling the
+		// victory_standings rows use, so the two join. Without it a loss recorded only the
+		// victory TYPE, and reading a finished game meant inferring the winner from whichever
+		// civ's streak was longest in the last standings row and then confirming it in the
+		// save — which is how a 1987 AD Cultural Ascendancy was traced back to Tokugawa.
+		internal static void EndGame(int score, string victory, bool humanWon, int turns, Player? winner)
 		{
 			if (!_active) return;
 			Enqueue(Fmt(new[] {
@@ -160,6 +168,8 @@ namespace CivOne
 				KV("victory",   victory),
 				KV("human_won", humanWon),
 				KV("turns",     turns),
+				KV("winner",    winner?.Civilization?.NamePlural ?? "?"),
+				KV("winner_leader", winner?.LeaderName ?? "?"),
 			}));
 			_active = false;
 			_signal.Release();
