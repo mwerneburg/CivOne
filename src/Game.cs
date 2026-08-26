@@ -239,8 +239,12 @@ namespace CivOne
 		// The arrays are the whole of the symmetry fix; the checks that walk them follow.
 
 
-		// Twenty, matching Pax Mercatoria and Cultural Ascendancy. Long enough that an
-		// enemy who wants to stop you has time to march on one known city.
+		// Twenty. This used to say "matching Pax Mercatoria and Cultural Ascendancy" and both
+		// halves went stale: culture went to 75 on measurement, Pax Mercatoria followed it by
+		// argument, and this one stayed. It is deliberately the odd one out — the others are
+		// endurance tests of a standing you must not lose, while a colony ship's twenty turns
+		// are a grace period, long enough that an enemy who wants to stop you has time to
+		// march on one known city. See CultureHoldTurns and EconomicHoldTurns.
 		internal const uint DiasporaStreakTarget = 20;
 
 		// The first-mover premium. Being first to another star is the achievement; the fifth
@@ -2141,12 +2145,12 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our merchants dominate",
 								"world trade. Hold the markets",
-								"for 20 years."));
-						else if (isHuman && Progress(cnum).EconStreak == 10)
+								$"for {EconomicHoldTurns} years."));
+						else if (isHuman && Progress(cnum).EconStreak == EconomicHoldTurns / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
 								"The world's markets", "answer to us."));
 
-						if (Progress(cnum).EconStreak >= 20 && !_econVictoryFired)
+						if (Progress(cnum).EconStreak >= EconomicHoldTurns && !_econVictoryFired)
 						{
 							_econVictoryFired = true;
 							if (!isHuman)
@@ -4040,6 +4044,23 @@ namespace CivOne
 		// of those six streaks died to a rival genuinely overtaking on the measure, which is
 		// the contest working as designed.
 		internal const uint CultureHoldTurns = 75;
+
+		// Pax Mercatoria's hold, matched to Cultural Ascendancy's after a 20-turn win came in
+		// at 1914 AD from a save resumed at 1895 — the condition was already met when the game
+		// loaded, so the run tested the counter rather than the contest.
+		//
+		// The two paths are not the same test, which is the argument for the long hold rather
+		// than against it. Culture per head is a RANK: every turn is a fresh chance to be
+		// pipped by a rival, so 75 turns is 75 contests. Half the world's output is an
+		// ABSOLUTE bar, and the thing that takes it away is not being overtaken but the world
+		// growing around you. Measured on the losing run from that same save: 55.3% at 1895,
+		// below the bar by 1910, 44.3% by 1940, while Frankish output itself nearly tripled.
+		// Twenty turns could not see that; seventy-five asks whether a hegemony is durable or
+		// merely momentary, which is the question the victory is named for.
+		//
+		// UNMEASURED. CultureHoldTurns earned its 75 across a six-game batch; this one is
+		// matched to it by argument, and the batch that would justify it has not been run.
+		internal const uint EconomicHoldTurns = 75;
 
 		private int GrossOutput(Player p)
 		{

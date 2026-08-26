@@ -1,6 +1,7 @@
 // CivOne tests
 //
-// Pax Mercatoria: hold more than half the world's gross output for 20 consecutive turns.
+// Pax Mercatoria: hold more than half the world's gross output for Game.EconomicHoldTurns
+// consecutive turns — 75, matched to Cultural Ascendancy.
 //
 // Game.cs:1091 excludes the story factions from econRivals — they are not nations you can
 // bind by tribute or trade. The world-output denominator below it does NOT exclude them,

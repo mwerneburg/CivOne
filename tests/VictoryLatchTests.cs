@@ -90,7 +90,7 @@ namespace CivOne.Tests
 		// score to watch. Both are pinned at the source instead, the same way
 		// EconomicHegemonyTests pins the exclusions it cannot cheaply stage.
 		[Theory]
-		[InlineData("Progress(cnum).EconStreak >= 20", "_econVictoryFired")]
+		[InlineData("Progress(cnum).EconStreak >= EconomicHoldTurns", "_econVictoryFired")]
 		[InlineData("Progress(cnum).CultureStreak >= CultureHoldTurns", "_cultVictoryFired")]
 		[InlineData("Common.TurnToYear(_gameTurn) >= 2100", "_scoreVictoryFired")]
 		public void EveryStandingConditionEndingIsLatched(string condition, string latch)
