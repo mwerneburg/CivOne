@@ -153,10 +153,25 @@ namespace CivOne
 		internal uint VisitorsArrivedTurn;
 
 		// How long after landfall the Olvir share their drive with civilizations that have
-		// not made war on them. Set so the peaceful route lands in the same window as the
-		// salvage one (a wreck plus twenty turns), rather than making pacifism strictly
-		// slower than violence — the two should be alternatives, not a ranking.
-		internal const int OlvirFuelGiftTurns = 50;
+		// not made war on them. Deliberately BaseUnit.ReverseEngineerTurns, so the peaceful
+		// route and the salvage one take the same twenty years and neither is strictly better
+		// — alternatives, not a ranking. (Salvage is still the later of the two in practice:
+		// its clock starts when you beat a visitor craft, which cannot happen before landfall
+		// and usually happens well after.)
+		//
+		// This was 50, which claimed the same intent and did not deliver it: thirty turns of
+		// pure delay on the only fuel route a peaceful game has. The cost was measured, not
+		// guessed. In game 3de868a5 the Olvir made landfall on turn 470 and has_fuel went
+		// true on turn 520 for three civilizations — and both economic victories taken in
+		// that world ended on turns 464 and 519. The science path's first buildable part
+		// arrived one turn after the game was already over, and no civ in any run laid a
+		// single structural. It was not losing the race; it was not in it.
+		//
+		// Twenty puts the fuel around 1940 in that world instead of 1970, which is before the
+		// endgame rather than after it. A hull is 34-58 parts at 8/16/32 shields, and parts
+		// are city buildings that build in PARALLEL, so an industrial civ lays one in a
+		// handful of turns and then flies 22-44. That fits. UNMEASURED against a full run.
+		internal const int OlvirFuelGiftTurns = Units.BaseUnit.ReverseEngineerTurns;
 
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;

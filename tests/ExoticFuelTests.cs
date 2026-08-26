@@ -164,6 +164,31 @@ namespace CivOne.Tests
 			Assert.True(Game.OlvirFuelGiftTurns > 0);
 		}
 
+		// The two fuel routes take the same time. The gift was 50 turns against the salvage
+		// clock's 20 while its own comment claimed they landed in the same window — thirty
+		// turns of pure delay on the ONLY route a peaceful game has, which is how the science
+		// path came to be unreachable rather than merely slow.
+		//
+		// Measured in game 3de868a5: landfall turn 470, has_fuel true on turn 520, and the
+		// two economic victories in that same world ended on turns 464 and 519. The first
+		// buildable spaceship part arrived one turn after the game was over.
+		[Fact]
+		public void TheGiftAndTheSalvageTakeTheSameTime()
+		{
+			Assert.Equal(CivOne.Units.BaseUnit.ReverseEngineerTurns, Game.OlvirFuelGiftTurns);
+		}
+
+		// ...and the peaceful route is not made SLOWER than the violent one, which is the
+		// specific asymmetry that was there before. Stated as an inequality rather than an
+		// equality so the two can be retuned apart later without this becoming a duplicate of
+		// the test above — what must not come back is pacifism costing more.
+		[Fact]
+		public void PeaceIsNeverTheSlowerRoad()
+		{
+			Assert.True(Game.OlvirFuelGiftTurns <= CivOne.Units.BaseUnit.ReverseEngineerTurns,
+				"the Olvir gift is slower than beating a wreck out of them");
+		}
+
 		// A civ that made war on the refugees is not given their drive.
 		[Fact]
 		public void TheGiftIsWithheldFromAnyoneWhoMadeWarOnThem()
