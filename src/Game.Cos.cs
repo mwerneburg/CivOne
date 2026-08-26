@@ -298,6 +298,7 @@ namespace CivOne
 					SETISignalTurn          = SETISignalTurn,
 					SETISignalReceived      = SETISignalReceived,
 					VisitorsArrived         = VisitorsArrived,
+					VisitorsArrivedTurn     = VisitorsArrivedTurn,
 					VisitorArchetype        = (int)VisitorType,
 					TauCetiEscalationTurn   = TauCetiEscalationTurn,
 					ProbeDispatched         = ProbeDispatched,
@@ -588,6 +589,18 @@ namespace CivOne
 			SETISignalTurn        = g.SETISignalTurn;
 			SETISignalReceived    = g.SETISignalReceived;
 			VisitorsArrived       = g.VisitorsArrived;
+			// The turn the visitors landed was set in memory and never written to the save,
+			// so every reload zeroed it — and the Olvir's gift of the exotic fuel is gated on
+			// `VisitorsArrivedTurn > 0`. Any game saved and reloaded between landfall and
+			// landfall + OlvirFuelGiftTurns lost the gift permanently, which is the whole of
+			// the science path's opening in a Refugees game. It only ever worked because both
+			// halves usually happen inside one session.
+			//
+			// An absent value in an older save means the landing is in the PAST, not that it
+			// never happened — VisitorsArrived is the record of that. 1 rather than 0: far
+			// enough back that the wait is already served, so the gift resumes on the next
+			// turn instead of being owed forever.
+			VisitorsArrivedTurn   = g.VisitorsArrivedTurn ?? (g.VisitorsArrived ? 1u : 0u);
 			VisitorType           = (VisitorArchetype)g.VisitorArchetype;
 			TauCetiEscalationTurn = g.TauCetiEscalationTurn;
 			ProbeDispatched         = g.ProbeDispatched;

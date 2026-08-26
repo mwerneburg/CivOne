@@ -57,6 +57,9 @@ namespace CivOne.Persistence
 		public uint SETISignalTurn { get; set; }
 		public bool SETISignalReceived { get; set; }
 		public bool VisitorsArrived { get; set; }
+		// Nullable: absent in saves written before this was persisted at all. See
+		// Game.Cos LoadCos for what an absent value has to mean.
+		public uint? VisitorsArrivedTurn { get; set; }
 		public int VisitorArchetype { get; set; }
 		public uint TauCetiEscalationTurn { get; set; }
 		public bool ProbeDispatched { get; set; }
