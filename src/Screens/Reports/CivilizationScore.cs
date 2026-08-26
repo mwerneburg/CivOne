@@ -213,11 +213,16 @@ namespace CivOne.Screens.Reports
 				return (lead, best2);
 			}
 
-			void DrawRivalStreak((Player? rival, uint streak) r, int y)
+			// `target` because this is drawn on BOTH pages and the two victories no longer
+			// hold for the same number of turns. It read "/20" on either, so a rival 70 turns
+			// into a 75-turn Cultural Ascendancy was reported as 70/20 — a fright, and a lie
+			// in both directions at once. The alert colour is likewise a proportion now, not a
+			// literal 15.
+			void DrawRivalStreak((Player? rival, uint streak) r, int y, uint target)
 			{
 				if (r.rival is null || r.streak == 0) return;
-				this.DrawText($"{r.rival.TribeNamePlural.ToUpper()} {r.streak}/20", 0,
-					r.streak >= 15 ? CassetteTheme.ALERT : CassetteTheme.PHOS,
+				this.DrawText($"{r.rival.TribeNamePlural.ToUpper()} {r.streak}/{target}", 0,
+					r.streak * 4 >= target * 3 ? CassetteTheme.ALERT : CassetteTheme.PHOS,
 					GraphRight - 4, y, TextAlign.Right);
 			}
 
@@ -285,7 +290,7 @@ namespace CivOne.Screens.Reports
 					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
 					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
-					GraphTop + 4 + 3 * (fh + 1));
+					GraphTop + 4 + 3 * (fh + 1), Game.CultureHoldTurns);
 			}
 
 			// ── Pax Mercatoria threshold ─────────────────────────────────────
@@ -450,19 +455,21 @@ namespace CivOne.Screens.Reports
 
 			// ── Pax Mercatoria streak ────────────────────────────────────────
 
-			// The number the player actually wants: how many consecutive turns of the twenty
-			// are banked. Nothing else in the game reports it.
+			// The number the player actually wants: how many consecutive turns of the hold are
+			// banked. Nothing else in the game reports it. Read from Game.EconomicHoldTurns —
+			// this said "/20" through a run that needed 75, so a winning streak displayed as
+			// 75/20 on the turn it won.
 			if (_page == Page.Output)
 			{
 				uint econStreak = Game.Progress(Game.PlayerNumber(Human)).EconStreak;
-				string streak = $"PAX MERCATORIA STREAK {econStreak}/20";
+				string streak = $"PAX MERCATORIA STREAK {econStreak}/{Game.EconomicHoldTurns}";
 				byte col = econStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
 				int halfNow = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf) / 2;
 				this.DrawText($"- - -  HALF OF WORLD OUTPUT ({halfNow})", 0, CassetteTheme.ALERT,
 					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).EconStreak),
-					GraphTop + 4 + 2 * (fh + 1));
+					GraphTop + 4 + 2 * (fh + 1), Game.EconomicHoldTurns);
 			}
 
 			// ── scroll hint ──────────────────────────────────────────────────

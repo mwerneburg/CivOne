@@ -61,6 +61,26 @@ namespace CivOne.Tests
 			Assert.DoesNotContain("for 20 years", block);
 		}
 
+		// The readout has to agree with the rule. It said "/20" through a run that needed 75,
+		// so a winning streak was displayed as 75/20 on the turn it won — reported from a
+		// screenshot. Pinned at the source: the report needs a live screen to render.
+		[Fact]
+		public void TheStreakReadoutsReadTheirTargetsFromTheRules()
+		{
+			string src = File.ReadAllText(Path.Combine(Sim.RepoRoot(),
+				"src", "Screens", "Reports", "CivilizationScore.cs"));
+
+			Assert.Contains("{econStreak}/{Game.EconomicHoldTurns}", src);
+			Assert.Contains("{cultStreak}/{Game.CultureHoldTurns}", src);
+
+			// The rival readout is drawn on BOTH pages from one helper, so it must be told
+			// which target applies rather than assuming one of them.
+			Assert.Contains("{r.streak}/{target}", src);
+			// The interpolation form specifically — the two comments above these lines quote
+			// the old "/20" on purpose, and a bare substring check trips over them.
+			Assert.DoesNotContain("}/20\"", src);
+		}
+
 		// Halfway must be reachable and must not be the finish line — a constant small enough
 		// for integer division to collapse the two would make the newspaper fire on the winning
 		// turn.
