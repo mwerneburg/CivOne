@@ -47,7 +47,7 @@ namespace CivOne
 		private readonly Dictionary<byte, int> _tributeFrom = new();
 
 		private short _anarchy = 0;
-		private short _gold;
+		private int _gold;
 		// Map zoom level, basis points (1000 = 100%, default). Persisted in COS save
 		// so reloading a save returns the player to their chosen zoom. Clamping to the
 		// preset range happens in MapZoomSettings.NormalizeBasisPoints — read it
@@ -311,7 +311,28 @@ namespace CivOne
 		private int ColonyCredits =>
 			_civilization is Civilizations.Olvir ? Cities.Length * PointsPerColony : 0;
 
-		public short Gold
+		// The treasury ceiling. Civ 1's, and the save has always stored gold as an int, so
+		// this is a game rule rather than a storage limit.
+		internal const int GoldCap = 30000;
+
+		// int, not short. It was a short, and `Gold += x` compiles to `Gold = (short)(Gold + x)`
+		// — the sum is computed in int and then TRUNCATED before the setter ever sees it. Any
+		// credit that took the total past short.MaxValue wrapped negative, and the `value < 0`
+		// floor below turned that wrap into a total loss: the whole treasury, silently, to
+		// zero.
+		//
+		// Reported from a game at 1896 AD sitting on 0 gold with a hundred and thirty cities.
+		// A caravan arrived, announced "Revenue: 10000", and the player was not credited.
+		// They were credited: 25,000 + 10,000 = 35,000, truncated to -30,536, floored to
+		// nought. Measured directly — 30000 + 2767 clamps correctly and 30000 + 2768 zeroes
+		// the treasury — and it is not a rare corner. A large empire adds each city's taxes
+		// one at a time (City.cs), so the running total crosses the ceiling most turns, and
+		// the treasury is wiped the moment it does. That is why the empire had no money at
+		// all rather than merely less than it earned.
+		//
+		// The save format already stored an int (CosData.Gold), so nothing here changes what
+		// is written; the field was the only thing that was ever narrow.
+		public int Gold
 		{
 			get
 			{
@@ -324,8 +345,8 @@ namespace CivOne
 					//TODO: Implement sold improvements task
 					value = 0;
 				}
-				if (value > 30000)
-					value = 30000;
+				if (value > GoldCap)
+					value = GoldCap;
 				_gold = value;
 			}
 		}
@@ -1062,7 +1083,7 @@ namespace CivOne
 			if (recipients.Length == 0)
 			{
 				int newGold = Gold + BondPool;
-				Gold = (short)Math.Min(short.MaxValue, newGold);
+				Gold = newGold;   // the setter clamps at GoldCap
 			}
 			else
 			{
@@ -1153,8 +1174,8 @@ namespace CivOne
 					DissolveTribute(protector);
 					continue;
 				}
-				_gold     -= (short)annualGold;
-				protector._gold = (short)Math.Min(short.MaxValue, protector._gold + annualGold);
+				_gold     -= annualGold;
+				protector._gold = Math.Min(GoldCap, protector._gold + annualGold);
 				// Renew the peace lock so the protector stays barred from declaring war.
 				SetPeaceTreaty(protector, 100);
 				protector.SetPeaceTreaty(this, 100);

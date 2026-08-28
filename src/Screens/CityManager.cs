@@ -613,7 +613,7 @@ namespace CivOne.Screens
 		private bool OpenBuy()
 		{
 			string name   = (_city.CurrentProduction as ICivilopedia)?.Name ?? "???";
-			short gold    = Game.CurrentPlayer.Gold;
+			int gold      = Game.CurrentPlayer.Gold;
 			short price   = _city.BuyPrice;
 			if (price <= 0)
 				return true; // already complete, or will finish next turn unaided — nothing to buy

@@ -80,7 +80,7 @@ namespace CivOne.Screens.Dialogs
 
 		private readonly string _line1, _line2, _line3;
 
-		public ConfirmBuy(string name, short price, short treasury) : base(MouseCursor.Pointer)
+		public ConfirmBuy(string name, short price, int treasury) : base(MouseCursor.Pointer)
 		{
 			_line1 = "Cost to complete";
 			_line2 = $"{name}: ${price}";

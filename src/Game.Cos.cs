@@ -449,7 +449,7 @@ namespace CivOne
 
 				var player = (_players[i] = new Player(civ, pd.LeaderName, pd.CitizenName, pd.CivilizationName));
 				player.Destroyed += PlayerDestroyed;
-				player.Gold         = (short)pd.Gold;
+				player.Gold         = pd.Gold;
 				player.Science      = (short)pd.Science;
 				player.TaxesRate    = pd.TaxRate;
 				player.LuxuriesRate = 10 - pd.ScienceRate - pd.TaxRate;

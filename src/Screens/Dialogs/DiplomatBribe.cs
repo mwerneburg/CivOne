@@ -54,7 +54,7 @@ namespace CivOne.Screens.Dialogs
 			return ((unitToBribe.Player.Gold + 750) / (distance + 2)) * unitToBribe.Price;
 		}
 
-		private static bool CanBribe(BaseUnitLand unitToBribe, short gold)
+		private static bool CanBribe(BaseUnitLand unitToBribe, int gold)
 		{
 			return gold >= BribeCost(unitToBribe);
 		}
@@ -82,7 +82,7 @@ namespace CivOne.Screens.Dialogs
 			}
 		}
 
-		private static int DialogHeight(BaseUnitLand unitToBribe, short gold)
+		private static int DialogHeight(BaseUnitLand unitToBribe, int gold)
 		{
 			int choices = 0;
 

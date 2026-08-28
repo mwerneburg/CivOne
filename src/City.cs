@@ -1235,7 +1235,7 @@ namespace CivOne
 			// opened by tasks inserted during another player's turn processing.
 			if (Player.Gold < buyPrice) return false;
 
-			Player.Gold -= (short)buyPrice;
+			Player.Gold -= buyPrice;
 			Shields = ProductionCost(CurrentProduction);
 			return true;
 		}
@@ -2063,7 +2063,7 @@ namespace CivOne
 
  			Food += inDisorder ? 0 : foodIncome;
 			if (!inDisorder && foodIncome > 0 && HasBuilding<SurplusDepot>())
-				Player.Gold += (short)(foodIncome / 2);
+				Player.Gold += foodIncome / 2;
 
 			if (Food < 0)
 			{
@@ -2737,7 +2737,7 @@ namespace CivOne
 				}
 			}
 
-			Player.Gold += IsInDisorder ? (short)0 : Taxes;
+			Player.Gold += IsInDisorder ? 0 : Taxes;
 
 			// INSOLVENCY. Player.Gold clamps at zero (Player.cs:205, where this was a TODO),
 			// so a treasury that cannot meet the bill simply didn't pay it — silently, and

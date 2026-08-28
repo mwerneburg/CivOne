@@ -5693,7 +5693,7 @@ namespace CivOne
 			IUnit? upgraded = CreateUnit(targetType, unit.X, unit.Y);
 			if (upgraded is null) return;
 
-			player.Gold -= (short)cost;
+			player.Gold -= cost;
 			upgraded.Owner   = unit.Owner;
 			upgraded.Veteran = unit.Veteran;
 			upgraded.SetHome(unit.Home);

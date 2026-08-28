@@ -20,7 +20,7 @@ namespace CivOne.Units
 {
 	internal class Diplomat : BaseUnitLand
 	{
-		public static bool CanIncite(City cityToIncice, short gold)
+		public static bool CanIncite(City cityToIncice, int gold)
 		{
 			return gold >= InciteCost(cityToIncice) && !cityToIncice.HasBuilding<Palace>();
 		}
