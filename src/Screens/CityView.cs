@@ -1080,8 +1080,8 @@ namespace CivOne.Screens
 				if (captureGold < 0) captureGold = 0;
 				if (captureGold > totalGold) captureGold = totalGold;
 
-				Game.GetPlayer(_city.Owner).Gold = (short)Math.Max(0, Game.GetPlayer(_city.Owner).Gold - captureGold);
-				Game.CurrentPlayer.Gold          = (short)Math.Min(30000, Game.CurrentPlayer.Gold + captureGold);
+				Game.GetPlayer(_city.Owner).Gold = Math.Max(0, Game.GetPlayer(_city.Owner).Gold - captureGold);
+				Game.CurrentPlayer.Gold          = Math.Min(30000, Game.CurrentPlayer.Gold + captureGold);
 
 				string[] lines = { $"{Game.CurrentPlayer.TribeNamePlural} capture",
 				                   $"{city.Name}. {captureGold} gold", "pieces plundered." };

@@ -196,7 +196,7 @@ namespace CivOne.Screens
 			switch (d.Kind)
 			{
 				case AIDemandKind.BegForAid:
-					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
+					if (d.Amount > 0) { Human.Gold -= d.Amount; _enemy.Gold += d.Amount; }
 					// Emergency food airdrop: refill the starving city's store and pull a size-1
 					// town back from the brink. A reprieve, not a cure — if its tiles can't feed
 					// it, it will starve again (the forest-clear at founding is the real fix).
@@ -238,8 +238,8 @@ namespace CivOne.Screens
 					break;
 
 				case AIDemandKind.GiveMoney:
-					Human.Gold  -= (short)d.Amount;
-					_enemy.Gold += (short)d.Amount;
+					Human.Gold  -= d.Amount;
+					_enemy.Gold += d.Amount;
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					SetResponse(FaceState.Smiling,
 						$"${d.Amount} received. Satisfactory.",
@@ -266,7 +266,7 @@ namespace CivOne.Screens
 				case AIDemandKind.GrievancePack:
 					d.City!.Owner = aiNum;
 					if (d.Advance is not null) _enemy.AddAdvance(d.Advance!, false);
-					if (d.Amount > 0) { Human.Gold -= (short)d.Amount; _enemy.Gold += (short)d.Amount; }
+					if (d.Amount > 0) { Human.Gold -= d.Amount; _enemy.Gold += d.Amount; }
 					_enemy.SetPeaceTreaty(Human, d.Duration);
 					_enemy.SetAttitudeBonus(Human, d.Duration);
 					var responseLines = new System.Collections.Generic.List<string>
@@ -613,8 +613,8 @@ namespace CivOne.Screens
 			if (AIAccepts(30))
 			{
 				int amount = TributeAmount();
-				_enemy.Gold -= (short)amount;
-				Human.Gold  += (short)amount;
+				_enemy.Gold -= amount;
+				Human.Gold  += amount;
 				SetResponse(FaceState.Neutral, $"We will pay ${amount}.", "Now take it and leave.");
 			}
 			else
@@ -689,8 +689,8 @@ namespace CivOne.Screens
 			if (AIAccepts(20))
 			{
 				int amount = TributeAmount();
-				_enemy.Gold -= (short)amount;
-				Human.Gold  += (short)amount;
+				_enemy.Gold -= amount;
+				Human.Gold  += amount;
 				Human.MakePeace(_enemy);
 				SetResponse(FaceState.Neutral,
 					$"We will pay ${amount} and agree to peace.", "The war is now over.");

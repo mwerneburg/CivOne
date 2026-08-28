@@ -40,7 +40,7 @@ namespace CivOne.Screens.Dialogs
 			if (newUnit is not null)
 				_diplomat.KeepMoving(newUnit);
 
-			_diplomat.Player.Gold -= (short)_bribeCost;
+			_diplomat.Player.Gold -= _bribeCost;
 
 			Cancel();
 		}

@@ -63,7 +63,7 @@ namespace CivOne.Screens.Dialogs
 					_cityToIncite.RemoveBuilding(building);
 				}
 
-				_diplomat.Player.Gold -= (short)_inciteCost;
+				_diplomat.Player.Gold -= _inciteCost;
 
 				previousOwner.IsDestroyed();
 

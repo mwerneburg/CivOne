@@ -107,6 +107,10 @@ namespace CivOne.Tests
 		[InlineData("src/City.cs")]
 		[InlineData("src/Game.cs")]
 		[InlineData("src/Game.Cos.cs")]
+		[InlineData("src/Screens/King.cs")]
+		[InlineData("src/Screens/CityView.cs")]
+		[InlineData("src/Screens/Dialogs/DiplomatBribe.cs")]
+		[InlineData("src/Screens/Dialogs/DiplomatIncite.cs")]
 		public void NoGoldArithmeticTruncates(string relative)
 		{
 			string[] lines = System.IO.File.ReadAllLines(System.IO.Path.Combine(
@@ -118,6 +122,26 @@ namespace CivOne.Tests
 				.ToArray();
 
 			Assert.Empty(offenders);
+		}
+
+		// Every civilization, not just the human. There is one Player.Gold and no separate AI
+		// path — an AI caravan is credited by the same CaravanActions line — so the defect and
+		// the fix both applied to the whole field. It bit the human first only because the
+		// human was the only one rich enough: measured across the saves of this game, the AI
+		// treasuries ran 79 to 6,281 gold while Charlemagne sat on 28,513, and the wrap needs
+		// 22,768 before a 10,000 payment can reach it.
+		[Fact]
+		public void ARivalTreasuryClampsToo()
+		{
+			Sim.NewGame(width: 40, height: 30, competition: 4);
+			Game g = Game.Instance;
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != g.HumanPlayer);
+			ai.Gold = 25000;
+			Sim.ClearTasks();
+
+			ai.Gold += 10000;
+
+			Assert.Equal(Player.GoldCap, ai.Gold);
 		}
 
 		// The mechanism that made it a permanent condition rather than a one-off: taxes are
