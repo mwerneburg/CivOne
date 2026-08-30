@@ -48,8 +48,31 @@ namespace CivOne.Screens
 				// queued any number of times (Militia → Barracks → Phalanx → Temple →
 				// Settler → MarketPlace → Aqueduct → Settler is a valid backlog), so
 				// they stay visible after being queued.
-				return src.Where(x => x is IUnit || !queued.Contains(x.GetType())).ToArray();
+				return src.Where(x => x is IUnit || !queued.Contains(x.GetType()))
+				          .Where(x => !HiddenAsCurrent(_city, x))
+				          .ToArray();
 			}
+		}
+
+		// What the city is building already is not worth offering again: choosing it does
+		// nothing, and queueing it schedules a repeat of the build in progress. Neither is
+		// ever what the click meant.
+		//
+		// Military units are the exception, because "another Musketeers after this one" is an
+		// ordinary order and the reason the queue exists. The line is drawn at whether the
+		// thing can fight — Attack > 0 — rather than by listing the civilian types, so a new
+		// unit lands on the right side without being added anywhere. Transports and the
+		// Hydro Engineer are unarmed and therefore sit with the Settlers and Caravans; note
+		// that UnitRole would have called both of them SeaAttack, since it derives a sea
+		// unit's role from IBoardable and nothing overrides it.
+		//
+		// Internal for the tests: this is a rule about a list, and the screen it lives on
+		// needs a live display to render.
+		internal static bool HiddenAsCurrent(City city, IProduction item)
+		{
+			IProduction current = city.CurrentProduction;
+			if (current is null || item.GetType() != current.GetType()) return false;
+			return !(item is IUnit unit && unit.Attack > 0);
 		}
 
 		// ─── layout ──────────────────────────────────────────────────────────────
