@@ -3666,7 +3666,7 @@ namespace CivOne
 			if (a is Xenobiology)           weight += 6; // gifted free, but may need to be researched
 			if (a is Gravitics)             weight += 7; // gateway to sea + tubes
 			if (a is SyntheticEcology)      weight += 6; // tile yield improvements
-			if (a is MemeticProtocols)      weight += 5; // happiness/diplomacy
+			if (a is MemeticProtocols)      weight += 5; // culture (Exchange Center) + diplomacy
 			if (a is AquaticColonization)   weight += 5;
 			if (a is TransitConduit)        weight += 6;
 			if (a is BioplexEngineering)    weight += 5;
@@ -3704,6 +3704,18 @@ namespace CivOne
 					if (a is CeremonialBurial)    weight += 6;
 					if (a is Religion)            weight += 7;
 					if (a is Literacy)            weight += 5;
+					// The post-contact culture buildings, which this list did not reach at all:
+					// every entry above is pre-industrial, so a culture civ had no reason to
+					// hurry toward the three advances that now carry the most culture per
+					// building. Below Philosophy, which the victory REQUIRES, and above
+					// Literacy. All three are BasePostContactAdvance, so first contact still
+					// gates them and this only orders what happens afterwards.
+					if (a is MemeticProtocols)    weight += 8;    // Exchange Center, 3 a turn
+					if (a is Xenobiology)         weight += 5;    // Xenolab, 2 — and science
+					// Neural Lab, 2 — and the world's fifth wakes Skynet, so a culture
+					// civilization is now among the likeliest to bring the machines down on
+					// everyone. Deliberate: the path should cost something the others do not.
+					if (a is NeuralInterface)     weight += 5;
 					break;
 
 				case VictoryPath.Conquest:
@@ -4368,10 +4380,21 @@ namespace CivOne
 				case VictoryPath.Culture:
 					// Culture accrues from buildings and wonders (Player.Culture), so the
 					// cultural path is the ordinary builder's chain run harder. EarnsItsKeep
-					// still refuses these where there is no unhappiness to quell, which is
-					// correct: a Temple nobody needs generates upkeep, not admiration.
+					// still refuses the Temple and the Cathedral where there is no unhappiness
+					// to quell, which is correct: a Temple nobody needs generates upkeep, not
+					// admiration.
 					if (Player.HasAdvance<CeremonialBurial>() && !city.HasBuilding<Temple>()) Consider(new Temple());
 					if (Player.HasAdvance<Religion>() && !city.HasBuilding<Cathedral>())      Consider(new Cathedral());
+
+					// The post-contact culture buildings. These are worth 3, 2 and 2 a turn
+					// (City.CultureRate) — more than the Temple and Cathedral above them — and
+					// this case listed neither, so a culture civilization's identity stopped
+					// at the Cathedral and it picked these up on ordinary merit like everybody
+					// else. The Exchange Center in particular is the single largest source of
+					// culture outside a wonder and is no longer refused to a content city.
+					if (Player.HasAdvance<MemeticProtocols>() && !city.HasBuilding<ExchangeCenter>()) Consider(new ExchangeCenter());
+					if (Player.HasAdvance<Xenobiology>() && !city.HasBuilding<Xenolab>())             Consider(new Xenolab());
+					if (Player.HasAdvance<NeuralInterface>() && !city.HasBuilding<NeuralLab>())       Consider(new NeuralLab());
 					break;
 
 				case VictoryPath.Endurance:

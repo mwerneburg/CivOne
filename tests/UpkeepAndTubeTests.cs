@@ -80,11 +80,15 @@ namespace CivOne.Tests
 			Assert.True(Offered(p, c, new Library()));
 		}
 
-		// The happiness rule grew three members: Hospital, Exchange Center and Neural Lab all
-		// reduce unhappy citizens (City.cs:1143-1145) and were not covered by it.
+		// The happiness rule grew two more members: the Hospital and the Neural Lab both
+		// reduce unhappy citizens and were not covered by it.
+		//
+		// The Exchange Center used to be here and is not any more. Its -1 unhappy became +3
+		// culture (City.CultureRate), so refusing it to a content city would refuse it for a
+		// reason it no longer has — and would do so precisely in the calm, developed cities
+		// best placed to build one. This test is what caught the AI gate still listing it.
 		[Theory]
 		[InlineData("Hospital")]
-		[InlineData("ExchangeCenter")]
 		[InlineData("NeuralLab")]
 		public void HappinessBuildingsAreRefusedWhereThereIsNoUnhappiness(string name)
 		{
@@ -94,12 +98,23 @@ namespace CivOne.Tests
 
 			IBuilding b = name switch
 			{
-				"Hospital"       => new Hospital(),
-				"ExchangeCenter" => new ExchangeCenter(),
-				_                => new NeuralLab(),
+				"Hospital" => new Hospital(),
+				_          => new NeuralLab(),
 			};
 
 			Assert.False(Offered(p, c, b));
+		}
+
+		// ...and the counterpart, so the removal above is a rule rather than a deletion: a
+		// content city is still offered the Exchange Center, because it is a culture building
+		// now and has nothing to do with the city's mood.
+		[Fact]
+		public void AContentCityIsStillOfferedTheExchangeCentre()
+		{
+			(Game g, Player p, City c) = ACity(3, Terrain.Grassland1);
+			Assert.Equal(0, c.UnhappyCitizens);
+
+			Assert.True(Offered(p, c, new ExchangeCenter()));
 		}
 
 		// ── tubes ────────────────────────────────────────────────────────────────

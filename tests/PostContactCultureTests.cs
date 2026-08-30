@@ -158,6 +158,65 @@ namespace CivOne.Tests
 			Assert.Contains("NeuralLab", clause);
 		}
 
+		// A Culture-path civilization has to actually WANT these. Its production case listed
+		// only Temple and Cathedral, and its research weighting only pre-industrial advances,
+		// so making the buildings cultural did nothing for the civ playing for culture — it
+		// picked them up on ordinary merit like everybody else.
+		[Fact]
+		public void TheCulturePathPrefersThePostContactBuildings()
+		{
+			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(
+				Sim.RepoRoot(), "src", "AI.Strategy.cs"));
+			int at = src.IndexOf("case VictoryPath.Culture:\n\t\t\t\t\t// Culture accrues");
+			Assert.True(at > 0, "the Culture production case has moved or been rewritten");
+			string block = src.Substring(at, src.IndexOf("break;", at) - at);
+
+			Assert.Contains("Consider(new ExchangeCenter())", block);
+			Assert.Contains("Consider(new Xenolab())", block);
+			Assert.Contains("Consider(new NeuralLab())", block);
+		}
+
+		// ...and researches toward them. Without this the buildings are preferred but arrive
+		// no sooner, which on a post-contact tech tree is most of the delay.
+		[Fact]
+		public void TheCulturePathResearchesTowardThem()
+		{
+			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(
+				Sim.RepoRoot(), "src", "AI.Strategy.cs"));
+			int at = src.IndexOf("// Cultural Ascendancy requires it");
+			Assert.True(at > 0, "the Culture research weighting has moved");
+			string block = src.Substring(at, src.IndexOf("break;", at) - at);
+
+			Assert.Contains("a is MemeticProtocols", block);
+			Assert.Contains("a is Xenobiology", block);
+			Assert.Contains("a is NeuralInterface", block);
+		}
+
+		// Philosophy stays the top weight: the victory REQUIRES it (Game.cs), so no building
+		// advance may outrank the one without which none of it counts.
+		[Fact]
+		public void PhilosophyStillOutranksTheBuildingAdvances()
+		{
+			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(
+				Sim.RepoRoot(), "src", "AI.Strategy.cs"));
+			// Anchored on the Culture case's own comment: `a is Philosophy` is weighted on
+			// three different paths and IndexOf found the first of them.
+			int at = src.LastIndexOf("if (a is Philosophy)",
+				src.IndexOf("// Cultural Ascendancy requires it"));
+			string block = src.Substring(at, src.IndexOf("break;", at) - at);
+
+			int Weight(string advance)
+			{
+				int i = block.IndexOf("a is " + advance);
+				Assert.True(i > 0, $"{advance} is not weighted on the culture path");
+				var m = System.Text.RegularExpressions.Regex.Match(block.Substring(i), @"weight \+= (\d+)");
+				return int.Parse(m.Groups[1].Value);
+			}
+
+			Assert.True(Weight("Philosophy") > Weight("MemeticProtocols"));
+			Assert.True(Weight("MemeticProtocols") > Weight("Xenobiology"));
+		}
+
 		// Nor may the Civilopedia. Its page still promised the unrest reduction the building no
 		// longer provides — the kind of drift that turns a rules change into a lie.
 		[Fact]
