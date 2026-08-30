@@ -20,7 +20,9 @@ namespace CivOne.Buildings
 			"dedicated to the study of alien",
 			"life sciences. Incorporating Olvir",
 			"methodologies, it amplifies the",
-			"city's total science output by 50%.",
+			"city's total science output by 50%",
+			"and adds 2 to your CULTURE each",
+			"turn.",
 		};
 
 		private static readonly string[] _page2 =

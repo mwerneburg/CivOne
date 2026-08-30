@@ -21,7 +21,8 @@ namespace CivOne.Buildings
 			"direct mind-machine interfaces.",
 			"Citizens who train here report a",
 			"profound sense of purpose,",
-			"reducing unrest by one citizen.",
+			"reducing unrest by one citizen and",
+			"adding 2 to your CULTURE each turn.",
 		};
 
 		private static readonly string[] _page2 =

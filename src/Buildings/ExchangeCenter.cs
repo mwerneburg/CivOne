@@ -18,9 +18,10 @@ namespace CivOne.Buildings
 		{
 			"An EXCHANGE CENTER hosts ongoing",
 			"cultural dialogue between citizens",
-			"and alien representatives. Mutual",
-			"understanding eases social tensions",
-			"and reduces unrest by one citizen.",
+			"and alien representatives. What",
+			"passes through it does not stay",
+			"in one city: the exchange adds 3",
+			"to your CULTURE each turn.",
 		};
 
 		private static readonly string[] _page2 =

@@ -26,9 +26,13 @@ namespace CivOne.Screens.Reports
 		private int _page = 0;
 
 		// Buildings/wonders that influence local happiness. T/M/C/B match the user's mental
-		// model; we also surface the post-contact Exchange/Neural/Civic buildings and the
+		// model; we also surface the post-contact Neural Lab and Civic Monument and the
 		// happiness-flavoured wonders (J.S. Bach's, Michelangelo's Chapel, Hagia Sofia,
 		// Shakespeare's Theatre, Hanging Gardens, Cure for Cancer, Taj Mahal).
+		//
+		// The Exchange Center used to be here and is not any more: its -1 unhappy became
+		// culture (City.CultureRate). A survey of what is keeping a city calm must not list a
+		// building that no longer does.
 		private static readonly (System.Type type, string code, bool isWonder)[] _moodSlots =
 		{
 			(typeof(Temple),            "T", false),
@@ -36,7 +40,6 @@ namespace CivOne.Screens.Reports
 			(typeof(Cathedral),         "C", false),
 			(typeof(Bank),              "B", false),
 			(typeof(Colosseum),         "L", false),
-			(typeof(ExchangeCenter),    "X", false),
 			(typeof(NeuralLab),         "N", false),
 			(typeof(CivicMonument),     "V", false),
 			(typeof(CivOne.Wonders.HangingGardens),       "g", true),

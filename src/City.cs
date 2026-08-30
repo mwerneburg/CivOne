@@ -643,6 +643,31 @@ namespace CivOne
 			+ (HasBuilding<UniversityBuilding>() ? 2 : 0)
 			+ (HasBuilding<Buildings.CivicMonument>() ? 3 : 0)
 			+ (Player.HasWonder<Wonders.TheInternet>() ? 1 : 0)
+			// ── after first contact ──────────────────────────────────────────
+			//
+			// The post-contact buildings had no cultural weight at all, which left the
+			// culture victory a purely pre-industrial contest: a civilization that reached
+			// Xenobiology and memetics had nothing new to say for itself.
+			//
+			// The Exchange Center TRADES its happiness for this. Memetic Protocols is the
+			// technology of ideas propagating, so culture is the truer expression of it, and
+			// the -1 unhappy it gives up was the weakest effect in the game — a Temple's
+			// worth at base, and unlike a Temple it never doubled with Mysticism or the
+			// Oracle. 3 rates it with the Civic Monument.
+			//
+			// The Xenolab and the Neural Lab KEEP what they had and gain 2 apiece. Contact
+			// with another biology is the most culturally disruptive thing that can happen to
+			// a civilization, and it can say so without ceasing to be a science building. The
+			// Neural Lab needs a reason to exist at 16 shields and 3 upkeep with Skynet
+			// attached — and the tension is deliberate: chasing culture now pushes the world
+			// toward the fifth lab that wakes the machines.
+			//
+			// The Surplus Depot and the Sea Platform get nothing. Granary logistics and
+			// floating farmland are infrastructure, and the Sea Platform is already one of
+			// the strongest tile effects in the game.
+			+ (HasBuilding<Buildings.ExchangeCenter>() ? 3 : 0)
+			+ (HasBuilding<Buildings.Xenolab>() ? 2 : 0)
+			+ (HasBuilding<Buildings.NeuralLab>() ? 2 : 0)
 			// The Olvir build none of the above — their production list is defender, granary,
 			// settlers, and their own infrastructure — so their culture was structurally
 			// pinned at zero, not excluded anywhere. These are the entries they can reach.
@@ -1413,7 +1438,8 @@ namespace CivOne
 				if (HasBuilding<Buildings.BreedingShrine>()) unhappyCount -= 1;
 				if (HasBuilding<Buildings.CascadeCathedral>()) unhappyCount -= 4;
 				if (HasBuilding<Hospital>()) unhappyCount -= 2;
-				if (HasBuilding<ExchangeCenter>()) unhappyCount -= 1;
+				// The Exchange Center's -1 moved to CultureRate — see the note there. The
+				// Neural Lab keeps its own.
 				if (HasBuilding<NeuralLab>()) unhappyCount -= 1;
 				if (HasBuilding<CivicMonument>()) unhappyCount -= 1;
 				bool chapelOnContinent = !Game.WonderObsolete<MichelangelosChapel>() &&

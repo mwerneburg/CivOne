@@ -3965,8 +3965,13 @@ namespace CivOne
 			// refusing it a Temple then would pin the slider up forever and re-create the
 			// research shutdown from the other direction. While luxuries are doing the
 			// work, keep building the thing that lets them stop.
+			//
+			// The Exchange Center is NOT in this list any more. Its -1 unhappy became culture
+			// (City.CultureRate), so refusing it to a content city would refuse it for a
+			// reason it no longer has — and would suppress AI culture-building in exactly the
+			// cities calm enough to do it. The Neural Lab kept its happiness effect and stays.
 			if (building is Temple or Colosseum or Cathedral
-			    or Hospital or ExchangeCenter or NeuralLab
+			    or Hospital or NeuralLab
 			    && city.UnhappyCitizens == 0 && Player.LuxuriesRate == 0)
 				return false;
 
