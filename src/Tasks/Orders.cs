@@ -90,7 +90,21 @@ namespace CivOne.Tasks
 		private void CityNameAccept(object sender, EventArgs args)
 		{
 			int nameId = (sender as CityName)!.NameId;
-			Game.CityNames[nameId] = (sender as CityName)!.Value;
+			string value = (sender as CityName)!.Value;
+			// The one path that can still produce a duplicate: the player types a name that is
+			// already on the map. Refuse it and ask again rather than accept it — a city has no
+			// handle on it but its name, so two of them are ambiguous in the city report, in
+			// WLTK notifications and in every trade-route partner list. The old dialog has
+			// already destroyed itself by the time this fires, so this is a fresh one.
+			if (Game.CityNameTaken(value))
+			{
+				CityName retry = new CityName(nameId, value, duplicate: true);
+				retry.Accept += CityNameAccept;
+				retry.Cancel += CityNameCancel;
+				Common.AddScreen(retry);
+				return;
+			}
+			Game.CityNames[nameId] = value;
 			CreateCity(nameId);
 			EndTask();
 		}

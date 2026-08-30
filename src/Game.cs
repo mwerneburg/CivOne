@@ -3014,9 +3014,14 @@ namespace CivOne
 			// A reserved civilization keeps first claim on its own block (the OrderBy below)
 			// but may still borrow from the shared pool if it outgrows it.
 			bool ownNamesAreReserved = ReservedName(startIndex);
-			int[] used = _cities.Select(c => c.NameId).ToArray();
+			// By NAME, not by index. Excluding used indices is not the same rule: eleven names
+			// appear twice in the canonical pool under different civilizations — Antioch is both
+			// Roman and Greek, Thebes both Greek and Egyptian, Hastings both English and Maori —
+			// so two civilizations could each draw an unused index of their own and arrive at the
+			// same word, with no rename involved.
+			var taken = new HashSet<string>(_cities.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
 			int[] available = Enumerable.Range(0, CityNames.Length)
-				.Where(i => !used.Contains(i))
+				.Where(i => !taken.Contains(CityNames[i]))
 				.Where(i => ownNamesAreReserved || !ReservedName(i))
 				.OrderBy(i => (i >= startIndex && i < startIndex + civilization.CityNames.Length) ? 0 : 1)
 				.ThenBy(i => i)
@@ -3026,10 +3031,27 @@ namespace CivOne
 			return available[player.CityNamesSkipped];
 		}
 
+		// Is this name already on the map? Destroyed cities are removed from _cities, so a
+		// razed name is free again.
+		internal bool CityNameTaken(string name)
+			=> _cities.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
 		internal City? AddCity(Player player, int nameId, int x, int y)
 		{
 			if (_cities.Any(c => c.X == x && c.Y == y))
 				return null;
+
+			// Callers can hand in an index that is already on the map. Both of the fallbacks
+			// that pick one bypass CityNameId's filter: it returns 0 when a player has skipped
+			// past the end of the pool, and FoundOlvirCity wraps modulo the Olvir's own list
+			// once the colony outgrows it. Take the next free name rather than found a second
+			// city with the same one; if the pool really is exhausted, a duplicate name beats
+			// refusing to found the city.
+			if (CityNameTaken(CityNames[nameId]))
+			{
+				int free = CityNameId(player);
+				if (!CityNameTaken(CityNames[free])) nameId = free;
+			}
 
 			byte ownerNum = PlayerNumber(player);
 			City city = new City(ownerNum)

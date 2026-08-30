@@ -25,6 +25,7 @@ namespace CivOne.Screens
 		public event EventHandler? Accept, Cancel;
 
 		private readonly string _initialName;
+		private readonly bool _duplicate;
 
 		private void CityName_Accept(object sender, EventArgs args)
 		{
@@ -58,7 +59,7 @@ namespace CivOne.Screens
 
 			// Title label straddling the top border
 			int fh = Resources.GetFontHeight(0);
-			string label = " CITY NAME ";
+			string label = _duplicate ? " NAME IN USE " : " CITY NAME ";
 			int lw = Resources.GetTextSize(0, label).Width;
 			this.FillRectangle(px + 8, py, lw, 1, CassetteTheme.BG0);
 			this.DrawText(label, 0, CassetteTheme.PHOS, px + 8, py - fh / 2);
@@ -99,10 +100,12 @@ namespace CivOne.Screens
 			return true;
 		}
 
-		public CityName(int nameId, string cityName)
+		// duplicate: this is a second ask, because the last name typed was already on the map.
+		public CityName(int nameId, string cityName, bool duplicate = false)
 		{
 			NameId = nameId;
 			_initialName = cityName;
+			_duplicate = duplicate;
 
 			using Palette p = Common.DefaultPalette;
 			using (Palette cassette = CassetteTheme.CreatePalette())
