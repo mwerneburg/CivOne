@@ -4,7 +4,7 @@
 // is simply not drawn:
 //
 //   * a header that is not a UnitType name  — Enum.TryParse fails, FlushTxtSection returns
-//   * a section that is not 256 or 1024 values — neither branch runs, nothing is registered
+//   * a section that is not 256 values      — the branch does not run, nothing is registered
 //   * a section of all zeros                — registers fine, draws nothing (0 = transparent)
 //
 // None of them logs a complaint the player would see. A dropped row in the middle of a grid
@@ -68,14 +68,14 @@ namespace CivOne.Tests
 					$"[{name}] is not a UnitType — the loader will skip it silently");
 		}
 
-		// 256 for a map tile, 1024 for a garrison icon. Anything else registers nothing, so a
-		// single dropped row deletes the unit's art with no error anywhere.
+		// 256 for a map tile. Anything else registers nothing, so a single dropped row
+		// deletes the unit's art with no error anywhere.
 		[Fact]
 		public void EverySectionIsAWholeGrid()
 		{
 			foreach ((string name, List<byte> pixels) in ActiveSections())
-				Assert.True(pixels.Count == 256 || pixels.Count == 1024,
-					$"[{name}] has {pixels.Count} values — needs exactly 256 (16x16) or 1024 (32x32)");
+				Assert.True(pixels.Count == 256,
+					$"[{name}] has {pixels.Count} values — needs exactly 256 (16x16)");
 		}
 
 		// Index 0 is transparent, so an all-zero grid loads perfectly and draws nothing. This
