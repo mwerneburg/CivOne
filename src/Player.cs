@@ -313,7 +313,7 @@ namespace CivOne
 
 		// The treasury ceiling. Civ 1's, and the save has always stored gold as an int, so
 		// this is a game rule rather than a storage limit.
-		internal const int GoldCap = 30000;
+		internal const int GoldCap = 100000;
 
 		// int, not short. It was a short, and `Gold += x` compiles to `Gold = (short)(Gold + x)`
 		// — the sum is computed in int and then TRUNCATED before the setter ever sees it. Any
