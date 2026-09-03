@@ -573,18 +573,15 @@ namespace CivOne.Screens
 			}
 		}
 
+		// The map sprite, doubled. The garrison panel used to have its own art stack
+		// (garrison_icons/*.png, then CustomUnitIcons); the two sets disagreed on screen.
+		// internal so GarrisonIconTests can compare it against the map sprite.
+		internal static Bytemap GarrisonIcon(IUnit unit) => unit.ToBitmap().Scale(2);
+
 		private void DrawGarrisonUnit(IUnit unit, int x, int y)
 		{
-			if (BaseUnit.GetGarrisonIcon(unit.Type, out Bytemap icon32))
-			{
-				this.AddLayer(icon32, x, y);
-			}
-			else
-			{
-				Bytemap iconSrc = CustomUnitIcons.For(unit) ?? unit.ToBitmap();
-				using (Bytemap scaled = iconSrc.Scale(2))
-					this.AddLayer(scaled, x, y);
-			}
+			using (Bytemap scaled = GarrisonIcon(unit))
+				this.AddLayer(scaled, x, y);
 		}
 
 		private void ForceUpdate(object sender, EventArgs args) => _update = true;
