@@ -29,6 +29,13 @@ namespace CivOne.Screens.Reports
 		private int GraphBottom => Height - GRAPH_BOTTOM_PAD - Resources.GetFontHeight(0) - 1;
 		private int GraphLeft   => GRAPH_LEFT;
 		private int GraphRight  => Width - 4;
+
+		// Both graph pages stack a streak banner into the top-right corner, right-aligned
+		// on the same column as the score tags at the line tips. One place decides where a
+		// row sits and how many there are, so the banner and the space reserved for it
+		// cannot drift apart — they did, and the tags overprinted the banner.
+		private int BannerRow(int i) => GraphTop + 4 + i * (Resources.GetFontHeight(0) + 1);
+		private int BannerRows => _page switch { Page.Output => 3, Page.Culture => 4, _ => 0 };
 		private int GraphW      => GraphRight - GraphLeft;
 		private int GraphH      => GraphBottom - GraphTop;
 
@@ -272,7 +279,7 @@ namespace CivOne.Screens.Reports
 				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
 				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText($"CULTURAL ASCENDANCY {cultStreak}/{Game.CultureHoldTurns}", 0, scol,
-					GraphRight - 4, GraphTop + 4, TextAlign.Right);
+					GraphRight - 4, BannerRow(0), TextAlign.Right);
 
 				// TRUNCATED, to match the legend and the curve. :F0 ROUNDS, so a player on 41.5
 				// per head read "CULTURE PER HEAD 42" beside a legend entry saying 41 — two
@@ -284,13 +291,13 @@ namespace CivOne.Screens.Reports
 					           : $"CULTURE PER HEAD {shown}";
 				this.DrawText(standing, 0,
 					(qualifies && myRank == 1) ? CassetteTheme.OK : CassetteTheme.INK_LOW,
-					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
+					GraphRight - 4, BannerRow(1), TextAlign.Right);
 
 				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYear} AD", 0,
 					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
-					GraphRight - 4, GraphTop + 4 + 2 * (fh + 1), TextAlign.Right);
+					GraphRight - 4, BannerRow(2), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
-					GraphTop + 4 + 3 * (fh + 1), Game.CultureHoldTurns);
+					BannerRow(3), Game.CultureHoldTurns);
 			}
 
 			// ── Pax Mercatoria threshold ─────────────────────────────────────
@@ -443,10 +450,18 @@ namespace CivOne.Screens.Reports
 
 			// Score tags at each line's tip, greedily spaced so clustered tips
 			// stay readable. Same number as the legend row: match by value.
+			//
+			// They start below the streak banner, which is right-aligned on this same
+			// column: a leader near the top of the range put its tag at GraphTop, straight
+			// through "PAX MERCATORIA STREAK", and neither string could be read. Rows are
+			// reserved for the page whether or not the optional rival line is drawn — a
+			// blank row costs a few pixels, a collision costs both readings.
+			int tipTop = BannerRows == 0 ? GraphTop : BannerRow(BannerRows);
+
 			int prevBottom = int.MinValue;
 			foreach (var (score, tipY, tipCol) in lineTips.OrderBy(t => t.y))
 			{
-				int ty = Math.Max(GraphTop, tipY - fh / 2);
+				int ty = Math.Max(tipTop, tipY - fh / 2);
 				if (ty < prevBottom) ty = prevBottom;
 				if (ty > GraphBottom - fh) ty = GraphBottom - fh;
 				this.DrawText(score.ToString(), 0, tipCol, GraphRight - 4, ty, TextAlign.Right);
@@ -464,12 +479,12 @@ namespace CivOne.Screens.Reports
 				uint econStreak = Game.Progress(Game.PlayerNumber(Human)).EconStreak;
 				string streak = $"PAX MERCATORIA STREAK {econStreak}/{Game.EconomicHoldTurns}";
 				byte col = econStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
-				this.DrawText(streak, 0, col, GraphRight - 4, GraphTop + 4, TextAlign.Right);
+				this.DrawText(streak, 0, col, GraphRight - 4, BannerRow(0), TextAlign.Right);
 				int halfNow = Game.Players.Where(p => p is not null).Sum(Game.GrossOutputOf) / 2;
 				this.DrawText($"- - -  HALF OF WORLD OUTPUT ({halfNow})", 0, CassetteTheme.ALERT,
-					GraphRight - 4, GraphTop + 4 + fh + 1, TextAlign.Right);
+					GraphRight - 4, BannerRow(1), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).EconStreak),
-					GraphTop + 4 + 2 * (fh + 1), Game.EconomicHoldTurns);
+					BannerRow(2), Game.EconomicHoldTurns);
 			}
 
 			// ── scroll hint ──────────────────────────────────────────────────
