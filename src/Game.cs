@@ -2086,10 +2086,11 @@ namespace CivOne
 
 				// ── Economic dominance: Pax Mercatoria ───────────────────────────────
 				// The merchant's finish line: hold more than half the world's gross economic
-				// output for 20 consecutive turns, with Banking known, at least 3 rivals still
-				// standing, no war of your own making, and half the surviving rivals economically
-				// bound to you (tribute, defense pact, or an active trade route). Defensive wars
-				// don't break the streak: dominance by commerce, not cannon.
+				// output for EconomicHoldTurns consecutive turns, with Banking known, at least
+				// 3 rivals still standing, no war of your own making, and half the surviving
+				// rivals economically bound to you (tribute, defense pact, or an active trade
+				// route). Defensive wars don't break the streak: dominance by commerce,
+				// not cannon.
 				//
 				// Evaluated for EVERY civilization. It tested HumanPlayer alone, which is why an
 				// AI could hold every condition for centuries and nothing happened: measured in a
@@ -2128,7 +2129,7 @@ namespace CivOne
 					// It resolves itself: the Owners empty cities rather than run them, so once
 					// humanity throws them off they hit Cities.Length == 0, count as destroyed, and
 					// drop out of this sum. The streak resets on every break, so a liberated world
-					// can start a fresh 20 turns and win properly.
+					// can start a fresh EconomicHoldTurns turns and win properly.
 					int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
 						.Sum(GrossOutput);
 					bool share = claimOut > 0 && claimOut * 2 > worldOut;
@@ -2203,7 +2204,7 @@ namespace CivOne
 
 				// ── Cultural ascendancy ──────────────────────────────────────────────
 				// The peaceful mirror of conquest: hold enough of the world living in your
-				// cultural shadow, by a margin nobody can mistake, for 20 consecutive turns.
+				// cultural shadow, by a margin nobody can mistake, for CultureHoldTurns turns.
 				// Cities come to you rather than being taken — the same pull that makes a
 				// small unhappy town change flags, measured as a standing condition instead
 				// of an 8%-a-turn accident.

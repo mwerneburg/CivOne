@@ -45,8 +45,8 @@ namespace CivOne.Screens.Reports
 		// Three views over the same graph. Score was the only one for a long time and culture
 		// rode along in brackets in the legend, which is a poor way to read a quantity that
 		// moves every turn. Output is here because the economic victory is otherwise unreadable
-		// from inside a game: Pax Mercatoria wants half the world's gross output for 20 turns
-		// and nothing on any screen said what your share was.
+		// from inside a game: Pax Mercatoria wants half the world's gross output for
+		// EconomicHoldTurns turns and nothing on any screen said what your share was.
 		private enum Page { Score, Culture, Output }
 		private Page _page = Page.Score;
 

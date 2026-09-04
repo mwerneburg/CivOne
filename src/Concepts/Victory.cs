@@ -52,7 +52,7 @@ namespace CivOne.Concepts
 			"is lost with its home city.",
 			"",
 			"PAX MERCATORIA: half the world's",
-			"output for 20 turns, with",
+			"output for 75 turns, with",
 			"Banking, three rivals standing,",
 			"no war of your starting, and",
 			"half the world bound to you by",
