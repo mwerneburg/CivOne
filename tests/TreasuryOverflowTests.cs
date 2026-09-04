@@ -23,6 +23,12 @@ namespace CivOne.Tests
 {
 	public class TreasuryOverflowTests
 	{
+		// These cases reproduce a truncation at short.MaxValue, so they need a ceiling above
+		// the value they build to. If the cap is ever lowered under them, that is a decision
+		// about the game and not a bug in the treasury — rescale the case, do not delete it.
+		private const string HeadroomNote =
+			"this case needs a GoldCap above the sum it builds to; rescale it rather than dropping it";
+
 		private static Player Rich(int gold)
 		{
 			Sim.NewGame(width: 40, height: 30, competition: 3);
@@ -33,41 +39,74 @@ namespace CivOne.Tests
 		}
 
 		// The reported case, in the arithmetic that produced it.
+		//
+		// Asserts the SUM, not the cap. It read Assert.Equal(GoldCap, ...) while the cap was
+		// 30,000 — below short.MaxValue — so the clamp caught this credit before the addition
+		// could be checked at all, and the test could not tell a treasury that had done the
+		// arithmetic correctly from one that had merely been clamped. With the ceiling at
+		// 100,000 there is room to state the real number, which is what the player was
+		// actually owed.
 		[Fact]
 		public void ALargePaymentIntoAFullTreasuryDoesNotEmptyIt()
 		{
+			Assert.True(Player.GoldCap >= 35000, HeadroomNote);
 			Player p = Rich(25000);
 
 			p.Gold += 10000;
 
-			Assert.Equal(Player.GoldCap, p.Gold);
+			Assert.Equal(35000, p.Gold);
 		}
 
-		// The boundary, both sides of it. 2,767 was fine and 2,768 was ruin, which is the
-		// signature of a truncation rather than of any rule.
+		// The boundary, both sides of it. From 30,000: 2,767 was fine and 2,768 was ruin,
+		// which is the signature of a truncation rather than of any rule. Both must now land
+		// on their exact total — 32,767 and 32,768 — because the second one is the first
+		// value a short cannot hold, and that is the whole defect in one number.
 		[Theory]
-		[InlineData(2767)]
-		[InlineData(2768)]
-		[InlineData(100000)]
-		public void EveryCreditClampsRatherThanWrapping(int credit)
+		[InlineData(2767, 32767)]
+		[InlineData(2768, 32768)]
+		public void EveryCreditCrossingTheShortBoundarySurvivesIntact(int credit, int expected)
 		{
+			Assert.True(Player.GoldCap >= expected, HeadroomNote);
 			Player p = Rich(30000);
 
 			p.Gold += credit;
 
+			Assert.Equal(expected, p.Gold);
+		}
+
+		// Past the ceiling it clamps, and the ceiling is where it clamps to. Stated relative
+		// to GoldCap so that moving the cap moves the test with it.
+		[Theory]
+		[InlineData(1)]
+		[InlineData(50000)]
+		public void ACreditPastTheCeilingClampsToIt(int overshoot)
+		{
+			Player p = Rich(Player.GoldCap - 1);
+
+			p.Gold += overshoot;
+
 			Assert.Equal(Player.GoldCap, p.Gold);
 		}
 
-		// The cap is a rule and still holds — this is not a licence to bank more.
+		// The cap is a rule and still holds — this is not a licence to bank more. The value
+		// itself moved (30,000 to 100,000), so this reads the constant rather than repeating
+		// it: the ceiling being a rule is the thing worth pinning, not the number.
+		//
+		// The second assertion is the one that matters. A ceiling above short.MaxValue is
+		// what makes the treasury's own stored value unrepresentable in the type that caused
+		// this file to exist, so every path that touches gold is now obliged to be wide. Drop
+		// the cap back under 32,767 and the defect becomes unreachable by accident again —
+		// which is exactly how it hid for as long as it did.
 		[Fact]
-		public void TheCeilingIsUnchanged()
+		public void TheCeilingHoldsAndClearsShortRange()
 		{
 			Player p = Rich(0);
 
-			p.Gold = 999999;
+			p.Gold = Player.GoldCap * 10;
 
-			Assert.Equal(30000, p.Gold);
-			Assert.Equal(30000, Player.GoldCap);
+			Assert.Equal(Player.GoldCap, p.Gold);
+			Assert.True(Player.GoldCap > short.MaxValue,
+				$"the ceiling is {Player.GoldCap}, inside short range — see the note above");
 		}
 
 		// The insolvency floor is unchanged too: a treasury cannot go negative. That behaviour
@@ -141,20 +180,25 @@ namespace CivOne.Tests
 
 			ai.Gold += 10000;
 
-			Assert.Equal(Player.GoldCap, ai.Gold);
+			Assert.Equal(35000, ai.Gold);
 		}
 
 		// The mechanism that made it a permanent condition rather than a one-off: taxes are
 		// added city by city, so a big empire crosses the old ceiling mid-loop every turn.
 		// Simulated here rather than staged with 130 real cities.
+		// The count is derived from the cap rather than fixed at 200, which stopped short of
+		// the ceiling the moment the ceiling moved: enough cities to carry the total past it,
+		// so the loop still crosses both the short boundary on the way and the cap at the end.
 		[Fact]
 		public void AccumulatingCityByCityNeverWrapsTheTreasury()
 		{
+			const int perCity = 400;
+			int cities = Player.GoldCap / perCity + 50;
 			Player p = Rich(0);
 
-			for (int city = 0; city < 200; city++)
+			for (int city = 0; city < cities; city++)
 			{
-				p.Gold += 400;
+				p.Gold += perCity;
 				Assert.True(p.Gold >= 0, $"the treasury went to {p.Gold} after {city + 1} cities");
 			}
 
@@ -163,17 +207,22 @@ namespace CivOne.Tests
 
 		// Gold survives a save/load at a value a short could not hold on the way through. The
 		// COS field was always an int; the load path cast it back down to a short.
+		// Saves at the cap, whatever the cap is. It saved a literal 30,000, which was the cap
+		// when it was written; once the ceiling rose, 30,000 was a value a short holds
+		// comfortably, so the test round-tripped happily through the very cast it exists to
+		// catch. It passed and proved nothing.
 		[Fact]
 		public void TheTreasurySurvivesASaveAtTheCap()
 		{
-			Player p = Rich(30000);
+			Assert.True(Player.GoldCap > short.MaxValue, HeadroomNote);
+			Player p = Rich(Player.GoldCap);
 			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "treasury.cos");
 			Game.Instance.SaveCos(path);
 
 			Sim.ResetState();
 			Assert.True(Game.LoadCos(path), "load failed");
 
-			Assert.Equal(30000, Game.Instance.HumanPlayer.Gold);
+			Assert.Equal(Player.GoldCap, Game.Instance.HumanPlayer.Gold);
 		}
 	}
 }

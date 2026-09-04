@@ -154,6 +154,10 @@ namespace CivOne.Screens
 			}
 		}
 
+		// 3 meters (label fh + 2 + bar 4) + divider + the 5 readout fields (fh + 4 each).
+		// DrawTradeRoutes positions itself off this, so it is stated once.
+		private static int ResourcesPanelHeight(int fh) => 8 + 3 * (fh + 6) + 2 + 5 * (fh + 4) + 4;
+
 		private void DrawResources()
 		{
 			int px = ColLeftX;
@@ -161,10 +165,9 @@ namespace CivOne.Screens
 			int pw = ColLeftW;
 			int fh = Resources.GetFontHeight(0);
 
-			// Calculate panel height: 3 meters (each: label fh + 2 + bar 4 = fh+6) + divider + 5 fields (each fh+4)
 			int meterH = fh + 6;
 			int fieldH = fh + 4;
-			int ph     = 8 + 3 * meterH + 2 + 6 * fieldH + 4;
+			int ph     = ResourcesPanelHeight(fh);
 			this.DrawCassettePanel(px, py, pw, ph, "RESOURCES");
 
 			int cx = px + 4;
@@ -226,18 +229,6 @@ namespace CivOne.Screens
 			string pollVal = smokeStacks > 0 ? $"{smokeStacks} TONS" : "NONE";
 			byte pollColor = smokeStacks > 0 ? CassetteTheme.ALERT : CassetteTheme.INK_MID;
 			this.DrawCassetteField("POLLUTION", pollVal, cx, cy, cw, 0, pollColor);
-			cy += fieldH;
-
-			// Governor field — click it, or press G, to cycle. Off by default and shown that
-			// way: this is the only thing on the screen that will move a citizen without being
-			// asked, so it says plainly whether it is armed.
-			bool ownCity = !_viewCity && _city.Player == Game.HumanPlayer;
-			string govVal = GovernorLabel(_city);
-			byte govColor = (_city.GovernorOrder || _city.GovernorGrowth)
-				? CassetteTheme.OK
-				: CassetteTheme.INK_MID;
-			this.DrawCassetteField("GOVERNOR", ownCity ? govVal : "OFF", cx, cy, cw, 0,
-				ownCity ? govColor : CassetteTheme.INK_LOW);
 		}
 
 		internal static string GovernorLabel(City city)
@@ -293,9 +284,7 @@ namespace CivOne.Screens
 		{
 			// Position below the resources panel
 			int fh = Resources.GetFontHeight(0);
-			int meterH = fh + 6;
-			int fieldH = fh + 4;
-			int resourcesPh = 8 + 3 * meterH + 2 + 6 * fieldH + 4;
+			int resourcesPh = ResourcesPanelHeight(fh);
 
 			int px = ColLeftX;
 			int py = BodyY + resourcesPh + ColGap;
@@ -397,25 +386,66 @@ namespace CivOne.Screens
 
 			// The rate is the empire slider; the output is what THIS city yields, so
 			// cycling a specialist visibly moves its own row by 2.
+			//
+			// CULTURE has no rate and deliberately shows none. The other three are slices of
+			// this city's trade and must sum to it; culture is not paid for out of trade at
+			// all — it comes off the buildings, the wonders and the artists (City.CultureRate)
+			// — so a percentage in that column would be a lie about where it comes from. It
+			// sits with them because it is the fourth thing a city produces per turn, and
+			// because the cultural victory is otherwise invisible from inside a city.
 			(string label, int rate, int output, byte color)[] rows =
 			{
 				("TAX",     taxRate * 10, _city.Taxes,     CassetteTheme.PHOS_DIM),
 				("SCIENCE", sciRate * 10, _city.Science,   CassetteTheme.OK),
 				("LUXURY",  luxRate * 10, _city.Luxuries,  CassetteTheme.CYAN),
+				("CULTURE", -1,           _city.CultureRate, CassetteTheme.PHOS),
 			};
 			foreach (var (label, rate, output, color) in rows)
 			{
 				if (rowY + fh0 > rateY + rateH - 13) break;
 				this.DrawText(label,        0, CassetteTheme.INK_MID, rowX,             rowY);
-				this.DrawText($"{rate}%",   0, CassetteTheme.INK_LOW, rowX + rowW - 22, rowY, TextAlign.Right);
+				if (rate >= 0)
+					this.DrawText($"{rate}%", 0, CassetteTheme.INK_LOW, rowX + rowW - 22, rowY, TextAlign.Right);
 				this.DrawText($"{output}",  0, color,                 rowX + rowW,      rowY, TextAlign.Right);
 				rowY += fh0 + 1;
 			}
 
-			DrawButton("VIEW", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
-				px + pw - 72, rateY + rateH - 13, 34, 11);
+			// Governor, directly under what it acts on. It used to sit at the bottom of the
+			// RESOURCES column among CORRUPTION and POLLUTION, which are readouts — so the one
+			// control on that panel looked like a fifth number, and the G went unnoticed. Here
+			// it reads as what it is: the thing that decides who works which tile, under the
+			// figures that move when it does.
+			Rectangle gov = GovernorRect;
+			if (gov.Bottom <= rateY + rateH - 13)
+			{
+				bool ownCity = !_viewCity && _city.Player == Game.HumanPlayer;
+				byte govColor = (_city.GovernorOrder || _city.GovernorGrowth)
+					? CassetteTheme.OK
+					: CassetteTheme.INK_MID;
+				this.DrawCassetteField("GOVERNOR", ownCity ? GovernorLabel(_city) : "OFF",
+					gov.X, gov.Y, gov.Width, 0,
+					ownCity ? govColor : CassetteTheme.INK_LOW);
+				// The only control on this screen that had no affordance at all. Every other
+				// one is a button or carries its key (R-RENAME, ESC).
+				if (ownCity)
+					this.DrawText("G", 0, CassetteTheme.INK_LOW, gov.X + gov.Width - 26, gov.Y, TextAlign.Right);
+			}
+
 			DrawButton("MAP", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
 				px + pw - 36, rateY + rateH - 13, 34, 11);
+		}
+
+		// Where the governor field is drawn AND where it is clicked — one expression, because
+		// two hand-copied sums drifted apart once already (the hit box sat 2px above the row).
+		private Rectangle GovernorRect
+		{
+			get
+			{
+				int fh0 = Resources.GetFontHeight(0);
+				int rateY = BodyY + ColCenterW + 8 + ColGap;
+				int top   = rateY + 8 + 4 * (fh0 + 1) + 3;
+				return new Rectangle(ColCenterX + 4, top, ColCenterW - 8, fh0 + 4);
+			}
 		}
 
 		private void DrawNowBuilding(uint gameTick)
@@ -660,26 +690,6 @@ namespace CivOne.Screens
 				return new Rectangle(ColCenterX + ColCenterW - 36, rateY + rateH - 13, 34, 11);
 			}
 		}
-		private Rectangle ViewButtonRect
-		{
-			get
-			{
-				int rateY = BodyY + ColCenterW + 8 + ColGap;
-				int rateH = BodyY + BodyH - rateY;
-				return new Rectangle(ColCenterX + ColCenterW - 72, rateY + rateH - 13, 34, 11);
-			}
-		}
-		private Rectangle GovernorRect
-		{
-			get
-			{
-				int fh = Resources.GetFontHeight(0);
-				int fieldH = fh + 4;
-				int meterH = fh + 6;
-				int top = BodyY + 8 + 3 * meterH + 2 + 5 * fieldH;
-				return new Rectangle(ColLeftX + 4, top, ColLeftW - 8, fieldH);
-			}
-		}
 		private Rectangle ChangeRect    => new Rectangle(ColRightX + 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuyRect       => new Rectangle(ColRightX + 4 + (ColRightW - 10) / 2, BodyY + NowBuildingH - 14, (ColRightW - 10) / 2, 11);
 		private Rectangle BuildingsRect => new Rectangle(ColRightX, BuildingsY, ColRightW, BuildingsH);
@@ -858,9 +868,8 @@ namespace CivOne.Screens
 				return true;  // consume click in buildings panel
 			}
 
-			// MAP / VIEW buttons in RATES panel
+			// MAP button in the TRADE panel
 			if (MapButtonRect.Contains(args.Location))  return true;
-			if (ViewButtonRect.Contains(args.Location)) return true;
 
 			// Consume clicks in the left and center columns (no close action there)
 			if (new Rectangle(BodyX, BodyY, BodyW, BodyH).Contains(args.Location))
@@ -887,13 +896,6 @@ namespace CivOne.Screens
 			if (MapButtonRect.Contains(args.Location))
 			{
 				Common.AddScreen(new CityUnitMap(_city));
-				return true;
-			}
-
-			// VIEW button → cityscape panorama
-			if (ViewButtonRect.Contains(args.Location))
-			{
-				Common.AddScreen(new CityView(_city, viewOnly: true));
 				return true;
 			}
 

@@ -198,19 +198,22 @@ namespace CivOne.Tests
 			Assert.True(home.EconomicOutput > before);
 		}
 
-		// The city screen's income box. It is a Picture built from live values, so it is pinned
-		// at the source: a rendered 144x83 bitmap cannot be read back for its text.
+		// The city screen's culture readout, pinned at the source: the panel is drawn straight
+		// into the screen bitmap and a rendered bitmap cannot be read back for its text.
+		//
+		// This test used to read CityManagerPanels/CityInfo.cs, which nothing constructs — the
+		// live screen is Screens/CityManager.cs. So it passed for as long as the orphan kept
+		// its two lines, while the player saw no culture figure at all. If this file moves
+		// again, move the test with it; a green assertion against a file the game never draws
+		// is worth less than no test.
 		[Fact]
-		public void TheCityScreenBoxIsLabelledOutputAndShowsCulture()
+		public void TheCityScreenShowsThisCitysCultureRate()
 		{
 			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(Sim.RepoRoot(),
-				"src", "Screens", "CityManagerPanels", "CityInfo.cs"));
+				"src", "Screens", "CityManager.cs"));
 
-			Assert.Contains("Output:", src);
-			Assert.Contains("Culture:", src);
-			Assert.Contains("_city.EconomicOutput", src);
+			Assert.Contains("\"CULTURE\"", src);
 			Assert.Contains("_city.CultureRate", src);
-			Assert.DoesNotContain("$\"Trade:", src);
 		}
 
 		// The cache has to move with the routes, or the first read of a city freezes its
