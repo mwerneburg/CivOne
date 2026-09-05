@@ -1514,16 +1514,37 @@ namespace CivOne
 		internal bool GovernorOrder  { get; set; }
 		internal bool GovernorGrowth { get; set; }
 
-		internal void AutoAssignCitizens() => AutoAssignCitizens(order: true, growth: true);
+		// The culture governor. Steps 4 and 5 below could always buy and type artists, but
+		// both read Player.AI.Path — and Player.AI is null for a human unless Autopilot is on
+		// (Player.cs). So for a human city `path` was ALWAYS null: artistQuota was always 0
+		// and `preferred` was always Scientist or Taxman. The governor could not produce a
+		// single artist at any setting, and a player chasing Cultural Ascendancy had to place
+		// every one of them by hand, one city at a time.
+		//
+		// This does not add a second implementation of that logic. It lets a human city
+		// declare the objective the AI declares through ChoosePath, and the existing steps do
+		// the rest — the same quota, the same food floor, the same reasoning about why the
+		// artist is the only specialist worth buying deliberately.
+		internal bool GovernorCulture { get; set; }
+
+		internal void AutoAssignCitizens() => AutoAssignCitizens(order: true, growth: true, culture: false);
 
 		internal void AutoAssignCitizens(bool order, bool growth)
+			=> AutoAssignCitizens(order, growth, culture: false);
+
+		internal void AutoAssignCitizens(bool order, bool growth, bool culture)
 		{
 			if (Size == 0) return;
-			if (!order && !growth) return;   // not enrolled: do not touch this city at all
+			if (!order && !growth && !culture) return;   // not enrolled: do not touch this city
 
 			// Read once. The Path getter re-derives through ChoosePath on its review turns,
 			// and this runs per city per turn; it is wanted twice below.
-			AI.VictoryPath? path = Player.AI?.Path;
+			//
+			// A human city enrolled in the culture governor answers Culture here, which is the
+			// whole of the feature: steps 4 and 5 are already written against this value and
+			// need no knowledge of who set it. An AI city is unaffected — nothing passes
+			// culture:true for one, and its own Path still decides.
+			AI.VictoryPath? path = culture ? AI.VictoryPath.Culture : Player.AI?.Path;
 			int artistQuota = path == AI.VictoryPath.Culture && Size >= ArtistCityFloor
 				? Size / ArtistPerPopulace : 0;
 

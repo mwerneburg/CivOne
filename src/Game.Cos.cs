@@ -849,6 +849,7 @@ namespace CivOne
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
 				city.GovernorOrder  = ((cd.Governors ?? 0) & 1) != 0;
 				city.GovernorGrowth = ((cd.Governors ?? 0) & 2) != 0;
+				city.GovernorCulture = ((cd.Governors ?? 0) & 4) != 0;
 				city.LoadTechStolen(cd.TechStolen ?? false, GameTurn);
 				cityById[cd.Id] = city;
 				_cities.Add(city);
@@ -1090,10 +1091,13 @@ namespace CivOne
 			return $"{rank} {human.LeaderName}, {human.TribeNamePlural} / {year}";
 		}
 
-		// Citizen governors as a bitfield: bit 0 = order, bit 1 = growth. Two booleans in one
-		// optional field, so a save from a game that never used them carries nothing extra.
+		// Citizen governors as a bitfield: bit 0 = order, bit 1 = growth, bit 2 = culture.
+		// Booleans in one optional field, so a save from a game that never used them carries
+		// nothing extra — and a save written before culture existed simply has the bit clear,
+		// which reads back as the off state it was.
 		private static int GovernorBits(City city)
-			=> (city.GovernorOrder ? 1 : 0) | (city.GovernorGrowth ? 2 : 0);
+			=> (city.GovernorOrder ? 1 : 0) | (city.GovernorGrowth ? 2 : 0)
+			 | (city.GovernorCulture ? 4 : 0);
 
 		private static string PackFirstExplorer(byte[,] fe)
 		{

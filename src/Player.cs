@@ -1225,7 +1225,7 @@ namespace CivOne
 			// neither is not touched.
 			if (AI is null)
 				foreach (City city in Cities)
-					city.AutoAssignCitizens(city.GovernorOrder, city.GovernorGrowth);
+					city.AutoAssignCitizens(city.GovernorOrder, city.GovernorGrowth, city.GovernorCulture);
 			AI?.ConsiderSliders();
 			AI?.ConsiderGarrisonUpkeep();
 			AI?.ConsiderDivestment();

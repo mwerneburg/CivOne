@@ -91,9 +91,14 @@ namespace CivOne.Tests
 		// The templates are meant to sit inert until somebody draws in one. If a header goes
 		// live while still full of zeros the test above catches it; this catches the subtler
 		// case of the templates quietly disappearing from the file altogether.
+		//
+		// This list is the roster of units still AWAITING art, so a unit leaves it the moment
+		// somebody draws one: CruiseMissile and ReaperDrone were drawn in 1679a428/3fe27938,
+		// and asserting their template is still a blank asserts their art does not exist. They
+		// lose nothing by going — the three tests above walk every live section and now cover
+		// them, including NoSectionIsEntirelyTransparent, which is the check this file exists
+		// for. Add a unit back here only if its section is removed and re-commented.
 		[Theory]
-		[InlineData("CruiseMissile")]
-		[InlineData("ReaperDrone")]
 		[InlineData("HydroEngineer")]
 		[InlineData("SeaCaravan")]
 		public void TheBlankTemplateIsPresentAndStillCommented(string unit)

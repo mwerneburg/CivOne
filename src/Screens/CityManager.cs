@@ -232,7 +232,8 @@ namespace CivOne.Screens
 		}
 
 		internal static string GovernorLabel(City city)
-			=> (city.GovernorOrder, city.GovernorGrowth) switch
+			=> city.GovernorCulture ? "CULTURE"
+			 : (city.GovernorOrder, city.GovernorGrowth) switch
 			{
 				(true,  true)  => "BOTH",
 				(true,  false) => "ORDER",
@@ -240,26 +241,38 @@ namespace CivOne.Screens
 				_              => "OFF",
 			};
 
-		// OFF -> GROWTH -> ORDER -> BOTH -> OFF. One control rather than two, because the
-		// panel is a column of single-line fields and a four-step cycle reaches every
-		// combination in at most three presses.
+		// OFF -> GROWTH -> ORDER -> BOTH -> CULTURE -> OFF. One control rather than three,
+		// because the panel is a column of fields and a five-step cycle still reaches every
+		// state in at most four presses.
 		//
 		// GROWTH comes first deliberately. "This city is capped at 7, stop farming for
 		// nothing" is a fact about the rules that a player can check at a glance. ORDER
 		// silently changes what a city PRODUCES to quell a malcontent, which is a strategy
         // decision — so it is never what you get by tapping the control once.
+		//
+		// CULTURE comes last and is a superset of BOTH, not an alternative to it: it runs the
+		// order and growth passes AND spends what is left on artists. Culture is an OBJECTIVE
+		// where the other two are repairs, and an objective pursued in a rioting city buys
+		// nothing — a city in disorder produces no culture to speak of, so stacking artists
+		// there while the riot ran would be the governor working against itself. That is also
+		// why there is no ORDER+CULTURE or GROWTH+CULTURE: every useful combination already
+		// includes both repairs, and the eight states they would need cannot be reached in
+		// four presses.
 		private bool CycleGovernor()
 		{
 			if (_viewCity || _city.Player != Game.HumanPlayer) return true;
-			(bool order, bool growth) = (_city.GovernorOrder, _city.GovernorGrowth) switch
+			(bool order, bool growth, bool culture) =
+				(_city.GovernorOrder, _city.GovernorGrowth, _city.GovernorCulture) switch
 			{
-				(false, false) => (false, true),
-				(false, true)  => (true,  false),
-				(true,  false) => (true,  true),
-				_              => (false, false),
+				(false, false, false) => (false, true,  false),   // OFF     -> GROWTH
+				(false, true,  false) => (true,  false, false),   // GROWTH  -> ORDER
+				(true,  false, false) => (true,  true,  false),   // ORDER   -> BOTH
+				(true,  true,  false) => (true,  true,  true),    // BOTH    -> CULTURE
+				_                     => (false, false, false),   // CULTURE -> OFF
 			};
-			_city.GovernorOrder  = order;
-			_city.GovernorGrowth = growth;
+			_city.GovernorOrder   = order;
+			_city.GovernorGrowth  = growth;
+			_city.GovernorCulture = culture;
 			_update = true;
 			return true;
 		}
@@ -374,7 +387,12 @@ namespace CivOne.Screens
 			int rateY = py + mapPanelH + ColGap;
 			int rateH = BodyY + BodyH - rateY;
 			if (rateH < 14) return;
-			this.DrawCassettePanel(px, rateY, pw, rateH, "TRADE");
+			// "OUTPUT", not "TRADE". Decided in 6a2e7e32 ("the city screen's income box is
+			// relabelled from Trade to Output") and implemented there into
+			// CityManagerPanels/CityInfo.cs, which nothing constructs — so the rename never
+			// reached the screen. It also un-duplicates a title: DrawTradeRoutes draws a
+			// panel called TRADE in the left column, and the two sat side by side.
+			this.DrawCassettePanel(px, rateY, pw, rateH, "OUTPUT");
 
 			int taxRate = _city.Player?.TaxesRate   ?? 0;
 			int luxRate = _city.Player?.LuxuriesRate ?? 0;
@@ -384,30 +402,44 @@ namespace CivOne.Screens
 			int rowW = pw - 8;
 			int rowY = rateY + 8;
 
-			// The rate is the empire slider; the output is what THIS city yields, so
-			// cycling a specialist visibly moves its own row by 2.
+			// Two lines per figure, not a three-column table. This column is the narrowest
+			// of the three, and at the default window size label + rate + value did not fit
+			// on one line: SCIENCE and LUXURY ran through their own percentages and GOVERNOR
+			// ran through its value. Stacking cannot collide however narrow the column gets
+			// or however large the number does, and the space below is empty anyway.
 			//
-			// CULTURE has no rate and deliberately shows none. The other three are slices of
-			// this city's trade and must sum to it; culture is not paid for out of trade at
-			// all — it comes off the buildings, the wonders and the artists (City.CultureRate)
-			// — so a percentage in that column would be a lie about where it comes from. It
-			// sits with them because it is the fourth thing a city produces per turn, and
-			// because the cultural victory is otherwise invisible from inside a city.
-			(string label, int rate, int output, byte color)[] rows =
+			// The rate is the empire slider; the value is what THIS city yields, so cycling a
+			// specialist visibly moves its own row by 2.
+			//
+			// CULTURE and OUTPUT have no rate and deliberately show none. TAX, SCIENCE and
+			// LUXURY are slices of this city's trade and must sum to it. Culture is not paid
+			// for out of trade at all — it comes off the buildings, the wonders and the
+			// artists (City.CultureRate). OUTPUT is City.EconomicOutput: the same trade after
+			// the Marketplace and Bank multipliers, plus taxmen, which is a DIFFERENT total
+			// and not a share of anything. A percentage against either would misdescribe it.
+			//
+			// OUTPUT is here because it is the number Pax Mercatoria judges the player on and
+			// it appeared nowhere inside a city — the same complaint the Economic Output graph
+			// on the CivilizationScore report was added to answer, one scale down. CULTURE
+			// sits directly beneath it because 6a2e7e32 put it there: "with the city's culture
+			// rate beneath it". The trade arrows the city actually collects stay on the
+			// TAX/SCIENCE/LUXURY lines above, which is the rest of that same sentence.
+			(string label, int rate, int value, byte color)[] rows =
 			{
-				("TAX",     taxRate * 10, _city.Taxes,     CassetteTheme.PHOS_DIM),
-				("SCIENCE", sciRate * 10, _city.Science,   CassetteTheme.OK),
-				("LUXURY",  luxRate * 10, _city.Luxuries,  CassetteTheme.CYAN),
-				("CULTURE", -1,           _city.CultureRate, CassetteTheme.PHOS),
+				("TAX",     taxRate * 10, _city.Taxes,          CassetteTheme.PHOS_DIM),
+				("SCIENCE", sciRate * 10, _city.Science,        CassetteTheme.OK),
+				("LUXURY",  luxRate * 10, _city.Luxuries,       CassetteTheme.CYAN),
+				("OUTPUT",  -1,           _city.EconomicOutput, CassetteTheme.INK_HIGH),
+				("CULTURE", -1,           _city.CultureRate,    CassetteTheme.PHOS),
 			};
-			foreach (var (label, rate, output, color) in rows)
+			int limit = rateY + rateH - 13;
+			foreach (var (label, rate, value, color) in rows)
 			{
-				if (rowY + fh0 > rateY + rateH - 13) break;
-				this.DrawText(label,        0, CassetteTheme.INK_MID, rowX,             rowY);
-				if (rate >= 0)
-					this.DrawText($"{rate}%", 0, CassetteTheme.INK_LOW, rowX + rowW - 22, rowY, TextAlign.Right);
-				this.DrawText($"{output}",  0, color,                 rowX + rowW,      rowY, TextAlign.Right);
-				rowY += fh0 + 1;
+				if (rowY + StackedRowH > limit) break;
+				this.DrawText(rate >= 0 ? $"{label} {rate}%" : label,
+					0, CassetteTheme.INK_MID, rowX, rowY);
+				this.DrawText($"{value}", 0, color, rowX + rowW, rowY + fh0 + 1, TextAlign.Right);
+				rowY += StackedRowH;
 			}
 
 			// Governor, directly under what it acts on. It used to sit at the bottom of the
@@ -415,25 +447,38 @@ namespace CivOne.Screens
 			// control on that panel looked like a fifth number, and the G went unnoticed. Here
 			// it reads as what it is: the thing that decides who works which tile, under the
 			// figures that move when it does.
+			//
+			// Stacked like the rows above rather than drawn with DrawCassetteField, which puts
+			// label and value on one line and so collided in this column.
 			Rectangle gov = GovernorRect;
-			if (gov.Bottom <= rateY + rateH - 13)
+			if (gov.Bottom <= limit)
 			{
 				bool ownCity = !_viewCity && _city.Player == Game.HumanPlayer;
 				byte govColor = (_city.GovernorOrder || _city.GovernorGrowth)
 					? CassetteTheme.OK
 					: CassetteTheme.INK_MID;
-				this.DrawCassetteField("GOVERNOR", ownCity ? GovernorLabel(_city) : "OFF",
-					gov.X, gov.Y, gov.Width, 0,
-					ownCity ? govColor : CassetteTheme.INK_LOW);
+				this.DrawCassetteDivider(gov.X, gov.Y - 3, gov.Width);
+				this.DrawText("GOVERNOR", 0, CassetteTheme.INK_MID, gov.X, gov.Y);
 				// The only control on this screen that had no affordance at all. Every other
 				// one is a button or carries its key (R-RENAME, ESC).
 				if (ownCity)
-					this.DrawText("G", 0, CassetteTheme.INK_LOW, gov.X + gov.Width - 26, gov.Y, TextAlign.Right);
+					this.DrawText("G", 0, CassetteTheme.INK_LOW, gov.X + gov.Width, gov.Y, TextAlign.Right);
+				this.DrawText(ownCity ? GovernorLabel(_city) : "OFF",
+					0, ownCity ? govColor : CassetteTheme.INK_LOW,
+					gov.X + gov.Width, gov.Y + fh0 + 1, TextAlign.Right);
 			}
 
 			DrawButton("MAP", 0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3,
 				px + pw - 36, rateY + rateH - 13, 34, 11);
 		}
+
+		// A label line, a value line, and a gap. Stated once: the rows, the governor beneath
+		// them and the hit box all step by it.
+		private static int StackedRowH => 2 * (Resources.GetFontHeight(0) + 1) + 3;
+
+		// How many stacked figures sit above the governor (TAX, SCIENCE, LUXURY, CULTURE,
+		// OUTPUT). Named so the rect below cannot fall out of step with the array above.
+		private const int CentreColumnRows = 5;
 
 		// Where the governor field is drawn AND where it is clicked — one expression, because
 		// two hand-copied sums drifted apart once already (the hit box sat 2px above the row).
@@ -443,8 +488,8 @@ namespace CivOne.Screens
 			{
 				int fh0 = Resources.GetFontHeight(0);
 				int rateY = BodyY + ColCenterW + 8 + ColGap;
-				int top   = rateY + 8 + 4 * (fh0 + 1) + 3;
-				return new Rectangle(ColCenterX + 4, top, ColCenterW - 8, fh0 + 4);
+				int top   = rateY + 8 + CentreColumnRows * StackedRowH + 3;
+				return new Rectangle(ColCenterX + 4, top, ColCenterW - 8, 2 * (fh0 + 1));
 			}
 		}
 

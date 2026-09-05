@@ -57,6 +57,115 @@ namespace CivOne.Tests
 			return (g, ai, c);
 		}
 
+		// A HUMAN city, which is the whole point of the culture governor's tests below: the
+		// defect they cover is human-only. Player.AI is null for a human unless Autopilot is
+		// on, so `path` in AutoAssignCitizens read null for every human city and the artist
+		// steps were unreachable no matter what the player switched on. Built on the AI
+		// helper's terms — Monarchy and irrigated grassland — for the same reason it states
+		// them: under Despotism the tile penalty leaves no surplus and every assertion here
+		// would pass vacuously.
+		private static (Game game, Player human, City city) AHumanCity(int size)
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = false;
+			for (int y = 15; y <= 35; y++)
+			for (int x = 20; x <= 60; x++)
+			{
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+				Map.Instance[x, y].Irrigation = true;
+			}
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Game g = Game.Instance;
+			Player human = g.HumanPlayer;
+			human.Government = new Monarchy();
+			human.Explore(40, 25, range: 20);
+			City c = g.AddCity(human, 0, 40, 25)!;
+			c.Size = (byte)size;
+			// Temple AND Colosseum, which is not decoration. The first draft gave a size-20
+			// city a Temple only: it rioted, step 2 spent all seven spare citizens as
+			// Entertainers, and step 5 correctly refused to retype an entertainer that was
+			// holding the city together — so the city produced ZERO artists and the test
+			// failed against working code. A culture governor can only spend citizens a city
+			// can spare, so the fixture has to make some sparable.
+			c.AddBuilding(new Temple());
+			c.AddBuilding(new Colosseum());
+			c.ResetResourceTiles();
+			Sim.ClearTasks();
+			Assert.Null(human.AI);   // the condition the defect lived under
+			return (g, human, c);
+		}
+
+		private static int Artists(City c) => c.Citizens.Count(z => z == Citizen.Artist);
+
+		// The reported case: a player chasing culture had to strip tiles by hand, one city at
+		// a time, because no governor setting would do it. Player.AI is null for a human
+		// unless Autopilot is on, so `path` in AutoAssignCitizens read null for every human
+		// city — artistQuota was 0 and `preferred` was Scientist or Taxman, always.
+		//
+		// A floor, not an equality. artistQuota governs what step 4 BUYS deliberately; step 5
+		// then types every specialist the city has as the preferred kind, including the ones
+		// steps 2 and 3 freed from a riot or a growth cap. A size-10 city here yields 4
+		// artists against a quota of 2 for exactly that reason, and pinning the exact number
+		// would pin the fixture's happiness arithmetic rather than the feature.
+		[Fact]
+		public void TheCultureGovernorBuysArtistsInAHumanCity()
+		{
+			(_, _, City c) = AHumanCity(size: 10);
+
+			c.AutoAssignCitizens(order: true, growth: true, culture: true);
+
+			Assert.True(Artists(c) >= c.Size / City.ArtistPerPopulace,
+				$"the culture governor made {Artists(c)} artists, below its own quota");
+		}
+
+		// ...and the same city, enrolled in everything EXCEPT culture, makes none at all. This
+		// is the half that fails if the flag is ignored and the quota is simply turned on for
+		// everybody: without it the test above passes against a governor that hands out
+		// artists whether or not they were asked for. The specialists still exist here — they
+		// are typed Scientist or Taxman, which is what a human city has always got.
+		[Fact]
+		public void TheOtherGovernorsBuyNoArtists()
+		{
+			(_, _, City c) = AHumanCity(size: 10);
+
+			c.AutoAssignCitizens(order: true, growth: true, culture: false);
+
+			Assert.Equal(0, Artists(c));
+		}
+
+		// Below ArtistCityFloor the quota is zero, so a small city is left to farm rather than
+		// gutted. Step 5 could still TYPE a specialist as an artist here if a riot or a growth
+		// cap had produced one; this city is small, fed and content, so it has none to type.
+		[Fact]
+		public void ASmallCityIsLeftToFarmUnderTheCultureGovernor()
+		{
+			(_, _, City c) = AHumanCity(size: City.ArtistCityFloor - 1);
+
+			c.AutoAssignCitizens(order: true, growth: true, culture: true);
+
+			Assert.Equal(0, Artists(c));
+		}
+
+		// The enrolment survives a save, or the player re-enrols every city on every load.
+		// Bit 2 of the Governors field; a save written before it existed reads back as off.
+		[Fact]
+		public void TheCultureEnrolmentSurvivesASave()
+		{
+			(Game g, _, City c) = AHumanCity(size: 10);
+			c.GovernorOrder = c.GovernorGrowth = c.GovernorCulture = true;
+			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "culturegov.cos");
+			g.SaveCos(path);
+
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "load failed");
+
+			City back = Game.Instance.GetCities().First(x => x.X == 40 && x.Y == 25);
+			Assert.True(back.GovernorCulture);
+			Assert.True(back.GovernorOrder);
+			Assert.True(back.GovernorGrowth);
+		}
+
 		// All FOUR specialist types. The Artist was added later and omitting it here made this
 		// helper silently under-count — a culture-path civ parks its spare citizens as artists,
 		// so "the cap parked some citizens" read as zero and the precondition failed.
