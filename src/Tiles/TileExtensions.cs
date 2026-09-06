@@ -312,7 +312,19 @@ namespace CivOne.Tiles
 
 			bool stack = (units.Length > 1);
 			IUnit unit = units.First();
-			if (tile.IsOcean) unit = units.FirstOrDefault(x => x.Class == UnitClass.Water) ?? units.FirstOrDefault(x => !(x.Class == UnitClass.Land && x.Sentry));
+			// On water, prefer the boat: a land unit asleep as CARGO should not be drawn over
+			// the ship carrying it. The trailing fallback is what stops that becoming a lie —
+			// sea tubes let a land unit stand on ocean with no boat under it at all, and
+			// without it a tile holding only sentried land units resolved to null and drew
+			// NOTHING. An occupied tile rendered as empty sea hid an Olvir settler parked on a
+			// trans-Atlantic tube for the rest of a game: caravans routed around a tile that
+			// looked empty, and the player's own sleeping caravans vanished where they stood.
+			// Sixteen tiles in that one save were invisibly occupied.
+			//
+			// Whatever else is true, a tile with a unit on it must draw a unit.
+			if (tile.IsOcean) unit = units.FirstOrDefault(x => x.Class == UnitClass.Water)
+			                      ?? units.FirstOrDefault(x => !(x.Class == UnitClass.Land && x.Sentry))
+			                      ?? units.First();
 			if (Game.Started && Game.ActiveUnit is not null && !Game.ActiveUnit.Moving && Game.ActiveUnit.X == tile.X && Game.ActiveUnit.Y == tile.Y) unit = Game.ActiveUnit;
 			if (unit is null) return null;
 			

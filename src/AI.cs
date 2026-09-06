@@ -270,6 +270,18 @@ namespace CivOne
 					return;
 				}
 				// Nowhere to go: wait rather than re-deciding every turn.
+				//
+				// ...but never asleep on open water with no hull under it. That unit is
+				// standing on a tube, where sentry means "blocks this tile forever" — the
+				// selection loop skips sentried units, so it would never wake on its own.
+				// SkipTurn rests it for this turn only. See AI.Strategy.WakeSeaSleepers,
+				// which cleans up the ones already asleep out there.
+				if (unit.Tile is not null && unit.Tile.IsOcean && unit.Tile.City is null
+				    && !unit.Tile.Units.Any(x => x.Class == UnitClass.Water))
+				{
+					unit.SkipTurn();
+					return;
+				}
 				unit.Sentry = true;
 				return;
 			}

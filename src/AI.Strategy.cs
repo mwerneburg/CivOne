@@ -2802,6 +2802,40 @@ namespace CivOne
 			}
 
 			WakeHunters();
+			WakeSeaSleepers();
+		}
+
+		// A land unit asleep on open water with no hull under it is standing on a TUBE, and
+		// sleeping there is never a state worth keeping. It defends nothing — there is nothing
+		// on an ocean tile to defend — and the unit-selection loop in Game.cs skips anything
+		// sentried, so it will never be offered a decision again. Meanwhile it is a wall:
+		// Common.Blocks makes a foreign unit impassable to a non-combat unit even at PEACE, so
+		// one sleeping settler severs a tube line permanently. Observed in game 3de868a5: an
+		// Olvir settler slept on the Frankish trans-Atlantic tube north-east of Panama for the
+		// last hundred turns of the game, diverting every caravan that tried to use it, and
+		// could not even be cleared away because the tile could not be entered.
+		//
+		// The hull test is the whole of the care needed here. A sentried land unit on ocean is
+		// ALSO how cargo rides a Transport — AssignMission sentries the passenger deliberately
+		// — and waking those would unload every invasion fleet at sea. A tube has no hull on
+		// it; a boat does. (TileExtensions.UnitsToPicture draws the same distinction, for the
+		// same reason.)
+		//
+		// Goto is deliberately NOT cleared, unlike WakeHunters: this unit was going somewhere
+		// before it fell asleep, and the point is that it resumes.
+		internal void WakeSeaSleepers()
+		{
+			byte own = Game.PlayerNumber(Player);
+			foreach (IUnit unit in Game.Instance.GetUnits()
+				.Where(u => u.Owner == own && u.Class == UnitClass.Land && u.Sentry
+				         && u.Tile is not null && u.Tile.IsOcean && u.Tile.City is null
+				         && !u.Tile.Units.Any(x => x.Class == UnitClass.Water))
+				.ToArray())
+			{
+				// Busy, not Sentry = false — the Busy setter is the one that clears all three
+				// flags. See WakeHunters.
+				unit.Busy = false;
+			}
 		}
 
 		internal void WakeHunters()
