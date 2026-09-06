@@ -19,7 +19,8 @@ namespace CivOne.Screens
 	[Modal, Expand]
 	internal class EventArtScreen : BaseScreen
 	{
-		private readonly string _caption;
+		// The whole sentence under the art, e.g. "Rome has been induced to join the Romans."
+		internal string Caption { get; }
 
 		// Which event this art is for ("welovethekingday", "pollution", ...). The screen is
 		// shared by a dozen unrelated events, so anything that wants to purge ONE kind from
@@ -106,7 +107,7 @@ namespace CivOne.Screens
 
 			this.AddScanlines();
 
-			this.DrawText(_caption, 0, CassetteTheme.INK_HIGH, Width / 2, Height - 9, TextAlign.Center);
+			this.DrawText(Caption, 0, CassetteTheme.INK_HIGH, Width / 2, Height - 9, TextAlign.Center);
 
 			return true;
 		}
@@ -116,7 +117,7 @@ namespace CivOne.Screens
 
 		internal EventArtScreen(string artPath, string caption, string? artKey = null)
 		{
-			_caption = caption;
+			Caption = caption;
 			ArtKey = artKey;
 			OnResize += (s, e) => _update = true;
 

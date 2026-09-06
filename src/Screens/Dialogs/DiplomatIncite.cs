@@ -38,12 +38,9 @@ namespace CivOne.Screens.Dialogs
 		{
 			Player previousOwner = Game.GetPlayer(_cityToIncite.Owner);
 
-			// Show the incite-rebellion art for a diplomat-caused flip; fall back to the
+			// Show the incite-rebellion art for a diplomat-caused flip; falls back to the
 			// generic city-capture view if the art file isn't present.
-			string? artPath = CivOne.Screens.ImprovementArtScreen.FindArtPath("Incite Rebellion", "event_art");
-			Show captureCity = artPath is not null
-				? Show.Screen(new CivOne.Screens.ImprovementArtScreen(artPath, "Incite Rebellion", _cityToIncite.Name))
-				: Show.CaptureCity(_cityToIncite);
+			Show captureCity = Show.IncitedCity(_cityToIncite, _diplomat.Player);
 			captureCity.Done += (s1, a1) =>
 			{
 				byte oldOwner = _cityToIncite.Owner;

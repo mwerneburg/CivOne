@@ -28,6 +28,10 @@ namespace CivOne.Tasks
 		// TEMPORARY (2026-08-04) — see GameTask.ProbeName.
 		internal override string ProbeName => "Show:" + _screen.GetType().Name;
 
+		// For tests: what this task will put on screen. ProbeName gives the type; this gives
+		// the instance, so a caption can be checked without running the SDL loop.
+		internal IScreen Displayed => _screen;
+
 		public void Closed(object sender, EventArgs args) => EndTask();
 
 		public override void Run()
@@ -221,6 +225,18 @@ namespace CivOne.Tasks
 		public static Show DiplomatIncite(City enemyCity, Diplomat diplomat) => new Show(new DiplomatIncite(enemyCity, diplomat));
 
 		public static Show DiplomatSabotage(City enemyCity, Diplomat diplomat) => new Show(new DiplomatSabotage(enemyCity, diplomat));
+
+		// A city bought out from under its owner is not a construction project. This art used
+		// to be served through ImprovementArtScreen (reaching event_art by a subDirectory hop),
+		// which captioned every screen it drew "<city> has built <name>." — so a bribed city
+		// announced itself as having built "Incite Rebellion". EventArtScreen takes the sentence.
+		public static Show IncitedCity(City city, Player newOwner)
+		{
+			string? art = CivOne.Screens.EventArtScreen.FindPath("incite_rebellion");
+			return art is null
+				? CaptureCity(city)
+				: new Show(new CivOne.Screens.EventArtScreen(art, $"{city.Name} has been induced to join the {newOwner.TribeNamePlural}.", "incite_rebellion"));
+		}
 
 		public static Show IncitedCityResponse(City city, Player inciter) => new Show(new IncitedCityResponse(city, inciter));
 

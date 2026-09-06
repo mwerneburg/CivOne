@@ -200,11 +200,7 @@ namespace CivOne.Units
 
 						// Human's city was incited away — show the rebellion art.
 						if (Game.Animations && humanVictim)
-						{
-							string? artPath = CivOne.Screens.ImprovementArtScreen.FindArtPath("Incite Rebellion", "event_art");
-							if (artPath is not null)
-								GameTask.Insert(Show.Screen(new CivOne.Screens.ImprovementArtScreen(artPath, "Incite Rebellion", target.Name)));
-						}
+							GameTask.Insert(Show.IncitedCity(target, Player));
 						return true;
 					}
 

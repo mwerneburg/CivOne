@@ -28,13 +28,13 @@ namespace CivOne.Screens
 		private int _scaledW, _scaledH;
 		private bool _update = true;
 
-		internal static string? FindArtPath(string improvementName, string subDirectory = "improvement_art")
+		internal static string? FindArtPath(string improvementName)
 		{
 			if (string.IsNullOrEmpty(improvementName)) return null;
 			try
 			{
 				string file = improvementName.ToLower().Replace(' ', '_') + ".png";
-				string path = Path.Combine(Settings.Instance.DataDirectory, subDirectory, file);
+				string path = Path.Combine(Settings.Instance.DataDirectory, "improvement_art", file);
 				return File.Exists(path) ? path : null;
 			}
 			catch { return null; }
