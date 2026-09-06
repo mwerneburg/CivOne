@@ -293,9 +293,26 @@ namespace CivOne.Units
 			if (tile.Type != Terrain.Ocean)
 				return true;
 
-			// Ocean tubes (built by Hydro Engineers) and floating cities are walkable bridges for land units.
-			if (tile.TransportTube || tile.City is not null)
+			// Ocean tubes and floating cities are walkable bridges for land units — but you
+			// BOARD the undersea section at a city. A sea tube is a tunnel, not a causeway:
+			// you enter it at a terminal and you travel it end to end.
+			//
+			// The consequence is deliberate and is the point of the rule: a sea tube line is
+			// only useful if it starts at a coastal city, so a network has to be planned to
+			// its terminations rather than sprawled. A LAND tube running to the shore is not
+			// a way in either — the junction needs a city, which is what makes coastal cities
+			// ports.
+			//
+			// Note what is NOT restricted. Leaving the tube is free: a unit already at sea can
+			// always step ashore, so nothing is ever stranded mid-ocean, and units standing on
+			// tube lines in saves written before this rule can travel and disembark exactly as
+			// they did. Only stepping IN from open country is new.
+			//
+			// HydroEngineer is unaffected throughout: it is a BaseUnitSea and never asks this.
+			if (tile.City is not null)
 				return true;
+			if (tile.TransportTube)
+				return Tile.City is not null || (Tile.IsOcean && Tile.TransportTube);
 
 			// This query checks if there's a boardable cargo vessel with free slots on the tile.
 			return (tile.Units.Any(x => x.Owner == Owner) && tile.Units.Any(u => (u is IBoardable)) && tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable)!.Cargo) > tile.Units.Count(u => u.Class == UnitClass.Land));
