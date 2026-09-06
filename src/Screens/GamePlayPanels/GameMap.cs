@@ -568,11 +568,22 @@ namespace CivOne.Screens.GamePlayPanels
 					Game.ActiveUnit.Fortify = true;
 					break;
 				case 'U':
-					if (Game.ActiveUnit is IBoardable)
+					// Unload, then Upgrade. The two never contend: a hull cannot upgrade and an
+					// upgradeable unit carries nothing.
+					//
+					// Dispatched per hull type rather than through IBoardable alone. This read
+					// `(ActiveUnit as BaseUnitSea)!.Unload()` guarded only by `is IBoardable`,
+					// which was safe while every carrier was a ship — the Dirigible is
+					// IBoardable and is NOT a BaseUnitSea, so the cast yielded null and the
+					// call threw. The `!` silenced the compiler, not the crash.
+					if (Game.ActiveUnit is BaseUnitSea seaHull && Game.ActiveUnit is IBoardable)
+						return seaHull.Unload();
+					if (Game.ActiveUnit is Units.Dirigible airship)
 					{
-						return (Game.ActiveUnit as BaseUnitSea)!.Unload();;
+						airship.Unload();
+						return true;
 					}
-					break;
+					return ActivateUnitMenuShortcut("u");
 				// ('W' is not here: KeyDown above claims it for wake-next-sleeping-unit and
 				// always returns, so this case was unreachable. Wait is 'z'.)
 				// Settler terraform / auto actions: dispatch to the active unit's own

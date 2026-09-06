@@ -108,10 +108,9 @@ namespace CivOne.Units
 				// Unload is the whole reason a player flies one of these anywhere.
 				if (!Map[X, Y].IsOcean || Map[X, Y].City is not null || Map[X, Y].TransportTube)
 				{
-					MenuItem<int> unload = MenuItem<int>.Create("Unload");
-					unload.Shortcut = "u";
-					unload.Selected += (s, a) => Unload();
-					yield return unload;
+					yield return MenuItem<int>.Create("Unload")
+						.SetShortcut("u")
+						.OnSelect((s, a) => Unload());
 				}
 				if (Map[X, Y].City is not null)
 				{

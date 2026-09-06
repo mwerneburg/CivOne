@@ -1217,7 +1217,11 @@ namespace CivOne.Units
 		protected MenuItem<int>? MenuUpgrade()
 		{
 			if (!CanUpgrade(out UnitType targetType, out string targetName, out int cost)) return null;
+			// 'u', shared with Unload — see GameMap's 'U' case. Nothing that carries cargo can
+			// upgrade and nothing that can upgrade carries cargo, so the two never contend for
+			// the key. The label has no room to advertise it; the key works anyway.
 			return MenuItem<int>.Create($"Upgrade to {targetName} ({cost}g)")
+				.SetShortcut("u")
 				.OnSelect((s, a) => Game.UpgradeUnit(this, targetType, cost));
 		}
 
