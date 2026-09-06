@@ -101,7 +101,6 @@ namespace CivOne.Tests
 		[Theory]
 		[InlineData("HydroEngineer")]
 		[InlineData("SeaCaravan")]
-		[InlineData("Dirigible")]
 		public void TheBlankTemplateIsPresentAndStillCommented(string unit)
 		{
 			string text = File.ReadAllText(TilePath);

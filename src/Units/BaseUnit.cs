@@ -739,7 +739,10 @@ namespace CivOne.Units
 		protected void MovementTo(int relX, int relY)
 		{
 			MovementStart(Tile);
-			Movement = new MoveUnit(relX, relY, MoveIsVisible);
+			// Free steps get a quicker slide — see MoveUnit.StepSizeFor. Read before the move,
+			// where MovementDone's identical test is read after it.
+			Movement = new MoveUnit(relX, relY, MoveIsVisible,
+				MoveUnit.StepSizeFor(Tile, Tile[relX, relY]));
 			Movement!.Done += MoveEnd;
 			GameTask.Insert(Movement!);
 		}
