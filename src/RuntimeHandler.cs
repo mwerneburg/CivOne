@@ -207,7 +207,39 @@ namespace CivOne
 		private bool FastForwarding =>
 			!Settings.WatchMode &&
 			GameTask.Any() && GameTask.Fast && Game.Started &&
-			(Settings.Autopilot || !Game.Instance.CurrentPlayer.IsHuman);
+			(Settings.Autopilot || !Game.Instance.CurrentPlayer.IsHuman || HumanGotoInFlight);
+
+		// ...and the human's own unit crossing the map under GoTo. The player named a
+		// destination and asked not to be consulted on the way; a rail or tube step costs no
+		// movement point, so a single order can span forty tiles, and at 60 Hz that is ten
+		// seconds of watching a sprite slide.
+		//
+		// This drops the PACING, not the drawing. The unit still animates every tile — the
+		// journey stays legible, it simply runs at the batch budget instead of frame rate.
+		// Deliberately not the same thing as skipping the animation: the step-by-step read of
+		// a unit crossing the board is the texture of the game, and a unit that teleports has
+		// stopped playing it.
+		//
+		// The safety is the one the AI case already relies on and is unchanged: FastForwarding
+		// also requires GameTask.Fast, which is false the moment a non-Fast task fronts the
+		// queue — an advisor, a hut, a combat, a story screen. Anything that wants the
+		// player's eyes drops back to 60 Hz on its own.
+		//
+		// Goto is cleared at the destination (BaseUnit.MoveEnd), so the last step into the
+		// target tile paces normally and an arrival still reads as an arrival.
+		// internal so RailAnimationSpeedTests can pin the condition; FastForwarding itself is
+		// not reachable from a test without a running host loop.
+		internal static bool HumanGotoInFlight
+		{
+			get
+			{
+				if (!Game.Started) return false;
+				IUnit? unit = Game.Instance.MovingUnit ?? Game.Instance.ActiveUnit;
+				return unit is not null
+				    && Game.Instance.HumanPlayer == Game.Instance.GetPlayer(unit.Owner)
+				    && !unit.Goto.IsEmpty;
+			}
+		}
 
 		private const long FAST_BUDGET_MS = 8;
 
