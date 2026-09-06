@@ -304,10 +304,23 @@ namespace CivOne
 			// spinning wheel). A SINGLE task step that itself blocks for seconds (e.g. the
 			// once-per-round global tick) is not helped by this — the instrumentation in
 			// Game.EndTurn is there to find that case.
+			//
+			// ...but never over a slide somebody is watching. This loop presents no frame
+			// between Update() calls, which is free speed only while nothing is being drawn —
+			// the premise above, true of AI turns, and false the moment the human's own GoTo
+			// journeys were let in here. At four ticks a tile a single 8 ms batch swallowed
+			// whole tiles and drew them as one frame, so units leapt instead of travelling.
+			//
+			// An animated move is therefore left to the TickWatch loop above, which advances
+			// it once per presented frame. The journey is still four times quicker than it
+			// was — that comes from MoveUnit.RAIL_STEP_SIZE, which shortens the slide in
+			// FRAMES and so cannot outrun the display — and everything else in the queue
+			// still drains at full speed.
 			if (FastForwarding)
 			{
 				Stopwatch budget = Stopwatch.StartNew();
-				while (FastForwarding && budget.ElapsedMilliseconds < FAST_BUDGET_MS)
+				while (FastForwarding && !GameTask.AnimatingMove
+				       && budget.ElapsedMilliseconds < FAST_BUDGET_MS)
 					if (Update()) args.HasUpdate = true;
 			}
 		}

@@ -12,6 +12,17 @@
 //
 // ValidMoveTarget already calls tubes and floating cities "walkable bridges for land units".
 // This pins the same exemption on the movement cost.
+//
+// SINCE THEN, boarding moved to cities: a sea tube is a tunnel entered at a terminal, so a
+// land unit may no longer step onto one from open ground or from a land tube (see
+// SeaTubeBoardingTests). The fixture below therefore boards at a coastal city — the road
+// still runs to the shore, and the city sits at its end.
+//
+// What these tests pin is unchanged and is still worth pinning: entering the tube must not
+// cost the whole turn, and travelling it must not cost one tile a turn. The boarding rule
+// says WHERE you may enter; this file says what entering costs once you may. Both matter —
+// a rule that let you board only at a port and then ate your turn for doing so would be
+// worse than the bug this file was written for.
 
 using System.Linq;
 using CivOne.Enums;
@@ -40,6 +51,9 @@ namespace CivOne.Tests
 			p.Explore(43, 25, range: 20);
 
 			for (int x = 40; x <= 43; x++) Map.Instance[x, 25].Road = true;
+			// The port. Boarding a sea tube happens at a city now, so the road ends at one;
+			// without it the first move of every test below is simply illegal.
+			g.AddCity(p, 0, 43, 25);
 			Map.Instance[44, 25].TransportTube = true;
 			Map.Instance[45, 25].TransportTube = true;
 
@@ -51,14 +65,14 @@ namespace CivOne.Tests
 			return (g, p, u);
 		}
 
-		// The report, directly: walking off the road onto the tube must not end the turn.
+		// The report, directly: stepping out of the port onto the tube must not end the turn.
 		//
 		// THREE moves, not one. With a single move the fallthrough sets PartMoves = 2 whether
 		// or not the turn was zeroed first, so both the fixed and the broken code end at
 		// 0 moves / 2 part-moves and the test cannot tell them apart — it passed against the
 		// bug it was written for. The zeroing only shows when there was something to lose.
 		[Fact]
-		public void SteppingFromRoadOntoATubeDoesNotEndTheTurn()
+		public void SteppingFromAPortOntoATubeDoesNotEndTheTurn()
 		{
 			(Game g, Player p, IUnit u) = AShorelineWithATube();
 			u.MovesLeft = 3;

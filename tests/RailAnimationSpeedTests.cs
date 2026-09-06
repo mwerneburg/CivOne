@@ -130,6 +130,37 @@ namespace CivOne.Tests
 			Assert.False(RuntimeHandler.HumanGotoInFlight);
 		}
 
+		// ── the drain guard ──────────────────────────────────────────────────────────
+		//
+		// FastForwarding's drain loop presents no frame between Update() calls, so anything it
+		// consumes is never drawn. That is free speed for an AI turn and a bug for a human's
+		// own journey: at four ticks a tile one 8 ms batch swallowed whole tiles and drew them
+		// as a single frame, and units leapt instead of travelling. GameTask.AnimatingMove is
+		// what holds the drain off a slide somebody is watching.
+
+		[Fact]
+		public void AnAnimatedSlideIsVisibleToTheDrainGuard()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			IUnit u = AUnitInFlight(Game.Instance.HumanPlayer, withGoto: true);
+
+			Assert.True(u.Moving, "fixture: the unit is not actually mid-move");
+			Assert.True(GameTask.AnimatingMove, "the drain would swallow this slide undrawn");
+		}
+
+		// An unwatched AI move finishes in one step and has no frames to protect, so the drain
+		// must still be free to consume it — that is where fast-forward earns its keep. This
+		// is the half that fails if the guard is written as "any move in flight".
+		[Fact]
+		public void AnUnwatchedMoveDoesNotHoldOffTheDrain()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Sim.ClearTasks();
+			GameTask.Insert(new Tasks.MoveUnit(1, 0, animate: false));
+
+			Assert.False(GameTask.AnimatingMove);
+		}
+
 		// Open ground is untouched: this is not a general speed-up of the game's animation.
 		[Fact]
 		public void OrdinaryGroundIsUnchanged()

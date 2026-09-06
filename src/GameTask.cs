@@ -51,6 +51,23 @@ namespace CivOne
 		// names the culprit instead of the category.
 		internal virtual string ProbeName => GetType().Name;
 		internal static string CurrentName => _currentTask?.ProbeName ?? "none";
+
+		// Is the work at the head of the queue a slide somebody is watching?
+		//
+		// The fast-forward drain in RuntimeHandler runs Update() repeatedly WITHOUT presenting
+		// a frame between calls, which is free speed only when nothing is being animated. That
+		// was true while fast-forward covered AI turns alone (their moves are skipped or
+		// unwatched). It stopped being true when the human's own GoTo journeys were added: at
+		// four ticks a tile one 8 ms batch can swallow several tiles and draw them as a single
+		// frame, so the unit appears to leap rather than travel.
+		internal static bool AnimatingMove
+		{
+			get
+			{
+				GameTask? task = _currentTask ?? (_tasks.Count > 0 ? _tasks[0] : null);
+				return task is Tasks.MoveUnit move && move.Animating;
+			}
+		}
 		public static int Count<T>() where T : GameTask => _tasks.Count(t => t is T);
 
 		private static void NextTask()

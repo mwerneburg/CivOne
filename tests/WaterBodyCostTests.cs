@@ -41,7 +41,16 @@ namespace CivOne.Tests
 			// 1.07 fixed against 1.90 quadratic here; on the real 320x200 board with 424
 			// cities the quadratic form cost minutes per call, so this small map understates
 			// it considerably.
-			const int Reps = 20;
+			// 20 reps came in at roughly 11 ms empty, close enough to timer noise that a busy
+			// machine could push the ratio over the bar on correct code: it cried wolf twice in
+			// one day at 1.57 and 1.67 against a 1.5 threshold, while passing 3/3 in isolation
+			// each time. A false alarm on a cost test is expensive — it teaches the reader to
+			// discount a red suite, which is how a real regression walks through.
+			//
+			// More reps, not a looser bound: the signal is 1.07 fixed against 1.90 quadratic,
+			// so 1.5 discriminates perfectly well and the problem was purely the sample size.
+			// Averaging over 5x the work shrinks the noise instead of widening the target.
+			const int Reps = 100;
 			double Time()
 			{
 				var sw = new Stopwatch();

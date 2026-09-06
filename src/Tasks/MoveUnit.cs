@@ -47,6 +47,10 @@ namespace CivOne.Tasks
 
 		public IUnit ActiveUnit { get; private set; }
 
+		// True while this move is being drawn. An unanimated move (an AI unit nobody can see)
+		// finishes in a single step and has no frames to protect.
+		internal bool Animating => _animate;
+
 		protected override bool Step()
 		{
 			// Undrawn moves (AI units with Enemy Moves off, or units moving in fog) skip the
