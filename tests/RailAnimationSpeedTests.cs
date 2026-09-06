@@ -161,6 +161,36 @@ namespace CivOne.Tests
 			Assert.False(GameTask.AnimatingMove);
 		}
 
+		// The half the bare AnimatingMove flag got wrong, and the one that reached play: with
+		// Enemy Moves on and the tile in sight, an AI unit's slide is genuinely drawn — so the
+		// unqualified flag stopped the drain on every enemy step and the AI turn went back to
+		// running at 60 Hz, full-length animation and all. The drain must still eat this one.
+		[Fact]
+		public void AWatchedEnemySlideStillLetsTheDrainRun()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != g.HumanPlayer);
+			g.EnemyMoves = true;
+			g.HumanPlayer.Explore(40, 25, range: 3);
+			IUnit u = AUnitInFlight(ai, withGoto: true);
+
+			Assert.True(u.Moving, "fixture: the unit is not actually mid-move");
+			Assert.True(GameTask.AnimatingMove, "fixture: this enemy move is not being drawn");
+			Assert.False(RuntimeHandler.WatchedHumanSlide);
+		}
+
+		// ...and the human's own journey is still protected.
+		[Fact]
+		public void AWatchedHumanSlideHoldsOffTheDrain()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			IUnit u = AUnitInFlight(Game.Instance.HumanPlayer, withGoto: true);
+
+			Assert.True(u.Moving, "fixture: the unit is not actually mid-move");
+			Assert.True(RuntimeHandler.WatchedHumanSlide);
+		}
+
 		// Open ground is untouched: this is not a general speed-up of the game's animation.
 		[Fact]
 		public void OrdinaryGroundIsUnchanged()

@@ -241,6 +241,15 @@ namespace CivOne
 			}
 		}
 
+		// Which slides the drain must not swallow: the human's own, and only those.
+		//
+		// GameTask.AnimatingMove alone was too broad. With Enemy Moves ON and the tile in
+		// sight an AI unit's slide IS drawn, so the bare flag held the drain off every visible
+		// enemy step and handed the whole AI turn back to 60 Hz pacing — the between-turns
+		// pause fast-forward exists to remove. Blurring an enemy move is the deliberate trade
+		// fast-forward has always made; blurring the player's own journey was the bug.
+		internal static bool WatchedHumanSlide => HumanGotoInFlight && GameTask.AnimatingMove;
+
 		private const long FAST_BUDGET_MS = 8;
 
 		// Wall-clock budget for one batch of ticks before handing control back to SDL.
@@ -312,14 +321,14 @@ namespace CivOne
 			// whole tiles and drew them as one frame, so units leapt instead of travelling.
 			//
 			// An animated move is therefore left to the TickWatch loop above, which advances
-			// it once per presented frame. The journey is still four times quicker than it
+			// it once per presented frame — the HUMAN's slide only; see WatchedHumanSlide. The journey is still four times quicker than it
 			// was — that comes from MoveUnit.RAIL_STEP_SIZE, which shortens the slide in
 			// FRAMES and so cannot outrun the display — and everything else in the queue
 			// still drains at full speed.
 			if (FastForwarding)
 			{
 				Stopwatch budget = Stopwatch.StartNew();
-				while (FastForwarding && !GameTask.AnimatingMove
+				while (FastForwarding && !WatchedHumanSlide
 				       && budget.ElapsedMilliseconds < FAST_BUDGET_MS)
 					if (Update()) args.HasUpdate = true;
 			}
