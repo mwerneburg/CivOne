@@ -72,5 +72,9 @@ namespace CivOne.Enums
 		// legs, cheaper, sees two tiles instead of one, and nobody at home worries about
 		// the pilot because there is not one.
 		ReaperDrone = 39,
+		// Cargo airship. Carries land units over anything, including sea tubes claimed by
+		// another civilization — the answer to a trade route cut by somebody else's network
+		// that does not require going to war over it.
+		Dirigible = 40,
 	}
 }

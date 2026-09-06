@@ -367,6 +367,9 @@ namespace CivOne.Persistence
 		public bool Road { get; set; }
 		public bool Railroad { get; set; }
 		public bool TransportTube { get; set; }
+		// Who laid a SEA tube here. Null for land tubes and for every tube written before
+		// claims existed, which loads as unowned and stays usable by everyone.
+		public int?  TubeOwner { get; set; }
 		public bool Irrigation { get; set; }
 		public bool Mine { get; set; }
 		public bool Terrace { get; set; }

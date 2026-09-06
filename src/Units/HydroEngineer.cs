@@ -118,7 +118,14 @@ namespace CivOne.Units
 			{
 				BuildingTube--;
 				if (BuildingTube > 0) { MovesLeft = 0; PartMoves = 0; }
-				else { Map[X, Y].TransportTube = true; Game.InvalidateCitiesAt(X, Y); }
+				else
+				{
+					Map[X, Y].TransportTube = true;
+					// First come, first claim — sea only. A land tube is infrastructure; a sea
+					// tube is the only road across that water, so it is territory.
+					if (Map[X, Y].IsOcean) Map[X, Y].TubeOwner = Owner;
+					Game.InvalidateCitiesAt(X, Y);
+				}
 				return;
 			}
 

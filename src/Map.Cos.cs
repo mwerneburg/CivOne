@@ -89,6 +89,7 @@ namespace CivOne
 					Road          = t.Road,
 					Railroad      = t.RailRoad,
 					TransportTube = t.TransportTube,
+					TubeOwner     = t.TubeOwner == Tiles.BaseTile.TubeUnowned ? null : (int?)t.TubeOwner,
 					Irrigation    = t.Irrigation,
 					Mine          = t.Mine,
 					Hut           = t.Hut,
@@ -150,6 +151,10 @@ namespace CivOne
 					t.Road          = imp.Road;
 					t.RailRoad      = imp.Railroad;
 					t.TransportTube = imp.TransportTube;
+					// After TransportTube, never before: its setter clears the owner when the
+					// tube goes false, which would wipe what we just read.
+					t.TubeOwner = imp.TubeOwner is int to && to >= 0 && to < 255
+						? (byte)to : Tiles.BaseTile.TubeUnowned;
 					t.Irrigation    = imp.Irrigation;
 					t.Pollution     = imp.Pollution;
 					t.Mine          = imp.Mine;

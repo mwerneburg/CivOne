@@ -39,6 +39,9 @@ namespace CivOne.Tiles
 		bool Road { get; set; }
 		bool RailRoad { get; set; }
 		bool TransportTube { get; set; }
+		// Who laid this sea tube. BaseTile.TubeUnowned when nobody has claimed it — which
+		// covers every land tube and every tube in a save written before claims existed.
+		byte TubeOwner { get; set; }
 		// Any surface link, whatever tier — see BaseTile.HasTransportLink for why the three
 		// properties above cannot answer that question.
 		bool HasTransportLink { get; }

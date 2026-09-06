@@ -430,18 +430,18 @@
 [ReaperDrone]
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-  0  0  0 12  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0  0 12  0  0 11 13 12 11  0  0  0  0  0  0
-  0  0  0 12  0  0 11 13 12 11  0  0  0  0  0  0
-  0  0  0 15  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0  0 15  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0 12 12 12 12 12 13 13 12 12 12 12 12  0  0
-  0  0 12 12 12 12 12 13 13 12 12 12 12 12  0  0
-  0  0  0 15  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0  0  0  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0  0  0  0  0  0 13 12  0  0  0  0  0  0  0
-  0  0  0  0  0  0 13 13 12 12  0  0  0  0  0  0
-  0  0  0  0  0 13 13 13 12 12 12  0  0  0  0  0
+  0  0  0  0  0  0 12  0  0  0 13  0  0  0  0  0
+  0  0  0  0  0  0  0 12  0 13  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0 12  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0 12  0  0  0  0  0  0  0
+  0  0 12 12 12 12 12 12 12 12 12 12 12 12 12  0
+  0  0  0  0 10  0  0  9 12  9  0  0 10  0  0  0
+  0  0  0  9 10  0  0 13 12 12  0  0 10  9  0  0
+  0  0  0 10  0  0 12 12 12 12 11  0  0 10  0  0
+  0  0  0  0  0  0 11 12 12 12 11  0  0  0  0  0
+  0  0  0  0  0  0  0 12 12 11  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 #
@@ -510,3 +510,37 @@
 #  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 #  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 #  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+# ------------------------------------------------------------------------
+#
+# DIRIGIBLE (UnitType 40) — awaiting art.
+#
+# Cargo airship: carries 4 land units over anything, including sea tubes
+# claimed by another civilization. Added Sept 2026 so a trade route cut by
+# somebody else's tube network has an answer that is not a war.
+#
+# It is UnitClass.Air but NOT a BaseUnitAir, so it has no fuel rule and
+# will not disband away from a city — see src/Units/Dirigible.cs. Nothing
+# else draws it: the garrison panel scales this same 16x16 (CityManager
+# .GarrisonIcon), so this section is the whole of its art.
+#
+#   To use: delete the '# ' from the header AND all sixteen rows below it.
+#   Uncommenting the rows without the header appends them to the section
+#   above, which silently corrupts that unit's art instead.
+#
+[Dirigible]
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0 13 13 13 13 13 13  0  0  0 13  0  0
+  0  0  0 13  9  9  9  9  9  9 13 13 10 13  0  0
+  0  0 13  9  9  9  9  9  9  9  9  9 11 11  0  0
+  0  0 13  9  9  9  9  9  9  9  9 13 13 13  0  0
+  0  0 13  9  9  9  9  9  9  9  9  9 11 11  0  0
+  0  0  0 12  9  9  9  9  9  9 12 12 10 12  0  0
+  0  0  0  0 12 12 12 12 12 12  0  0 10 12  0  0
+  0  0  0  0  0 10 10 10 10  0  0  0  0  0  0  0
+  0  0  0  0  0 13 13 13 13  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0

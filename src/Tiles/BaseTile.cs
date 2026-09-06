@@ -207,8 +207,35 @@ namespace CivOne.Tiles
 			{
 				if (_transportTube == value) return;
 				_transportTube = value;
+				// The claim dies with the tube. A pillaged line is open sea again, and the
+				// tile is there to be taken by whoever lays the next one.
+				if (!value) _tubeOwner = TubeUnowned;
 				Map.InvalidateTubeLinks();
 			}
+		}
+
+		// No owner. 255 rather than a nullable byte to match Map.MiscOcean's convention and
+		// to keep the tile struct-cheap — this is read in the pathfinder's inner loop.
+		public const byte TubeUnowned = 255;
+
+		private byte _tubeOwner = TubeUnowned;
+
+		// First come, first claim: the civ that laid this SEA tube owns the tile, and no other
+		// civ may enter it. Land tubes are never claimed — a tube through your own country is
+		// road, not territory — so this stays TubeUnowned for them.
+		//
+		// It exists because a tile with no owner had no way to refuse a squatter. In game
+		// 3de868a5 an Olvir settler stood on the Frankish trans-Atlantic line north-east of
+		// Panama for the last hundred turns: at peace, so it could not be attacked; unarmed,
+		// so it could not be pushed; and Common.Blocks makes any foreign unit impassable to a
+		// non-combat unit, so it severed the line and every caravan walked ashore instead.
+		//
+		// Unowned is deliberately permissive, not forbidden. Every tube in every existing save
+		// loads with no owner, and those must keep working for everybody exactly as they did.
+		public byte TubeOwner
+		{
+			get => _tubeOwner;
+			set => _tubeOwner = value;
 		}
 
 		// Is there a surface link here at all, of any tier?

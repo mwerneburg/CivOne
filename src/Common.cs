@@ -244,6 +244,17 @@ namespace CivOne
 
 		// A* pathfinder for GoTo orders. Returns the next tile to move into, or null if unreachable.
 		// Cost units: railroad=1, road=3, terrain=Movement*9 (max 18 for hills/forest).
+		// Somebody else's sea tube. First come, first claim: the civ that laid it owns the
+		// water, and no other civ may set foot on it. Unowned tubes (every land tube, and
+		// every tube in a save written before claims existed) are open to all.
+		//
+		// This is the rule that makes the claim mean anything. Without it a foreign unit
+		// could still walk onto the line and stand there, which is exactly how one Olvir
+		// settler severed the Frankish trans-Atlantic tube for a hundred turns.
+		internal static bool TubeBarred(ITile tile, byte mover)
+			=> tile is not null && tile.City is null
+			&& tile.TubeOwner != Tiles.BaseTile.TubeUnowned && tile.TubeOwner != mover;
+
 		public static ITile? GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 
 		// A committed route, kept between calls so walking it costs one search instead of one
@@ -320,6 +331,7 @@ namespace CivOne
 			bool passable = unit.Class == UnitClass.Land
 				? (!tile.IsOcean || tile.City is not null || tile.TransportTube)
 				: unit.Class == UnitClass.Water ? (tile.IsOcean || tile.City is not null) : true;
+			if (TubeBarred(tile, unit.Owner)) passable = false;
 			if (!passable && !(nx == gx && ny == gy)) return null;
 
 			// The one staleness that matters. Terrain the planner costed can change (a road
@@ -598,6 +610,7 @@ namespace CivOne
 						passable = tile.IsOcean || tile.City is not null;
 					else
 						passable = true;
+					if (TubeBarred(tile, unit.Owner)) passable = false;
 
 					ITile fromTile = map[cx, cy];
 

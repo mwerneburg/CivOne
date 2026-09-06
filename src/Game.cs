@@ -3215,6 +3215,7 @@ namespace CivOne
 				case UnitType.Longboat: unit = new Longboat(); break;
 				case UnitType.CruiseMissile: unit = new CruiseMissile(); break;
 				case UnitType.ReaperDrone: unit = new ReaperDrone(); break;
+				case UnitType.Dirigible: unit = new Dirigible(); break;
 				default: return null;
 			}
 			unit.X = x;
