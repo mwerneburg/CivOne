@@ -3139,6 +3139,17 @@ namespace CivOne
 				_units.Remove(unit);
 			}
 			_cities.Remove(city);
+
+			// The razed city's partners lose the route for good — there is nothing left to
+			// trade with. PruneWorthlessRoutes would reach these eventually (RouteBonus pays 0
+			// once X is 255), but not before a turn's worth of readers counted a route to a
+			// city that no longer exists. Ownership transfer deliberately keeps its routes;
+			// this is the case that does not. Was implicit in City.Owner's setter until routes
+			// began surviving a change of hands.
+			foreach (City other in _cities)
+				other.RemoveTradeRoutesTo(city);
+			city.ClearTradeRoutes();
+
 			BumpCityRoster();
 			InvalidateBuiltWonders();
 			int wasX = city.X, wasY = city.Y;

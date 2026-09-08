@@ -45,12 +45,20 @@ namespace CivOne
 			}
 			set
 			{
-				if (Game.Started && _owner != value)
-				{
-					foreach (City other in Game.GetCities().Where(c => c != this))
-						other.RemoveTradeRoutesTo(this);
-					_tradeRoutes.Clear();
-				}
+				// A change of hands does NOT destroy trade routes. This used to clear both ends
+				// for every partner, which meant a city you captured and handed straight back
+				// came home with its commerce permanently gone — and your OWN cities lost their
+				// routes to it, so a war you won cost you the trade you were fighting over.
+				//
+				// War already had the opposite treatment and it is the right one: RouteBonus
+				// pays 0 while the two owners fight, PruneWorthlessRoutes deliberately spares a
+				// suspended route, and peace brings the money back. Ownership now works the same
+				// way — nothing is destroyed, and every value follows from who holds what NOW.
+				// Hold both ends and the route is internal (half value, and it scores nothing
+				// toward Pax Mercatoria); hand the city back and it is external and whole again.
+				//
+				// Destruction is the case that really does end a route, and it says so itself:
+				// see Game.DestroyCity, which used to get this cleanup by way of Owner = 0.
 				if (_owner != value && Game.Started) Game.Instance.BumpCityRoster();
 				_owner = value;
 				ResetResourceTiles();
@@ -185,6 +193,15 @@ namespace CivOne
 		internal void RemoveTradeRoutesTo(City city)
 		{
 			_tradeRoutes.RemoveAll(r => r.Partner == city);
+			InvalidateCache();
+		}
+
+		// A razed city keeps no ledger. Both directions have to go: the survivors' routes to it
+		// (Game.DestroyCity walks those) and its own, which used to be cleared as a side effect
+		// of DestroyCity setting Owner = 0.
+		internal void ClearTradeRoutes()
+		{
+			_tradeRoutes.Clear();
 			InvalidateCache();
 		}
 
