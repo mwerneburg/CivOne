@@ -247,6 +247,32 @@ namespace CivOne
 		public int Culture => _culture;
 		public int CultureRate => Cities.Sum(c => c.CultureRate);
 
+		// Live head count: the sum of every city's size.
+		internal int Populace => Cities.Sum(c => (int)c.Size);
+
+		// The HIGH-WATER MARK, and the denominator Cultural Ascendancy divides by.
+		//
+		// Culture per head divided by the LIVE populace, and culture is a cumulative stock
+		// while population is not — so shedding citizens raised the ratio exactly as fast as
+		// earning culture did. Spawn settlers, disband them, and a civilization's standing on
+		// the measure improves without a single thing being built. Reported from play, where
+		// it worked: "very mechanical and not in the spirit of real attainment."
+		//
+		// The populace floor is deliberately NOT moved to this figure — see the victory rule.
+		// You must still be a society TODAY to rank; what changes is that you are judged
+		// against the largest you have ever been, so shrinking can only ever cost you.
+		//
+		// Maxed against the live count on every read rather than trusted as stored: the field
+		// is a persistence detail, updated once a turn in RecordScoreSnapshot, and a getter
+		// that could sit one turn behind a growing civ would flatter it with too small a
+		// divisor. A save with no stored figure therefore starts its high-water mark at
+		// today's populace, which is the right answer for a game played under the old rule —
+		// nobody is retroactively credited or punished for a population they no longer have.
+		private int _peakPopulace;
+		internal int PeakPopulace => Math.Max(_peakPopulace, Populace);
+		internal void RecordPeakPopulace() => _peakPopulace = PeakPopulace;
+		internal void SetPeakPopulace(int value) => _peakPopulace = value;
+
 		// ── Culture as social cohesion ───────────────────────────────────────────
 		//
 		// Extra content citizens in EVERY city, from the empire's accumulated culture. One

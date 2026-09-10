@@ -70,7 +70,10 @@ using CivOne.Units;
 //   advance       string   what it taught, "" at capture
 //
 //   --- victory_standings fields, selected ---
-//   populace      int      total city size, the denominator of culture per head
+//   populace      int      total city size, live
+//   peak_populace int      the largest populace ever held — the DENOMINATOR of culture per
+//                          head since the anti-bleed change; `populace` is what the floor
+//                          clause reads. They differ exactly when a civ has shrunk.
 //   artists       int      Artist specialists at work (the save clips at 12/city; this does not)
 //   econ_streak   int      consecutive turns the Pax Mercatoria claim has held
 //   cult_streak   int      consecutive turns the Cultural Ascendancy claim has held
@@ -419,7 +422,7 @@ namespace CivOne
 		// in already computed by one shared pass.
 		internal static void LogVictoryStandings(int turn, Player p, int cities, int culture,
 			int reach, int shadow, long bestNeighbour, int observatories, bool hasFuel, int populace,
-			int artists, int grossOutput, int worldOutput, uint econStreak, uint cultStreak, int structural,
+			int peakPopulace, int artists, int grossOutput, int worldOutput, uint econStreak, uint cultStreak, int structural,
 			int component, int module, int launchTurn, bool missionControl)
 		{
 			if (!_active) return;
@@ -453,6 +456,11 @@ namespace CivOne
 				// not exist; per-populace favours dense small civs more strongly and needs
 				// its own numbers before any threshold is set.
 				KV("populace",    populace),
+				// The denominator the rule actually divides by. Logged beside the live count
+				// rather than instead of it: the floor clause reads `populace`, the ratio reads
+				// this, and a run where the two diverge is a civ that has shrunk — which is
+				// precisely what the peak denominator was added to stop rewarding.
+				KV("peak_populace", peakPopulace),
 				// Artists at work. The specialist is optional — the governor only reaches for
 				// one when a citizen has nothing better to do — so the rule can be right and
 				// the mechanic still dead. A finished save cannot answer it either: it stores

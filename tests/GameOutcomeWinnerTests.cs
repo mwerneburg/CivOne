@@ -66,7 +66,7 @@ namespace CivOne.Tests
 
 			DecisionLogger.LogVictoryStandings(300, rival, cities: 16, culture: 19166,
 				reach: 11, shadow: 0, bestNeighbour: 0, observatories: 0, hasFuel: false,
-				populace: 166, artists: 0, grossOutput: 8871, worldOutput: 166765,
+				populace: 166, peakPopulace: 166, artists: 0, grossOutput: 8871, worldOutput: 166765,
 				econStreak: 0, cultStreak: 75, structural: 0, component: 0, module: 0,
 				launchTurn: 0, missionControl: false);
 			DecisionLogger.EndGame(1234, "Cultural Ascendancy", humanWon: false, turns: 537, rival);

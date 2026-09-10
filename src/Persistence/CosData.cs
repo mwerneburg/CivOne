@@ -234,6 +234,11 @@ namespace CivOne.Persistence
 		public int? MilestoneScore { get; set; }
 		// Accumulated culture points. Absent on saves predating the culture ledger.
 		public int? Culture { get; set; }
+		// Largest populace this civ has ever held — the denominator Cultural Ascendancy
+		// divides by, so that shedding citizens cannot inflate culture per head. Absent on
+		// saves written under the live-populace rule, where it reads back as zero and
+		// Player.PeakPopulace starts the high-water mark at today's count.
+		public int? PeakPopulace { get; set; }
 		public int[] AtWarWith { get; set; } = null!;
 		public int[] Embassies { get; set; } = null!;
 		public int CityNamesSkipped { get; set; }

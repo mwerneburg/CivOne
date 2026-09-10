@@ -77,7 +77,10 @@ namespace CivOne.Screens.Reports
 
 		private int LiveValue(Player p) => _page switch
 		{
-			Page.Culture => (int)(p.Culture / Math.Max(1, p.Cities.Sum(c => (int)c.Size))),
+			// PeakPopulace, the divisor the victory rule uses — see Player.PeakPopulace. A
+			// live-populace readout would tell a player their standing had improved on a turn
+			// they lost citizens, which is the thing the rule stopped paying for.
+			Page.Culture => (int)(p.Culture / Math.Max(1, p.PeakPopulace)),
 			Page.Output  => Game.GrossOutputOf(p),
 			_            => p.Score,
 		};
@@ -245,8 +248,10 @@ namespace CivOne.Screens.Reports
 			// went.
 			if (_page == Page.Culture)
 			{
-				long OwnPop(Player p) => Math.Max(1, p.Cities.Sum(c => (int)c.Size));
-				double PerHead(Player p) => (double)p.Culture / OwnPop(p);
+				// Two head counts, exactly as the victory rule splits them: the floor asks who
+				// is a society TODAY, the ratio divides by the largest each civ has ever been.
+				long OwnPop(Player p) => Math.Max(1, p.Populace);
+				double PerHead(Player p) => (double)p.Culture / Math.Max(1, p.PeakPopulace);
 
 				Player[] ranked = Game.Players
 					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0

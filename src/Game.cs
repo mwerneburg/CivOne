@@ -90,6 +90,27 @@ namespace CivOne
 			var byTurn = new Dictionary<int, int[]>(g._populaceHistory.Count);
 			foreach (int[] q in g._populaceHistory) byTurn[q[0]] = q;
 
+			// RUNNING MAX, because the rule divides by the high-water mark and a graph that
+			// divided by the live count would show a civilization climbing every time it lost
+			// people — the exact move the peak denominator exists to stop paying. Derived here
+			// rather than stored for the same reason the series itself is: one definition, so
+			// the readout cannot drift from the rule. Samples are in turn order, so a single
+			// forward pass is the whole of it.
+			var peak = new Dictionary<int, int[]>(byTurn.Count);
+			{
+				int[] running = null!;
+				foreach (int[] q in g._populaceHistory.OrderBy(q => q[0]))
+				{
+					if (running is null) running = new int[q.Length];
+					for (int pi = 1; pi < q.Length && pi < running.Length; pi++)
+						running[pi] = Math.Max(running[pi], q[pi]);
+					int[] row = (int[])running.Clone();
+					row[0] = q[0];
+					peak[q[0]] = row;
+				}
+			}
+			byTurn = peak;
+
 			var rows = new List<int[]>(byTurn.Count);
 			foreach (int[] c in culture)
 			{
@@ -128,6 +149,12 @@ namespace CivOne
 			_scoreHistory.Add(Snapshot(p => p.Score));
 			_cultureHistory.Add(Snapshot(p => p.Culture));
 			_populaceHistory.Add(Snapshot(p => p.Cities.Sum(c => (int)c.Size)));
+
+			// The high-water mark that Cultural Ascendancy divides by, banked here because
+			// this is already the once-a-turn pass over every civ's populace. PeakPopulace
+			// maxes against the live count on read, so this is persistence rather than
+			// correctness — the rule cannot read a stale figure either way.
+			foreach (Player p in _players) p?.RecordPeakPopulace();
 			_outputHistory.Add(Snapshot(GrossOutput));
 		}
 
@@ -1756,7 +1783,7 @@ namespace CivOne
 						int populace = p.Cities.Sum(c => (int)c.Size);
 						int artists = p.Cities.Sum(c => c.Citizens.Count(z => z == Citizen.Artist));
 						DecisionLogger.LogVictoryStandings(GameTurn, p, p.Cities.Length, p.Culture,
-							reach, shadow, bestNear, observatories, hasFuel, populace, artists, GrossOutput(p), worldOut,
+							reach, shadow, bestNear, observatories, hasFuel, populace, p.PeakPopulace, artists, GrossOutput(p), worldOut,
 							Progress(pn).EconStreak, Progress(pn).CultureStreak,
 							Progress(pn).SpaceshipStructural, Progress(pn).SpaceshipComponent, Progress(pn).SpaceshipModule,
 							Progress(pn).SpaceshipLaunchTurn,
@@ -2278,17 +2305,31 @@ namespace CivOne
 					//   against 14.3, a fine ratio over almost no culture, and would have won
 					//   around turn 310 on a hold alone. The gate says a golden age is a thing
 					//   you sustain into the modern era, not a lead you take in antiquity.
-					long claimantPop = Math.Max(1, claimant.Cities.Sum(c => (int)c.Size));
+					// TWO different head counts, deliberately, and the split is the whole of the
+					// anti-bleed rule.
+					//
+					// The RATIO divides by the largest populace this civ has ever held
+					// (Player.PeakPopulace). Culture is a cumulative stock and population is
+					// not, so against a live denominator a civilization could spawn settlers,
+					// disband them, and climb the table without building anything. Against the
+					// high-water mark, shrinking earns nothing: the numerator stops growing
+					// while the divisor stays where it was.
+					//
+					// The FLOOR still asks for people alive today. Its job is to keep relics
+					// out — see CultureFloorShare — and a civ that has collapsed to nothing is
+					// exactly the relic it was written for, however many citizens it once had.
+					// Judging that clause on the peak would let a dead empire rank forever.
+					long claimantPop = Math.Max(1, claimant.PeakPopulace);
 					double cultPerHead = (double)claimant.Culture / claimantPop;
 
 					Player[] densityRivals = cultRivals.Where(p => p.Cities.Any(c => c.Size > 0)).ToArray();
 					long popFloor = CulturalPopulaceFloor(densityRivals
-						.Select(p => (long)p.Cities.Sum(c => (int)c.Size))
-						.Concat(new[] { claimantPop }));
+						.Select(p => (long)p.Populace)
+						.Concat(new[] { (long)claimant.Populace }));
 
 					// Big enough to be a society rather than a relic. See CultureFloorShare for
 					// why this is measured against the median civilization and not the largest.
-					bool populous = claimantPop >= popFloor;
+					bool populous = claimant.Populace >= popFloor;
 
 					// First in the world by a MARGIN, among civs that clear the same floor.
 					//
@@ -2308,8 +2349,10 @@ namespace CivOne
 					// 1.02-1.09x.
 					bool foremost = claimant.Culture > 0 && densityRivals.All(p =>
 					{
-						long rp = Math.Max(1, p.Cities.Sum(c => (int)c.Size));
-						if (rp < popFloor) return true;                         // too small to rank
+						if (p.Populace < popFloor) return true;                 // too small to rank
+						// Same divisor as the claimant's: a rival that bled its population must
+						// not be able to inflate its own standing either.
+						long rp = Math.Max(1, p.PeakPopulace);
 						return cultPerHead >= (double)p.Culture / rp * CultureLeadMargin;
 					});
 
