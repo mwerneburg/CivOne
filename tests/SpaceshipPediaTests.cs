@@ -16,7 +16,18 @@ namespace CivOne.Tests
 {
 	public class SpaceshipPediaTests
 	{
-		public SpaceshipPediaTests() => Sim.EnsureRuntime();
+		// Sim.ResetState, not just EnsureRuntime: the page reads the LIVE game
+		// (SSComponent.Page2 asks Game.Instance whether the human holds the exotic fuel), and
+		// Game._instance is static, so "no game loaded" was never a premise this class
+		// controlled — it was whatever the previous test class left behind. A predecessor whose
+		// human had the fuel silently turned this into a 0.2c page and failed both tests below
+		// on a formula that had not changed. Adding an unrelated test class was enough to
+		// reorder the suite and expose it.
+		public SpaceshipPediaTests()
+		{
+			Sim.EnsureRuntime();
+			Sim.ResetState();
+		}
 
 		// The page quotes the READER'S crossing times, which now depend on whether their
 		// civilization has the exotic fuel. With no game loaded there is no human and no
@@ -53,6 +64,22 @@ namespace CivOne.Tests
 			Assert.Contains(Page2(), l => l.Contains(PageFuelState ? ".200c" : ".100c"));
 			Assert.Contains(Page2(), l => l.Contains(PageFuelState ? "4.4 LIGHT YEARS"
 			                                                      : "NO EXOTIC FUEL"));
+		}
+
+		// The other side of the same coin, and the mechanism the ordering failure turned on: a
+		// reader who HAS the fuel is quoted the faster table. This one loads a game on purpose,
+		// which is why the constructor above has to clear it again for everybody else.
+		[Fact]
+		public void AFuelledReaderIsQuotedTheFasterTable()
+		{
+			Sim.NewGame(width: 40, height: 30, competition: 4);
+			Game g = Game.Instance;
+			g.Progress(g.PlayerNumber(g.HumanPlayer)).HasExoticFuel = true;
+
+			string[] page = Page2();
+
+			Assert.Contains(page, l => l.Contains(".200c"));
+			Assert.Contains(page, l => l.Contains("4.4 LIGHT YEARS"));
 		}
 
 		// ...and the worst ship is shown as genuinely dreadful, since that is the decision the

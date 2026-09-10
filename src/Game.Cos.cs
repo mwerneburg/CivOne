@@ -850,6 +850,7 @@ namespace CivOne
 				city.GovernorOrder  = ((cd.Governors ?? 0) & 1) != 0;
 				city.GovernorGrowth = ((cd.Governors ?? 0) & 2) != 0;
 				city.GovernorCulture = ((cd.Governors ?? 0) & 4) != 0;
+				city.GovernorCommerce = ((cd.Governors ?? 0) & 8) != 0;
 				city.LoadTechStolen(cd.TechStolen ?? false, GameTurn);
 				cityById[cd.Id] = city;
 				_cities.Add(city);
@@ -1097,7 +1098,8 @@ namespace CivOne
 		// which reads back as the off state it was.
 		private static int GovernorBits(City city)
 			=> (city.GovernorOrder ? 1 : 0) | (city.GovernorGrowth ? 2 : 0)
-			 | (city.GovernorCulture ? 4 : 0);
+			 | (city.GovernorCulture ? 4 : 0)
+			 | (city.GovernorCommerce ? 8 : 0);
 
 		private static string PackFirstExplorer(byte[,] fe)
 		{

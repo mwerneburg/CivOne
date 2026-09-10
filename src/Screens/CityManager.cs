@@ -233,6 +233,7 @@ namespace CivOne.Screens
 
 		internal static string GovernorLabel(City city)
 			=> city.GovernorCulture ? "CULTURE"
+			 : city.GovernorCommerce ? "COMMERCE"
 			 : (city.GovernorOrder, city.GovernorGrowth) switch
 			{
 				(true,  true)  => "BOTH",
@@ -241,9 +242,9 @@ namespace CivOne.Screens
 				_              => "OFF",
 			};
 
-		// OFF -> GROWTH -> ORDER -> BOTH -> CULTURE -> OFF. One control rather than three,
-		// because the panel is a column of fields and a five-step cycle still reaches every
-		// state in at most four presses.
+		// OFF -> GROWTH -> ORDER -> BOTH -> CULTURE -> COMMERCE -> OFF. One control rather
+		// than three, because the panel is a column of fields and the cycle still reaches
+		// every state in at most five presses.
 		//
 		// GROWTH comes first deliberately. "This city is capped at 7, stop farming for
 		// nothing" is a fact about the rules that a player can check at a glance. ORDER
@@ -258,21 +259,34 @@ namespace CivOne.Screens
 		// why there is no ORDER+CULTURE or GROWTH+CULTURE: every useful combination already
 		// includes both repairs, and the eight states they would need cannot be reached in
 		// four presses.
+		//
+		// COMMERCE sits beside CULTURE on the same terms and for the same reason — it is the
+		// other victory a spare citizen can be spent on, and EconomicOutput counts a Taxman
+		// exactly as the culture measure counts an Artist. The two are mutually exclusive
+		// because a citizen is: one settle of the same argument, not two governors.
+		//
+		// Unlike CULTURE it buys nothing. The artist quota is gated on the Culture path
+		// (City.AutoAssignCitizens step 4), and deliberately: a worked tile pays no culture,
+		// so an artist is a clean gain, while a taxman's 2 gold lands AFTER the Marketplace
+		// and Bank multipliers and a citizen worth 6 on a trade tile is worth 2 as a
+		// specialist. COMMERCE retypes the specialists a city already has.
 		private bool CycleGovernor()
 		{
 			if (_viewCity || _city.Player != Game.HumanPlayer) return true;
-			(bool order, bool growth, bool culture) =
-				(_city.GovernorOrder, _city.GovernorGrowth, _city.GovernorCulture) switch
+			(bool order, bool growth, bool culture, bool commerce) =
+				(_city.GovernorOrder, _city.GovernorGrowth, _city.GovernorCulture, _city.GovernorCommerce) switch
 			{
-				(false, false, false) => (false, true,  false),   // OFF     -> GROWTH
-				(false, true,  false) => (true,  false, false),   // GROWTH  -> ORDER
-				(true,  false, false) => (true,  true,  false),   // ORDER   -> BOTH
-				(true,  true,  false) => (true,  true,  true),    // BOTH    -> CULTURE
-				_                     => (false, false, false),   // CULTURE -> OFF
+				(false, false, false, false) => (false, true,  false, false),  // OFF      -> GROWTH
+				(false, true,  false, false) => (true,  false, false, false),  // GROWTH   -> ORDER
+				(true,  false, false, false) => (true,  true,  false, false),  // ORDER    -> BOTH
+				(true,  true,  false, false) => (true,  true,  true,  false),  // BOTH     -> CULTURE
+				(true,  true,  true,  false) => (true,  true,  false, true),   // CULTURE  -> COMMERCE
+				_                            => (false, false, false, false),  // COMMERCE -> OFF
 			};
-			_city.GovernorOrder   = order;
-			_city.GovernorGrowth  = growth;
-			_city.GovernorCulture = culture;
+			_city.GovernorOrder    = order;
+			_city.GovernorGrowth   = growth;
+			_city.GovernorCulture  = culture;
+			_city.GovernorCommerce = commerce;
 			_update = true;
 			return true;
 		}

@@ -1544,15 +1544,36 @@ namespace CivOne
 		// artist is the only specialist worth buying deliberately.
 		internal bool GovernorCulture { get; set; }
 
+		// The same argument, for the other victory a citizen can be spent on.
+		//
+		// EconomicOutput counts a Taxman — 2 apiece, added after the Marketplace and Bank
+		// multipliers — and the AI's Commerce path types its specialists as taxmen. A human on
+		// the Pax Mercatoria path could not: with Player.AI null, `preferred` fell through to
+		// `Gold < LeanTreasury ? Taxman : Scientist`, and a merchant empire is precisely the
+		// one that is never short of gold. So a player holding half the world's output had
+		// every spare citizen typed Scientist, which counts toward no victory in the game.
+		//
+		// Measured in game 553f5adc at turn 420: 97 artists on a civ that could not win the
+		// culture race (93.5 per head against Russia's 137.5, needing 1.10x on top), while
+		// sitting 480 output short of Pax Mercatoria. Retyped, those same citizens are +194.
+		//
+		// It does NOT buy taxmen, and that is deliberate — see step 4, where the arithmetic
+		// says the artist is the only specialist worth pulling a worker off a tile for. This
+		// types the specialists a city already has.
+		internal bool GovernorCommerce { get; set; }
+
 		internal void AutoAssignCitizens() => AutoAssignCitizens(order: true, growth: true, culture: false);
 
 		internal void AutoAssignCitizens(bool order, bool growth)
 			=> AutoAssignCitizens(order, growth, culture: false);
 
 		internal void AutoAssignCitizens(bool order, bool growth, bool culture)
+			=> AutoAssignCitizens(order, growth, culture, commerce: false);
+
+		internal void AutoAssignCitizens(bool order, bool growth, bool culture, bool commerce)
 		{
 			if (Size == 0) return;
-			if (!order && !growth && !culture) return;   // not enrolled: do not touch this city
+			if (!order && !growth && !culture && !commerce) return;   // not enrolled: do not touch this city
 
 			// Read once. The Path getter re-derives through ChoosePath on its review turns,
 			// and this runs per city per turn; it is wanted twice below.
@@ -1561,7 +1582,9 @@ namespace CivOne
 			// whole of the feature: steps 4 and 5 are already written against this value and
 			// need no knowledge of who set it. An AI city is unaffected — nothing passes
 			// culture:true for one, and its own Path still decides.
-			AI.VictoryPath? path = culture ? AI.VictoryPath.Culture : Player.AI?.Path;
+			AI.VictoryPath? path = culture  ? AI.VictoryPath.Culture
+			                     : commerce ? AI.VictoryPath.Commerce
+			                     : Player.AI?.Path;
 			int artistQuota = path == AI.VictoryPath.Culture && Size >= ArtistCityFloor
 				? Size / ArtistPerPopulace : 0;
 
