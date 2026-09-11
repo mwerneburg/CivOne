@@ -243,16 +243,24 @@ namespace CivOne.Tests
 
 		// ── zone of control at a foreign city ────────────────────────────────
 		// MoveTo exempts a step with ANY city at either end; the planner exempted only the
-		// mover's own, so the approach to a foreign city — ZOC-to-ZOC by definition, since its
-		// garrison covers every neighbouring tile — was plannable by hand and not by GoTo.
+		// mover's own. The difference is narrow — a foreign city is usually a route's GOAL,
+		// and the goal tile is exempt from every one of these tests anyway — so it takes a
+		// corridor that runs THROUGH the city to see it at all. Which is the case that bit:
+		// with the old clause the planner refused a step the mover would have taken, and a
+		// one-tile corridor has no detour to offer.
+		//
+		// Land only at y=20 (x 18-26) plus the single tile the foreign soldier stands on, so
+		// there is exactly one way past and the search cannot quietly go round.
 		[Fact]
 		public void ThePlannerApproachesAForeignCityLikeTheMoverDoes()
 		{
 			Sim.NewGame(width: 80, height: 50, competition: 4);
 			Game g = Game.Instance;
-			for (int y = 18; y <= 22; y++)
-			for (int x = 18; x <= 26; x++)
-				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			for (int y = 0; y < 50; y++)
+			for (int x = 0; x < 80; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Ocean);
+			for (int x = 18; x <= 26; x++) Map.Instance.ChangeTileType(x, 20, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(23, 19, Terrain.Grassland1);
 			Map.Instance.RecalculateContinentsIfDirty();
 
 			Player me = g.HumanPlayer;
@@ -260,17 +268,28 @@ namespace CivOne.Tests
 			Player other = g.Players.First(p => p is not null && g.PlayerNumber(p) != num
 			                                                  && g.PlayerNumber(p) != 0);
 			me.Explore(22, 20, range: 12);
-			City theirs = g.AddCity(other, 0, 24, 20)!;
-			// Field units either side of the approach, so both tiles of the last step are in
-			// somebody's zone of control.
+			g.AddCity(other, 0, 23, 20);
+			// In the open beside the city: a garrison projects no zone of control, so the
+			// soldier has to stand OUTSIDE for both tiles of the step to be covered.
 			g.CreateUnit(UnitType.Musketeers, 23, 19, g.PlayerNumber(other), false);
 			IUnit unit = g.CreateUnit(UnitType.Musketeers, 22, 20, num, false)!;
-			unit.MovesLeft = unit.Move;
+			// Every other rival unit goes, the blocker excepted — the starting settlers land
+			// on this corridor and one of them sitting on the goal tile makes the search fail
+			// for a reason that has nothing to do with zone of control. (It cost an hour.)
+			// Repeated, because the rival start positions are not all placed by the time the
+			// first pass runs, and this world is ten tiles of land — every civ in the game
+			// lands on this corridor. One of them standing on the goal tile fails the search
+			// for a reason that has nothing to do with zone of control. (It cost an hour.)
+			for (int pass = 0; pass < 3; pass++)
+				foreach (IUnit u in g.GetUnits().Where(u => u.Owner != num
+				                                        && !(u.X == 23 && u.Y == 19)).ToArray())
+					g.DisbandUnit(u);
 			Sim.ClearTasks();
 
-			ITile? step = Common.GotoStep(unit, theirs.X, theirs.Y);
+			ITile? step = Common.GotoStep(unit, 26, 20);
 
 			Assert.NotNull(step);
+			Assert.Equal((23, 20), (step!.X, step.Y));
 		}
 
 		// The half that always worked, kept so a fix that breaks it is caught here.

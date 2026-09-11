@@ -7,10 +7,19 @@
 // line something that has to be planned to its terminations — which is the whole reason to
 // speed-run a network to a port rather than sprawl it.
 //
-// What is deliberately NOT restricted is leaving. A unit at sea can always step ashore, so
-// nothing is stranded mid-ocean and units standing on tube lines in older saves travel and
-// disembark exactly as they did. HydroEngineer is a BaseUnitSea and never consults this rule
-// at all, so the Olvir tube-layers are untouched.
+// Leaving is now gated the same way (2026-09-11). It used to be free — "nothing is stranded
+// mid-ocean" — but free egress made the boarding rule decorative in one direction: a unit
+// could enter at a terminal and climb out onto any shore the line happened to pass, which is
+// a causeway with extra steps. The price of the symmetry is real and deliberate: a line with
+// no city at the far end is a cul-de-sac, and a line cut behind a unit leaves it holding a
+// length of tunnel with no exit but the way it came.
+//
+// Both halves live in Common.TubeStepAllowed, which the GoTo planner asks as well — the
+// mover and the planner disagreeing about a sea tube is what cost a player a trans-Atlantic
+// crossing (see TubeWayfindingTests).
+//
+// HydroEngineer is a BaseUnitSea and never consults this rule at all, so the Olvir
+// tube-layers are untouched.
 
 using System.Linq;
 using CivOne;
@@ -74,16 +83,34 @@ namespace CivOne.Tests
 			Assert.True(CanStep(u, 1, 0), "a unit already in the tube could not continue");
 		}
 
-		// Leaving is always allowed: nothing is ever stranded at sea, and old saves keep
-		// working. This is the half that fails if the rule is made symmetric.
+		// Leaving is a terminal operation too. This test used to assert the opposite, with
+		// the note "this is the half that fails if the rule is made symmetric" — it was made
+		// symmetric on purpose.
 		[Fact]
-		public void SteppingAshoreFromTheLineIsAlwaysAllowed()
+		public void SteppingAshoreInOpenCountryIsRefused()
 		{
 			(Game g, Player human) = AShoreline();
 			Map.Instance[40, 25].TransportTube = true;
 			IUnit u = g.CreateUnit(UnitType.Caravan, 40, 25, g.PlayerNumber(human))!;
 
-			Assert.True(CanStep(u, -1, 0), "a unit at sea was refused the shore");
+			Assert.False(CanStep(u, -1, 0), "a unit climbed out of the tunnel onto a beach");
+		}
+
+		// ...and the same step into a city is the one that works, which is what keeps a line
+		// with terminals at both ends a usable piece of infrastructure.
+		[Fact]
+		public void SteppingAshoreIntoATerminalIsAllowed()
+		{
+			(Game g, Player human) = AShoreline();
+			Map.Instance[40, 25].TransportTube = true;
+			g.AddCity(human, 0, 39, 25);
+			// Musketeers, not the Caravan the rest of this file uses: a Caravan ENTERING a
+			// city opens the trade-route dialog from inside MoveTo, and that dialog wants a
+			// palette it cannot have headless. The other tests move a Caravan out of a city
+			// or along the line, so they never reach it.
+			IUnit u = g.CreateUnit(UnitType.Musketeers, 40, 25, g.PlayerNumber(human))!;
+
+			Assert.True(CanStep(u, -1, 0), "a unit could not leave the line at its terminal");
 		}
 
 		// A land tube reaching the coast is not a way in — the junction needs a city. This is
