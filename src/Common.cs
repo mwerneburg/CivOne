@@ -633,8 +633,21 @@ namespace CivOne
 					// projects control over every neighbouring tile), so a Diplomat sent to
 					// one got a null path, cleared its Goto and stalled a few tiles short —
 					// every time, for the whole game.
+					//
+					// Nor does ZOC reach the water. BaseUnit.MoveTo skips the whole test when
+					// EITHER end of a step is ocean, so a land unit walking a sea tube is never
+					// stopped by it — and a planner that disagrees refuses a move the unit is
+					// free to make. Reported from a game at turn 441: a trans-Atlantic tube
+					// anchored on Acahay that GoTo would not use, while the same route walked
+					// by hand worked the whole way. One Olvir HydroEngineer sat in open water
+					// at (143,83), beside BOTH (142,83) and (143,82) — two consecutive tiles
+					// of the line — and that was the entire crossing gone, thirty tiles from
+					// anything the player could see was wrong. A sea tube is a one-tile
+					// corridor with impassable water either side, so one refused step severs
+					// it and there is no detour to find.
 					bool ignoresZoc = unit is Diplomat || unit is Caravan || unit is Explorer;
 					bool zocBlocked = unit.Class != UnitClass.Air && !ignoresZoc
+						&& !fromTile.IsOcean && !tile.IsOcean
 						&& !(fromTile.City is not null && fromTile.City.Owner == unit.Owner)
 						&& !(tile.City is not null && tile.City.Owner == unit.Owner)
 						&& (OwnerMask(nx, ny) & selfBit) == 0

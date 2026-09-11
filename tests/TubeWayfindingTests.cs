@@ -100,6 +100,59 @@ namespace CivOne.Tests
 			Assert.Equal((45, 20), (unit.X, unit.Y));
 		}
 
+		// A foreign unit parked in open water beside the line does not close it.
+		//
+		// Reported at turn 441 of a live game: a trans-Atlantic tube anchored on Acahay that
+		// GoTo would not use, while walking the identical route by hand worked all the way to
+		// Iberia. One Olvir HydroEngineer sat at (143,83) — open ocean, no tube — adjacent to
+		// BOTH (142,83) and (143,82), two consecutive tiles of the line. MoveTo skips the
+		// zone-of-control test outright when either end of a step is ocean; the planner's copy
+		// had no such exemption, saw ZOC to ZOC, and refused. A sea tube is a one-tile corridor
+		// with impassable water either side, so that one step took the whole crossing with it.
+		//
+		// Note what the fixture above had to do to avoid this: it disbands every rival unit,
+		// because "a rival that lands beside the tube mouth throws zone of control across it".
+		// That was this bug, worked around in the test rather than in the code.
+		[Fact]
+		public void AForeignUnitBesideTheTubeDoesNotCloseIt()
+		{
+			(Game g, byte num) = TwoShores();
+			Player other = g.Players.First(p => p is not null && g.PlayerNumber(p) != num
+			                                                  && g.PlayerNumber(p) != 0);
+			// In the water beside the line, not on it: adjacent to (29,20), (30,20) and
+			// (31,20), so two consecutive tube tiles are both under its zone of control.
+			g.CreateUnit(UnitType.HydroEngineer, 30, 19, g.PlayerNumber(other), false);
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 20, 20, num, false)!;
+
+			for (int i = 0; i < 200 && (unit.X != 45 || unit.Y != 20); i++)
+			{
+				ITile? step = Common.GotoStep(unit, 45, 20);
+				Assert.NotNull(step);
+				unit.X = step!.X;
+				unit.Y = step.Y;
+			}
+
+			Assert.Equal((45, 20), (unit.X, unit.Y));
+		}
+
+		// ...and the planner agrees with the mover, which is the actual invariant. The bug was
+		// not that ZOC is wrong, it is that two copies of one rule disagreed: whatever MoveTo
+		// permits here, GotoStep must be willing to plan.
+		[Fact]
+		public void TheMoverAllowsTheStepThePlannerPlans()
+		{
+			(Game g, byte num) = TwoShores();
+			Player other = g.Players.First(p => p is not null && g.PlayerNumber(p) != num
+			                                                  && g.PlayerNumber(p) != 0);
+			g.CreateUnit(UnitType.HydroEngineer, 30, 19, g.PlayerNumber(other), false);
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 29, 20, num, false)!;
+			unit.MovesLeft = unit.Move;
+
+			Assert.True(unit.MoveTo(1, 0), "MoveTo refused a step along the tube");
+			ITile? step = Common.GotoStep(unit, 45, 20);
+			Assert.NotNull(step);
+		}
+
 		// The half that always worked, kept so a fix that breaks it is caught here.
 		[Fact]
 		public void AUnitAlreadyOnTheTubeIsStillRouted()
