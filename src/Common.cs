@@ -255,6 +255,30 @@ namespace CivOne
 			=> tile is not null && tile.City is null
 			&& tile.TubeOwner != Tiles.BaseTile.TubeUnowned && tile.TubeOwner != mover;
 
+		// The undersea section of a tube line. A city standing on the line is a TERMINAL, not
+		// a length of tunnel, which is what makes the rule below expressible at all.
+		internal static bool SeaTube(ITile tile)
+			=> tile is not null && tile.IsOcean && tile.TransportTube && tile.City is null;
+
+		// A sea tube is a tunnel, not a causeway: a land unit boards it at a city and leaves it
+		// at a city, and in between it travels the line. Ingress was already gated this way in
+		// BaseUnitLand; egress was free, so a unit could enter at a terminal and climb out onto
+		// any shore the line happened to pass.
+		//
+		// It lives here, next to TubeBarred, because BOTH the mover and the planner have to ask
+		// it. The zone-of-control rule was written twice and the two copies drifted, which cost
+		// a player a trans-Atlantic line that GoTo would not use and hand-walking would — so
+		// this rule gets one home and two callers.
+		internal static bool TubeStepAllowed(ITile from, ITile to)
+		{
+			if (from is null || to is null) return true;
+			// Boarding: from a terminal, or from the line itself.
+			if (SeaTube(to) && !(from.City is not null || SeaTube(from))) return false;
+			// Leaving: the same rule at the other end.
+			if (SeaTube(from) && !(to.City is not null || SeaTube(to))) return false;
+			return true;
+		}
+
 		public static ITile? GotoStep(IUnit unit) => GotoStep(unit, unit.Goto.X, unit.Goto.Y);
 
 		// A committed route, kept between calls so walking it costs one search instead of one
@@ -333,6 +357,12 @@ namespace CivOne
 				: unit.Class == UnitClass.Water ? (tile.IsOcean || tile.City is not null) : true;
 			if (TubeBarred(tile, unit.Owner)) passable = false;
 			if (!passable && !(nx == gx && ny == gy)) return null;
+
+			// Same reason as passability: a committed plan must not hand the unit a step the
+			// mover will refuse. A terminal city captured or destroyed out from under a route
+			// turns a legal disembarkation into an illegal one.
+			if (unit.Class == UnitClass.Land
+			    && !TubeStepAllowed(Map.Instance[unit.X, unit.Y], tile)) return null;
 
 			// The one staleness that matters. Terrain the planner costed can change (a road
 			// gets built, making some other route cheaper) but that only costs optimality, and
@@ -645,16 +675,25 @@ namespace CivOne
 					// anything the player could see was wrong. A sea tube is a one-tile
 					// corridor with impassable water either side, so one refused step severs
 					// it and there is no detour to find.
+					// ...and ANY city at either end, not just one of the mover's own. MoveTo
+					// exempts the step whenever either tile holds a city, so a planner that
+					// only forgave its own refused approaches to foreign cities that the unit
+					// could walk unaided — the same disagreement, one clause along. The three
+					// unit types above were exempted wholesale rather than fix it.
 					bool ignoresZoc = unit is Diplomat || unit is Caravan || unit is Explorer;
 					bool zocBlocked = unit.Class != UnitClass.Air && !ignoresZoc
 						&& !fromTile.IsOcean && !tile.IsOcean
-						&& !(fromTile.City is not null && fromTile.City.Owner == unit.Owner)
-						&& !(tile.City is not null && tile.City.Owner == unit.Owner)
+						&& fromTile.City is null && tile.City is null
 						&& (OwnerMask(nx, ny) & selfBit) == 0
 						&& InZoc(cx, cy) && InZoc(nx, ny);
 
 					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
 					if ((!passable || blocked || zocBlocked) && !(nx == gx && ny == gy)) continue;
+
+					// Boarding and leaving the undersea line. NOT goal-exempt, unlike the tests
+					// above: the exemption exists so a route may END on an enemy city, and a
+					// step the mover will refuse is no use as a final step either.
+					if (unit.Class == UnitClass.Land && !TubeStepAllowed(fromTile, tile)) continue;
 
 					int cost;
 					if (RailAt(fromTile) && RailAt(tile))

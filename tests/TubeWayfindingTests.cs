@@ -24,7 +24,12 @@ namespace CivOne.Tests
 	{
 		// Two landmasses in an otherwise empty ocean, joined along y=20 by a tube. West is
 		// x 10-20, east x 40-50; the tube runs x 21-39.
-		private static (Game game, byte num) TwoShores(bool laytube = true)
+		// `westTerminal` / `eastTerminal` put a city on the shore at each mouth of the line.
+		// They default ON because a tube without one is now unusable in that direction: a land
+		// unit boards and leaves the undersea section at a city and nowhere else. Turning one
+		// off is how the tests below check that the rule is really being enforced.
+		private static (Game game, byte num) TwoShores(bool laytube = true,
+			bool westTerminal = true, bool eastTerminal = true)
 		{
 			Sim.NewGame(width: 80, height: 50, competition: 4);
 			Game g = Game.Instance;
@@ -50,6 +55,9 @@ namespace CivOne.Tests
 			// (It cost an hour: the first fixture had a Sumerian at 21,19.)
 			foreach (IUnit u in g.GetUnits().Where(u => u.Owner != g.PlayerNumber(p)).ToArray())
 				g.DisbandUnit(u);
+
+			if (westTerminal) g.AddCity(p, 5, 20, 20);
+			if (eastTerminal) g.AddCity(p, 6, 40, 20);
 
 			Sim.ClearTasks();
 			return (g, g.PlayerNumber(p));
@@ -150,6 +158,118 @@ namespace CivOne.Tests
 
 			Assert.True(unit.MoveTo(1, 0), "MoveTo refused a step along the tube");
 			ITile? step = Common.GotoStep(unit, 45, 20);
+			Assert.NotNull(step);
+		}
+
+		// ── the tunnel has two ends ──────────────────────────────────────────
+		// You board the undersea line at a city and you leave it at a city. Ingress was
+		// already gated; egress was free, so a unit could enter at a terminal and climb out
+		// onto any shore the line passed — which made the boarding rule decorative in one
+		// direction and a sea tube a causeway after all.
+		//
+		// The shores here carry no city, so the tube in this fixture has no terminal at
+		// either end: nothing may get on it from land, and nothing already on it may get off.
+		// (20,19) is bare west shore, diagonally adjacent to the first tube tile — and the
+		// terminal city at (20,20) is adjacent too, so this is not "nowhere to go": it is the
+		// unit declining to surface anywhere but the station.
+		[Fact]
+		public void AUnitOnTheLineMayNotStepAshoreInOpenCountry()
+		{
+			(Game g, byte num) = TwoShores();
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 21, 20, num, false)!;
+			unit.MovesLeft = unit.Move;
+
+			Assert.False(unit.MoveTo(-1, -1), "the unit climbed out of the tunnel onto open shore");
+			Assert.Equal((21, 20), (unit.X, unit.Y));
+		}
+
+		// ...while the terminal one tile further on is exactly where it may surface.
+		[Fact]
+		public void ACityOnTheShoreIsATerminal()
+		{
+			(Game g, byte num) = TwoShores();
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 21, 20, num, false)!;
+			unit.MovesLeft = unit.Move;
+
+			// The return value, not the position: an ALLOWED move starts a MoveUnit animation
+			// and the unit's coordinates only change when that completes, which headless it
+			// never does. A refusal is synchronous, which is why the tests above can check
+			// that the unit stayed put and this one cannot.
+			Assert.True(unit.MoveTo(-1, 0), "a unit could not step off the line into a terminal");
+		}
+
+		// And the planner has to know it too, or GoTo plans a landing the mover then refuses
+		// and the unit sits being handed the same illegal step every turn. West mouth has its
+		// terminal, east mouth does not: the line is boardable and goes nowhere.
+		[Fact]
+		public void ThePlannerWillNotRouteALandingInOpenCountry()
+		{
+			(Game g, byte num) = TwoShores(eastTerminal: false);
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 20, 20, num, false)!;
+
+			Assert.Null(Common.GotoStep(unit, 45, 20));
+		}
+
+		// The same crossing is planned the moment the far mouth has a terminal on it.
+		[Fact]
+		public void ATerminalOpensTheCrossingToThePlanner()
+		{
+			(Game g, byte num) = TwoShores();
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 20, 20, num, false)!;
+
+			for (int i = 0; i < 200 && (unit.X != 45 || unit.Y != 20); i++)
+			{
+				ITile? step = Common.GotoStep(unit, 45, 20);
+				Assert.NotNull(step);
+				unit.X = step!.X;
+				unit.Y = step.Y;
+			}
+
+			Assert.Equal((45, 20), (unit.X, unit.Y));
+		}
+
+		// The mover and the planner must agree about boarding as well: a unit standing on bare
+		// coast beside the mouth cannot get on, and GoTo must not pretend otherwise.
+		[Fact]
+		public void AUnitOnBareCoastCannotBoardTheLine()
+		{
+			(Game g, byte num) = TwoShores();
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 20, 19, num, false)!;
+			unit.MovesLeft = unit.Move;
+
+			Assert.False(unit.MoveTo(1, 1), "the unit boarded the line from open coast");
+			Assert.Equal((20, 19), (unit.X, unit.Y));
+		}
+
+		// ── zone of control at a foreign city ────────────────────────────────
+		// MoveTo exempts a step with ANY city at either end; the planner exempted only the
+		// mover's own, so the approach to a foreign city — ZOC-to-ZOC by definition, since its
+		// garrison covers every neighbouring tile — was plannable by hand and not by GoTo.
+		[Fact]
+		public void ThePlannerApproachesAForeignCityLikeTheMoverDoes()
+		{
+			Sim.NewGame(width: 80, height: 50, competition: 4);
+			Game g = Game.Instance;
+			for (int y = 18; y <= 22; y++)
+			for (int x = 18; x <= 26; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player me = g.HumanPlayer;
+			byte num = g.PlayerNumber(me);
+			Player other = g.Players.First(p => p is not null && g.PlayerNumber(p) != num
+			                                                  && g.PlayerNumber(p) != 0);
+			me.Explore(22, 20, range: 12);
+			City theirs = g.AddCity(other, 0, 24, 20)!;
+			// Field units either side of the approach, so both tiles of the last step are in
+			// somebody's zone of control.
+			g.CreateUnit(UnitType.Musketeers, 23, 19, g.PlayerNumber(other), false);
+			IUnit unit = g.CreateUnit(UnitType.Musketeers, 22, 20, num, false)!;
+			unit.MovesLeft = unit.Move;
+			Sim.ClearTasks();
+
+			ITile? step = Common.GotoStep(unit, theirs.X, theirs.Y);
+
 			Assert.NotNull(step);
 		}
 

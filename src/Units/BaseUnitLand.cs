@@ -289,6 +289,11 @@ namespace CivOne.Units
 					return false;
 			}
 
+			// Boarding and leaving the undersea line, both ends of the rule, in one place
+			// shared with the GoTo planner (Common.TubeStepAllowed).
+			if (!Common.TubeStepAllowed(Tile, tile))
+				return false;
+
 			// If the tile is not an ocean tile, movement is allowed
 			if (tile.Type != Terrain.Ocean)
 				return true;
@@ -303,16 +308,18 @@ namespace CivOne.Units
 			// a way in either — the junction needs a city, which is what makes coastal cities
 			// ports.
 			//
-			// Note what is NOT restricted. Leaving the tube is free: a unit already at sea can
-			// always step ashore, so nothing is ever stranded mid-ocean, and units standing on
-			// tube lines in saves written before this rule can travel and disembark exactly as
-			// they did. Only stepping IN from open country is new.
+			// Leaving is now gated the same way (asked above): a unit on the line steps off at
+			// a city or stays on the line. It used to be free, so a unit could board at a
+			// terminal and climb out onto any shore the line happened to pass, which made the
+			// boarding rule decorative in one direction. The cost of the symmetry is that a
+			// line with no city at the far end is a dead end — the unit must travel back to a
+			// terminal — and a line cut behind a unit leaves it holding a length of tunnel.
 			//
 			// HydroEngineer is unaffected throughout: it is a BaseUnitSea and never asks this.
 			if (tile.City is not null)
 				return true;
 			if (tile.TransportTube)
-				return Tile.City is not null || (Tile.IsOcean && Tile.TransportTube);
+				return true;
 
 			// This query checks if there's a boardable cargo vessel with free slots on the tile.
 			return (tile.Units.Any(x => x.Owner == Owner) && tile.Units.Any(u => (u is IBoardable)) && tile.Units.Where(u => u is IBoardable).Sum(u => (u as IBoardable)!.Cargo) > tile.Units.Count(u => u.Class == UnitClass.Land));
