@@ -7,6 +7,7 @@
 // You should have received a copy of the CC0 legalcode along with this
 // work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+using CivOne.Enums;
 using CivOne.Tiles;
 using CivOne.Units;
 
@@ -27,10 +28,15 @@ namespace CivOne.Tasks
 		// telling the player something the rules do not.
 		private const int RAIL_STEP_SIZE = 4;
 
-		// Chosen at construction from the two tiles, so the caller does not have to know the
-		// tick budget. Mirrors BaseUnit.MovementDone's railRailMove.
-		internal static int StepSizeFor(ITile from, ITile to)
-			=> from is not null && to is not null
+		// Chosen at construction from the mover and the two tiles, so the caller does not have
+		// to know the tick budget. Mirrors the free-step rule in BaseUnitLand.MovementDone.
+		//
+		// The CLASS is part of the condition because the free step is: only land units ride
+		// the network. A dirigible crossing a tube line pays for every tile like any other
+		// aircraft, so it must not slide across at rail speed telling the player otherwise.
+		internal static int StepSizeFor(UnitClass mover, ITile from, ITile to)
+			=> mover == UnitClass.Land
+			&& from is not null && to is not null
 			&& (from.RailRoad || from.TransportTube)
 			&& (to.RailRoad || to.TransportTube)
 				? RAIL_STEP_SIZE : STEP_SIZE;

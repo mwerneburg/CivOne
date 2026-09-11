@@ -42,7 +42,7 @@ namespace CivOne.Tests
 			ITile a = Tile(40, 25, Terrain.Grassland1, rail: true);
 			ITile b = Tile(41, 25, Terrain.Grassland1, rail: true);
 
-			Assert.True(MoveUnit.StepSizeFor(a, b) > MoveUnit.StepSizeFor(a, Tile(42, 25, Terrain.Grassland1)));
+			Assert.True(MoveUnit.StepSizeFor(UnitClass.Land, a, b) > MoveUnit.StepSizeFor(UnitClass.Land, a, Tile(42, 25, Terrain.Grassland1)));
 		}
 
 		[Fact]
@@ -53,7 +53,7 @@ namespace CivOne.Tests
 			ITile b = Tile(41, 25, Terrain.Ocean, tube: true);
 			ITile plain = Tile(42, 25, Terrain.Grassland1);
 
-			Assert.True(MoveUnit.StepSizeFor(a, b) > MoveUnit.StepSizeFor(a, plain));
+			Assert.True(MoveUnit.StepSizeFor(UnitClass.Land, a, b) > MoveUnit.StepSizeFor(UnitClass.Land, a, plain));
 		}
 
 		// Stepping OFF the line is an ordinary move and costs a point, so it keeps the
@@ -66,8 +66,24 @@ namespace CivOne.Tests
 			ITile onRail = Tile(40, 25, Terrain.Grassland1, rail: true);
 			ITile offRail = Tile(41, 25, Terrain.Grassland1);
 
-			Assert.Equal(1, MoveUnit.StepSizeFor(onRail, offRail));
-			Assert.Equal(1, MoveUnit.StepSizeFor(offRail, onRail));
+			Assert.Equal(1, MoveUnit.StepSizeFor(UnitClass.Land, onRail, offRail));
+			Assert.Equal(1, MoveUnit.StepSizeFor(UnitClass.Land, offRail, onRail));
+		}
+
+		// A unit that does not ride the network does not get the quick slide either. The
+		// animation is meant to say "that step was free" — and for a dirigible or a ship
+		// crossing a tube line it never is.
+		[Theory]
+		[InlineData(UnitClass.Air)]
+		[InlineData(UnitClass.Water)]
+		public void OnlyLandUnitsGetTheRailSlide(UnitClass mover)
+		{
+			Sim.NewGame(width: 80, height: 50);
+			ITile a = Tile(40, 25, Terrain.Ocean, tube: true);
+			ITile b = Tile(41, 25, Terrain.Ocean, tube: true);
+
+			Assert.Equal(MoveUnit.StepSizeFor(mover, a, Tile(42, 25, Terrain.Grassland1)),
+			             MoveUnit.StepSizeFor(mover, a, b));
 		}
 
 		// ── the pacing root ──────────────────────────────────────────────────────────
@@ -199,7 +215,7 @@ namespace CivOne.Tests
 			ITile a = Tile(40, 25, Terrain.Grassland1);
 			ITile b = Tile(41, 25, Terrain.Grassland1);
 
-			Assert.Equal(1, MoveUnit.StepSizeFor(a, b));
+			Assert.Equal(1, MoveUnit.StepSizeFor(UnitClass.Land, a, b));
 		}
 	}
 }

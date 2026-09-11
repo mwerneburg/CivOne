@@ -754,7 +754,7 @@ namespace CivOne.Units
 			// Free steps get a quicker slide — see MoveUnit.StepSizeFor. Read before the move,
 			// where MovementDone's identical test is read after it.
 			Movement = new MoveUnit(relX, relY, MoveIsVisible,
-				MoveUnit.StepSizeFor(Tile, Tile[relX, relY]));
+				MoveUnit.StepSizeFor(Class, Tile, Tile[relX, relY]));
 			Movement!.Done += MoveEnd;
 			GameTask.Insert(Movement!);
 		}
@@ -765,9 +765,17 @@ namespace CivOne.Units
 
 		protected virtual void MovementDone(ITile previousTile)
 		{
-			bool railRailMove = (previousTile.RailRoad || previousTile.TransportTube) && (Tile.RailRoad || Tile.TransportTube);
-			Log($"[MovementDone] {GetType().Name} ({previousTile.X},{previousTile.Y})->({X},{Y}) prevRail={previousTile.RailRoad} curRail={Tile.RailRoad} railRailMove={railRailMove} ML={MovesLeft}");
-			if (MovesLeft > 0 && !railRailMove)
+			// No rail or tube concession here, deliberately. Only LAND units ride the network,
+			// and a land unit never reaches this method: BaseUnitLand.MovementDone overrides it
+			// and does its own connected-tile accounting, cities as waypoints and all.
+			//
+			// What DID reach it was every ship, every aircraft, and the Dirigible — each of
+			// them collecting free moves off somebody's infrastructure. A sea tube is an OCEAN
+			// tile, so a ship crossing a tube line paid nothing for the step, and an aircraft
+			// overflying a railway did the same. Reported for the Dirigible, which is
+			// UnitClass.Air and has no business on a railway at all.
+			Log($"[MovementDone] {GetType().Name} ({previousTile.X},{previousTile.Y})->({X},{Y}) ML={MovesLeft}");
+			if (MovesLeft > 0)
 				MovesLeft--;
 			Log($"[MovementDone] ML after decrement={MovesLeft}");
 
