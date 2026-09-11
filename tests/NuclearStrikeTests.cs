@@ -187,6 +187,117 @@ namespace CivOne.Tests
 			Assert.DoesNotContain(neighbour, Game.Instance.GetUnits());
 		}
 
+		// ── who nuked whom ───────────────────────────────────────────────────
+		// The art screen's caption is a fixed "Nuclear bomb detonated!" and the
+		// condemnation notice names only the detonator, so a strike on somebody
+		// else's city told the player nothing about the target.
+
+		[Fact]
+		public void AStrike_NamesTheAggressorAndTheCityInTheNews()
+		{
+			var (mine, _, target) = Standoff();
+			Sim.ClearTasks();
+
+			Game.Instance.ApplyNuclearStrike(target.X, target.Y, mine);
+
+			string news = string.Join(" ", Sim.PendingMessageLines());
+			Assert.Contains(mine.TribeNamePlural, news);
+			Assert.Contains(target.Name, news);
+		}
+
+		// A strike on a stack in the field has no city name to report; the victim
+		// civilization is what the player needs.
+		[Fact]
+		public void AStrikeInTheField_NamesTheCivilizationHit()
+		{
+			var (mine, theirs, target) = Standoff();
+			Game.Instance.CreateUnit(UnitType.Musketeers, target.X + 3, target.Y,
+				Game.Instance.PlayerNumber(theirs));
+			Sim.ClearTasks();
+
+			Game.Instance.ApplyNuclearStrike(target.X + 3, target.Y, mine);
+
+			string news = string.Join(" ", Sim.PendingMessageLines());
+			Assert.Contains(mine.TribeNamePlural, news);
+			Assert.Contains(theirs.TribeName, news);
+		}
+
+		// ── a strike that never lands ────────────────────────────────────────
+		// The Fusion Core shoots the missile down and Confront returns before any of the
+		// blast code runs, so there is no art, no condemnation and no pariah — the strike
+		// leaves no trace at all. The one notice it did post named the intercepting Core
+		// and not the aggressor, which is exactly backwards: the side being shot at is the
+		// side that needs to know who fired.
+		[Fact]
+		public void AnInterceptedStrike_NamesWhoFiredIt()
+		{
+			var (mine, human, target) = StrikeOnTheHuman();
+			target.AddWonder(new CivOne.Wonders.FusionCore());
+			int before = Sim.DecisionLineCount("\"outcome\":\"intercepted\"");
+
+			IUnit nuke = Game.Instance.CreateUnit(UnitType.Nuclear, target.X - 1, target.Y,
+				Game.Instance.PlayerNumber(mine))!;
+			nuke.MovesLeft = nuke.Move;
+			nuke.MoveTo(1, 0);
+
+			// Read the queue WITHOUT settling: Sim.Settle drops tasks that park, and a
+			// message screen parks headless — draining it would throw away the notice.
+			string news = string.Join(" ", Sim.PendingMessageLines());
+			Assert.Contains(mine.TribeNamePlural, news);
+			Assert.Contains(target.Name, news);
+			Assert.DoesNotContain(nuke, Game.Instance.GetUnits());
+
+			// ...and the log keeps it, which the detonation path alone would not: an
+			// interception returns before ApplyNuclearStrike, so nothing else records it.
+			string line = Sim.AwaitDecisionLine("\"outcome\":\"intercepted\"", after: before);
+			Assert.Contains($"\"aggressor\":\"{mine.Civilization.NamePlural}\"", line);
+			Assert.Contains($"\"victim\":\"{human.Civilization.NamePlural}\"", line);
+		}
+
+		// A city belonging to the human, garrisoned so MoveTo reaches Confront directly.
+		// The interception notice only goes to the two sides involved, so one of them has
+		// to be the human for it to exist at all.
+		private static (Player mine, Player human, City target) StrikeOnTheHuman()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			for (int y = 20; y <= 30; y++)
+			for (int x = 35; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player human = Game.Instance.HumanPlayer;
+			Player mine = Game.Instance.Players.First(p => p is not null && p != human
+			                                         && Game.Instance.PlayerNumber(p) != 0);
+			human.Explore(44, 25, range: 8);
+			mine.Explore(42, 25, range: 8);
+			City target = Game.Instance.AddCity(human, 0, 44, 25)!;
+			target.Size = 8;
+			Game.Instance.CreateUnit(UnitType.Musketeers, 44, 25,
+				Game.Instance.PlayerNumber(human));
+			mine.DeclareWar(human);
+			Sim.ClearTasks();
+			return (mine, human, target);
+		}
+
+		// The decisions log had no nuclear record of any kind: `war` fires only on a
+		// declaration, so a strike between civs already at war left the file silent.
+		[Fact]
+		public void AStrike_IsWrittenToTheDecisionsLog()
+		{
+			var (mine, theirs, target) = Standoff();
+			// Sibling tests in this class each fire a strike into the same shared log file,
+			// so the record this one wrote is the first one PAST what was already there.
+			int before = Sim.DecisionLineCount("\"nuclear_strike\"");
+
+			Game.Instance.ApplyNuclearStrike(target.X, target.Y, mine);
+
+			string line = Sim.AwaitDecisionLine("\"nuclear_strike\"", after: before);
+			Assert.Contains($"\"aggressor\":\"{mine.Civilization.NamePlural}\"", line);
+			Assert.Contains($"\"victim\":\"{theirs.Civilization.NamePlural}\"", line);
+			Assert.Contains($"\"city\":\"{target.Name}\"", line);
+			Assert.Contains("\"outcome\":\"detonated\"", line);
+		}
+
 		// The guard that must not have moved: a Bomber still cannot walk into an empty
 		// enemy city. Only the Nuclear case was meant to change.
 		[Fact]

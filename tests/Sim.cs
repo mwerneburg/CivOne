@@ -266,6 +266,46 @@ namespace CivOne.Tests
 			return lines.ToArray();
 		}
 
+		// Lines already in decisions.jsonl matching `needle`. Paired with AwaitDecisionLine
+		// so a test asserts on the record ITS action wrote: the log file is append-only and
+		// shared by every test in the run, so five sibling tests each driving a nuclear
+		// strike leave five near-identical lines, and "find a matching line" would be
+		// satisfied by any of them — including with the code under test removed.
+		public static int DecisionLineCount(string needle) => DecisionLines(needle).Count;
+
+		private static System.Collections.Generic.List<string> DecisionLines(string needle)
+		{
+			var hits = new System.Collections.Generic.List<string>();
+			string path = System.IO.Path.Combine(Settings.Instance.DataDirectory, "decisions.jsonl");
+			if (!System.IO.File.Exists(path)) return hits;
+			// The logger holds the file open for writing.
+			using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open,
+				System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite);
+			using var reader = new System.IO.StreamReader(fs);
+			string? line;
+			while ((line = reader.ReadLine()) is not null)
+				if (line.Contains(needle)) hits.Add(line);
+			return hits;
+		}
+
+		// The next matching line after the `after` that were already there. The logger writes
+		// on a background task that flushes about twice a second, so a test reading the file
+		// straight after the action it is checking finds nothing — poll rather than sleep a
+		// fixed amount. Sim points StorageDirectory at a throwaway temp dir, so the file is
+		// this run's own and never the player's.
+		public static string AwaitDecisionLine(string needle, int after = 0, int timeoutMs = 5000)
+		{
+			var clock = System.Diagnostics.Stopwatch.StartNew();
+			while (clock.ElapsedMilliseconds < timeoutMs)
+			{
+				var hits = DecisionLines(needle);
+				if (hits.Count > after) return hits[after];
+				System.Threading.Thread.Sleep(50);
+			}
+			throw new Xunit.Sdk.XunitException(
+				$"no new decisions.jsonl line containing {needle} within {timeoutMs}ms");
+		}
+
 		// Pump the task queue until it drains, dropping anything that parks.
 		//
 		// Needed by any test that asserts on an effect which runs in a screen task's Done

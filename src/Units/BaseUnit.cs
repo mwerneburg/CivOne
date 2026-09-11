@@ -485,8 +485,20 @@ namespace CivOne.Units
 					: (moveTarget.Units.FirstOrDefault(u => u.Owner != Owner) is IUnit du ? Game.GetPlayer(du.Owner) : null);
 				if (nukeTarget is not null && nukeTarget.HasWonder<Wonders.FusionCore>())
 				{
+					// Named, both ways. The old notice said only "intercepted by the X Fusion
+					// Core" — so the side being shot at, which is the side that most needs to
+					// know, was never told WHO had fired at it.
+					Player firedBy = Game.GetPlayer(Owner);
+					DecisionLogger.LogNuclearStrike(firedBy, nukeTarget, moveTarget.City, "intercepted");
+					// Newspaper, not Message.General: the detonation reports itself as news
+					// and an interception is the same event with a different ending. A
+					// MessageBox also keeps no text — it renders each line to a Picture in
+					// its constructor — so nothing headless can read one back.
 					if (Human == Owner || Human == nukeTarget)
-						GameTask.Enqueue(Message.General("Nuclear strike intercepted", $"by the {nukeTarget.TribeName} Fusion Core!"));
+						GameTask.Enqueue(Message.Newspaper(null!,
+							$"The {firedBy.TribeNamePlural} fired a nuclear",
+							moveTarget.City is not null ? $"weapon at {moveTarget.City.Name}." : "weapon at our forces.",
+							$"The {nukeTarget.TribeName} Fusion Core shot it down."));
 					Game.DisbandUnit(this);
 					return true;
 				}

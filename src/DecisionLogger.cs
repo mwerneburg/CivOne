@@ -95,6 +95,15 @@ using CivOne.Units;
 //                          those do NOT break the declarer's victory streaks
 //   routes_cut    int      trade routes between the two at the moment of declaration
 //
+//   --- nuclear_strike fields ---
+//   outcome       string   "detonated" | "intercepted" (a Fusion Core shot the missile down)
+//   aggressor     string   civilization that fired, NamePlural
+//   victim        string   civilization struck — the city's owner, else whoever owned the
+//                          units on the tile, else "?" for a strike on empty ground
+//   city          string   city hit, "" for a strike in the field
+//   is_human      bool     the human fired it
+//   against_human bool     the human was the target
+//
 //   --- game_outcome fields ---
 //   score         int      human player's final score
 //   victory       string   victory type label
@@ -368,6 +377,26 @@ namespace CivOne
 			byte an = g.PlayerNumber(a), bn = g.PlayerNumber(b);
 			return g.GetCities().Where(c => c.Owner == an)
 			        .Sum(c => c.TradeRoutes.Count(r => r.Partner.Owner == bn));
+		}
+
+		// Who nuked whom. A strike left no record anywhere: `war` fires only on a declaration,
+		// so a nuke traded between civs already at war was invisible in the log, and the one
+		// Log() line named the detonator but never the target. Intercepts are recorded too —
+		// a Fusion Core shooting the missile down is the case the player is told least about.
+		internal static void LogNuclearStrike(Player? detonator, Player? victim, City? city, string outcome)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",          "nuclear_strike"),
+				KV("game_id",       _gameId),
+				KV("turn",          Game.Instance?.GameTurn ?? 0),
+				KV("outcome",       outcome),
+				KV("aggressor",     detonator?.Civilization?.NamePlural ?? "?"),
+				KV("victim",        victim?.Civilization?.NamePlural ?? "?"),
+				KV("city",          city?.Name ?? ""),
+				KV("is_human",      detonator is not null && detonator.IsHuman),
+				KV("against_human", victim is not null && victim.IsHuman),
+			}));
 		}
 
 		internal static void LogDefensePact(Player signer, Player partner, Player hegemon, bool global)

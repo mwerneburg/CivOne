@@ -73,7 +73,16 @@ namespace CivOne.Screens
 							slots[i].Year   = Common.YearString((ushort)meta.Turn);
 						}
 					}
-					catch { slots[i].Label = "(unreadable)"; }
+					// The reason, not just the fact. A blanket catch here made every save in
+					// the list read "(unreadable)" with nothing anywhere to say why — no
+					// exception type, and Runtime.Log is compiled out of a RELEASE build, so
+					// a player on a platform the save path had never been tried on had no
+					// thread to pull at all.
+					catch (Exception ex)
+					{
+						slots[i].Label = $"(unreadable: {ex.GetType().Name})";
+						Log($"LoadGame: {slots[i].CosFile} unreadable: {ex.GetType().Name}: {ex.Message}");
+					}
 				}
 			}
 
@@ -95,7 +104,11 @@ namespace CivOne.Screens
 						slots[8].Year   = Common.YearString((ushort)meta.Turn);
 					}
 				}
-				catch { slots[8].Label = "AUTO: (unreadable)"; }
+				catch (Exception ex)
+				{
+					slots[8].Label = $"AUTO: (unreadable: {ex.GetType().Name})";
+					Log($"LoadGame: {autoPath} unreadable: {ex.GetType().Name}: {ex.Message}");
+				}
 			}
 
 			return slots;

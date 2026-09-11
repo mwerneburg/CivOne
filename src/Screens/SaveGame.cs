@@ -70,7 +70,11 @@ namespace CivOne.Screens
 					slots[i].Label  = meta.Name ?? "(unknown)";
 					slots[i].Year   = Common.YearString((ushort)meta.Turn);
 				}
-				catch { slots[i].Label = "(unreadable)"; }
+				catch (Exception ex)
+				{
+					slots[i].Label = $"(unreadable: {ex.GetType().Name})";
+					Log($"SaveGame: {path} unreadable: {ex.GetType().Name}: {ex.Message}");
+				}
 			}
 			return slots;
 		}

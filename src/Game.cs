@@ -837,7 +837,7 @@ namespace CivOne
 			}
 
 			Log($"Nuclear condemnation: {detonator.TribeName} shunned for "
-			  + $"{NuclearPariah[dnum]} turns (UN {un})");
+			  + $"{NuclearPariah[dnum]} turns (UN {un}) after striking {victim!.TribeName}");
 			GameTask.Enqueue(Message.Newspaper(null!,
 				un ? "The Assembly condemns" : "The world turns away",
 				$"the {detonator.TribeNamePlural}.", "Every door is shut."));
@@ -4655,7 +4655,20 @@ namespace CivOne
 			// The world notices. Read the victim from the struck city where there is one, and
 			// otherwise from whoever owned what was standing on the tile — a strike on a stack
 			// in the field is no less an atrocity than one on a city.
-			CondemnNuclearStrike(detonator, struck?.Player ?? victimOnTile);
+			Player? hit = struck?.Player ?? victimOnTile;
+
+			// Who struck whom. The detonation art says only "Nuclear bomb detonated!", and the
+			// condemnation notice that follows names the detonator but never the target — so a
+			// strike anywhere but on your own city was unattributable.
+			GameTask.Enqueue(Message.Newspaper(null!,
+				$"The {detonator.TribeNamePlural} have fired",
+				"a nuclear weapon at",
+				struck is not null ? $"{struck.Name}."
+				: hit is not null ? $"{hit.TribeName} forces."
+				: "open ground."));
+
+			DecisionLogger.LogNuclearStrike(detonator, hit, struck, "detonated");
+			CondemnNuclearStrike(detonator, hit);
 
 			// A strike touching grey goo sterilizes the whole connected region.
 			SterilizeGoo(cx, cy);
