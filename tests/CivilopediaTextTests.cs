@@ -30,6 +30,64 @@ namespace CivOne.Tests
 			return Reflect.GetConcepts().OfType<BaseConcept>().ToArray();
 		}
 
+		private static string PageText(string conceptName)
+		{
+			BaseConcept c = Concepts().Single(x => x.Name == conceptName);
+			return string.Join("\n", c.GetPageText(1).Concat(c.GetPageText(2)));
+		}
+
+		// The reference book has to name every ending the code can actually reach.
+		//
+		// It said FIVE for a long time and was wrong twice: Cultural Ascendancy and Diaspora
+		// were both implemented and neither was listed, and the space race was described as
+		// "reach Alpha Centauri first" — the Civ 1 rule, which this game deliberately dropped
+		// in favour of holding the colony. A player read the page, landed a colony, and waited
+		// for a game that was never going to end.
+		//
+		// The labels come from EndSequence.SaveAndGetIndex / RivalVictory. Pax Mercatoria is
+		// the one that differs: the code logs it as "Economic Dominance" and the world calls it
+		// by its Latin name, so the page is checked against the name a player would read.
+		// The visitor-arc endings (Disputed Claim, Repossession) are deliberately absent — that
+		// arc is the story, and page one says only that the rules change.
+		[Theory]
+		[InlineData("CONQUEST")]
+		[InlineData("DIASPORA")]
+		[InlineData("THE DOME")]
+		[InlineData("SCORE")]
+		[InlineData("PAX MERCATORIA")]
+		[InlineData("CULTURAL ASCENDANCY")]
+		public void TheVictoryPageNamesEveryEndingTheCodeCanFire(string ending)
+		{
+			Assert.Contains(ending, PageText("Winning the Game"));
+		}
+
+		// ...and it must not go on claiming the rule that was removed.
+		[Fact]
+		public void TheVictoryPageNoLongerPromisesTheOldSpaceRace()
+		{
+			string text = PageText("Winning the Game");
+
+			Assert.DoesNotContain("SPACE RACE", text);
+			Assert.Contains("MISSION CONTROL", text);
+		}
+
+		// The Cultural Ascendancy page quotes the rule's own numbers, so a change to the
+		// constants without a change to the text fails here rather than in a player's game.
+		// Same principle as CulturalPopulaceFloor having one definition: a readout that
+		// restates the rule will eventually disagree with it, and the player believes the
+		// readout.
+		[Fact]
+		public void TheCulturalAscendancyPageQuotesTheRealNumbers()
+		{
+			string text = PageText("Cultural Ascendancy");
+
+			Assert.Contains(Game.CultureGateYear.ToString(), text);
+			Assert.Contains(Game.CultureHoldTurns.ToString(), text);
+			// The two clauses a player most often misses, in the page's own words.
+			Assert.Contains("PER HEAD", text);
+			Assert.Contains("half the median", text);
+		}
+
 		[Fact]
 		public void EveryConcept_HasTextOnBothPages()
 		{

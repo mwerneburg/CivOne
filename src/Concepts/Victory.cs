@@ -9,13 +9,17 @@
 
 namespace CivOne.Concepts
 {
-	// The five endings a classic game can reach, and their exact conditions.
+	// The six endings a classic game can reach, and their exact conditions.
 	//
-	// Checked against the code rather than written from memory: conquest at
-	// Game.cs:1446, space race at :1191, the Dome at :986, score at :1215, Pax
-	// Mercatoria at :1018. The page used to omit the Dome entirely and to state
-	// the 2100 score ending without its waiver — which is the one a player
-	// actually notices, because a contacted game sails past 2100 and keeps going.
+	// Checked against the code rather than written from memory. It said FIVE for a
+	// long time and was wrong twice over: Cultural Ascendancy and Diaspora were
+	// both implemented and neither was listed, and the space race was described as
+	// "reach Alpha Centauri first" — a rule this game deliberately removed. Arrival
+	// is a milestone; the ending is Diaspora, and a player who read this page
+	// landed a colony expecting the game to stop and it did not.
+	//
+	// A test now asserts every ending the code can actually fire is named here, so
+	// the next one added cannot be added quietly.
 	//
 	// The post-contact endings are deliberately NOT enumerated. That arc is the
 	// story, and a reference book that lists its outcomes spoils it. Page two
@@ -24,18 +28,19 @@ namespace CivOne.Concepts
 	{
 		private static readonly string[] _page1 =
 		{
-			"CIVILIZATION can be won five",
-			"ways:",
+			"CIVILIZATION can be won six ways:",
 			"",
 			"CONQUEST — be the last civ",
 			"standing.",
-			"SPACE RACE — reach Alpha",
-			"Centauri first.",
+			"DIASPORA — settle Alpha Centauri",
+			"and keep the colony supplied.",
 			"THE DOME — finish all five",
 			"components.",
 			"SCORE — lead the world in 2100.",
 			"PAX MERCATORIA — own the world's",
 			"economy.",
+			"CULTURAL ASCENDANCY — be the most",
+			"admired. See its own page.",
 			"",
 			"If the signal is answered, 2100",
 			"is not the end. What follows is",
@@ -44,23 +49,23 @@ namespace CivOne.Concepts
 
 		private static readonly string[] _page2 =
 		{
-			"CONQUEST outlasts or destroys",
-			"every rival.",
+			"CONQUEST outlasts every rival.",
 			"",
-			"SPACE RACE: launching is not",
-			"arriving. A ship still in flight",
-			"is lost with its home city.",
+			"DIASPORA: launching is not",
+			"arriving, and arriving is not",
+			"winning. A ship in flight dies",
+			"with its home city; the colony",
+			"must then be supplied 20 years by",
+			"a city with MISSION CONTROL. Lose",
+			"it and the count begins again.",
 			"",
 			"PAX MERCATORIA: half the world's",
-			"output for 75 turns, with",
-			"Banking, three rivals standing,",
-			"no war of your starting, and",
-			"half the world bound to you by",
-			"tribute, pact or trade.",
+			"output for 75 turns, with Banking,",
+			"three rivals standing, no war of",
+			"your starting, half the world bound.",
 			"",
-			"THE DOME needs all five of its",
-			"components standing, anywhere in",
-			"the world.",
+			"THE DOME: all five parts, standing",
+			"anywhere in the world.",
 		};
 
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
