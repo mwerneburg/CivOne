@@ -484,19 +484,41 @@ namespace CivOne.Screens
 			return Math.Max(3, (Height - menuY - PAD) / fh);
 		}
 
+		// The offer list, in the order the menu shows it. Internal so it can be tested without
+		// standing up a screen — the menu does not scroll, so `rows` is a hard cut and a city
+		// below it is not merely inconvenient to reach, it does not exist as far as the player
+		// can tell.
+		//
+		// Cities the recipient FOUNDED come first. Giving one back is the case the distance
+		// heuristic was standing in for, and distance answers it badly: a civ that planted a
+		// colony far from home is ranked by where its homeland is, not by what it once owned,
+		// so the city you incited off them can sit behind sixty of your own. Reported from a
+		// game — a Chinese city taken by a diplomat, and no way to hand it back.
+		//
+		// OriginalOwner is cleared when a civ dies (Game.cs, "a dead civilization's claims die
+		// with it"), so this only ever promotes a claim somebody is alive to make.
+		internal static City[] GiftableCities(Player from, Player to, int rows)
+		{
+			// Anchored on the recipient: nearest to their capital first, so the
+			// cities that would knit their realm together top the list. No capital falls back
+			// to their oldest standing city; no cities at all leaves the distance key flat and
+			// the order alphabetical, which is the best that can be said for it.
+			City? anchor = to.Cities.FirstOrDefault(c => c.HasBuilding<Buildings.Palace>())
+				?? to.Cities.FirstOrDefault();
+			byte theirs = (byte)Game.PlayerNumber(to);
+			return from.Cities
+				.Where(c => c.Size > 0 && !c.HasBuilding<Buildings.Palace>())
+				.OrderBy(c => c.OriginalOwner == theirs ? 0 : 1)
+				.ThenBy(c => anchor is null ? 0 : Common.DistanceToTile(c.X, c.Y, anchor.X, anchor.Y))
+				.ThenBy(c => c.Name)
+				.Take(rows)
+				.ToArray();
+		}
+
 		private void OfferCity(object sender, EventArgs args)
 		{
 			CloseMenus();
-			// Anchored on the recipient: nearest to their capital first, so the
-			// cities that would knit their realm together top the list.
-			City? anchor = _enemy.Cities.FirstOrDefault(c => c.HasBuilding<Buildings.Palace>())
-				?? _enemy.Cities.FirstOrDefault();
-			City[] giftable = Human.Cities
-				.Where(c => c.Size > 0 && !c.HasBuilding<Buildings.Palace>())
-				.OrderBy(c => anchor is null ? 0 : Common.DistanceToTile(c.X, c.Y, anchor.X, anchor.Y))
-				.ThenBy(c => c.Name)
-				.Take(MenuRowsAvailable())
-				.ToArray();
+			City[] giftable = GiftableCities(Human, _enemy, MenuRowsAvailable());
 			if (giftable.Length == 0)
 			{
 				SetResponse(FaceState.Neutral,
