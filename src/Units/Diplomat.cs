@@ -170,8 +170,13 @@ namespace CivOne.Units
 						foreach (IBuilding b in target.Buildings.Where(b => Common.Random.Next(0, 2) == 0).ToList())
 							target.RemoveBuilding(b);
 
+						// The victim remembers it. Scaled by what was taken: this is the same
+						// scale a gift of a city buys goodwill on, so the two are comparable.
+						int lost = target.Size;
 						target.Owner       = this.Owner;
 						target.TechStolen  = false;
+						oldOwnerPlayer?.AddGrudge(Player,
+							Game.GrudgeIncitedBase + Game.GrudgeIncitedPerSize * lost);
 						Player.Gold       -= (short)inciteCost;
 						Game.DisbandUnit(this);
 						oldOwnerPlayer?.IsDestroyed();

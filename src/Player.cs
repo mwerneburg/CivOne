@@ -36,7 +36,17 @@ namespace CivOne
 		private readonly List<byte> _embassies = new();
 		private readonly HashSet<byte> _warWith = new();
 		private readonly Dictionary<byte, int> _peaceTreaty  = new(); // AI won't declare war for N turns
-		private readonly Dictionary<byte, int> _attitudeBonus = new(); // AI acceptance boosted for N turns
+		// Signed. Positive is turns of GOODWILL remaining, negative is turns of GRUDGE — one
+		// scale, because they are the same quantity with opposite sign and a civ that can be
+		// bought must also be able to be offended. Until 2026-09-12 only the positive half
+		// existed, so a civ could be paid into friendship and never earn a grievance: the
+		// nuclear condemnation could do no more than zero somebody's goodwill.
+		private readonly Dictionary<byte, int> _attitudeBonus = new();
+
+		// One-way and permanent: no peace, no goodwill, not ever. Separate from the scale
+		// above rather than encoded as a very large negative, because a sentinel in an int
+		// that gets decremented every turn is a trap waiting for whoever reads it next.
+		private readonly HashSet<byte> _implacable = new();
 		private readonly Dictionary<byte, int> _defensePact  = new(); // mutual defense pact for N turns (kept symmetric)
 		// Tribute relationships. _tributeTo: I pay N gold/turn to this player (my protector).
 		// _tributeFrom: this player pays me N gold/turn (I'm their protector). The two maps
@@ -470,15 +480,56 @@ namespace CivOne
 		internal bool HasPeaceTreaty(Player other)             => _peaceTreaty.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 		internal void SetAttitudeBonus(Player other, int turns) => _attitudeBonus[(byte)Game.PlayerNumber(other)] = turns;
 		internal bool HasAttitudeBonus(Player other)            => _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) && t > 0;
+
+		// The negative half of the same scale.
+		internal bool HasGrudge(Player other)  => AttitudeToward(other) < 0 || IsImplacableToward(other);
+		internal int  AttitudeToward(Player other)
+			=> _attitudeBonus.TryGetValue((byte)Game.PlayerNumber(other), out int t) ? t : 0;
+
 		// Serial generosity accumulates: extend the existing window instead of
 		// overwriting it, capped so a lavish dowry can't buy goodwill forever.
 		// (SetAttitudeBonus still overwrites — tribute/pact renewals rely on that.)
+		//
+		// Gifts work OFF a grudge before they buy goodwill, which is what makes a grievance
+		// something the player can manage rather than merely suffer. An implacable one is the
+		// exception and takes nothing.
 		internal void AddAttitudeBonus(Player other, int turns)
 		{
 			byte k = (byte)Game.PlayerNumber(other);
-			int existing = _attitudeBonus.TryGetValue(k, out int t) && t > 0 ? t : 0;
-			_attitudeBonus[k] = Math.Min(200, existing + turns);
+			if (_implacable.Contains(k)) return;
+			int existing = _attitudeBonus.TryGetValue(k, out int t) ? t : 0;
+			// Already as pleased as the scale can record, and being given more. The one
+			// leader this overturns is decided in Game — here we only report the overflow.
+			if (existing >= AttitudeCap && Game.Started)
+				Game.Instance.CheckGoodwillOverflow(this, other);
+			if (_implacable.Contains(k)) return;
+			_attitudeBonus[k] = Math.Min(AttitudeCap, existing + turns);
 		}
+
+		// A grievance, in turns. Accumulates the same way generosity does and is bounded the
+		// same way, so neither side of the scale can run away.
+		internal void AddGrudge(Player other, int turns)
+		{
+			if (turns <= 0) return;
+			byte k = (byte)Game.PlayerNumber(other);
+			int existing = _attitudeBonus.TryGetValue(k, out int t) ? t : 0;
+			_attitudeBonus[k] = Math.Max(-AttitudeCap, existing - turns);
+		}
+
+		internal bool IsImplacableToward(Player other)
+			=> other is not null && _implacable.Contains((byte)Game.PlayerNumber(other));
+
+		// One-way. See Game.CheckGandhiOverflow for the only thing that calls it.
+		internal void SetImplacable(Player other)
+		{
+			byte k = (byte)Game.PlayerNumber(other);
+			_implacable.Add(k);
+			_attitudeBonus[k] = -AttitudeCap;
+		}
+
+		// Both halves of the scale are bounded by this, and reaching the positive end of it
+		// is what trips the homage — see Game.CheckGandhiOverflow.
+		internal const int AttitudeCap = 200;
 		internal void SetDefensePact(Player other, int turns)  => _defensePact[(byte)Game.PlayerNumber(other)]  = turns;
 		internal bool HasDefensePact(Player other)             => _defensePact.TryGetValue((byte)Game.PlayerNumber(other),  out int t) && t > 0;
 
@@ -494,6 +545,8 @@ namespace CivOne
 		// reloads them by replaying SetPeaceTreaty/SetAttitudeBonus per entry.
 		internal IEnumerable<KeyValuePair<byte, int>> PeaceTreatyEntries  => _peaceTreaty;
 		internal IEnumerable<KeyValuePair<byte, int>> AttitudeBonusEntries => _attitudeBonus;
+		internal IEnumerable<byte> ImplacableEntries => _implacable;
+		internal void SetImplacable(byte playerNumber) => _implacable.Add(playerNumber);
 		internal IEnumerable<KeyValuePair<byte, int>> DefensePactEntries  => _defensePact;
 
 		// ── tribute ─────────────────────────────────────────────────────────────────
@@ -1176,8 +1229,16 @@ namespace CivOne
 
 			foreach (byte k in _peaceTreaty.Keys.ToArray())
 				if (--_peaceTreaty[k] <= 0) _peaceTreaty.Remove(k);
+			// Toward zero from EITHER side: goodwill runs out and grievances are forgotten, and
+			// a grudge must never decay past zero into friendship. An implacable grudge does
+			// not decay at all — that is the whole of what "implacable" means here.
 			foreach (byte k in _attitudeBonus.Keys.ToArray())
-				if (--_attitudeBonus[k] <= 0) _attitudeBonus.Remove(k);
+			{
+				if (_implacable.Contains(k)) continue;
+				int v = _attitudeBonus[k];
+				if (v > 0 && --_attitudeBonus[k] <= 0) _attitudeBonus.Remove(k);
+				else if (v < 0 && ++_attitudeBonus[k] >= 0) _attitudeBonus.Remove(k);
+			}
 			foreach (byte k in _defensePact.Keys.ToArray())
 				if (--_defensePact[k] <= 0) _defensePact.Remove(k);
 

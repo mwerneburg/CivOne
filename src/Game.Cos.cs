@@ -218,9 +218,16 @@ namespace CivOne
 				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
 				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
 				                   .ToList(),
+					// != 0, not > 0: the scale is signed now and a negative entry is a GRUDGE.
+					// Filtering on > 0 wrote the goodwill and silently dropped every grievance,
+					// so a save and load forgave everything.
 					AttitudeBonus    = _players[p].AttitudeBonusEntries
-				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
+				                   .Where(e => e.Value != 0 && e.Key < playerCount && _players[e.Key] is not null)
 				                   .Select(e => new CosCountdown { Player = e.Key, Turns = e.Value })
+				                   .ToList(),
+					Implacable       = _players[p].ImplacableEntries
+				                   .Where(k => k < playerCount && _players[k] is not null)
+				                   .Select(k => (int)k)
 				                   .ToList(),
 					DefensePact      = _players[p].DefensePactEntries
 				                   .Where(e => e.Value > 0 && e.Key < playerCount && _players[e.Key] is not null)
@@ -549,6 +556,13 @@ namespace CivOne
 						_players[i].SetAttitudeBonus((byte)j, entry.Turns);
 					}
 				}
+				var implacableList = cos.Players[i].Implacable;
+				if (implacableList is not null)
+					foreach (int j in implacableList)
+					{
+						if (j < 0 || j >= _players.Count || _players[j] is null) continue;
+						_players[i].SetImplacable((byte)j);
+					}
 				var pactList = cos.Players[i].DefensePact;
 				if (pactList is not null)
 				{

@@ -348,11 +348,17 @@ namespace CivOne.Screens
 
 		private bool AIAccepts(int basePct)
 		{
+			// Nothing is agreed with a civ that will not forgive you. Ahead of the personality
+			// read, because the whole point of the homage is a leader whose disposition no
+			// longer describes their conduct.
+			if (_enemy.IsImplacableToward(Human)) return false;
+
 			var agg = _enemy.Civilization.Leader.Aggression;
 			int chance = agg == AggressionLevel.Friendly  ? basePct + 25
 			           : agg == AggressionLevel.Aggressive ? basePct - 25
 			           : basePct;
 			if (_enemy.HasAttitudeBonus(Human)) chance += 20;
+			else if (_enemy.HasGrudge(Human)) chance -= 20;
 			// Culture admiration: nations defer to a civilization whose accumulated
 			// culture dwarfs their own.
 			if (Human.Culture >= 100 && Human.Culture >= _enemy.Culture * 2) chance += 10;
@@ -551,6 +557,13 @@ namespace CivOne.Screens
 					captured.Owner = newOwner;
 					captured.ResetResourceTiles();
 					_enemy.AddAttitudeBonus(Human, duration);
+					// Strengthening somebody's enemy is a thing done TO them. Everyone at war
+					// with the recipient takes it personally, which is what stops a city gift
+					// from being free diplomacy in a general war.
+					foreach (Player bystander in Game.Instance.Players)
+						if (bystander is not null && bystander != Human && bystander != _enemy
+						    && !bystander.IsDestroyed() && bystander.IsAtWar(_enemy))
+							bystander.AddGrudge(Human, Game.GrudgeArmedOurEnemy);
 					SetResponse(FaceState.Smiling,
 						$"{captured.Name} joins our realm.",
 						$"{duration} turns of goodwill — agreed.");

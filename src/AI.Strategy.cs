@@ -1604,7 +1604,9 @@ namespace CivOne
 
 			// Honour active goodwill / peace-treaty windows: no approaches until they expire.
 			// The war channel stays open so the AI can still seek peace during a conflict.
-			if (!Player.IsAtWar(human) &&
+			// A grudge is the opposite and does not hold anybody back — a civ nursing one has
+			// every reason to come and make demands.
+			if (!Player.IsAtWar(human) && !Player.HasGrudge(human) &&
 			    (Player.HasAttitudeBonus(human) || Player.HasPeaceTreaty(human)))
 				return;
 
@@ -1959,7 +1961,8 @@ namespace CivOne
 
 				// Base chance from leader personality + difficulty bonus
 				int chance = Game.Difficulty * 3;
-				if (Leader.Aggression  == AggressionLevel.Aggressive)    chance += 8;
+				if (Player.IsImplacableToward(enemy)
+				 || Leader.Aggression  == AggressionLevel.Aggressive)    chance += 8;
 				if (Leader.Militarism  == MilitarismLevel.Militaristic)   chance += 7;
 
 				// Modifier for relative strength
@@ -1997,8 +2000,12 @@ namespace CivOne
 				if (tradeValue > 0) chance -= Math.Min(TradeDeterrentMax, tradeValue / 2);
 
 				// Goodwill deters aggression: a gift or aid package buys real safety
-				// for its duration, not just trade acceptance and quiet borders.
+				// for its duration, not just trade acceptance and quiet borders. A grievance
+				// is the mirror of it and costs the offender the same safety it would have
+				// bought; an implacable one is not a mood, it is a policy.
 				if (Player.HasAttitudeBonus(enemy)) chance -= 15;
+				else if (Player.IsImplacableToward(enemy)) chance += 40;
+				else if (Player.HasGrudge(enemy)) chance += 15;
 
 				if (Common.Random.Next(100) < chance)
 				{

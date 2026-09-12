@@ -803,6 +803,16 @@ namespace CivOne
 			                                        or Civilizations.Skynet
 			                                        or Civilizations.Barbarian);
 
+		// ── grievances ──────────────────────────────────────────────────────
+		// Turns of grudge, on the same scale as the goodwill a gift buys (a large city is
+		// worth 100), so the two halves are comparable and a wrong can be worked off with
+		// the right apology. Being nuked is the one that cannot be, short of the cap.
+		internal const int GrudgeNuclearVictim  = Player.AttitudeCap;
+		internal const int GrudgeNuclearWitness = 80;
+		internal const int GrudgeIncitedBase    = 60;
+		internal const int GrudgeIncitedPerSize = 10;
+		internal const int GrudgeArmedOurEnemy  = 40;
+
 		// A nuclear weapon used on people. Every civilization that keeps embassies cuts the
 		// detonator off: trade routes severed, treaties torn up, pacts ended, goodwill spent.
 		// Being already at war is no excuse and no exemption — nukes is nukes.
@@ -818,9 +828,13 @@ namespace CivOne
 			{
 				if (!IsPeople(witness)) continue;   // the factions do not hold hearings
 
-				// Goodwill bought with gifts does not survive a mushroom cloud.
+				// Goodwill bought with gifts does not survive a mushroom cloud — and now it
+				// does not merely lapse, it inverts. Zeroing was all the scale could express
+				// before it had a negative half: the detonator went back to being a stranger
+				// rather than becoming somebody with a grievance against them.
 				witness.SetAttitudeBonus(detonator, 0);
 				detonator.SetAttitudeBonus(witness, 0);
+				witness.AddGrudge(detonator, witness == victim ? GrudgeNuclearVictim : GrudgeNuclearWitness);
 				// Alliances end.
 				witness.SetDefensePact(detonator, 0);
 				detonator.SetDefensePact(witness, 0);
@@ -841,6 +855,58 @@ namespace CivOne
 			GameTask.Enqueue(Message.Newspaper(null!,
 				un ? "The Assembly condemns" : "The world turns away",
 				$"the {detonator.TribeNamePlural}.", "Every door is shut."));
+		}
+
+		// ── the Gandhi overflow ──────────────────────────────────────────────
+		//
+		// Civilization 1 stored leader aggression in an unsigned byte. Gandhi sat at the
+		// bottom of the scale, adopting Democracy subtracted two, and the counter wrapped to
+		// 255 — the most peaceful man in the world became the most warlike, permanently. It
+		// is the most famous bug the series ever had and it is a better mechanic than most
+		// deliberate ones, so it is here on purpose.
+		//
+		// The shape is kept, the cause is not: nothing in this game decrements aggression, and
+		// ILeader is a cached shared instance, so flipping it would leak between games and
+		// never reach a save. Instead the counter that overflows is the one the player
+		// actually drives — goodwill. Fill it to the cap and keep giving, and it wraps: the
+		// scale inverts to a grievance that does not decay, and he is never dealt with again.
+		//
+		// Gandhi ALONE, by name, which is the one place this codebase should prefer a name to
+		// a property: the homage is to a particular man's particular bug, not to a rule about
+		// pacifists. Seven other Friendly leaders reach the same cap and simply stay pleased.
+		internal void CheckGoodwillOverflow(Player holder, Player giver)
+		{
+			if (holder is null || giver is null || holder == giver) return;
+			if (holder.IsImplacableToward(giver)) return;
+			if (holder.Civilization?.Leader is not Leaders.Gandhi) return;
+
+			holder.SetImplacable(giver);
+
+			// Trade does not survive it, the same way it does not survive a mushroom cloud —
+			// otherwise the player discovers the betrayal at the next war rather than the turn
+			// it happens, and the most memorable moment in the game passes unnoticed.
+			byte hnum = PlayerNumber(holder), gnum = PlayerNumber(giver);
+			foreach (City c in _cities.Where(c => c.Owner == hnum)) c.RemoveTradeRoutesTo(giver);
+			foreach (City c in _cities.Where(c => c.Owner == gnum)) c.RemoveTradeRoutesTo(holder);
+			holder.SetPeaceTreaty(giver, 0);
+			giver.SetPeaceTreaty(holder, 0);
+			holder.SetDefensePact(giver, 0);
+			giver.SetDefensePact(holder, 0);
+
+			Log($"Goodwill overflow: {holder.LeaderName} turns implacable toward {giver.TribeName}");
+			DecisionLogger.LogImplacable(holder, giver, (int)_gameTurn);
+
+			if (giver == HumanPlayer)
+			{
+				GameTask.Enqueue(Message.Newspaper(null!,
+					$"{holder.LeaderName} renounces",
+					$"the {giver.TribeNamePlural}.",
+					"There will be no more talks."));
+				GameTask.Enqueue(Message.Advisor(Advisor.Foreign, true,
+					"Our generosity has undone us.",
+					$"{holder.LeaderName} will not treat",
+					"with us again. Not ever."));
+			}
 		}
 
 		// Gozira (Manhattan Project curse): 0 = the egg sleeps, 1 = rampaging, 2 = slain.

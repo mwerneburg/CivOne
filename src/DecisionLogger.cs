@@ -95,6 +95,12 @@ using CivOne.Units;
 //                          those do NOT break the declarer's victory streaks
 //   routes_cut    int      trade routes between the two at the moment of declaration
 //
+//   --- implacable fields (the Gandhi overflow) ---
+//   leader        string   the leader who will not forgive
+//   holder        string   their civilization, NamePlural
+//   giver         string   the civilization whose generosity overflowed the scale
+//   against_human bool     the giver was the human player
+//
 //   --- nuclear_strike fields ---
 //   outcome       string   "detonated" | "intercepted" (a Fusion Core shot the missile down)
 //   aggressor     string   civilization that fired, NamePlural
@@ -396,6 +402,23 @@ namespace CivOne
 				KV("city",          city?.Name ?? ""),
 				KV("is_human",      detonator is not null && detonator.IsHuman),
 				KV("against_human", victim is not null && victim.IsHuman),
+			}));
+		}
+
+		// The goodwill overflow (Game.CheckGoodwillOverflow). Rare by construction — it takes
+		// roughly three lavish gifts to one civ — so a run that never logs one is the norm and
+		// the line is how you tell "never happened" from "happened and went unnoticed".
+		internal static void LogImplacable(Player holder, Player giver, int turn)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",          "implacable"),
+				KV("game_id",       _gameId),
+				KV("turn",          turn),
+				KV("leader",        holder?.LeaderName ?? "?"),
+				KV("holder",        holder?.Civilization?.NamePlural ?? "?"),
+				KV("giver",         giver?.Civilization?.NamePlural ?? "?"),
+				KV("against_human", giver is not null && giver.IsHuman),
 			}));
 		}
 

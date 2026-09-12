@@ -51,8 +51,12 @@ namespace CivOne.Screens.Dialogs
 				foreach (IUnit unit in toDisband)
 					Game.DisbandUnit(unit);
 				Game.DisbandUnit(_diplomat);
+				// The victim remembers it — see the AI path in Diplomat.cs for the scale.
+				int lost = _cityToIncite.Size;
 				_cityToIncite.Owner = _diplomat.Owner;
 				_cityToIncite.TechStolen = false;
+				previousOwner.AddGrudge(_diplomat.Player,
+					Game.GrudgeIncitedBase + Game.GrudgeIncitedPerSize * lost);
 
 				// remove half the buildings at random
 				foreach (IBuilding building in _cityToIncite.Buildings.Where(b => Common.Random.Next(0, 2) == 1).ToList())
