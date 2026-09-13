@@ -1254,6 +1254,23 @@ namespace CivOne.Units
 
 		public IEnumerable<ITile> MoveTargets => Map[X, Y].GetBorderTiles().Where(t => ValidMoveTarget(t));
 
+		// What a click may ACT on, as opposed to walk to.
+		//
+		// MoveTargets answers "may I walk here peacefully", which is the wrong question for
+		// an attack: BaseUnitLand.ValidMoveTarget closes a neutral civ's worked tiles to
+		// trespassers, so a hostile standing on them could not be attacked at all — the
+		// right-click gate refused and the click fell through to the terrain page, with no
+		// hint that a rule had fired. A foreign city at peace was unreachable the same way.
+		//
+		// MoveTo already decides both of those correctly and dispatches to Confront BEFORE it
+		// tests trespass or zone of control, so the gate was stricter than the move it guarded.
+		// This asks the looser question and lets MoveTo give the real answer — including its
+		// refusals, which at least say why.
+		public IEnumerable<ITile> ActionTargets => Map[X, Y].GetBorderTiles()
+			.Where(t => t is not null && (ValidMoveTarget(t)
+				|| t.Units.Any(u => u.Owner != Owner)
+				|| (t.City is not null && t.City.Owner != Owner)));
+
 		protected void Explore(int range, bool sea = false, bool noCorners = false)
 		{
 			if (Game is null) return;

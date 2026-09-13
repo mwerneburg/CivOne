@@ -691,7 +691,7 @@ namespace CivOne.Screens.GamePlayPanels
 			
 			if ((args.Buttons & MouseButton.Right) > 0)
 			{
-				if (Game.ActiveUnit is not null && (Game.ActiveUnit as BaseUnit)!.MoveTargets.Any(t => t.X == xx && t.Y == yy))
+				if (Game.ActiveUnit is not null && (Game.ActiveUnit as BaseUnit)!.ActionTargets.Any(t => t.X == xx && t.Y == yy))
 				{
 					int relX = xx - Game.ActiveUnit.X;
 					int relY = yy - Game.ActiveUnit.Y;

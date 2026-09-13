@@ -4192,8 +4192,7 @@ namespace CivOne
 			// developing city even while the empire is at war — only frontline cities
 			// pay the war tax. GetStance() stays empire-wide for research, sliders and
 			// diplomacy; this demotion is production-only.
-			if (stance == StrategyStance.Militarize && !NearHostiles(city.X, city.Y))
-				stance = StrategyStance.Develop;
+			stance = LocalStance(stance, city.X, city.Y);
 
 			// Universal first: garrison before barracks so a city isn't left naked while building.
 			if (defenders < 1)                Consider(BestDefender());
@@ -5293,6 +5292,16 @@ namespace CivOne
 			                              && Common.DistanceToTile(c.X, c.Y, x, y) <= radius);
 		}
 
+		// The per-locality demotion, in one place because two callers need the same answer.
+		//
+		// A Militarize empire still DEVELOPS wherever there is no hostile within 8 tiles:
+		// only frontline ground pays the war tax. GetStance() stays empire-wide — research,
+		// sliders and diplomacy all read the undemoted stance, and this must not change that.
+		// See the two call sites for the separate measurements that put each of them here.
+		private StrategyStance LocalStance(StrategyStance stance, int x, int y)
+			=> stance == StrategyStance.Militarize && !NearHostiles(x, y)
+				? StrategyStance.Develop : stance;
+
 		// `conversion` marks an irrigate order that CHANGES THE TERRAIN — draining swamp,
 		// clearing jungle or forest — rather than adding a water channel to open ground.
 		// The distinction matters because of the despot rule below.
@@ -5323,8 +5332,7 @@ namespace CivOne
 		    // whole late game, where roads outrank irrigation. Measured at turn 578 with ten
 		    // of twelve civs in Militarize: world irrigation stood at 5-11% of worked land.
 		    // The frontier still builds roads for troop movement; the interior farms.
-		    if (stance == StrategyStance.Militarize && !NearHostiles(unit.X, unit.Y))
-		        stance = StrategyStance.Develop;
+		    stance = LocalStance(stance, unit.X, unit.Y);
 
 		    // The despot tile penalty decides whether irrigation is worth anything here — see
 		    // DespotBlocksIrrigation, which owns that rule and the measurement behind it.
