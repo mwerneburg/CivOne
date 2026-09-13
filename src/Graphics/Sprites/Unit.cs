@@ -77,8 +77,7 @@ namespace CivOne.Graphics.Sprites
 			// than as information — both halves of the pair are already on show above it — and
 			// it cost the artwork a row it can ill afford. The art now runs to row 13.
 			//
-			// The city icon (Icons.City) still quarters its banner and is deliberately left
-			// alone: it is drawn larger, where the diagonal is legible.
+			// The city icon (Icons.City) uses the same two-row banner.
 			byte sec = Common.BannerSecondary[unit.PlayerNumber];
 			output.FillRectangle(0, 14, 8, 2, colourLight);  // left half
 			output.FillRectangle(8, 14, 8, 2, sec);          // right half

@@ -497,16 +497,13 @@ namespace CivOne.Graphics
 			if (city.HasBuilding<CityWalls>())
 				output.AddLayer(Generic.Fortify, 0, 0);
 
-			// Quartered owner banner (heraldic style): primary + accent on opposite diagonals,
-			// so the two-colour PAIR identifies the civ even when a single colour repeats across
-			// slots. Replaces the old flat light-over-dark strip, where many civs read as one
-			// colour and some pairs were identical (Barbarians vs. another red civ).
+			// Owner banner, matching the unit sprite: primary on the left, accent on the right, so
+			// the two-colour PAIR identifies the civ even when a single colour repeats across slots.
+			// Two rows; the old third row repeated the pair inverted and said nothing new.
 			byte pri = Common.ColourLight[city.Owner];
 			byte sec = Common.BannerSecondary[city.Owner];
-			output.FillRectangle(0, 13, 8, 2, pri);   // top-left
-			output.FillRectangle(8, 13, 8, 2, sec);   // top-right
-			output.FillRectangle(0, 15, 8, 1, sec);   // bottom-left
-			output.FillRectangle(8, 15, 8, 1, pri);   // bottom-right
+			output.FillRectangle(0, 14, 8, 2, pri);   // left half
+			output.FillRectangle(8, 14, 8, 2, sec);   // right half
 			return output;
 		}
 
@@ -542,16 +539,11 @@ namespace CivOne.Graphics
 			if (city.HasBuilding<CityWalls>())
 				output.AddLayer(Generic.Fortify, 0, 0);
 
-			// Quartered owner banner (heraldic style): primary + accent on opposite diagonals,
-			// so the two-colour PAIR identifies the civ even when a single colour repeats across
-			// slots. Replaces the old flat light-over-dark strip, where many civs read as one
-			// colour and some pairs were identical (Barbarians vs. another red civ).
+			// Owner banner: same two rows as City() above.
 			byte pri = Common.ColourLight[city.Owner];
 			byte sec = Common.BannerSecondary[city.Owner];
-			output.FillRectangle(0, 13, 8, 2, pri);   // top-left
-			output.FillRectangle(8, 13, 8, 2, sec);   // top-right
-			output.FillRectangle(0, 15, 8, 1, sec);   // bottom-left
-			output.FillRectangle(8, 15, 8, 1, pri);   // bottom-right
+			output.FillRectangle(0, 14, 8, 2, pri);   // left half
+			output.FillRectangle(8, 14, 8, 2, sec);   // right half
 			return output;
 		}
 	}

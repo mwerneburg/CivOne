@@ -9,8 +9,7 @@
 //
 // So the banner is two rows and the art runs one row further down. The pair still identifies
 // the civ (Common.BannerSecondary is chosen so every pair is unique); it simply isn't said
-// twice. The city icon keeps its quartered banner and is drawn larger, where the diagonal is
-// legible — that divergence is deliberate.
+// twice. The city icon has since followed suit (CityBannerTests).
 
 using System.Linq;
 using CivOne;

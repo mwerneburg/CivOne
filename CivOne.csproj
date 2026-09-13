@@ -42,5 +42,6 @@
 		<Compile Remove="**" />
 		<Compile Include="shared/**" />
 		<Compile Include="src/**" />
+		<Compile Remove="src/graphify-out/**" />
 	</ItemGroup>
 </Project>
