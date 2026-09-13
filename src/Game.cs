@@ -819,6 +819,14 @@ namespace CivOne
 		internal void CondemnNuclearStrike(Player detonator, Player? victim)
 		{
 			if (detonator is null || !IsPeople(victim)) return;
+			// Nobody is cut off for a strike on their own ground. Before the Detonate order
+			// existed this could not arise — a missile only ever went off through Confront,
+			// which needs a foreign unit or a foreign city — so the rule had never met the
+			// case and treated a civ bombing its own city as an atrocity against a victim who
+			// happened to be itself: pariah for forty turns, every route severed, for treating
+			// its own tile. The world may well have opinions about it; this is not the
+			// mechanism that should carry them.
+			if (victim == detonator) return;
 
 			bool un = WonderBuilt<Wonders.UnitedNations>();
 			byte dnum = PlayerNumber(detonator);
