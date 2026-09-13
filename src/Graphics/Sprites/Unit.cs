@@ -67,15 +67,21 @@ namespace CivOne.Graphics.Sprites
 			output.FillRectangle(0, 0, 16, 16, CassetteTheme.BG0);
 			output.AddLayer(art, 0, 0);
 			output.FillRectangle(0,  0, 16,  1, CassetteTheme.PHOS);  // top
-			output.FillRectangle(0,  1,  1, 12, CassetteTheme.PHOS);  // left (rows 1–12)
-			output.FillRectangle(15, 1,  1, 12, CassetteTheme.PHOS);  // right (rows 1–12)
-			// Quartered owner banner, matching the city icon (Icons.City): primary +
-			// accent on opposite diagonals, so the two-colour PAIR identifies the civ.
+			output.FillRectangle(0,  1,  1, 13, CassetteTheme.PHOS);  // left (rows 1–13)
+			output.FillRectangle(15, 1,  1, 13, CassetteTheme.PHOS);  // right (rows 1–13)
+			// Owner banner: primary on the left, accent on the right, so the two-colour PAIR
+			// identifies the civ (Common.BannerSecondary — every pair is unique).
+			//
+			// TWO rows, not three. The banner used to be quartered, with a third row repeating
+			// the pair inverted underneath. At 16 pixels the mirrored row read as noise rather
+			// than as information — both halves of the pair are already on show above it — and
+			// it cost the artwork a row it can ill afford. The art now runs to row 13.
+			//
+			// The city icon (Icons.City) still quarters its banner and is deliberately left
+			// alone: it is drawn larger, where the diagonal is legible.
 			byte sec = Common.BannerSecondary[unit.PlayerNumber];
-			output.FillRectangle(0, 13, 8, 2, colourLight);  // top-left
-			output.FillRectangle(8, 13, 8, 2, sec);          // top-right
-			output.FillRectangle(0, 15, 8, 1, sec);          // bottom-left
-			output.FillRectangle(8, 15, 8, 1, colourLight);  // bottom-right
+			output.FillRectangle(0, 14, 8, 2, colourLight);  // left half
+			output.FillRectangle(8, 14, 8, 2, sec);          // right half
 			
 			return output;
 		}
