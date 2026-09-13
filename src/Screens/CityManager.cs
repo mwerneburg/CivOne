@@ -553,7 +553,15 @@ namespace CivOne.Screens
 				int btnW  = (pw - 10) / 2;
 				byte chgColor = blink ? CassetteTheme.PHOS : CassetteTheme.PHOS_DIM;
 				DrawButton("CHANGE", 0, chgColor, CassetteTheme.BG3, px + 2, btnY, btnW, 11);
-				DrawButton("BUY",    0, CassetteTheme.PHOS_DIM, CassetteTheme.BG3, px + 4 + btnW, btnY, btnW, 11);
+
+				// Red on an empty box: that is the expensive branch of City.BuyPrice, twice
+				// the per-shield rate, and a single turn of production halves it. Dim when
+				// there is nothing to buy — the button used to look live and silently do
+				// nothing when the build finishes next turn unaided.
+				byte buyColor = _city.BuyPrice <= 0     ? CassetteTheme.INK_LOW
+				              : _city.BuyFromScratch    ? CassetteTheme.ALERT
+				                                        : CassetteTheme.PHOS_DIM;
+				DrawButton("BUY",    0, buyColor, CassetteTheme.BG3, px + 4 + btnW, btnY, btnW, 11);
 			}
 		}
 

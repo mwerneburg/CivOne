@@ -72,6 +72,48 @@ namespace CivOne.Tests
 				"a trade route did not move the tax take, so the two really are separate");
 		}
 
+		// ── the columns ──────────────────────────────────────────────────────
+		//
+		// The layout was fixed pixel offsets inside a 320-wide band and it collided twice on
+		// real data: in a 41-city Zulu game three-digit science overprinted the route split,
+		// and "Intombe 94/0/1097" ran through "49 Cathedral, 270" in the next column. The
+		// geometry is now computed and this is the property it has to have — for any canvas
+		// and any content, no column reaches into the one beside it.
+		[Theory]
+		[InlineData(320)]   // the classic canvas
+		[InlineData(400)]
+		[InlineData(640)]
+		[InlineData(1024)]
+		public void TheColumnsNeverOverlap(int width)
+		{
+			// Adversarial content: a long maintenance line, four-digit trade, wide split.
+			foreach (int maint in new[] { 40, 90, 140 })
+			foreach (int stats in new[] { 20, 60, 110 })
+			foreach (int split in new[] { 12, 30, 70 })
+			{
+				var col = Screens.Reports.TradeReport.Layout(width, maint, stats, split);
+
+				Assert.True(col.StatsRight <= col.SplitRight - split,
+					$"stats ({col.StatsRight}) reach into the split column at {width}px");
+				Assert.True(col.SplitRight <= col.MaintX,
+					$"the split ({col.SplitRight}) reaches into maintenance ({col.MaintX})");
+				Assert.True(col.NameRoom >= 0, "negative room for the city name");
+				Assert.True(col.MaintX <= width, "the maintenance column starts off the canvas");
+			}
+		}
+
+		// A wider canvas must actually be USED — the report was pinned inside a 320-wide band
+		// centred on the window, so widening the window bought nothing.
+		[Fact]
+		public void AWiderCanvasGivesTheCityListMoreRoom()
+		{
+			var narrow = Screens.Reports.TradeReport.Layout(320, 90, 60, 30);
+			var wide   = Screens.Reports.TradeReport.Layout(640, 90, 60, 30);
+
+			Assert.True(wide.NameRoom > narrow.NameRoom,
+				$"a 640px canvas gave the names {wide.NameRoom}px against {narrow.NameRoom}px at 320");
+		}
+
 		// The reported situation, exactly: no tax allocated, so no income — while the city
 		// goes on generating hundreds of trade that the old summary never mentioned.
 		[Fact]

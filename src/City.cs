@@ -1240,6 +1240,16 @@ namespace CivOne
 			return cost;
 		}
 
+		// True when BuyPrice will take the FROM-SCRATCH branch below: an empty box pays the
+		// item's flat BuyPrice, which is double the per-shield rate of the marginal formula
+		// (4 gold a shield against 2 for a building, 8 against 4 for a wonder). One turn of
+		// production halves the price, so it is worth warning about at the point of sale.
+		//
+		// Here rather than as `Shields == 0` in the city screen, so the warning and the price
+		// cannot come to disagree — which is how the zone-of-control rule and the sea-tube
+		// rule both went wrong in this codebase before now.
+		internal bool BuyFromScratch => Shields <= 0;
+
 		internal short BuyPrice
 		{
 			get

@@ -31,6 +31,92 @@ namespace CivOne.Screens.Reports
 		// the totals cannot be pushed off the bottom of a full screen.
 		private const int SUMMARY_ROWS = 3;
 
+		private const int MARGIN = 8;
+		private const int GAP    = 6;
+
+		// ── layout ───────────────────────────────────────────────────────────
+		//
+		// MEASURED, not guessed, and laid out from the real canvas width rather than inside a
+		// fixed 320-wide band. The old version put the stats at OX+86, the split at OX+130 and
+		// the maintenance column at OX+160, which held for the cities it was written against
+		// and fell apart on a real empire: reported from a 41-city Zulu game where three-digit
+		// science overprinted the route split, and `Intombe 94/0/1097` ran straight through
+		// `49 Cathedral, 270` in the next column.
+		//
+		// Every column is sized to the widest string that will actually go in it, so the
+		// layout cannot be outgrown by a long city name or a fourth digit. What it cannot do
+		// is invent room: on a narrow canvas names are truncated (Fit) rather than allowed to
+		// run into their neighbour.
+		private static int TextWidth(string text) => Resources.GetTextSize(0, text).Width;
+
+		// Where the four columns sit, given the canvas and how wide the widest entry in each
+		// actually is. Pulled out of the drawing and made internal so the one property that
+		// matters can be ASSERTED rather than squinted at: no column may reach into the one
+		// beside it, for any canvas width and any content. That is precisely what the old
+		// fixed offsets could not promise, and a screenshot is how it was found out twice.
+		//
+		// Numeric columns are RIGHT edges — a wider number grows leftwards into its own
+		// column's slack. NameRoom is a width, and is floored at zero: on a canvas too narrow
+		// to hold everything the name is cut (Fit) rather than allowed to run.
+		internal readonly struct Columns
+		{
+			public readonly int NameRoom, StatsRight, SplitRight, MaintX;
+			public Columns(int nameRoom, int statsRight, int splitRight, int maintX)
+			{
+				NameRoom = nameRoom; StatsRight = statsRight; SplitRight = splitRight; MaintX = maintX;
+			}
+		}
+
+		internal static Columns Layout(int width, int maintWidth, int statsWidth, int splitWidth)
+		{
+			int maintX     = Math.Max(width / 2, width - MARGIN - maintWidth);
+			int splitRight = maintX - GAP * 2;
+			int statsRight = splitRight - splitWidth - GAP;
+			int nameRoom   = Math.Max(0, statsRight - statsWidth - GAP - MARGIN);
+			return new Columns(nameRoom, statsRight, splitRight, maintX);
+		}
+
+		// The longest prefix of `text` that fits, with a trailing dot to show it was cut.
+		private static string Fit(string text, int maxWidth)
+		{
+			if (maxWidth <= 0) return string.Empty;
+			if (string.IsNullOrEmpty(text) || TextWidth(text) <= maxWidth) return text;
+			while (text.Length > 1 && TextWidth(text + ".") > maxWidth)
+				text = text.Substring(0, text.Length - 1);
+			return text + ".";
+		}
+
+		private string Stats(City c) =>
+			$"{Math.Max(0, (int)c.Luxuries)}{LUXURIES}/{Math.Max(0, (int)c.Taxes)}{GOLD}/{Math.Max(0, (int)c.Science)}{SCIENCE}";
+
+		private string Split(City c) => $"{c.BaseTrade}+{c.TradeRouteBonus}";
+
+		private string[] MaintenanceLines()
+		{
+			var lines = new System.Collections.Generic.List<string> { "Maintenance Cost" };
+			foreach (Building entry in Enum.GetValues(typeof(Building)))
+			{
+				int count = _cities.SelectMany(c => c.Buildings).Count(b => b.Id == (int)entry);
+				if (count == 0) continue;
+				IBuilding building = _cities.SelectMany(c => c.Buildings).First(b => b.Id == (int)entry);
+				if (building.Maintenance == 0) continue;
+				lines.Add($"{count} {building.Name}, {building.Maintenance * count}$");
+			}
+			lines.Add($"Total Cost: {_cities.Sum(c => c.TotalMaintenance)}$");
+			return lines.ToArray();
+		}
+
+		// Reserved on EVERY page, not just the one that draws it, so the city list does not
+		// shift sideways when the maintenance block appears on the last page.
+		private int MaintenanceX
+		{
+			get
+			{
+				int w = MaintenanceLines().Max(TextWidth);
+				return Layout(Width, w, 0, 0).MaintX;
+			}
+		}
+
 		// One definition. It was computed in three places against the same expression, which
 		// is the shape that drifts: pagination, the "is this the last page" test and the list
 		// loop all have to agree or the totals draw over a city or never draw at all.
@@ -53,26 +139,30 @@ namespace CivOne.Screens.Reports
 			int totalTrade   = _cities.Sum(c => c.TradeTotal);
 			int totalRoutes  = _cities.Sum(c => c.TradeRouteBonus);
 
-			this.DrawText("City Trade", 0, CassetteTheme.PHOS, OX + 8, 32);
+			this.DrawText("City Trade", 0, CassetteTheme.PHOS, MARGIN, 32);
+
+			Columns col = Layout(Width,
+				MaintenanceLines().Max(TextWidth),
+				_cities.Max(c => TextWidth(Stats(c))),
+				_cities.Max(c => TextWidth(Split(c))));
+			int splitRight = col.SplitRight, statsRight = col.StatsRight, nameRoom = col.NameRoom;
 
 			int pageSize = PageSize;
 			int yy = 40;
 			for (int i = (_page++ * pageSize); i < _cities.Length && i < (_page * pageSize); i++)
 			{
 				City city = _cities[i];
+				string name = Fit(city.Name, nameRoom);
 
-				int lux = Math.Max(0, (int)city.Luxuries);
-				int tax = Math.Max(0, (int)city.Taxes);
-				int sci = Math.Max(0, (int)city.Science);
 				// Home trade and route income, the split the old line could not show: a city's
 				// gold said nothing about whether it came from its own ground or from its
 				// caravans, and those answer to completely different decisions.
-				this.DrawText(city.Name, 0, CassetteTheme.BG0, OX + 16, yy + 1)
-					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, OX + 16, yy)
-					.DrawText($"{lux}{LUXURIES}/{tax}{GOLD}/{sci}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy)
-					.DrawText($"{city.BaseTrade}+{city.TradeRouteBonus}", 0,
+				this.DrawText(name, 0, CassetteTheme.BG0, MARGIN, yy + 1)
+					.DrawText(name, 0, CassetteTheme.INK_HIGH, MARGIN, yy)
+					.DrawText(Stats(city), 0, CassetteTheme.PHOS_DIM, statsRight, yy, TextAlign.Right)
+					.DrawText(Split(city), 0,
 						city.TradeRouteBonus > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW,
-						OX + 130, yy);
+						splitRight, yy, TextAlign.Right);
 
 				yy += Resources.GetFontHeight(0);
 			}
@@ -82,41 +172,35 @@ namespace CivOne.Screens.Reports
 				int fh = Resources.GetFontHeight(0);
 				yy += 4;
 				this.DrawText($"Total Trade: {totalTrade} ({totalRoutes} routes)", 0,
-					CassetteTheme.INK_HIGH, OX + 8, yy);
+					CassetteTheme.INK_HIGH, MARGIN, yy);
 				yy += fh;
 				this.DrawText($"{totalTaxes}{GOLD} {totalLux}{LUXURIES} {totalScience}{SCIENCE}", 0,
-					CassetteTheme.PHOS_DIM, OX + 8, yy);
+					CassetteTheme.PHOS_DIM, MARGIN, yy);
 				yy += fh;
 				if (totalScience > 0 && yy <= Height - 8)
 				{
-					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, CassetteTheme.INK_HIGH, OX + 8, yy);
+					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, CassetteTheme.INK_HIGH, MARGIN, yy);
 				}
 			}
 		}
 		
 		private void DrawMaintenanceCost()
 		{
-			int totalCost = _cities.Sum(c => c.TotalMaintenance);
+			string[] lines = MaintenanceLines();
+			int x = MaintenanceX;
+			int fh = Resources.GetFontHeight(0);
 
-			this.DrawText("Maintenance Cost", 0, CassetteTheme.PHOS, OX + 160, 32);
-
+			this.DrawText(lines[0], 0, CassetteTheme.PHOS, x, 32);
 			int yy = 40;
-			foreach (Building entry in Enum.GetValues(typeof(Building)))
+			for (int i = 1; i < lines.Length - 1; i++)
 			{
-				int count = _cities.SelectMany(c => c.Buildings).Count(b => b.Id == (int)entry);
-				if (count == 0) continue;
-
-				IBuilding building = _cities.SelectMany(c => c.Buildings).First(b => b.Id == (int)entry);
-				if (building.Maintenance == 0) continue;
-
-				this.DrawText($"{count} {building.Name}, {building.Maintenance * count}$", 0, 14, OX + 160, yy);
-				yy += Resources.GetFontHeight(0);
+				this.DrawText(lines[i], 0, 14, x, yy);
+				yy += fh;
 			}
-
 			yy += 4;
-			this.DrawText($"Total Cost: {totalCost}$", 0, 14, OX + 160, yy);
+			this.DrawText(lines[lines.Length - 1], 0, 14, x, yy);
 		}
-		
+
 		protected override bool HasUpdate(uint gameTick)
 		{
 			if (!_update) return false;
