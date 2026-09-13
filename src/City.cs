@@ -543,7 +543,10 @@ namespace CivOne
 		// denominator to judge what graft is actually costing the empire.
 		internal int RawTradeForAi => RawTrade;
 
-		private int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
+		// Internal, not private: the Trade Advisor shows the two halves of TradeTotal
+		// separately, because they answer different questions. Home trade is tiles, roads and
+		// corruption — what the city is; route income is what its caravans reached.
+		internal int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
 
 		// Civ 1's rule: (distance + 10) x (trade of BOTH cities) / 24, halved for a partner on
 		// the same continent and halved again for a partner of the same civilization. Both ends
@@ -571,7 +574,7 @@ namespace CivOne
 			return (int)(multiplier * (float)(distance + 10) * (BaseTrade + partner.BaseTrade) / 24);
 		}
 
-		private int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
+		internal int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
 

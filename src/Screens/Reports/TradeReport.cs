@@ -27,14 +27,35 @@ namespace CivOne.Screens.Reports
 		private bool _update = true;
 		private int _page = 0;
 
+		// Rows the summary block needs under the last page. Held back from the page size so
+		// the totals cannot be pushed off the bottom of a full screen.
+		private const int SUMMARY_ROWS = 3;
+
+		// One definition. It was computed in three places against the same expression, which
+		// is the shape that drifts: pagination, the "is this the last page" test and the list
+		// loop all have to agree or the totals draw over a city or never draw at all.
+		private int PageSize => Math.Max(1,
+			((Height - 40) / Resources.GetFontHeight(0)) - SUMMARY_ROWS);
+
+		private bool LastPage => (_page * PageSize) >= _cities.Length;
+
 		private void DrawCityTrade()
 		{
-			int totalIncome = _cities.Sum(c => c.Taxes);
-			int totalScience = _cities.Sum(c => c.Science);
+			// TradeTotal = BaseTrade + TradeRouteBonus, and Taxes is levied on the whole of
+			// it — so route income is INSIDE the tax figure, never additional to it. The old
+			// summary read "Total Income: {sum of Taxes}" and nothing else, which at a 0% tax
+			// rate printed a flat 0 beside city lines showing hundreds of trade. True, and
+			// useless: the trade was all going to science and luxuries and the screen would
+			// not say so. The block below reports the gross and then where it went.
+			int totalTaxes   = _cities.Sum(c => Math.Max(0, (int)c.Taxes));
+			int totalLux     = _cities.Sum(c => Math.Max(0, (int)c.Luxuries));
+			int totalScience = _cities.Sum(c => Math.Max(0, (int)c.Science));
+			int totalTrade   = _cities.Sum(c => c.TradeTotal);
+			int totalRoutes  = _cities.Sum(c => c.TradeRouteBonus);
 
 			this.DrawText("City Trade", 0, CassetteTheme.PHOS, OX + 8, 32);
 
-			int pageSize = (Height - 40) / Resources.GetFontHeight(0);
+			int pageSize = PageSize;
 			int yy = 40;
 			for (int i = (_page++ * pageSize); i < _cities.Length && i < (_page * pageSize); i++)
 			{
@@ -43,19 +64,30 @@ namespace CivOne.Screens.Reports
 				int lux = Math.Max(0, (int)city.Luxuries);
 				int tax = Math.Max(0, (int)city.Taxes);
 				int sci = Math.Max(0, (int)city.Science);
+				// Home trade and route income, the split the old line could not show: a city's
+				// gold said nothing about whether it came from its own ground or from its
+				// caravans, and those answer to completely different decisions.
 				this.DrawText(city.Name, 0, CassetteTheme.BG0, OX + 16, yy + 1)
 					.DrawText(city.Name, 0, CassetteTheme.INK_HIGH, OX + 16, yy)
-					.DrawText($"{lux}{LUXURIES}/{tax}{GOLD}/{sci}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy);
+					.DrawText($"{lux}{LUXURIES}/{tax}{GOLD}/{sci}{SCIENCE}", 0, CassetteTheme.PHOS_DIM, OX + 86, yy)
+					.DrawText($"{city.BaseTrade}+{city.TradeRouteBonus}", 0,
+						city.TradeRouteBonus > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW,
+						OX + 130, yy);
 
 				yy += Resources.GetFontHeight(0);
 			}
-			
-			if ((_page * pageSize) >= _cities.Length)
+
+			if (LastPage)
 			{
+				int fh = Resources.GetFontHeight(0);
 				yy += 4;
-				this.DrawText($"Total Income: {totalIncome}$", 0, CassetteTheme.INK_HIGH, OX + 8, yy);
-				yy += Resources.GetFontHeight(0);
-				if (totalScience > 0 && yy <= Height - 20)
+				this.DrawText($"Total Trade: {totalTrade} ({totalRoutes} routes)", 0,
+					CassetteTheme.INK_HIGH, OX + 8, yy);
+				yy += fh;
+				this.DrawText($"{totalTaxes}{GOLD} {totalLux}{LUXURIES} {totalScience}{SCIENCE}", 0,
+					CassetteTheme.PHOS_DIM, OX + 8, yy);
+				yy += fh;
+				if (totalScience > 0 && yy <= Height - 8)
 				{
 					this.DrawText($"Discoveries: {(int)Math.Ceiling((double)Human.ScienceCost / totalScience)} turns", 0, CassetteTheme.INK_HIGH, OX + 8, yy);
 				}
@@ -89,10 +121,9 @@ namespace CivOne.Screens.Reports
 		{
 			if (!_update) return false;
 
-			int pageSize = (Height - 40) / Resources.GetFontHeight(0);
 			this.FillRectangle(0, 32, Width, Height - 32, 2);
 			DrawCityTrade();
-			if ((_page * pageSize) >= _cities.Length)
+			if (LastPage)
 			{
 				DrawMaintenanceCost();
 			}
@@ -105,8 +136,7 @@ namespace CivOne.Screens.Reports
 
 		private bool NextPage()
 		{
-			int pageSize = (Height - 40) / Resources.GetFontHeight(0);
-			if ((_page * pageSize) < _cities.Length)
+			if (!LastPage)
 			{
 				_update = true;
 			}
