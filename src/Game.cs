@@ -4874,11 +4874,20 @@ namespace CivOne
 			if (tile is null || !tile.Special) return StrategicResource.None;
 			return tile.Type switch
 			{
-				Terrain.Mountains => StrategicResource.Iron,
-				Terrain.Hills     => StrategicResource.Coal,
-				Terrain.Desert    => StrategicResource.Oil,
-				Terrain.Swamp     => StrategicResource.Oil,
-				_                 => StrategicResource.None,
+				Terrain.Mountains     => StrategicResource.Iron,
+				Terrain.Hills         => StrategicResource.Coal,
+				// Trees on a coal seam do not move the coal. ForestedHills was added after
+				// this switch and missed it, so a special wooded hill was labelled "Coal" by
+				// the map overlay AND documented as Coal in the Civilopedia while being worth
+				// nothing to any rule: no camp could be built on it, and one inside a city
+				// radius unlocked no Factory. Worse, planting forest on a coal hill silently
+				// destroyed the resource — including under a camp already standing there,
+				// since HasResource reads this live — and chopping it back restored it.
+				// Reported from a game: "I can't build resource camps on forested hills."
+				Terrain.ForestedHills => StrategicResource.Coal,
+				Terrain.Desert        => StrategicResource.Oil,
+				Terrain.Swamp         => StrategicResource.Oil,
+				_                     => StrategicResource.None,
 			};
 		}
 
