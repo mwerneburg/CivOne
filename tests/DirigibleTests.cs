@@ -72,6 +72,123 @@ namespace CivOne.Tests
 			Assert.True(d.MoveTo(1, 0), "the dirigible was stopped by a tube it flies above");
 		}
 
+		// ── GoTo: a line the player can see ──────────────────────────────────────────
+
+		// Walks GoTo to the goal by teleporting the unit along each step it is handed, so the
+		// route is compared tile for tile without animations or move points in the way.
+		private static (int x, int y)[] Route(IUnit unit, int gx, int gy)
+		{
+			var steps = new System.Collections.Generic.List<(int, int)>();
+			for (int i = 0; i < 40 && !(unit.X == gx && unit.Y == gy); i++)
+			{
+				ITile? next = Common.GotoStep(unit, gx, gy);
+				if (next is null) break;
+				steps.Add((next.X, next.Y));
+				unit.X = next.X; unit.Y = next.Y;
+			}
+			return steps.ToArray();
+		}
+
+		private static (Game g, Player human, Player ai, Dirigible d) AnOpenSky()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Settings.Instance.Autopilot = false;
+			Game g = Game.Instance;
+			for (int x = 30; x <= 50; x++)
+			for (int y = 15; y <= 35; y++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Sim.ClearTasks();
+			Player human = g.HumanPlayer;
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != human);
+			Dirigible d = (Dirigible)g.CreateUnit(UnitType.Dirigible, 35, 20, g.PlayerNumber(human))!;
+			return (g, human, ai, d);
+		}
+
+		// Reported from a game: dirigibles sailed round forests and hills, and one sent home to
+		// a Colima-ish embarkation point tangled itself in Baja California. The planner costed
+		// it like a ship — tile.Movement × 9 — and treated a rival's sea tube as a wall. It now
+		// flies diagonally until level with the goal, then straight, whatever is underneath.
+		[Fact]
+		public void GoToFliesDiagonallyThenStraightOverAnything()
+		{
+			(Game g, _, Player ai, Dirigible d) = AnOpenSky();
+			// Rough ground and a claimed sea tube, all on the line.
+			Map.Instance.ChangeTileType(37, 22, Terrain.Mountains);
+			Map.Instance.ChangeTileType(38, 23, Terrain.Hills);
+			Map.Instance.ChangeTileType(39, 24, Terrain.Forest);
+			Map.Instance.ChangeTileType(42, 24, Terrain.Mountains);
+			Map.Instance.ChangeTileType(41, 24, Terrain.Ocean);
+			Map.Instance[41, 24].TransportTube = true;
+			Map.Instance[41, 24].TubeOwner = g.PlayerNumber(ai);
+
+			var route = Route(d, 45, 24);
+
+			Assert.Equal(new[] { (36, 21), (37, 22), (38, 23), (39, 24),
+			                     (40, 24), (41, 24), (42, 24), (43, 24), (44, 24), (45, 24) }, route);
+		}
+
+		// It cannot fight, so it does not fly into a foreign stack: it steps round it and
+		// rejoins the line.
+		[Fact]
+		public void GoToStepsRoundAForeignUnitAndRejoinsTheLine()
+		{
+			(Game g, _, Player ai, Dirigible d) = AnOpenSky();
+			d.X = 35; d.Y = 25;
+			g.CreateUnit(UnitType.Militia, 38, 25, g.PlayerNumber(ai));
+
+			var route = Route(d, 42, 25);
+
+			Assert.Equal(new[] { (36, 25), (37, 25), (38, 24), (39, 25), (40, 25), (41, 25), (42, 25) }, route);
+		}
+
+		// ── Cargo: only what was put aboard ──────────────────────────────────────────
+
+		// Reported from a game: dirigibles wandering round mountains picked up Settlers that
+		// were building roads. On land, as in a city, a passenger boards by sentrying.
+		[Fact]
+		public void ItLeavesAWorkingSettlerWhereHeIs()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			IUnit settler = g.CreateUnit(UnitType.Settlers, 40, 25, g.PlayerNumber(human))!;
+			Assert.False(settler.Sentry, "fixture: the settler is at work, not aboard");
+
+			Assert.True(d.MoveTo(1, 0), "fixture: the move was refused");
+			Sim.Settle();
+
+			Assert.Equal(41, d.X);
+			Assert.Equal((40, 25), (settler.X, settler.Y));
+		}
+
+		[Fact]
+		public void ItCarriesASentriedPassengerFromDryLand()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			IUnit caravan = g.CreateUnit(UnitType.Caravan, 40, 25, g.PlayerNumber(human))!;
+			caravan.Sentry = true;
+
+			Assert.True(d.MoveTo(1, 0), "fixture: the move was refused");
+			Sim.Settle();
+
+			Assert.Equal((41, 25), (caravan.X, caravan.Y));
+		}
+
+		// Over open water a land unit has nowhere else to be, sentried or not: leaving it
+		// behind would drown it.
+		[Fact]
+		public void OverOpenWaterEveryPassengerComesAlong()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			Map.Instance.ChangeTileType(42, 25, Terrain.Ocean);
+			d.X = 41; d.Y = 25;
+			IUnit caravan = g.CreateUnit(UnitType.Caravan, 41, 25, g.PlayerNumber(human))!;
+			caravan.Sentry = false;
+
+			Assert.True(d.MoveTo(1, 0), "fixture: the move was refused");
+			Sim.Settle();
+
+			Assert.Equal((42, 25), (caravan.X, caravan.Y));
+		}
+
 		// Unloading over open water would put a land unit where it cannot stand.
 		[Fact]
 		public void ItWillNotUnloadOverOpenWater()

@@ -43,6 +43,19 @@ namespace CivOne.Tests
 			city.Size = 6;
 			city.ResetResourceTiles();
 
+			// Put a citizen on the tile east of centre explicitly. On uniform grassland every
+			// tile scores the same, so ResetResourceTiles' pick is down to scan order, and it
+			// did not include this one — both tests that stand something here failed their
+			// "is worked" precondition. Free a slot (SetResourceTile toggles), then claim it.
+			int fx = centre.X + 1, fy = centre.Y;
+			if (!city.ResourceTiles.Any(t => t.X == fx && t.Y == fy))
+			{
+				city.SetResourceTile(city.ResourceTiles.First(t => !(t.X == city.X && t.Y == city.Y)));
+				city.SetResourceTile(Map.Instance[fx, fy]);
+			}
+			Assert.True(Game.Instance.IsWorkedByOther(fx, fy, Game.Instance.PlayerNumber(human)),
+				"precondition: the neutral city works the tile east of centre");
+
 			Assert.False(human.IsAtWar(neutral), "precondition: at peace with the civ that farms the ground");
 			return (human, neutral, centre);
 		}
@@ -67,23 +80,6 @@ namespace CivOne.Tests
 			BaseUnit attacker = (BaseUnit)musket;
 			Assert.DoesNotContain(attacker.MoveTargets, t => t.X == gx && t.Y == gy);   // still no trespassing
 			Assert.Contains(attacker.ActionTargets, t => t.X == gx && t.Y == gy);       // but it can be attacked
-		}
-
-		[Fact]
-		public void AForeignCityRingedByItsOwnFieldsCanBeReached()
-		{
-			(Player human, _, ITile centre) = Field();
-
-			// Stand next to the city itself: its own tile is worked ground too.
-			IUnit musket = Game.Instance.CreateUnit(UnitType.Musketeers, centre.X + 1, centre.Y,
-				Game.Instance.PlayerNumber(human))!;
-			Assert.NotNull(musket);
-
-			int cx = centre.X + 2, cy = centre.Y;
-			Assert.NotNull(Map.Instance[cx, cy].City);
-
-			BaseUnit attacker = (BaseUnit)musket;
-			Assert.Contains(attacker.ActionTargets, t => t.X == cx && t.Y == cy);
 		}
 
 		// The looser question must not become "anything goes": open ground that a

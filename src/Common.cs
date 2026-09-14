@@ -299,6 +299,7 @@ namespace CivOne
 
 		public static ITile? GotoStep(IUnit unit, int gx, int gy)
 		{
+			if (unit is Dirigible) return AirshipStep(unit, gx, gy);
 			long __p = TurnMetrics.Now;
 			bool __found = false;
 			try
@@ -317,6 +318,47 @@ namespace CivOne
 				return r;
 			}
 			finally { TurnMetrics.AddPathfind(__p, __found); }
+		}
+
+		// A Dirigible does not search. It flies diagonally until it is level with its goal on
+		// one axis, then straight along the other, so the player can see the route before it
+		// sails. The A* below costed it like a ship (tile.Movement × 9), so it detoured round
+		// forest, hills and mountains, and it treated a rival's sea tube as a wall, which is
+		// the one thing the airship exists to cross. Reported from a game: one sent home to an
+		// embarkation point near Colima tangled itself in Baja California.
+		//
+		// It is unarmed, so a tile holding a foreign unit or city is not flown into. It steps
+		// to a neighbour that still closes the distance and rejoins the line from there, or
+		// stops. Requiring every step to close the (Chebyshev) distance is what keeps a
+		// sidestep from ever turning into a loop.
+		private static ITile? AirshipStep(IUnit unit, int gx, int gy)
+		{
+			int w = Map.WIDTH;
+			int dx = gx - unit.X, dy = gy - unit.Y;
+			if (dx > w / 2) dx -= w; else if (dx < -w / 2) dx += w;   // the short way round the wrap
+			if (dx == 0 && dy == 0) return null;
+
+			int sx = Math.Sign(dx), sy = Math.Sign(dy);
+			var steps = new List<(int x, int y)> { (sx, sy) };
+			if (sx != 0 && sy != 0)
+			{
+				if (Math.Abs(dx) >= Math.Abs(dy)) { steps.Add((sx, 0)); steps.Add((0, sy)); }
+				else { steps.Add((0, sy)); steps.Add((sx, 0)); }
+			}
+			else if (sx != 0) { steps.Add((sx, -1)); steps.Add((sx, 1)); }
+			else { steps.Add((-1, sy)); steps.Add((1, sy)); }
+
+			int distance = Math.Max(Math.Abs(dx), Math.Abs(dy));
+			foreach (var (ox, oy) in steps)
+			{
+				if (Math.Max(Math.Abs(dx - ox), Math.Abs(dy - oy)) >= distance) continue;
+				ITile tile = Map.Instance[(unit.X + ox + w) % w, unit.Y + oy];
+				if (tile is null) continue;
+				if (tile.Units.Any(u => u.Owner != unit.Owner)) continue;
+				if (tile.City is not null && tile.City.Owner != unit.Owner) continue;
+				return tile;
+			}
+			return null;
 		}
 
 		// Returns the next step off a still-valid plan, or null to force a fresh search.

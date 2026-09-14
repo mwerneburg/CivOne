@@ -30,7 +30,26 @@ namespace CivOne.Wonders
 			"in all anticipated conditions.",
 		};
 
-		public override string[] GetPageText(byte pageNumber) => _page1;
+		// Page 2 is the counterplay: what to do once the bound has failed. Page 1 keeps its
+		// one quiet warning (docs/cursed_wonders.md rule 4).
+		private static readonly string[] _page2 =
+		{
+			"Requires SYNTHETIC ECOLOGY.",
+			"",
+			"If the bound fails, a grey tide",
+			"doubles every 5 turns. It cannot",
+			"cross the sea. Units left on it",
+			"are lost; a city under it for 10",
+			"turns falls. The factory never",
+			"refits again.",
+			"",
+			"SETTLERS are immune: order them",
+			"to CLEAN POLLUTION on a goo tile",
+			"(2 turns). A NUCLEAR strike clears",
+			"all goo connected to the blast.",
+		};
+
+		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
 		public NanobotFactory() : base(40)
 		{

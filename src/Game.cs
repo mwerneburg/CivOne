@@ -4614,6 +4614,24 @@ namespace CivOne
 			Log($"Grey goo seeded at {site.Name} ({site.X},{site.Y})");
 		}
 
+		// Played after the wonder-built screen. The factory is not rebuilt or repaired: the
+		// curse is permanent (NanobotCursed), and the second notice says so in the world's
+		// own words.
+		internal void AnnounceGreyGoo(string city)
+		{
+			string? gooArt = EventArtScreen.FindPath("GreyGoo");
+			if (gooArt is not null)
+				GameTask.Enqueue(Show.Screen(new EventArtScreen(gooArt,
+					$"CONTAINMENT FAILURE — {city.ToUpper()}")));
+			GameTask.Enqueue(Message.Newspaper(null!, "Containment failure!",
+				$"A grey tide spreads from {city}.", "It is eating the ground."));
+			GameTask.Enqueue(Message.Newspaper(null!, "Nanobot Factory decommissioned.",
+				$"{city} keeps it as a memorial",
+				"to those who died, and a warning",
+				"to temper our faith in",
+				"advanced technology."));
+		}
+
 		// Every 5 turns the front doubles: N tiles claim N adjacent land tiles.
 		// The goo cannot cross ocean. Units ending a turn on goo are consumed —
 		// except Settlers, whose counter-nanite gear is the one thing that

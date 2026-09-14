@@ -2513,15 +2513,7 @@ namespace CivOne
 							{
 								Game.Instance.SeedGreyGoo(this);
 								string gooCity = Name;
-								impTask.Done += (s, a) =>
-								{
-									string? gooArt = EventArtScreen.FindPath("GreyGoo");
-									if (gooArt is not null)
-										GameTask.Enqueue(Show.Screen(new EventArtScreen(gooArt,
-											$"CONTAINMENT FAILURE — {gooCity.ToUpper()}")));
-									GameTask.Enqueue(Message.Newspaper(null!, "Containment failure!",
-										$"A grey tide spreads from {gooCity}.", "It is eating the ground."));
-								};
+								impTask.Done += (s, a) => Game.Instance.AnnounceGreyGoo(gooCity);
 							}
 							else if (Player == Human)
 							{

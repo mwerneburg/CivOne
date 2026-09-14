@@ -49,10 +49,15 @@ namespace CivOne.Units
 				yield break;
 
 			IUnit[] aboard = previousTile.Units.Where(u => u.Class == UnitClass.Land).ToArray();
-			// In a city, only what was deliberately put aboard: a city tile is full of units
-			// that live there and are not going anywhere. Sentry is how a passenger says so,
-			// exactly as it does for a Transport.
-			if (previousTile.City is not null)
+			// Only what was deliberately put aboard: Sentry is how a passenger says so, exactly
+			// as it does for a Transport. This used to apply only in a city, so on open ground
+			// the airship took every land unit it shared a tile with. Reported from a game:
+			// dirigibles wandering round mountains carried off Settlers building roads.
+			//
+			// Over open water, though, every land unit on the tile is aboard: it has nowhere
+			// else to stand, and leaving it behind would drown it. Same test as Unload.
+			bool openWater = previousTile.IsOcean && previousTile.City is null && !previousTile.TransportTube;
+			if (!openWater)
 				aboard = aboard.Where(u => u.Sentry).ToArray();
 			foreach (IUnit unit in aboard.Take(Cargo)) yield return unit;
 		}
