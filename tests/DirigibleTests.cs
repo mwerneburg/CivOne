@@ -141,6 +141,55 @@ namespace CivOne.Tests
 			Assert.Equal(new[] { (36, 25), (37, 25), (38, 24), (39, 25), (40, 25), (41, 25), (42, 25) }, route);
 		}
 
+		// Unarmed. BaseUnit.Confront refused only unarmed LAND units, so a Dirigible moved by
+		// hand onto a foreign unit fought it at strength 0 and lost its cargo with it.
+		[Fact]
+		public void ItWillNotAttack()
+		{
+			(Game g, _, Player ai, Dirigible d) = AnOpenSky();
+			IUnit militia = g.CreateUnit(UnitType.Militia, 36, 20, g.PlayerNumber(ai))!;
+
+			Assert.False(d.MoveTo(1, 0), "an unarmed airship flew into combat");
+			Sim.Settle();
+
+			Assert.Contains(d, g.GetUnits());
+			Assert.Contains(militia, g.GetUnits());
+		}
+
+		// The rest of the air force had the planner's other half of the fault: charged for the
+		// terrain under it, discounted for railways it cannot ride, and walled off by a rival's
+		// sea tube. A Bomber on a straight run over a ridge of mountains flies the ridge...
+		[Fact]
+		public void AnAircraftFliesOverMountainsNotRoundThem()
+		{
+			(Game g, Player human, _, _) = AnOpenSky();
+			for (int x = 36; x <= 44; x++) Map.Instance.ChangeTileType(x, 25, Terrain.Mountains);
+			IUnit bomber = g.CreateUnit(UnitType.Bomber, 35, 25, g.PlayerNumber(human))!;
+
+			var route = Route(bomber, 45, 25);
+
+			Assert.Equal(Enumerable.Range(36, 10).Select(x => (x, 25)).ToArray(), route);
+		}
+
+		// ...and crosses a rival's tube line, which here runs the full height of the map, so
+		// the only way round was the long way round the world.
+		[Fact]
+		public void AnAircraftIsNotWalledOffByARivalsTube()
+		{
+			(Game g, Player human, Player ai, _) = AnOpenSky();
+			for (int y = 0; y < Map.HEIGHT; y++)
+			{
+				Map.Instance.ChangeTileType(40, y, Terrain.Ocean);
+				Map.Instance[40, y].TransportTube = true;
+				Map.Instance[40, y].TubeOwner = g.PlayerNumber(ai);
+			}
+			IUnit bomber = g.CreateUnit(UnitType.Bomber, 35, 25, g.PlayerNumber(human))!;
+
+			var route = Route(bomber, 45, 25);
+
+			Assert.Equal(10, route.Length);
+		}
+
 		// ── Cargo: only what was put aboard ──────────────────────────────────────────
 
 		// Reported from a game: dirigibles wandering round mountains picked up Settlers that

@@ -397,7 +397,7 @@ namespace CivOne
 			bool passable = unit.Class == UnitClass.Land
 				? (!tile.IsOcean || tile.City is not null || tile.TransportTube)
 				: unit.Class == UnitClass.Water ? (tile.IsOcean || tile.City is not null) : true;
-			if (TubeBarred(tile, unit.Owner)) passable = false;
+			if (unit.Class != UnitClass.Air && TubeBarred(tile, unit.Owner)) passable = false;
 			if (!passable && !(nx == gx && ny == gy)) return null;
 
 			// Same reason as passability: a committed plan must not hand the unit a step the
@@ -682,7 +682,8 @@ namespace CivOne
 						passable = tile.IsOcean || tile.City is not null;
 					else
 						passable = true;
-					if (TubeBarred(tile, unit.Owner)) passable = false;
+					// A tube claim bars walking the line and sailing it, not the sky above it.
+					if (unit.Class != UnitClass.Air && TubeBarred(tile, unit.Owner)) passable = false;
 
 					ITile fromTile = map[cx, cy];
 
@@ -737,8 +738,13 @@ namespace CivOne
 					// step the mover will refuse is no use as a final step either.
 					if (unit.Class == UnitClass.Land && !TubeStepAllowed(fromTile, tile)) continue;
 
+					// An aircraft pays one flat step for every tile. Charging it tile.Movement
+					// sent bombers round forest, hills and mountains, and the rail and road
+					// discounts priced in networks it cannot ride (BaseUnit.MovementDone).
 					int cost;
-					if (RailAt(fromTile) && RailAt(tile))
+					if (unit.Class == UnitClass.Air)
+						cost = 9;
+					else if (RailAt(fromTile) && RailAt(tile))
 						cost = 1;
 					else if (RoadAt(fromTile) && RoadAt(tile))
 						cost = 3;
