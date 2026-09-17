@@ -44,16 +44,19 @@ namespace CivOne.Tests
 			_out.WriteLine($"{path}  turn {g.GameTurn} ({Common.YearString(g.GameTurn)})");
 			_out.WriteLine("civ                per-head   pop  phil  pplous  foremost  war(started)  streak");
 
-			foreach (Player p in live.OrderByDescending(p => (double)p.Culture / Pop(p)))
+			// The ratio divides by PEAK populace, as the rule does (Game.cs, `foremost`); the floor
+			// still reads the populace alive today. This used the live count for both, so a civ
+			// that had shrunk read higher per head here than the rule scores it.
+			double PerHead(Player p) => (double)p.Culture / Math.Max(1, p.PeakPopulace);
+			foreach (Player p in live.OrderByDescending(PerHead))
 			{
 				long pop = Pop(p);
-				double per = (double)p.Culture / pop;
+				double per = PerHead(p);
 				bool populous = pop >= floor;
 				bool foremost = p.Culture > 0 && live.Where(q => q != p && q.Cities.Any(c => c.Size > 0)).All(q =>
 				{
-					long rp = Pop(q);
-					if (rp < floor) return true;
-					return per >= (double)q.Culture / rp * Game.CultureLeadMargin;
+					if (Pop(q) < floor) return true;
+					return per >= PerHead(q) * Game.CultureLeadMargin;
 				});
 
 				// The same aggression test the rule uses, and the name of whoever it caught —

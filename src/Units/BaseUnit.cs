@@ -294,9 +294,10 @@ namespace CivOne.Units
 			// Every unarmed land unit belongs here, including the next one somebody adds — that
 			// is the whole reason this is a property and not a roster.
 			//
-			// ...and every unarmed aircraft. The Dirigible, moved by hand onto a foreign unit,
-			// fought it at strength 0 and lost its cargo with it.
-			if ((Class == UnitClass.Land || Class == UnitClass.Air) && Attack == 0)
+			// ...and every unarmed aircraft and ship. The Dirigible, Transport, Longboat and
+			// Hydro Engineer, moved by hand onto a foreign unit, fought it at strength 0 and
+			// lost their cargo with them. (Sea Caravan, Caravan and Diplomat override this.)
+			if (Attack == 0)
 			{
 				return false;
 			}

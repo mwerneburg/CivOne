@@ -2262,7 +2262,7 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our merchants dominate",
 								"world trade. Hold the markets",
-								$"for {EconomicHoldTurns} years."));
+								$"for {EconomicHoldTurns} turns."));
 						else if (isHuman && Progress(cnum).EconStreak == EconomicHoldTurns / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
 								"The world's markets", "answer to us."));
@@ -2453,7 +2453,7 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"The world looks to us.",
 								"No people are more cultured.",
-								$"Hold the first rank {CultureHoldTurns} years."));
+								$"Hold the first rank {CultureHoldTurns} turns."));
 						else if (isHuman && Progress(cnum).CultureStreak == CultureHoldTurns / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
 								"Our arts and learning", "are the world's measure."));
@@ -2677,7 +2677,7 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
 								"Mission Control has the colony.",
 								"Resupply is running. Hold this",
-								$"city for {DiasporaStreakTarget} years."));
+								$"city for {DiasporaStreakTarget} turns."));
 						else if (isHuman && Progress(dnum).DiasporaStreak == DiasporaStreakTarget / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to independence!",
 								"Alpha Centauri II reports", "its first harvest."));
