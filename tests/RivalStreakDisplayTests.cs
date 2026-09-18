@@ -28,15 +28,40 @@ namespace CivOne.Tests
 		}
 
 		// The readout exists on BOTH pages — the two paths are equally winnable by a rival,
-		// so neither may be the one you cannot see coming.
-		[Theory]
-		[InlineData("CultureStreak")]
-		[InlineData("EconStreak")]
-		public void EachPageReportsTheLeadingRivalStreak(string field)
+		// so neither may be the one you cannot see coming. They ask it differently, and the
+		// difference is deliberate.
+		//
+		// OUTPUT keeps a rival-only line under its own counter: Pax Mercatoria is an absolute
+		// bar, so "our streak" and "their streak" are separate facts that can both be true.
+		//
+		// CULTURE folds the two into one line naming whoever leads, the human included,
+		// because its counter is a RANK — at most one civ can be on a streak at a time, and
+		// showing the player's own 0/75 above a rival's 29/75 read as a single counter
+		// contradicting itself. Reported from a real game at 1310 AD.
+		[Fact]
+		public void TheOutputPageReportsTheLeadingRivalStreak()
+		{
+			Assert.Contains("LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).EconStreak)",
+				ScreenSource());
+		}
+
+		[Fact]
+		public void TheCulturePageReportsWhoeverLeadsIncludingUs()
 		{
 			string src = ScreenSource();
 
-			Assert.Contains($"LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).{field})", src);
+			// Anchored on the assignment. A bare "LeadingStreak(" is a SUBSTRING of
+			// "LeadingRivalStreak(", so it cannot fail — swapping the helper back to the
+			// rival-only form passed that check, which is the whole failure this file exists
+			// to catch elsewhere.
+			Assert.Contains("(cultHolder, cultStreak) = LeadingStreak(", src);
+			Assert.Contains("Game.Progress(Game.PlayerNumber(p)).CultureStreak)", src);
+			// The human is a candidate, which is the whole point of the second helper.
+			Assert.Contains("uint mine = of(Human);", src);
+			// ...and the line names the civ rather than the victory.
+			Assert.Contains("{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldTurns}", src);
+			// The old pair is gone: no second culture row, and no standalone label.
+			Assert.DoesNotContain("CULTURAL ASCENDANCY {cultStreak}", src);
 		}
 
 		// The readout must show what the victory JUDGES: culture per head, your rank in it,

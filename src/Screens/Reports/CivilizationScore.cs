@@ -35,7 +35,9 @@ namespace CivOne.Screens.Reports
 		// row sits and how many there are, so the banner and the space reserved for it
 		// cannot drift apart — they did, and the tags overprinted the banner.
 		private int BannerRow(int i) => GraphTop + 4 + i * (Resources.GetFontHeight(0) + 1);
-		private int BannerRows => _page switch { Page.Output => 3, Page.Culture => 4, _ => 0 };
+		// Culture is 3 since the human's own streak line was folded into the leading-holder
+		// line at the top: holder, standing, gate. Output is still counter + bar + rival.
+		private int BannerRows => _page switch { Page.Output => 3, Page.Culture => 3, _ => 0 };
 		private int GraphW      => GraphRight - GraphLeft;
 		private int GraphH      => GraphBottom - GraphTop;
 
@@ -223,6 +225,18 @@ namespace CivOne.Screens.Reports
 				return (lead, best2);
 			}
 
+			// Who is furthest into a streak, the human INCLUDED. The rival-only form above is
+			// still what the output page wants beneath its own counter; this one answers "who
+			// is actually winning this race" in a single line.
+			(Player? holder, uint streak) LeadingStreak(System.Func<Player, uint> of)
+			{
+				var (rival, best) = LeadingRivalStreak(of);
+				uint mine = of(Human);
+				// Ties go to the human: it is their screen, and a tie means they are not
+				// losing the race.
+				return mine >= best && mine > 0 ? (Human, mine) : (rival, best);
+			}
+
 			// `target` because this is drawn on BOTH pages and the two victories no longer
 			// hold for the same number of turns. It read "/20" on either, so a rival 70 turns
 			// into a 75-turn Cultural Ascendancy was reported as 70/20 — a fright, and a lie
@@ -281,10 +295,28 @@ namespace CivOne.Screens.Reports
 					for (int dx = 0; dx < GraphW; dx += 4)
 						this.FillRectangle(GraphLeft + dx, by, 2, 1, CassetteTheme.ALERT);
 
-				uint cultStreak = Game.Progress(Game.PlayerNumber(Human)).CultureStreak;
-				byte scol = cultStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
-				this.DrawText($"CULTURAL ASCENDANCY {cultStreak}/{Game.CultureHoldTurns}", 0, scol,
-					GraphRight - 4, BannerRow(0), TextAlign.Right);
+				// ONE line, naming whoever is furthest into a Cultural Ascendancy — us included.
+				//
+				// This used to be two: the human's own "CULTURAL ASCENDANCY n/75" on the top
+				// row, and the leading rival's "JAPANESE 29/75" three rows below it. Reported
+				// from a real game at 1310 AD, where the top line read 0/75 while the Japanese
+				// sat on 29/75: the pair read as one counter contradicting itself rather than
+				// as two civilizations. The player's own standing is already on the next line
+				// down — you are on a streak exactly when it says RANK 1 — so the row is better
+				// spent naming the civ actually holding the race.
+				var (cultHolder, cultStreak) = LeadingStreak(
+					p => Game.Progress(Game.PlayerNumber(p)).CultureStreak);
+				if (cultHolder is not null && cultStreak > 0)
+				{
+					// Green when the streak is ours. Otherwise amber, turning to alert as the
+					// holder closes on the target — a red line for our OWN near-win would read
+					// as a warning about the thing we are trying to do.
+					byte scol = cultHolder == Human ? CassetteTheme.OK
+					          : cultStreak * 4 >= Game.CultureHoldTurns * 3 ? CassetteTheme.ALERT
+					          : CassetteTheme.PHOS;
+					this.DrawText($"{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldTurns}",
+						0, scol, GraphRight - 4, BannerRow(0), TextAlign.Right);
+				}
 
 				// TRUNCATED, to match the legend and the curve. :F0 ROUNDS, so a player on 41.5
 				// per head read "CULTURE PER HEAD 42" beside a legend entry saying 41 — two
@@ -301,8 +333,10 @@ namespace CivOne.Screens.Reports
 				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYearLabel}", 0,
 					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
 					GraphRight - 4, BannerRow(2), TextAlign.Right);
-				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),
-					BannerRow(3), Game.CultureHoldTurns);
+				// No separate rival row here any more — the top line above already names the
+				// leading streak holder whoever it is. The OUTPUT page keeps its rival row,
+				// because its own counter is an absolute bar rather than a rank and the two
+				// numbers there do not contradict each other the way these two did.
 			}
 
 			// ── Pax Mercatoria threshold ─────────────────────────────────────
