@@ -81,7 +81,10 @@ namespace CivOne.Tests
 		{
 			string text = PageText("Cultural Ascendancy");
 
-			Assert.Contains(Game.CultureGateYear.ToString(), text);
+			// The LABEL, not the raw number. With the gate at year 1 a bare "1" matches any
+			// digit anywhere on the page, so this assertion would have passed on text that
+			// still said 1850.
+			Assert.Contains(Game.CultureGateYearLabel, text);
 			Assert.Contains(Game.CultureHoldTurns.ToString(), text);
 			// The two clauses a player most often misses, in the page's own words.
 			Assert.Contains("PER HEAD", text);

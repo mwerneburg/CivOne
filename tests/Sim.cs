@@ -423,5 +423,34 @@ namespace CivOne.Tests
 			System.IO.Directory.CreateDirectory(Settings.Instance.DataDirectory);
 			System.IO.File.Copy(source, target);
 		}
+
+		// The first turn the cultural clock may run, plus a margin.
+		//
+		// Four fixtures computed this as `400 + (CultureGateYear - 1850) + 5`, which is only
+		// correct while the gate sits in the post-1850 stretch of TurnToYear where one turn is
+		// one year. The moment the gate moved to 0 AD that expression went negative and cast
+		// to a nonsense ushort. Derived from TurnToYear instead, so it follows the constant
+		// wherever it is put next.
+		public static ushort TurnPastCultureGate(int margin = 5)
+		{
+			for (ushort t = 0; t < 1000; t++)
+				if (Common.TurnToYear(t) >= Game.CultureGateYear)
+					return (ushort)(t + margin);
+			throw new System.InvalidOperationException(
+				$"no turn reaches CultureGateYear ({Game.CultureGateYear})");
+		}
+
+		// ...and a turn safely before it, for the fixtures that test the gate is shut.
+		//
+		// The margin is not decoration: a caller that advances the game a turn or two to let
+		// the victory check run will cross the gate from one turn short of it, and the test
+		// then measures the opposite of its own name. Default leaves room for that.
+		public static ushort TurnBeforeCultureGate(int margin = 5)
+		{
+			int open = TurnPastCultureGate(margin: 0);
+			Assert.True(open > margin,
+				$"the gate opens on turn {open}, too early to stand {margin} turns clear of it");
+			return (ushort)(open - margin);
+		}
 	}
 }

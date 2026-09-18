@@ -399,10 +399,15 @@ namespace CivOne.Tests
 				$"expected both claimant loops to carry the four-name exclusion, found {count}");
 		}
 
-		// The date gate. At turn 200 of run 1ac32cee the leader held 31.9 against 14.3 — a
-		// fine ratio over almost no culture — and a hold alone would have handed them the game
-		// around turn 310. A golden age is sustained into the modern era, not seized in
-		// antiquity.
+		// The date gate still EXISTS and is still read from the constant — that is what this
+		// pins. Its value is a balance decision and has moved once already.
+		//
+		// It stood at 1850 because at turn 200 of run 1ac32cee the leader held 31.9 per head
+		// against 14.3 — a fine ratio over almost no culture — and a hold alone would have
+		// handed them the game around turn 310. It was moved to the first AD turn in Sept 2026
+		// for a playtest, on the argument that the 1.10x margin and the 75-turn hold (both
+		// added after that measurement) now do the work the date was doing alone. If early
+		// coronations come back, the constant goes back to 1850; see its comment in Game.cs.
 		[Fact]
 		public void TheClockCannotStartBeforeTheGateYear()
 		{
@@ -410,7 +415,11 @@ namespace CivOne.Tests
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
 
 			Assert.Contains("bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;", src);
-			Assert.True(Game.CultureGateYear >= 1500, "a gate this early gates nothing");
+			// A gate before the first AD turn would gate nothing at all: TurnToYear runs
+			// negative through the whole BCE stretch, so any year <= 0 is always satisfied.
+			Assert.True(Game.CultureGateYear >= 1, "a gate below year 1 is never shut");
+			Assert.True(Sim.TurnPastCultureGate(margin: 0) > 0,
+				"the gate must shut for at least the opening turn");
 		}
 
 		// The hold has to be long enough to be a contest. Leads changed hands a median of 12
@@ -477,7 +486,7 @@ namespace CivOne.Tests
 			us.SetCulture(6000);
 			foreach (Player r in rivals) r.SetCulture(600);
 
-			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			g.GameTurn = Sim.TurnPastCultureGate();
 			Sim.ClearTasks();
 			return (g, us);
 		}
@@ -520,7 +529,10 @@ namespace CivOne.Tests
 		public void NothingAccruesBeforeTheGateYear()
 		{
 			(Game g, Player us) = AWorldReadyForAscendancy();
-			g.GameTurn = 300;
+			// Derived, not the literal 300 this used to hold: that turn was comfortably before
+			// an 1850 gate and is comfortably AFTER a 0 AD one, so the fixture would have gone
+			// on passing while testing the opposite of its own name.
+			g.GameTurn = Sim.TurnBeforeCultureGate();
 			Assert.True(Common.TurnToYear(g.GameTurn) < Game.CultureGateYear, "fixture is past the gate");
 
 			Assert.Equal(0u, StreakAfterATurn(g, us));

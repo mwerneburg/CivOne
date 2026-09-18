@@ -63,7 +63,7 @@ namespace CivOne.Tests
 			us.SetCulture(6000);
 			foreach (Player r in rivals) r.SetCulture(600);
 
-			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			g.GameTurn = Sim.TurnPastCultureGate();
 			Sim.ClearTasks();
 			return (g, us, rivals);
 		}

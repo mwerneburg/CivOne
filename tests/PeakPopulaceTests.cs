@@ -125,7 +125,7 @@ namespace CivOne.Tests
 			us.SetCulture(100000);                       // a colossal stock, per head or not
 			foreach (Player r in rivals) r.SetCulture(600);
 			us.RecordPeakPopulace();
-			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			g.GameTurn = Sim.TurnPastCultureGate();
 
 			ours.Size = 1;                               // the empire collapses
 

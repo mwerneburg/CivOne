@@ -71,7 +71,7 @@ namespace CivOne.Tests
 			// the gate year, held for CultureHoldTurns. Staging a hundred turns of holding
 			// would be testing the clock rather than the latch, so the streak is driven to
 			// the brink and the rounds after it are what this test is actually about.
-			g.GameTurn = (ushort)(400 + (Game.CultureGateYear - 1850) + 5);
+			g.GameTurn = Sim.TurnPastCultureGate();
 			g.Progress(g.PlayerNumber(human)).CultureStreak = Game.CultureHoldTurns - 1;
 			Assert.True(Common.TurnToYear(g.GameTurn) >= Game.CultureGateYear, "fixture is before the gate");
 			int before = human.MilestoneScore;

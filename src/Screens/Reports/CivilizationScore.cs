@@ -298,7 +298,7 @@ namespace CivOne.Screens.Reports
 					(qualifies && myRank == 1) ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, BannerRow(1), TextAlign.Right);
 
-				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYear} AD", 0,
+				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYearLabel}", 0,
 					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
 					GraphRight - 4, BannerRow(2), TextAlign.Right);
 				DrawRivalStreak(LeadingRivalStreak(p => Game.Progress(Game.PlayerNumber(p)).CultureStreak),

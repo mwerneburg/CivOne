@@ -4187,12 +4187,36 @@ namespace CivOne
 			return Math.Max(1, median / CultureFloorShare);
 		}
 
-		// The clock cannot start before this year. Culture per head converges late and is
-		// trivially unequal early: at turn 200 of run 1ac32cee the leader held 31.9 against
-		// 14.3 over almost no culture at all. Deliberately a DATE and not a culture threshold,
-		// which would be an unscaled constant of exactly the kind this codebase keeps
-		// tripping over.
-		internal const int CultureGateYear = 1850;
+		// The clock cannot start before this year. Deliberately a DATE and not a culture
+		// threshold, which would be an unscaled constant of exactly the kind this codebase
+		// keeps tripping over.
+		//
+		// MOVED to the first AD turn, Sept 2026 — the user's call, for a playtest. It stood at
+		// 1850 (turn 400) because culture per head converges late and is trivially unequal
+		// early: at turn 200 of run 1ac32cee the leader held 31.9 against 14.3 over almost no
+		// culture at all, and a hold alone would have handed them the game around turn 310.
+		//
+		// Two things changed since that measurement. The 1.10x margin and the 75-turn hold
+		// were both added afterwards, and together they ask a civ to lead EVERY ranking rival
+		// on every one of 75 consecutive turns — a far harder thing in antiquity than the bare
+		// hold that was measured. And the economic path turned out to be the one finishing
+		// every game (see City.DiminishedRoutes), so a culture win that can start earlier is
+		// now competition rather than a runaway.
+		//
+		// The risk this re-opens is real and named: a coronation around turn 350 that replaces
+		// Pax Mercatoria as the automatic ending. If the playtest shows that, this one number
+		// goes back to 1850 and nothing else has to move.
+		//
+		// 1, not 0: TurnToYear has no year zero — turn 199 is 20 BCE and turn 200 is year 1,
+		// which the game writes as "0 AD" wherever YearString's zeroAd flag is set. So this is
+		// turn 200 of roughly 750. See CultureGateYearLabel for the spelling.
+		internal const int CultureGateYear = 1;
+
+		// How the gate year is written for a player. Year 1 is the game's "0 AD" (there is no
+		// year zero in TurnToYear), and the score screen and the Civilopedia page both have to
+		// say the same thing the rule means — the same one-definition reason as
+		// CulturalPopulaceFloor.
+		internal static string CultureGateYearLabel => CultureGateYear <= 1 ? "0 AD" : $"{CultureGateYear} AD";
 
 		// How far ahead of every ranking rival the leader must be. Not a dominance bar — it
 		// is deliberately small — but enough that a lead of a nose does not run out a
