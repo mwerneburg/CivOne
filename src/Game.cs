@@ -1176,7 +1176,10 @@ namespace CivOne
 
 		public bool EnemyMoves { get; set; }
 		public bool Circuses { get; set; } = true;
+		// Barricades gates BOTH City Walls and the SAM Battery — see Player.BuildingAvailable.
 		public bool Barricades { get; set; } = true;
+		// Gates the Aqueduct and the Sewer System together: the size-cap plumbing chain.
+		public bool Aqueducts { get; set; } = true;
 
 		public void SetAdvanceOrigin(IAdvance advance, Player? player)
 		{

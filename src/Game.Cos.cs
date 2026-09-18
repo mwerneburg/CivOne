@@ -293,7 +293,8 @@ namespace CivOne
 						EnemyMoves     = EnemyMoves,
 						CivilopediaText = CivilopediaText,
 						Circuses       = Circuses,
-					Barricades     = Barricades
+					Barricades     = Barricades,
+					Aqueducts      = Aqueducts
 					},
 					// Legacy mirror, so an older build can still read this save.
 					SpaceshipLaunch      = _players.Select(x => x?.Progress.SpaceshipLaunchTurn  ?? 0).ToArray(),
@@ -1047,6 +1048,9 @@ namespace CivOne
 			CivilopediaText= (Settings.CivilopediaText!= GameOption.Off) && (Settings.CivilopediaText!= GameOption.Default || opt.CivilopediaText);
 			Circuses       = opt.Circuses   ?? true;
 			Barricades     = opt.Barricades ?? true;
+			// Defaults TRUE for a save written before the option existed: an old game had
+			// aqueducts, and loading it must not retire the buildings it already holds.
+			Aqueducts      = opt.Aqueducts  ?? true;
 
 			// Active unit
 			for (int i = 0; i < _units.Count; i++)

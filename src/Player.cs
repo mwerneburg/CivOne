@@ -808,7 +808,15 @@ namespace CivOne
 
 			if (building is Colosseum && !Game.Instance.Circuses)
 				return false;
-			if (building is CityWalls && !Game.Instance.Barricades)
+			// Barricades covers the city's defensive works, not just its walls: the SAM
+			// Battery is the same choice one era later, and a player who has switched
+			// fortification off should not still be offered the air-defence half of it.
+			if ((building is CityWalls || building is SamBattery) && !Game.Instance.Barricades)
+				return false;
+			// Aqueducts, and the Sewer System that continues it — the whole size-cap
+			// plumbing chain, off together or on together. Off, a city keeps the growth
+			// ceiling it starts with.
+			if ((building is Aqueduct || building is SewerSystem) && !Game.Instance.Aqueducts)
 				return false;
 
 			if (building is ISpaceShip)

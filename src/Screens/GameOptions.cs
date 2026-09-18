@@ -140,6 +140,7 @@ namespace CivOne.Screens
 				("Civipedia Text",  () => Game.CivilopediaText, () => { Game.CivilopediaText = !Game.CivilopediaText; }),
 				("Circuses",          () => Game.Circuses,        () => { Game.Circuses        = !Game.Circuses;        }),
 				("Barricades",        () => Game.Barricades,      () => { Game.Barricades      = !Game.Barricades;      }),
+				("Aqueducts",         () => Game.Aqueducts,       () => { Game.Aqueducts       = !Game.Aqueducts;       }),
 				("Cursor Coords",     () => Settings.CursorCoords, () => { Settings.CursorCoords = !Settings.CursorCoords; }),
 				("Quiet Build Queue", () => Settings.QuietBuilds,  () => { Settings.QuietBuilds  = !Settings.QuietBuilds;  }),
 				("Cursed Wonders",    () => Settings.CursedWonders, () => { Settings.CursedWonders = !Settings.CursedWonders; }),

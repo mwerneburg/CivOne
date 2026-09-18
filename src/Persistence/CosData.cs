@@ -170,6 +170,7 @@ namespace CivOne.Persistence
 		public bool CivilopediaText { get; set; }
 		public bool? Circuses { get; set; }
 		public bool? Barricades { get; set; }
+		public bool? Aqueducts { get; set; }
 	}
 
 	public class CosReplayEntry
