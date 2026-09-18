@@ -56,9 +56,13 @@ namespace CivOne.Tests
 
 			Assert.Contains("EconStreak >= EconomicHoldTurns", block);
 			Assert.Contains("EconomicHoldTurns / 2", block);        // the halfway newspaper
-			Assert.Contains("{EconomicHoldTurns} years", block);    // the advisor's own words
+			// The advisor's own words. TURNS, not years: the streak counts turns, and before
+			// 1850 a turn is two to twenty years (Common.TurnToYear), so "hold for 75 years"
+			// was wrong by centuries at the point a player is most likely to read it.
+			Assert.Contains("{EconomicHoldTurns} turns", block);
 			Assert.DoesNotContain(">= 20", block);
 			Assert.DoesNotContain("for 20 years", block);
+			Assert.DoesNotContain("years", block);
 		}
 
 		// The readout has to agree with the rule. It said "/20" through a run that needed 75,

@@ -363,6 +363,42 @@ namespace CivOne.Tests
 			Assert.True(400 >= floor, "nobody can rank in a world where every civ is identical");
 		}
 
+		// Who is allowed to claim a streak victory at all. The score screen greys out the
+		// traces of civilizations that cannot, so its idea of "in the running" has to be the
+		// rule's idea — the same reason CulturalPopulaceFloor is shared rather than copied.
+		[Fact]
+		public void TheStoryFactionsCannotClaimAStreakVictory()
+		{
+			Sim.EnsureRuntime();
+			foreach (var civ in Common.Civilizations.Where(c =>
+				c is Civilizations.TheOthers or Civilizations.TheThing
+				  or Civilizations.Skynet or Civilizations.Olvir))
+				Assert.True(Game.CannotClaimStreakVictory(new Player(civ)), civ.Name);
+
+			var ordinary = Common.Civilizations.First(c =>
+				!(c is Civilizations.TheOthers or Civilizations.TheThing
+				   or Civilizations.Skynet or Civilizations.Olvir or Civilizations.Barbarian));
+			Assert.False(Game.CannotClaimStreakVictory(new Player(ordinary)), ordinary.Name);
+		}
+
+		// ...and the rule still says the same thing in its own words. Both claimant loops
+		// carry the four names inline; if one of them is ever narrowed or widened, the shared
+		// helper (and the screen that greys traces with it) has to follow in the same change.
+		[Fact]
+		public void TheClaimantExclusionIsTheSameInBothRules()
+		{
+			string src = System.IO.File.ReadAllText(
+				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
+
+			// The four-name claimant form, as opposed to the three-name aggression form that
+			// deliberately lets the Olvir count. Two claimant loops, so two occurrences.
+			const string claimant = "or Civilizations.Skynet or Civilizations.Olvir)).ToArray())";
+			int count = 0;
+			for (int at = src.IndexOf(claimant); at >= 0; at = src.IndexOf(claimant, at + 1)) count++;
+			Assert.True(count >= 2,
+				$"expected both claimant loops to carry the four-name exclusion, found {count}");
+		}
+
 		// The date gate. At turn 200 of run 1ac32cee the leader held 31.9 against 14.3 — a
 		// fine ratio over almost no culture — and a hold alone would have handed them the game
 		// around turn 310. A golden age is sustained into the modern era, not seized in

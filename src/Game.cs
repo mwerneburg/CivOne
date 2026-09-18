@@ -4157,6 +4157,22 @@ namespace CivOne
 		// bar set by what a normal civilization in this world looks like. On the same game the
 		// median was 373 and the floor 186 — which admits all three, and still refuses the
 		// three-population Aztec rump by two orders of magnitude.
+		// A civilization that cannot CLAIM either streak victory, whatever its numbers: the
+		// Registry does not court admiration, the Machines do not bank, and the Olvir are
+		// refugees on somebody else's world.
+		//
+		// FOUR names, and deliberately not the THREE-name list the aggression clauses use — a
+		// war against the Olvir counts against you, a war against the other three does not.
+		// The two lists look alike and mean different things; do not tidy them into one.
+		//
+		// The two claimant loops in NewTurn still express this inline. One definition here so
+		// the SCORE SCREEN cannot disagree with the rule about who is in the running when it
+		// greys a trace out — the same reason CulturalPopulaceFloor exists.
+		// CulturalAscendancyTests pins the two against each other.
+		internal static bool CannotClaimStreakVictory(Player p) =>
+			p?.Civilization is Civilizations.TheOthers or Civilizations.TheThing
+			                or Civilizations.Skynet or Civilizations.Olvir;
+
 		internal const int CultureFloorShare = 2;
 
 		// One definition, used by the victory rule and by the score screen that explains it, so

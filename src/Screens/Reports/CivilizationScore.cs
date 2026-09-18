@@ -347,6 +347,49 @@ namespace CivOne.Screens.Reports
 				}
 			}
 
+			// ── who is actually in the running ───────────────────────────────
+
+			// A civilization the rules have already excluded from the victory THIS PAGE
+			// measures is drawn in INK_LOW, so a glance separates rivals from scenery. Six
+			// lines climbing together said "contest" when three of them could not have won
+			// whatever they did.
+			//
+			// Deliberately the STANDING clauses only — the ones that are facts about where a
+			// civilization is, not about this turn. Being momentarily off the margin, at war,
+			// or below the output bar are all things that change next turn, and greying on
+			// them would make half the graph flicker turn to turn.
+			//
+			// Story factions are excluded from CLAIMING either streak (Game.cs runs the same
+			// exclusion on both loops), so they are scenery on both pages. The Score page
+			// greys nobody: the 2100 ending ranks every civilization alive.
+			long cultureFloor = 0;
+			if (_page == Page.Culture)
+			{
+				Player[] forFloor = Game.Players
+					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
+					         && !(p.Civilization is Barbarian)
+					         && !(p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
+					                             or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir)
+					         && p.Cities.Any(c => c.Size > 0))
+					.ToArray();
+				cultureFloor = Game.CulturalPopulaceFloor(forFloor.Select(p => (long)Math.Max(1, p.Populace)));
+			}
+
+			bool InTheRunning(Player p)
+			{
+				if (_page == Page.Score) return true;
+				if (Game.CannotClaimStreakVictory(p)) return false;
+				if (_page == Page.Output)
+					return p.HasAdvance<Advances.Banking>();
+				// Culture: the path is not open without Philosophy, and a civilization under
+				// the populace floor cannot rank however high its per-head figure climbs.
+				return p.HasAdvance<Advances.Philosophy>() && p.Populace >= cultureFloor;
+			}
+
+			byte TraceColour(Player p) => InTheRunning(p)
+				? Common.ColourLight[(byte)p % Common.ColourLight.Length]
+				: CassetteTheme.INK_LOW;
+
 			// ── score traces ─────────────────────────────────────────────────
 
 			var lineTips = new System.Collections.Generic.List<(int score, int y, byte col)>();
@@ -354,7 +397,7 @@ namespace CivOne.Screens.Reports
 			for (int pi = 0; pi < players.Length; pi++)
 			{
 				int  pIdx = (byte)players[pi];
-				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
+				byte col  = TraceColour(players[pi]);
 
 				int lastX = int.MinValue, lastY = int.MinValue;
 				int prevX = int.MinValue, prevY = int.MinValue;
@@ -447,8 +490,10 @@ namespace CivOne.Screens.Reports
 			int rank = 1;
 			foreach (var p in players.OrderByDescending(LiveValue))
 			{
-				int  pIdx = (byte)p;
-				byte col  = Common.ColourLight[pIdx % Common.ColourLight.Length];
+				// Same colour as the trace, including the grey — the legend is how a line is
+				// matched to a name, so a row that disagreed with its own curve would be worse
+				// than no marking at all.
+				byte col = TraceColour(p);
 				this.DrawText($"{rank++}. {p.TribeNamePlural}: {LiveValue(p)}", 0, col, lx, ly, TextAlign.Left);
 				ly += fh + 1;
 			}

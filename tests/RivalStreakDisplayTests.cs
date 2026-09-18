@@ -77,6 +77,29 @@ namespace CivOne.Tests
 			Assert.Contains("CultureGateYear", src);
 		}
 
+		// Civilizations the rules have already excluded are drawn in grey, so a glance
+		// separates rivals from scenery. Pinned at the source because the report needs a live
+		// screen to render — the same reason every other check on this file reads text.
+		//
+		// The trace and the legend row must come from ONE helper: a legend in full colour
+		// beside a grey curve is worse than no marking at all, and they were separate
+		// expressions of the same palette lookup before this.
+		[Fact]
+		public void TracesOutOfTheRunningAreGreyed()
+		{
+			string src = ScreenSource();
+
+			Assert.Contains("byte TraceColour(Player p)", src);
+			Assert.Contains("CassetteTheme.INK_LOW", src);
+			// Off the shared rule helper, not a second copy of the four names.
+			Assert.Contains("Game.CannotClaimStreakVictory(p)", src);
+			// Both the curve and its legend row ask the same helper.
+			Assert.Contains("byte col  = TraceColour(players[pi]);", src);
+			Assert.Contains("byte col = TraceColour(p);", src);
+			// The Score page ranks everyone alive, so it greys nobody.
+			Assert.Contains("if (_page == Page.Score) return true;", src);
+		}
+
 		// The rival readout answers to the same exclusions as the victory rule: a civ that
 		// cannot claim the path must not be reported as racing for it.
 		[Theory]

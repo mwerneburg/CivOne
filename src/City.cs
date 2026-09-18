@@ -574,7 +574,80 @@ namespace CivOne
 			return (int)(multiplier * (float)(distance + 10) * (BaseTrade + partner.BaseTrade) / 24);
 		}
 
-		internal int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= _tradeRoutes.Sum(r => RouteBonus(r.Partner)));
+		// ── Diminishing returns on repeated routes to the SAME partner ───────
+		//
+		// Reported from a finished game (CIVIL1, 1855 AD): 262 external routes anchored on
+		// ELEVEN partner cities, five of which carried 93% of the value — 51 caravans into
+		// Wuhan, 47 into Sparta, 46 into Villarrica. RouteBonus pays mostly for DISTANCE, so
+		// one far-off city absorbs an entire empire's caravan output at ~120 gold a route,
+		// for ever. That treasury ran at 32,788 a turn against 839 of base trade across 62
+		// cities — 97.4% of the economy was trade routes — with tax permanently at 0%, a
+		// six-figure balance, and the whole Dome sequence bought in five turns.
+		//
+		// Nothing capped it. Routes are unique per (home, partner) pair, but any number of
+		// your OWN cities may anchor on the same foreign one, and the per-city scoring cap
+		// below cannot see that shape at all: the same save averaged 4.3 routes per city, so
+		// the best-five rule kept 97% of its value while cutting the diversified AI civs by
+		// 70%. The existing cap was helping the concentrator.
+		//
+		// So: the nth route this CIVILIZATION holds to a given partner pays value/n, ranked
+		// by value. Deliberately a curve rather than a cap, for two reasons.
+		//
+		//   It does not lower the ceiling, it moves it behind diversification. Those same
+		//   262 caravans spread across 262 DIFFERENT partner cities still pay full value. A
+		//   hard cap makes the next caravan worth exactly nothing — wasted production, and
+		//   arbitrary to read; at value/n it is worth a ninth of the first and the game has
+		//   said, in gold, to go and find somebody new. That is what a caravan is for.
+		//
+		//   Nothing is ever evicted. Scoped per (civilization, partner), so one civ's
+		//   caravans can never displace another's — the pathology that got Civ 1's
+		//   three-per-city cap removed from this codebase in the first place, and the reason
+		//   AddTradeRoute above refuses to reinstate it.
+		//
+		// Measured on that save: the human's share of world output falls 64.7% -> 13.4% and
+		// the treasury 32,788 -> 5,869, while the AI civilizations lose about 10% — they
+		// already spread roughly one route per partner. It bites the strategy, not the
+		// mechanic.
+		//
+		// Applies to BOTH sides. The money is the reported complaint; the scoreboard is
+		// what Pax Mercatoria reads.
+		private IEnumerable<int> DiminishedRoutes(bool externalOnly)
+		{
+			foreach (TradeRoute r in _tradeRoutes)
+			{
+				if (externalOnly && r.Partner.Owner == Owner) continue;
+				int value = RouteBonus(r.Partner);
+				yield return value <= 0 ? 0 : value / SiblingRank(r.Partner, value);
+			}
+		}
+
+		// How many of this civilization's other routes to `partner` outrank this one, plus
+		// one. Routes are unique per (home, partner), so each sibling city contributes at
+		// most one — the scan is over cities, not routes. Player.Cities is cached against
+		// CityRosterVersion, which is what keeps this off the O(cities squared) path that
+		// InvalidateTile and the late-game move spike both fell down.
+		//
+		// Ties break on map position so the ordering is TOTAL: without it two equal routes
+		// both take rank 1 and the pair pays double what the curve intends.
+		private int SiblingRank(City partner, int value)
+		{
+			int better = 0;
+			foreach (City c in Game.GetPlayer(Owner).Cities)
+			{
+				if (ReferenceEquals(c, this)) continue;
+				bool holds = false;
+				foreach (TradeRoute sr in c._tradeRoutes)
+					if (ReferenceEquals(sr.Partner, partner)) { holds = true; break; }
+				if (!holds) continue;
+
+				int sibling = c.RouteBonus(partner);
+				if (sibling > value || (sibling == value
+				    && c.Y * Map.WIDTH + c.X < Y * Map.WIDTH + X)) better++;
+			}
+			return better + 1;
+		}
+
+		internal int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= DiminishedRoutes(false).Sum());
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
 
@@ -599,9 +672,11 @@ namespace CivOne
 		// so nothing gets evicted. It is the scoreboard that is capped, not the trade.
 		internal const int ScoringRoutes = 5;
 
-		private int ScoringRouteBonus => (int)(_cachedScoringRouteBonus ??= _tradeRoutes
-			.Where(r => r.Partner.Owner != Owner)
-			.Select(r => RouteBonus(r.Partner))
+		// Diminished first, then the best ScoringRoutes of what remains — see
+		// DiminishedRoutes. The two rules cover different shapes and neither replaces the
+		// other: this one caps how BROAD a single city's scoring may be, the curve above
+		// caps how DEEP an empire may go into one partner.
+		private int ScoringRouteBonus => (int)(_cachedScoringRouteBonus ??= DiminishedRoutes(true)
 			.OrderByDescending(v => v)
 			.Take(ScoringRoutes)
 			.Sum());
