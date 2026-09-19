@@ -4176,6 +4176,61 @@ namespace CivOne
 			p?.Civilization is Civilizations.TheOthers or Civilizations.TheThing
 			                or Civilizations.Skynet or Civilizations.Olvir;
 
+		// Who is furthest into a streak victory, the human INCLUDED, for the readouts that
+		// answer "is anybody winning this?" in one line. Returns (null, 0) when nobody holds
+		// anything, which is how a caller knows to draw nothing at all.
+		//
+		// Deliberately NO story-faction filter, unlike LeadingRivalStreak on the score report.
+		// The two claimant loops in NewTurn never advance an excluded civ's streak, so their
+		// counters are pinned at zero and a plain maximum is already correct — where a second
+		// copy of the four names here is exactly how two lists of the same rule drift apart.
+		// See CannotClaimStreakVictory for why there are two lists already.
+		internal (Player? Holder, uint Streak) StreakLeader(Func<PlayerProgress, uint> of)
+		{
+			Player? lead = null; uint best = 0;
+			foreach (Player p in _players)
+			{
+				if (p is null || p.IsDestroyed() || PlayerNumber(p) == 0) continue;
+				if (p.Civilization is Barbarian) continue;
+				uint v = of(p.Progress);
+				// Ties go to the human: a tie means they are not losing the race, and it is
+				// their screen. Same rule the score report's banner uses.
+				if (v > best || (v > 0 && v == best && p == HumanPlayer)) { best = v; lead = p; }
+			}
+			return (lead, best);
+		}
+
+		// Who leads the space race, and what the number beside their name means.
+		//
+		// A standing colony outranks anything still in flight, and among colonies the FIRST to
+		// land leads — ColonyOrder is the achievement, not the streak, so a latecomer twelve
+		// turns into its Diaspora hold does not displace the civ that got there first.
+		// ArrivalTurn is non-zero only for a ship in flight; Streak only for a landed colony.
+		//
+		// Nothing is reported before launch. Part counts are private — you do not get to see
+		// a rival's hull coming together, only the day it leaves.
+		internal (Player? Holder, int ArrivalTurn, uint Streak) SpaceLeader()
+		{
+			Player? colonist = null; int order = int.MaxValue;
+			Player? flier = null; int arrival = int.MaxValue;
+			foreach (Player p in _players)
+			{
+				if (p is null || p.IsDestroyed() || PlayerNumber(p) == 0) continue;
+				PlayerProgress pr = p.Progress;
+				if (pr.ColonyFounded && pr.ColonyOrder > 0 && pr.ColonyOrder < order)
+				{
+					order = pr.ColonyOrder; colonist = p;
+				}
+				if (pr.SpaceshipArrivalTurn > 0 && pr.SpaceshipArrivalTurn < arrival)
+				{
+					arrival = pr.SpaceshipArrivalTurn; flier = p;
+				}
+			}
+			if (colonist is not null) return (colonist, 0, colonist.Progress.DiasporaStreak);
+			if (flier is not null) return (flier, arrival, 0);
+			return (null, 0, 0);
+		}
+
 		internal const int CultureFloorShare = 2;
 
 		// One definition, used by the victory rule and by the score screen that explains it, so

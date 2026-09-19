@@ -163,6 +163,10 @@ namespace CivOne.Screens.GamePlayPanels
 				byte dotColour = (gameTick % 4 < 2) ? CassetteTheme.PHOS_GLOW : CassetteTheme.PHOS_DIM;
 				_gameInfo.FillRectangle(2, _gameInfo.Height - 8, 6, 6, dotColour);
 				DrawHoverInfo();
+				// The working dot lives in the bottom-left corner, in the same pixels the race
+				// strip's last line would use. DrawHoverInfo resets the reserve, so claim it
+				// back afterwards: this is the state the panel is in for most of a turn.
+				_hoverReserve = Math.Max(_hoverReserve, 9);
 				return;
 			}
 
@@ -239,6 +243,11 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private int NotifLineH => Resources.GetFontHeight(0) + 2;
 
+		// Height the WLTK strip actually drew this frame, which is NOT NotifPanelH: that is
+		// the height it WANTS, and it gives lines back when the hover readout is showing.
+		// The race strip stacks on top of whatever it really took.
+		private int _notifReserve;
+
 		private int NotifPanelH
 		{
 			get
@@ -252,6 +261,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 		private void DrawNotifications()
 		{
+			_notifReserve = 0;
 			var cities = WLTKNotifications.Cities;
 			if (cities.Count == 0) return;
 
@@ -268,6 +278,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 			int ph = (1 + lines) * lh + 3;
 			int py = bottom - ph;
+			_notifReserve = ph;
 
 			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
 			py += 2;
@@ -278,6 +289,96 @@ namespace CivOne.Screens.GamePlayPanels
 			foreach (string city in cities.Skip(cities.Count - lines))
 			{
 				_gameInfo.DrawText(city.ToUpper(), 0, CassetteTheme.INK_HIGH, 3, py, TextAlign.Left);
+				py += lh;
+			}
+		}
+
+		// ─── the race strip ───────────────────────────────────────────────────
+		//
+		// Who is winning the three paths you cannot see from the map. Before this, a rival
+		// 29 turns into a Cultural Ascendancy was visible only on F9, three keystrokes away,
+		// and losing to a race you never looked at is not a fair loss.
+		//
+		// Two lines per path, because 76px is about twelve characters and
+		// "CULTURE JAPANESE 29/75" is not twelve characters:
+		//
+		//     CULTURE  29/75
+		//      JAPANESE
+		//
+		// A path with no holder draws nothing, so an early game shows no strip at all.
+		private void DrawRaceStrip()
+		{
+			var entries = new System.Collections.Generic.List<(string Label, string Name, string Value, byte Colour)>();
+
+			// OK when it is you, ALERT once three quarters of the hold is behind them, PHOS
+			// otherwise — the same thresholds the score report's banner uses, so glancing at
+			// one and then the other does not tell you two different stories.
+			byte Urgency(Player holder, uint streak, uint target) =>
+				holder == Human ? CassetteTheme.OK
+				: streak * 4 >= target * 3 ? CassetteTheme.ALERT
+				: CassetteTheme.PHOS;
+
+			void AddStreak(string label, (Player? Holder, uint Streak) lead, uint target)
+			{
+				if (lead.Holder is null || lead.Streak == 0) return;
+				entries.Add((label, lead.Holder.TribeNamePlural.ToUpper(),
+					$"{lead.Streak}/{target}", Urgency(lead.Holder, lead.Streak, target)));
+			}
+
+			AddStreak("CULTURE", Game.StreakLeader(pr => pr.CultureStreak), Game.CultureHoldTurns);
+			AddStreak("OUTPUT", Game.StreakLeader(pr => pr.EconStreak), Game.EconomicHoldTurns);
+
+			var space = Game.SpaceLeader();
+			if (space.Holder is not null)
+			{
+				// A ship in flight is reported by the year it gets there; a landed colony by
+				// its Diaspora hold. Those are different facts and the number says which.
+				if (space.ArrivalTurn > 0)
+				{
+					entries.Add(("SPACE", space.Holder.TribeNamePlural.ToUpper(),
+						Common.YearString((ushort)space.ArrivalTurn),
+						space.Holder == Human ? CassetteTheme.OK : CassetteTheme.PHOS));
+				}
+				else
+				{
+					entries.Add(("SPACE", space.Holder.TribeNamePlural.ToUpper(),
+						$"{space.Streak}/{Game.DiasporaStreakTarget}",
+						Urgency(space.Holder, space.Streak, Game.DiasporaStreakTarget)));
+				}
+			}
+
+			if (entries.Count == 0) return;
+
+			int lh = NotifLineH;
+			// Stack above the WLTK strip and the hover readout, both anchored to the same
+			// bottom edge, and give up whole PATHS rather than overlap them. Dropped from the
+			// end: culture and output are the ones a player can still do something about this
+			// turn, where a ship in flight arrives whether or not the line is on screen.
+			int bottom = _gameInfo.Height - _hoverReserve - _notifReserve;
+			int shown = entries.Count;
+			while (shown > 0 && shown * 2 * lh + 3 > bottom - HeaderRoom) shown--;
+			if (shown == 0) return;
+
+			int ph = shown * 2 * lh + 3;
+			int py = bottom - ph;
+
+			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
+			py += 2;
+
+			for (int i = 0; i < shown; i++)
+			{
+				var e = entries[i];
+				_gameInfo.DrawText(e.Label, 0, CassetteTheme.PHOS_DIM, 3, py, TextAlign.Left);
+				_gameInfo.DrawText(e.Value, 0, e.Colour, 77, py, TextAlign.Right);
+				py += lh;
+
+				// Trim rather than let a long tribe name run off the panel — a name clipped
+				// mid-glyph reads as a rendering fault, where an ellipsis reads as a name.
+				string name = e.Name;
+				while (name.Length > 1 && Resources.GetTextSize(0, name).Width > 71)
+					name = name.Substring(0, name.Length - 1);
+				if (name.Length < e.Name.Length) name += ".";
+				_gameInfo.DrawText(name, 0, e.Colour, 6, py, TextAlign.Left);
 				py += lh;
 			}
 		}
@@ -300,6 +401,7 @@ namespace CivOne.Screens.GamePlayPanels
 				DrawDemographics();
 				DrawGameInfo(gameTick);
 				DrawNotifications();
+				DrawRaceStrip();
 
 				this.AddLayer(_miniMap, 0, 0)
 					.AddLayer(_demographics, 0, 50)
