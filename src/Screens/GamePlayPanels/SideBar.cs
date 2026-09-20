@@ -350,17 +350,41 @@ namespace CivOne.Screens.GamePlayPanels
 			if (entries.Count == 0) return;
 
 			int lh = NotifLineH;
+
+			// The label used to share the first line with the count, right-aligned against it,
+			// on a guess that 76px held about twelve characters. It holds about eleven, and
+			// "CULTURE" + "22/75" is twelve: the two overlapped into "CULTURE22/75" on a real
+			// full-screen game. Nothing is laid out by character count any more — every line
+			// below is measured.
+			//
+			// The label now owns its line, and the NAME shares the second one with the count
+			// where it fits. The name is what yields when it does not: the count is five
+			// characters at most and is the number the player came to read, where a tribe name
+			// still reads trimmed. A name squeezed below RoomForAName gets its own line
+			// instead, because "BAB." is not a civilization.
+			const int StripLeft = 3, StripRight = 77, Indent = 6, Gap = 4;
+			const int RoomForAName = 30;
+
+			int NameRoom(string value) =>
+				StripRight - Indent - Gap - Resources.GetTextSize(0, value).Width;
+
+			// Three lines only when the name cannot share with the count. Computed before
+			// anything is drawn, because the strip is bottom-anchored: its top edge depends on
+			// the total height, so the height has to be known first.
+			int LinesFor((string Label, string Name, string Value, byte Colour) e) =>
+				NameRoom(e.Value) >= RoomForAName ? 2 : 3;
+
 			// Stack above the WLTK strip and the hover readout, both anchored to the same
 			// bottom edge, and give up whole PATHS rather than overlap them. Dropped from the
 			// end: culture and output are the ones a player can still do something about this
 			// turn, where a ship in flight arrives whether or not the line is on screen.
 			int bottom = _gameInfo.Height - _hoverReserve - _notifReserve;
 			int shown = entries.Count;
-			while (shown > 0 && shown * 2 * lh + 3 > bottom - HeaderRoom) shown--;
+			int Height(int n) => entries.Take(n).Sum(LinesFor) * lh + 3;
+			while (shown > 0 && Height(shown) > bottom - HeaderRoom) shown--;
 			if (shown == 0) return;
 
-			int ph = shown * 2 * lh + 3;
-			int py = bottom - ph;
+			int py = bottom - Height(shown);
 
 			_gameInfo.FillRectangle(2, py, 76, 1, CassetteTheme.BORDER);
 			py += 2;
@@ -368,18 +392,31 @@ namespace CivOne.Screens.GamePlayPanels
 			for (int i = 0; i < shown; i++)
 			{
 				var e = entries[i];
-				_gameInfo.DrawText(e.Label, 0, CassetteTheme.PHOS_DIM, 3, py, TextAlign.Left);
-				_gameInfo.DrawText(e.Value, 0, e.Colour, 77, py, TextAlign.Right);
+				_gameInfo.DrawText(e.Label, 0, CassetteTheme.PHOS_DIM, StripLeft, py, TextAlign.Left);
 				py += lh;
+
+				bool shares = LinesFor(e) == 2;
 
 				// Trim rather than let a long tribe name run off the panel — a name clipped
 				// mid-glyph reads as a rendering fault, where an ellipsis reads as a name.
+				int room = shares ? NameRoom(e.Value) : StripRight - Indent;
 				string name = e.Name;
-				while (name.Length > 1 && Resources.GetTextSize(0, name).Width > 71)
+				while (name.Length > 1 && Resources.GetTextSize(0, name).Width > room)
 					name = name.Substring(0, name.Length - 1);
 				if (name.Length < e.Name.Length) name += ".";
-				_gameInfo.DrawText(name, 0, e.Colour, 6, py, TextAlign.Left);
-				py += lh;
+				_gameInfo.DrawText(name, 0, e.Colour, Indent, py, TextAlign.Left);
+
+				if (shares)
+				{
+					_gameInfo.DrawText(e.Value, 0, e.Colour, StripRight, py, TextAlign.Right);
+					py += lh;
+				}
+				else
+				{
+					py += lh;
+					_gameInfo.DrawText(e.Value, 0, e.Colour, StripRight, py, TextAlign.Right);
+					py += lh;
+				}
 			}
 		}
 

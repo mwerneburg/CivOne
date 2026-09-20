@@ -217,6 +217,38 @@ namespace CivOne.Tests
 			Assert.Contains("_hoverReserve = Math.Max(_hoverReserve, 9);", src);
 		}
 
+		// The bug this layout exists to prevent, and the trap that hid it.
+		//
+		// The label and the count shared one right-aligned line on a guess that 76px held
+		// about twelve characters. On a real full-screen game they overlapped into
+		// "CULTURE22/75".
+		//
+		// A measurement test here would have said they FIT: under the suite's font "CULTURE"
+		// is 40px and "22/75" is 24px, well inside the 74px between x=3 and x=77. The suite
+		// has no FONTS.CV in its data directory, so Resources.LoadFonts falls back to the
+		// built-in default (Resources.cs:38) — and the shipped game loads the original DOS
+		// font, which is WIDER. Every pixel figure a test can measure under-reports what the
+		// player sees, so no assertion about text fitting is worth writing here.
+		//
+		// The fix is structural instead, and font-independent: the label owns its line, so
+		// nothing can collide with it whatever the font; and the name is trimmed against the
+		// count's MEASURED width at draw time, using the same Resources instance that draws
+		// it. Both are pinned below, because both are the property that survives a font swap.
+		[Fact]
+		public void TheLabelOwnsItsOwnLine()
+		{
+			string src = SideBarSource();
+
+			// Label drawn, then the cursor advances BEFORE anything else reaches that row.
+			Assert.Contains(
+				"_gameInfo.DrawText(e.Label, 0, CassetteTheme.PHOS_DIM, StripLeft, py, TextAlign.Left);\n\t\t\t\tpy += lh;",
+				src);
+			// Nothing is positioned by a guessed character count any more.
+			Assert.DoesNotContain("Width > 71", src);
+			// The name yields to the count by MEASUREMENT, not by assumption.
+			Assert.Contains("int room = shares ? NameRoom(e.Value) : StripRight - Indent;", src);
+		}
+
 		[Fact]
 		public void TheStripReadsTheSharedSelectors()
 		{
