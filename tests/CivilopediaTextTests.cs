@@ -180,6 +180,28 @@ namespace CivOne.Tests
 			Assert.Contains("does NOT stop a nuclear strike", text);
 		}
 
+		// The Portal's cursed branch has counterplay that nothing on screen hints at: a city
+		// whose food income goes negative for ONE turn loses the Greys (Game.ProcessGreys).
+		// Without it a player watches them take a city every ten turns and has no idea the
+		// lever exists — and the spread does not stop at their own borders, which is the
+		// other fact the page has to carry.
+		//
+		// Pinned on the WORDS the rule turns on, not on the prose around them: a rewrite that
+		// keeps the flavour and drops "NEGATIVE FOOD" has dropped the only actionable thing
+		// on the page.
+		[Fact]
+		public void ThePortalTellsYouHowToEvictTheGreys()
+		{
+			Sim.EnsureRuntime();
+			string text = string.Join(" ",
+				new CivOne.Wonders.ThePortal().GetPageText(1)
+					.Concat(new CivOne.Wonders.ThePortal().GetPageText(2)));
+
+			Assert.Contains("NEGATIVE FOOD", text);
+			// ...and that they are a world problem, not a local one.
+			Assert.Contains("anyone's", text);
+		}
+
 		// The rule of thumb the player most needs about tile improvement, and it has to be in
 		// BOTH places or it is only ever read by half the people who need it: somebody reading
 		// about mines is deciding what to do with a hill, and somebody reading about
