@@ -203,9 +203,23 @@ namespace CivOne.Screens
 			this.DrawCassetteField("GROWTH", growthVal, cx, cy, cw, 0, growthColor);
 			cy += fieldH;
 
-			// Corruption field
-			string corrVal = _city.Corruption > 0 ? $"{_city.Corruption}" : "NONE";
-			byte corrColor = _city.Corruption > 0 ? CassetteTheme.PHOS : CassetteTheme.INK_MID;
+			// Corruption field.
+			//
+			// The Greys are NAMED here rather than given a row of their own, because this is
+			// the number they move: The Portal's cursed outcome skims RawTrade/5 straight into
+			// it (City.Corruption) and costs a citizen to permanent discontent besides.
+			//
+			// Nothing on any screen said so. The only notice was one advisor message on
+			// arrival and one on eviction, both easy to miss in a busy turn, so an infested
+			// city read as ordinary distance-from-palace corruption — and since the cure is
+			// to starve THAT city for a turn (Game.ProcessGreys), a player who missed the
+			// message had no way to find which one. Reported from a real game at 1834 AD,
+			// where the answer had to be read out of the save file.
+			bool greys = Game.Instance.GreyCities.Contains((_city.X, _city.Y));
+			string corrVal = greys ? $"{_city.Corruption} GREYS"
+			               : _city.Corruption > 0 ? $"{_city.Corruption}" : "NONE";
+			byte corrColor = greys ? CassetteTheme.ALERT
+			               : _city.Corruption > 0 ? CassetteTheme.PHOS : CassetteTheme.INK_MID;
 			this.DrawCassetteField("CORRUPTION", corrVal, cx, cy, cw, 0, corrColor);
 			cy += fieldH;
 
