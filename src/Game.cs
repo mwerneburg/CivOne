@@ -203,6 +203,14 @@ namespace CivOne
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;
 
+		// Turn on which the observatories name what is coming (0 = not scheduled, or already
+		// told). The draw happens at the signal; this is only when the PLAYER learns it.
+		internal uint ArchetypeRevealTurn;
+
+		// How long the observatories take to resolve the signal into an identification.
+		// Starlab, which is a telescope above the atmosphere, skips the wait entirely.
+		internal const int ArchetypeRevealTurns = 5;
+
 		// How many DIFFERENT civilizations must hold an Observatory before the Tau Ceti
 		// signal is detected: HALF the living field, never fewer than two.
 		//
@@ -1926,10 +1934,39 @@ namespace CivOne
 					if (VisitorType == VisitorArchetype.None)
 						VisitorType = VisitorOverride() ?? SelectVisitorArchetype(); // CIVONE_VISITOR overrides the quality-weighted draw
 					TauCetiEscalationTurn = (uint)(_gameTurn + 20);
+					// Who is coming has just been decided. When the player is TOLD is a
+					// separate question, and it is the one Starlab answers: a telescope above
+					// the weather resolves the source at once, while the ground observatories
+					// need five turns of listening to agree on what they are hearing.
+					ArchetypeRevealTurn = (uint)(_gameTurn
+						+ (HoldsIntendedStarlab(HumanPlayer) ? 0 : ArchetypeRevealTurns));
 					SETISignalTransmission.EnsureConfigFile();
 					string gameDate = GameYear;
 					RecordTransmission("SETISignal", gameDate);
 					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
+				}
+
+				// The observatories name it. Placed after the signal block on purpose: with
+				// Starlab the delay is zero, and this has to be reachable in the same pass.
+				if (ArchetypeRevealTurn > 0 && _gameTurn >= ArchetypeRevealTurn)
+				{
+					ArchetypeRevealTurn = 0;
+					// ...unless the probe already showed the player this exact plate. Two
+					// identifications of the same thing is not twice the information.
+					if (ProbeInterimPhase < 3)
+					{
+						string gameDate = GameYear;
+						RecordTransmission("ArchetypeReveal", gameDate);
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"Science brief: the source",
+							HoldsIntendedStarlab(HumanPlayer)
+								? "is resolved. STARLAB has"
+								: "is resolved. Our observatories",
+							HoldsIntendedStarlab(HumanPlayer)
+								? "a clear view of it."
+								: "have agreed on a reading."));
+						ShowVisitorContactArt();
+					}
 				}
 
 				// Fire the Tau Ceti approach warning 20 turns after the SETI signal
@@ -1971,18 +2008,7 @@ namespace CivOne
 						// The probe sees whoever is actually coming. VisitorType is drawn at the
 						// SETI signal, well before dispatch, so it is settled by phase 3. The
 						// Owners do not pose for a portrait: they shoot the camera.
-						if (phase == 3)
-						{
-							(string art, string caption) = VisitorType switch
-							{
-								VisitorArchetype.Owners     => ("OthersIntercept",  "CONTACT LOST — TAU CETI"),
-								VisitorArchetype.Scavengers => ("ScavengerContact", "VISUAL CONTACT — TAU CETI"),
-								_                           => ("OlvirInSpace",     "VISUAL CONTACT — TAU CETI"),
-							};
-							string? path = EventArtScreen.FindPath(art) ?? EventArtScreen.FindPath("OlvirInSpace");
-							if (path is not null)
-								GameTask.Enqueue(Show.Screen(new EventArtScreen(path, caption)));
-						}
+						if (phase == 3) ShowVisitorContactArt();
 					}
 					else if (ProbeInterimPhase == 3 && _gameTurn >= resultTurn)
 					{
@@ -3788,6 +3814,31 @@ namespace CivOne
 		// species: a great work reflects the state that raised it. A free, peaceful people
 		// breathing clean air will probably get the station they intended; a polluted
 		// despotism at war will probably get a free port. Probably, not certainly.
+		// The intended station, in one place. City asks this of its owner for trade, science
+		// and storms; the observatory reveal asks it of the human. Two callers, one rule.
+		// The visual identification of whoever is coming. Shared by the probe's phase-3
+		// transmission and the observatories' own resolution, so the two cannot come to
+		// disagree about what the player is looking at.
+		//
+		// Misses fall back to OlvirInSpace rather than showing nothing: an asset-free install
+		// still gets a picture. ProbeContactArtTests demands all three files ship.
+		private void ShowVisitorContactArt()
+		{
+			(string art, string caption) = VisitorType switch
+			{
+				VisitorArchetype.Owners     => ("OthersIntercept",  "CONTACT LOST — TAU CETI"),
+				VisitorArchetype.Scavengers => ("ScavengerContact", "VISUAL CONTACT — TAU CETI"),
+				_                           => ("OlvirInSpace",     "VISUAL CONTACT — TAU CETI"),
+			};
+			string? path = EventArtScreen.FindPath(art) ?? EventArtScreen.FindPath("OlvirInSpace");
+			if (path is not null)
+				GameTask.Enqueue(Show.Screen(new EventArtScreen(path, caption)));
+		}
+
+		internal bool HoldsIntendedStarlab(Player? p) =>
+			p is not null && StarlabQuality == StarlabQuality.Intended
+			&& p.HasWonder<Wonders.Starlab>();
+
 		internal StarlabQuality DrawStarlabQuality(Player builder)
 		{
 			double pIntended = CharacterOdds(AssessCharacter(builder));

@@ -69,6 +69,8 @@ namespace CivOne.Persistence
 		public int ProbeOutcomeTier { get; set; }
 		// Which Starlab was built: 0=none 1=Intended 2=FreePort (Enums.StarlabQuality)
 		public int StarlabQuality { get; set; }
+		// Turn the observatories (or Starlab) name the visitors; 0 = done or not scheduled
+		public uint ArchetypeRevealTurn { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
 		public uint OlvirProximityAlarmTurn { get; set; }
 		public uint OlvirBloomEndTurn { get; set; }

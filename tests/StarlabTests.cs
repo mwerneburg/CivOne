@@ -526,6 +526,138 @@ namespace CivOne.Tests
 			Assert.Equal(6, port.Size);
 		}
 
+		// ─── the observatories name what is coming ───────────────────────────
+		//
+		// Until now the ONLY definitive identification was the Interstellar Probe's phase-3
+		// visual contact: no probe, no answer, and the Tau Ceti warning's "signal pattern"
+		// lines are a hint rather than a name. The observatories now resolve it on their own
+		// five turns after the signal — and Starlab, being a telescope above the weather,
+		// skips the wait.
+
+		// Phase B of EndTurn runs only when the player clock wraps (Game.cs), so the round has
+		// to come all the way round. Same helper as GreysTests, and the assertion that the
+		// turn actually moved is the point: without it this proves nothing.
+		private static void AdvanceOneRound(Game g)
+		{
+			uint turn = g.GameTurn;
+			for (int i = 0; i < 64 && g.GameTurn == turn; i++) g.EndTurn();
+			Assert.True(g.GameTurn > turn, "the round never wrapped, so phase B never ran");
+		}
+
+		// Drives the SETI signal directly rather than assembling the observatory quorum:
+		// SETISignalTurn is the gate's own output, and what is under test here is what
+		// happens AFTER the signal, not the gate that opens it.
+		private static Game AWorldBeforeTheSignal()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			Sim.ClearTasks();
+			// +1, not the current turn: a fresh game is on turn 0 and the signal block is
+			// guarded by `SETISignalTurn > 0`, so scheduling it for turn 0 schedules nothing
+			// at all — which is how every test in this section first failed.
+			g.SETISignalTurn = g.GameTurn + 1u;
+			return g;
+		}
+
+		// Rounds until the signal actually fires, so a test can set things up first. Bounded
+		// and asserted: a silent failure to fire would make every assertion below vacuous.
+		private static void AdvanceToTheSignal(Game g)
+		{
+			for (int i = 0; i < 8 && !g.SETISignalReceived; i++) AdvanceOneRound(g);
+			Assert.True(g.SETISignalReceived, "the SETI signal never fired");
+			Assert.NotEqual(VisitorArchetype.None, g.VisitorType);
+		}
+
+		private static int Transmissions(Game g, string type) =>
+			g.Transmissions.Count(t => t.Type == type);
+
+		[Fact]
+		public void WithoutStarlabTheObservatoriesTakeFiveTurns()
+		{
+			Game g = AWorldBeforeTheSignal();
+
+			AdvanceToTheSignal(g);
+			// Scheduled, not delivered. Asserted as "still in the future" rather than as an
+			// exact turn number, which would pin down whether phase B runs before or after the
+			// turn counter moves — not what this test is about. The five-turn wait itself is
+			// proved by counting rounds in the next test.
+			Assert.True(g.ArchetypeRevealTurn > g.GameTurn,
+				$"reveal scheduled for {g.ArchetypeRevealTurn} but the game is already at {g.GameTurn}");
+			Assert.Equal(0, Transmissions(g, "ArchetypeReveal"));
+		}
+
+		[Fact]
+		public void TheObservatoriesDoResolveItEventually()
+		{
+			Game g = AWorldBeforeTheSignal();
+			AdvanceToTheSignal(g);
+			Assert.Equal(0, Transmissions(g, "ArchetypeReveal"));
+
+			for (int i = 0; i < Game.ArchetypeRevealTurns; i++) AdvanceOneRound(g);
+
+			Assert.Equal(1, Transmissions(g, "ArchetypeReveal"));
+			Assert.Equal(0u, g.ArchetypeRevealTurn);   // and it does not fire again
+		}
+
+		// The short-circuit, which is the whole point of the step: same turn, no wait.
+		[Fact]
+		public void StarlabNamesThemAtOnce()
+		{
+			Game g = AWorldBeforeTheSignal();
+			City home = g.AddCity(g.HumanPlayer, 0, 25, 25)!;
+			GrantStarlab(g, home, StarlabQuality.Intended);
+
+			AdvanceToTheSignal(g);
+
+			Assert.Equal(1, Transmissions(g, "ArchetypeReveal"));
+			Assert.Equal(0u, g.ArchetypeRevealTurn);
+		}
+
+		// ...and the free port does not. Its telescope time is sold to the casinos, which is
+		// the same rule trade, science and the storm warning already follow.
+		[Fact]
+		public void AFreePortWaitsWithEverybodyElse()
+		{
+			Game g = AWorldBeforeTheSignal();
+			City home = g.AddCity(g.HumanPlayer, 0, 25, 25)!;
+			GrantStarlab(g, home, StarlabQuality.FreePort);
+
+			AdvanceToTheSignal(g);
+
+			Assert.Equal(0, Transmissions(g, "ArchetypeReveal"));
+			Assert.NotEqual(0u, g.ArchetypeRevealTurn);
+		}
+
+		// The probe used to be the only way to learn this, and it still reports. When it has
+		// already shown the player the plate, the observatories do not show it again.
+		[Fact]
+		public void TheProbeAndTheObservatoriesDoNotBothAnnounceIt()
+		{
+			Game g = AWorldBeforeTheSignal();
+			AdvanceToTheSignal(g);
+			g.ProbeInterimPhase = 3;   // the probe has transmitted its visual contact
+
+			for (int i = 0; i < Game.ArchetypeRevealTurns; i++) AdvanceOneRound(g);
+
+			Assert.Equal(0, Transmissions(g, "ArchetypeReveal"));
+		}
+
+		[Fact]
+		public void TheRevealClockSurvivesASaveAndLoad()
+		{
+			Game g = AWorldBeforeTheSignal();
+			AdvanceToTheSignal(g);
+			uint scheduled = g.ArchetypeRevealTurn;
+			Assert.NotEqual(0u, scheduled);
+
+			string path = Path.Combine(Settings.Instance.SavesDirectory, "starlab_reveal.cos");
+			g.SaveCos(path);
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "load failed");
+
+			Assert.Equal(scheduled, Game.Instance.ArchetypeRevealTurn);
+		}
+
 		// The draw happens ONCE. A station that re-rolled itself on load would let a player
 		// save-scum the verdict, which is exactly what the character rubric is there to stop.
 		[Fact]

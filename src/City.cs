@@ -543,9 +543,7 @@ namespace CivOne
 		//
 		// Player.HasWonder rather than this city's, because the station is in orbit — it
 		// serves the whole empire, not the city that paid for it.
-		private bool HasIntendedStarlab =>
-			Game.Instance.StarlabQuality == Enums.StarlabQuality.Intended
-			&& Player.HasWonder<Wonders.Starlab>();
+		private bool HasIntendedStarlab => Game.Instance.HoldsIntendedStarlab(Player);
 
 		// ...and the station that came out the other way. Same ownership rule: a lawless
 		// free port in orbit is a problem for the whole empire beneath it, not for the one
