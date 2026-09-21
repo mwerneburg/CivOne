@@ -2832,6 +2832,14 @@ namespace CivOne
 									.ToArray();
 							}
 						}
+						// Starlab's quality is drawn here, at completion, and stands for the
+						// rest of the game. No Human gate: an AI builder gets a real station
+						// or a real free port, and the effects are the owner's either way.
+						// No CursedWonders gate either — this is not a curse, it is a verdict.
+						if (wonder is Wonders.Starlab)
+						{
+							Game.Instance.StarlabQuality = Game.Instance.DrawStarlabQuality(Player);
+						}
 						if (wonder is MarcoPoloVoyage)
 						{
 							int continentId = Tile.ContinentId;

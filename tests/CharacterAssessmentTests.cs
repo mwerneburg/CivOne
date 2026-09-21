@@ -15,7 +15,6 @@ using System.Linq;
 using CivOne.Buildings;
 using CivOne.Enums;
 using CivOne.Governments;
-using CivOne.Enums;
 
 namespace CivOne.Tests
 {

@@ -257,6 +257,12 @@ namespace CivOne
 		// Outcome tier of the probe mission: 0=Destroyed 1=Partial 2=Identified 3=TechTransfer 4=Pact
 		internal int ProbeOutcomeTier;
 
+		// Which Starlab was built, drawn once at completion from the builder's character.
+		// There is only ever one Starlab in a game, so this lives on Game rather than on the
+		// player: whoever holds the city holds the station, and capturing it does not rebuild
+		// it into something nicer.
+		internal Enums.StarlabQuality StarlabQuality;
+
 		// Olvir land-use improvements keyed by map tile (x, y).
 		internal readonly Dictionary<(int x, int y), Enums.OlvirImprovementType> OlvirImprovements = new();
 
@@ -3757,6 +3763,39 @@ namespace CivOne
 			return score;
 		}
 
+		// The character curve, shared by the visitor draw and Starlab so that "decided the
+		// same way as the aliens" is a fact about the code rather than two sets of numbers
+		// that happen to agree today.
+		//
+		// The clamp is the important half. Uncapped, 0.5 + 0.07c reaches certainty at a
+		// character of ±8 — well inside the rubric's real range of −9..+8 — so a model
+		// civilization would be GUARANTEED its good outcome and a wretched one guaranteed
+		// its bad one. A draw the player can drive to certainty is not a draw, it is a
+		// checklist. 20/80 keeps both ends reachable from both ends.
+		internal const double CharacterOddsFloor = 0.20, CharacterOddsCeiling = 0.80;
+
+		internal static double CharacterOdds(double character)
+		{
+			double p = 0.5 + character * 0.07;
+			if (p < CharacterOddsFloor)   return CharacterOddsFloor;
+			if (p > CharacterOddsCeiling) return CharacterOddsCeiling;
+			return p;
+		}
+
+		// Which Starlab gets built, drawn ONCE at completion and never revisited.
+		//
+		// Asked of the builder alone, unlike the visitor draw, which averages the whole
+		// species: a great work reflects the state that raised it. A free, peaceful people
+		// breathing clean air will probably get the station they intended; a polluted
+		// despotism at war will probably get a free port. Probably, not certainly.
+		internal StarlabQuality DrawStarlabQuality(Player builder)
+		{
+			double pIntended = CharacterOdds(AssessCharacter(builder));
+			return Common.Random.Next(100) < (int)Math.Round(pIntended * 100)
+				? StarlabQuality.Intended
+				: StarlabQuality.FreePort;
+		}
+
 		private VisitorArchetype SelectVisitorArchetype()
 		{
 			Player[] nations = HumanityNations();
@@ -3777,9 +3816,7 @@ namespace CivOne
 			double character = totalWeight > 0 ? weighted / totalWeight : 0;
 
 			// Map the character score to P(Refugees), clamped so it is never deterministic.
-			double pRefugees = 0.5 + character * 0.07;
-			if (pRefugees < 0.20) pRefugees = 0.20;
-			if (pRefugees > 0.80) pRefugees = 0.80;
+			double pRefugees = CharacterOdds(character);
 
 			// The Scavengers are drawn FIRST and on a completely different reading.
 			//

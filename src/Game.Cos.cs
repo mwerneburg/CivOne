@@ -315,6 +315,7 @@ namespace CivOne
 					ProbeInterimPhase       = ProbeInterimPhase,
 					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null!,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
+					StarlabQuality          = (int)StarlabQuality,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
 					OlvirProximityAlarmTurn = OlvirProximityAlarmTurn,
 					OlvirBloomEndTurn       = OlvirBloomEndTurn,
@@ -625,6 +626,7 @@ namespace CivOne
 			ProbeInterimPhase       = g.ProbeInterimPhase;
 			ProbeGrantedAdvanceIds  = g.ProbeGrantedAdvanceIds ?? System.Array.Empty<int>();
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
+			StarlabQuality          = (Enums.StarlabQuality)g.StarlabQuality;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;
 			OlvirProximityAlarmTurn = g.OlvirProximityAlarmTurn;
 			OlvirBloomEndTurn       = g.OlvirBloomEndTurn;
