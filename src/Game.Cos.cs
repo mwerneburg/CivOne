@@ -317,6 +317,10 @@ namespace CivOne
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					StarlabQuality          = (int)StarlabQuality,
 					ArchetypeRevealTurn     = ArchetypeRevealTurn,
+					AlienAwake              = AlienAwake,
+					KoansSent               = KoansSent,
+					NextKoanTurn            = NextKoanTurn,
+					MourningUntilTurn       = MourningUntilTurn,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
 					OlvirProximityAlarmTurn = OlvirProximityAlarmTurn,
 					OlvirBloomEndTurn       = OlvirBloomEndTurn,
@@ -629,6 +633,10 @@ namespace CivOne
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
 			StarlabQuality          = (Enums.StarlabQuality)g.StarlabQuality;
 			ArchetypeRevealTurn     = g.ArchetypeRevealTurn;
+			AlienAwake              = g.AlienAwake;
+			KoansSent               = g.KoansSent;
+			NextKoanTurn            = g.NextKoanTurn;
+			MourningUntilTurn       = g.MourningUntilTurn;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;
 			OlvirProximityAlarmTurn = g.OlvirProximityAlarmTurn;
 			OlvirBloomEndTurn       = g.OlvirBloomEndTurn;

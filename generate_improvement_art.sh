@@ -180,6 +180,15 @@ resize_and_install_event "$SRC/Anomaly.png"               "Anomaly.png"
 resize_and_install_event "$SRC/Leviathan.png"             "Leviathan.png"
 resize_and_install_event "$SRC/Visitations.png"           "Visitations.png"
 resize_and_install_event "$SRC/StonehengePortal.png"      "TheDoor.png"
+
+# The synthetic alien's five koans (Starlab). One continuous dolly-out: the vat, the
+# control room that made it, the station, the station over Earth, and Earth with its moon
+# from very far away. The order is the retreat, so these must stay in sequence.
+resize_and_install_event "$SRC/Koan1.png"                 "Koan1.png"
+resize_and_install_event "$SRC/Koan2.png"                 "Koan2.png"
+resize_and_install_event "$SRC/Koan3.png"                 "Koan3.png"
+resize_and_install_event "$SRC/Koan4.png"                 "Koan4.png"
+resize_and_install_event "$SRC/Koan5.png"                 "Koan5.png"
 resize_and_install_event "$SRC/OtherVoice.png"            "OtherVoice.png"
 
 resize_and_install_event "$SRC/ScavengerContact.png"         "ScavengerContact.png"

@@ -1544,6 +1544,14 @@ namespace CivOne
 			unhappyCount += SmokeStacks / 10;
 			// The Greys: one permanently unhappy citizen — nobody likes the houseguests.
 			if (Game.Instance.GreyCities.Contains((X, Y))) unhappyCount++;
+			// Mourning the synthetic alien, for twenty turns after it stops talking.
+			//
+			// Only where a XENOLAB stands. The grief is not general sorrow handed out to
+			// everybody — it belongs to the towns whose laboratories called the thing down
+			// and then listened to it die. Evaluated live, so selling the lab lifts it: that
+			// is the counterplay, and it costs the player the building they wanted.
+			if (Game.Instance.MourningUntilTurn > Game.GameTurn && HasBuilding<Xenolab>())
+				unhappyCount++;
 			// The Other Voice: the dread of true prophecy sits on the Oracle
 			// keeper's whole empire while the voice speaks.
 			if (Game.Instance.OracleVoiceActive && Player.HasWonder<Oracle>() && !Game.WonderObsolete<Oracle>())

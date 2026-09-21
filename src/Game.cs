@@ -271,6 +271,21 @@ namespace CivOne
 		// it into something nicer.
 		internal Enums.StarlabQuality StarlabQuality;
 
+		// ── the synthetic alien in Starlab ───────────────────────────────────
+		// Woken by the world's fifth Xenolab, whoever built them. It asks five koans, four
+		// turns apart, and then it dies; the cities holding Xenolabs mourn for twenty turns
+		// after (City's citizen pass). Deliberately NOT gated on CursedWonders: this is not
+		// a curse and nobody is punished for luck — the labs are a choice the world made.
+		internal bool AlienAwake;
+		internal int  KoansSent;            // 0..5
+		internal uint NextKoanTurn;         // when the next koan is broadcast
+		internal uint MourningUntilTurn;    // 0 = nobody is mourning
+
+		internal const int KoansTotal      = 5;
+		internal const int KoanInterval    = 4;
+		internal const int MourningTurns   = 20;
+		internal const int XenolabsToWake  = 5;
+
 		// Olvir land-use improvements keyed by map tile (x, y).
 		internal readonly Dictionary<(int x, int y), Enums.OlvirImprovementType> OlvirImprovements = new();
 
@@ -2935,6 +2950,9 @@ namespace CivOne
 				// Skynet: the fifth Neural Lab in the world wakes the machines.
 				Tick("Skynet", CheckSkynet);
 
+				// The synthetic alien: the fifth Xenolab wakes something that only talks.
+				Tick("Koans", ProcessKoans);
+
 				Tick("Disasters", () =>
 				{
 					IEnumerable<City> disasterCities = _cities.OrderBy(o => Common.Random.Next(0,1000)).Take(2).AsEnumerable();
@@ -5045,6 +5063,52 @@ namespace CivOne
 			int labs = _cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.NeuralLab>());
 			if (labs < 5) return;
 			ExecuteSkynetUprising();
+		}
+
+		// ── The synthetic alien ──────────────────────────────────────────────
+		// Five Xenolabs anywhere in the world and something moves into Starlab. Where the
+		// Neural Labs summon an enemy, the Xenolabs summon a witness: it seizes nothing,
+		// attacks nobody, and asks five questions nobody on Earth can answer.
+		//
+		// Starlab must be standing, because the station is where it lives — the plates show
+		// that ring specifically. Its QUALITY is not consulted: a mind with nowhere else to
+		// go will take a casino in orbit as readily as an observatory.
+		private void ProcessKoans()
+		{
+			if (!AlienAwake)
+			{
+				if (!WonderBuilt<Wonders.Starlab>()) return;
+				if (_cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.Xenolab>()) < XenolabsToWake)
+					return;
+				AlienAwake = true;
+				NextKoanTurn = _gameTurn;   // the first one arrives at once
+			}
+
+			if (KoansSent >= KoansTotal || _gameTurn < NextKoanTurn) return;
+
+			int koan = ++KoansSent;
+			string gameDate = GameYear;
+			RecordTransmission($"Koan{koan}", gameDate);
+
+			// Plate first, then the words: the picture sets the scale the koan is spoken at,
+			// and the pull-back is the argument. A miss shows no picture rather than somebody
+			// else's — EventArtScreen.FindPath returns null and we simply skip it.
+			string? path = EventArtScreen.FindPath($"Koan{koan}");
+			if (path is not null)
+				GameTask.Enqueue(Show.Screen(new EventArtScreen(path, $"STARLAB — {koan} OF {KoansTotal}")));
+			GameTask.Enqueue(Show.Screen(new Screens.KoanTransmission(gameDate, koan)));
+
+			NextKoanTurn = (uint)(_gameTurn + KoanInterval);
+
+			if (KoansSent >= KoansTotal)
+			{
+				// It stops mid-sentence. The world is told nothing; it simply goes quiet, and
+				// then the cities that called it discover they mind.
+				MourningUntilTurn = (uint)(_gameTurn + MourningTurns);
+				RecordTransmission("KoanSilence", gameDate);
+				GameTask.Enqueue(Message.Newspaper(null!, "Starlab has fallen silent.",
+					"The voice does not", "answer the hail."));
+			}
 		}
 
 		private void ExecuteSkynetUprising()

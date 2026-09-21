@@ -71,6 +71,12 @@ namespace CivOne.Persistence
 		public int StarlabQuality { get; set; }
 		// Turn the observatories (or Starlab) name the visitors; 0 = done or not scheduled
 		public uint ArchetypeRevealTurn { get; set; }
+		// The synthetic alien in Starlab: woken, how many koans spoken, when the next one
+		// lands, and the turn the mourning lifts (0 = nobody is mourning).
+		public bool AlienAwake { get; set; }
+		public int  KoansSent { get; set; }
+		public uint NextKoanTurn { get; set; }
+		public uint MourningUntilTurn { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
 		public uint OlvirProximityAlarmTurn { get; set; }
 		public uint OlvirBloomEndTurn { get; set; }
