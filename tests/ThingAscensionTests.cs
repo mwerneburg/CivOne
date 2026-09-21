@@ -126,7 +126,7 @@ namespace CivOne.Tests
 
 			Assert.All(wonders, w => Assert.True(
 				w is TheReprocessor or NanobotFactory or ManhattanProject or FusionCore
-				  or InterstellarProbe or HumanGenomeProject,
+				  or HumanGenomeProject,
 				$"the network considered {(w as ICivilopedia)?.Name}"));
 		}
 

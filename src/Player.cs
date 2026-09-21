@@ -884,8 +884,18 @@ namespace CivOne
 			if (wonder is Wonders.SouthPoleExpedition && !Game.Instance.WonderBuilt<Wonders.ApolloProgram>())
 				return false;
 
-			// Interstellar Probe is only available once the SETI signal has been received
-			if (wonder is Wonders.InterstellarProbe && !Game.Instance.SETISignalReceived)
+			// The Interstellar Probe is RETIRED. Starlab takes its slot at Space Flight, and
+			// since the observatories now resolve the archetype on their own (Game.EndTurn),
+			// the probe's one unique job is gone.
+			//
+			// Commented out rather than deleted, along with the wonder class, its Civilopedia
+			// entry and its five .cos fields: a game already in flight may have a probe en
+			// route, and its interim reports and final result must still arrive. This stops
+			// NEW ones being offered, nothing else.
+			//
+			//   if (wonder is Wonders.InterstellarProbe && !Game.Instance.SETISignalReceived)
+			//       return false;
+			if (wonder is Wonders.InterstellarProbe)
 				return false;
 
 			// The Vessel belongs to the organism alone, and only once it has taken Space Flight

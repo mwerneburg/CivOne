@@ -86,9 +86,10 @@ namespace CivOne.Screens
 				: new[]
 				{
 					"",
-					"OPTION A: DISPATCH PROBE TO TAU CETI IMMEDIATELY.",
-					"  Estimated transit: 40 years. Return signal: 40 years later.",
-					"  Risk: probe may not survive approach. Benefit: direct observation.",
+					"OPTION A: RAISE STARLAB.",
+					"  An orbital platform reads the source directly and at once.",
+					"  Ground observatories reach the same answer more slowly.",
+					"  Risk: a station keeps the habits of the state that builds it.",
 				};
 
 			lines.AddRange(new[] { "", "RESPONSE OPTIONS — SCIENTIFIC COUNCIL BRIEFING:" });

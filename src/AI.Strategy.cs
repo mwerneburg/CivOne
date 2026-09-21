@@ -4138,7 +4138,8 @@ namespace CivOne
 				{
 					new Wonders.TheReprocessor(),
 					new NanobotFactory(), new ManhattanProject(), new FusionCore(),
-					new InterstellarProbe(), new HumanGenomeProject(),
+					// new InterstellarProbe(),   retired — see Player.ProductionAvailable
+					new HumanGenomeProject(),
 				};
 				if (IsTopProductionCity(city))
 					foreach (IWonder w in machineWork)
