@@ -278,11 +278,15 @@ namespace CivOne.Tests
 			Assert.True(cargo.Sentry, "the passenger was thrown overboard by a passing enemy");
 		}
 
-		// The control, and the reason the rule is narrow: a vessel with no orders is not going
-		// anywhere the passenger would be stranded from, so the alarm still rings. Without
-		// this the test above proves only that Sentry is a boolean nobody touched.
+		// An idle vessel's passengers stay aboard too.
+		//
+		// This test used to assert the opposite, and the narrow rule it guarded was wrong in
+		// play: Goto empties for reasons the player never sees — on arrival, and whenever
+		// Update()'s peaceful-block cancels the order because the next step holds a neutral
+		// unit or a city — so "under orders" was not a state the player could rely on, and
+		// the cargo fell out anyway. Reported from a game.
 		[Fact]
-		public void APassengerStillWakesWhenTheVesselHasNoOrders()
+		public void APassengerStaysAboardEvenWhenTheVesselIsIdle()
 		{
 			(_, _, Dirigible d, IUnit cargo, IUnit enemy) = AFlightPastAnEnemy();
 			Assert.True(d.Goto.IsEmpty, "fixture: the vessel is meant to be idle");
@@ -290,7 +294,22 @@ namespace CivOne.Tests
 			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
 			Sim.Settle();
 
-			Assert.False(cargo.Sentry, "an idle vessel's garrison slept through a raider");
+			Assert.True(cargo.Sentry, "an idle vessel's passenger was still thrown overboard");
+		}
+
+		// ...and the alarm is not lost, it rings for the VESSEL. This is the control: without
+		// it, every assertion above proves only that Sentry is a boolean nobody touched.
+		[Fact]
+		public void TheVesselItselfStillAnswersTheAlarm()
+		{
+			(_, _, Dirigible d, IUnit cargo, IUnit enemy) = AFlightPastAnEnemy();
+			d.Sentry = true;
+
+			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
+			Sim.Settle();
+
+			Assert.False(d.Sentry, "the vessel slept through a raider alongside it");
+			Assert.True(cargo.Sentry, "the passenger went overboard answering the vessel's alarm");
 		}
 
 		// The rule lives on BaseUnit and keys off IBoardable, not off the airship: a sea
@@ -321,6 +340,38 @@ namespace CivOne.Tests
 
 			Assert.Equal((42, 25), (enemy.X, enemy.Y));
 			Assert.True(cargo.Sentry, "the passenger was tipped into the sea by a passing enemy");
+		}
+
+		// Two vessels stacked in the same port are not each other's passengers.
+		//
+		// The rule exempts LAND units riding something IBoardable. Without that clause each
+		// ship would find the other, decide it was aboard it, and neither would ever answer
+		// an alarm — a port full of transports that sleeps through a raid. A negative check
+		// found this untested: deleting the class test broke nothing.
+		[Fact]
+		public void TwoStackedVesselsBothStillWake()
+		{
+			(Game g, Player human, _) = ADirigible();
+			Map.Instance.ChangeTileType(41, 25, Terrain.Ocean);
+			Map.Instance.ChangeTileType(42, 25, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(43, 25, Terrain.Grassland1);
+
+			IUnit first  = g.CreateUnit(UnitType.Transport, 41, 25, g.PlayerNumber(human))!;
+			IUnit second = g.CreateUnit(UnitType.Transport, 41, 25, g.PlayerNumber(human))!;
+			Assert.True(first is IBoardable && second is IBoardable, "fixture: both must carry");
+			first.Sentry = true;
+			second.Sentry = true;
+
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != human);
+			IUnit enemy = g.CreateUnit(UnitType.Legion, 43, 25, g.PlayerNumber(ai))!;
+			Sim.ClearTasks();
+
+			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
+			Sim.Settle();
+
+			Assert.Equal((42, 25), (enemy.X, enemy.Y));
+			Assert.False(first.Sentry, "a moored transport slept through a raider alongside");
+			Assert.False(second.Sentry, "a moored transport slept through a raider alongside");
 		}
 
 		// Unloading over open water would put a land unit where it cannot stand.

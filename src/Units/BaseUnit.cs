@@ -746,7 +746,7 @@ namespace CivOne.Units
 				foreach (ITile adjacent in Tile.GetBorderTiles())
 					foreach (IUnit sleeping in adjacent.Units.Where(u => u.Sentry && Human == u.Owner).ToList())
 					{
-						if (RidingAVesselUnderOrders(sleeping)) continue;
+						if (RidingAVessel(sleeping)) continue;
 						sleeping.Sentry = false;
 						sleeping.MovesLeft = sleeping.Move;
 					}
@@ -759,15 +759,21 @@ namespace CivOne.Units
 		// left standing wherever the enemy happened to pass, while the vessel carries on.
 		// Reported as units falling out of Dirigibles mid-journey.
 		//
-		// Only while the carrier is under GOTO orders. That is the narrower rule and the one
-		// asked for: a transport sitting in port still wants its garrison to notice a raider,
-		// and a vessel with no orders is not going anywhere the passenger would be stranded
-		// from. Hostiles adjacent to a MOVING vessel are the vessel's problem.
-		private static bool RidingAVesselUnderOrders(IUnit passenger)
+		// This used to apply only while the carrier was under GOTO orders, on the reasoning
+		// that a vessel with no orders is not going anywhere its passenger would be stranded
+		// from. That rule leaked, because Goto empties for reasons the player never sees: on
+		// ARRIVAL, and — the reported case — whenever Update()'s peaceful-block cancels the
+		// order because the next step holds a neutral unit or city. The vessel then looks to
+		// the player exactly as it did a moment earlier, and the cargo falls out anyway.
+		//
+		// So the rule is now simply: a passenger stays aboard. The alarm is not lost, it just
+		// rings for the VESSEL, which sits on the same tile and is woken by the same loop —
+		// the player is told, and still has their cargo.
+		private static bool RidingAVessel(IUnit passenger)
 		{
 			if (passenger.Class != UnitClass.Land) return false;
 			return Map[passenger.X, passenger.Y].Units.Any(v => v != passenger
-				&& v is IBoardable && passenger.Owner == v.Owner && !v.Goto.IsEmpty);
+				&& v is IBoardable && passenger.Owner == v.Owner);
 		}
 
 		protected void MovementTo(int relX, int relY)
