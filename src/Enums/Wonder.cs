@@ -54,5 +54,6 @@ namespace CivOne.Enums
 		Stonehenge               = 41,
 		TheVessel                = 42,
 		TheReprocessor           = 43,
+		Starlab                  = 44,
 	}
 }

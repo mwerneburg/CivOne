@@ -3699,29 +3699,40 @@ namespace CivOne
 		// confident republic lands a man on the moon and digs a canal, and the same country in
 		// its decline cannot re-roof its own palace. Two questions, one rubric, one definition,
 		// so a change to what counts as enlightened cannot mean two different things.
-		internal int AssessCharacter(Player n)
+		internal int AssessCharacter(Player n, CharacterClauses clauses = CharacterClauses.Whole)
 		{
 			Player[] nations = HumanityNations();
 			double avgCulture = nations.Length > 0 ? nations.Average(p => (double)p.Culture) : 0;
-			return AssessCharacter(n, nations, avgCulture);
+			return AssessCharacter(n, nations, avgCulture, clauses);
 		}
 
-		private static int AssessCharacter(Player n, Player[] nations, double avgCulture)
+		// `nations` is the field the WARS clause counts across, and callers differ on purpose:
+		// the visitor draw counts wars among humanity, where the expedition counts wars with
+		// anything that is not a barbarian — being at war with the Machines is still being at
+		// war, for the purpose of whether your expedition was properly supervised.
+		private static int AssessCharacter(Player n, Player[] nations, double avgCulture,
+			CharacterClauses clauses = CharacterClauses.Whole)
 		{
 			int score = 0;
 
 			// Government — the clearest read on a civilization's character.
-			if (n.Government is CivOne.Governments.Democracy)      score += 3;
-			else if (n.Government is CivOne.Governments.Republic)  score += 2;
-			else if (n.Government is CivOne.Governments.Monarchy)  score -= 1;
-			else                                                   score -= 2; // Despotism / Anarchy / Communism
+			if ((clauses & CharacterClauses.Government) != 0)
+			{
+				if (n.Government is CivOne.Governments.Democracy)      score += 3;
+				else if (n.Government is CivOne.Governments.Republic)  score += 2;
+				else if (n.Government is CivOne.Governments.Monarchy)  score -= 1;
+				else                                                   score -= 2; // Despotism / Anarchy / Communism
+			}
 
 			// Wars — an aggressive, embattled civ leans Owners.
-			int wars = nations.Count(p => p != n && n.IsAtWar(p));
-			score -= Math.Min(wars, 3);
+			if ((clauses & CharacterClauses.Wars) != 0)
+			{
+				int wars = nations.Count(p => p != n && n.IsAtWar(p));
+				score -= Math.Min(wars, 3);
+			}
 
 			// Happiness / culture — Temple coverage across the empire leans Refugees.
-			if (n.Cities.Length > 0)
+			if ((clauses & CharacterClauses.Temples) != 0 && n.Cities.Length > 0)
 			{
 				double temples = n.Cities.Count(c => c.HasBuilding<Temple>()) / (double)n.Cities.Length;
 				if (temples >= 0.6) score += 2;
@@ -3730,15 +3741,18 @@ namespace CivOne
 
 			// Accumulated culture, against the world's average: a deep artistic and
 			// civic tradition reads as an enlightened people.
-			if (avgCulture > 0)
+			if ((clauses & CharacterClauses.Culture) != 0 && avgCulture > 0)
 			{
 				if (n.Culture > avgCulture * 2)      score += 2;
 				else if (n.Culture * 2 < avgCulture) score -= 1;
 			}
 
 			// Pollution — a smoke-choked land is loud and careless; leans Owners.
-			if (n.Pollution >= 8)      score -= 2;
-			else if (n.Pollution == 0) score += 1;
+			if ((clauses & CharacterClauses.Pollution) != 0)
+			{
+				if (n.Pollution >= 8)      score -= 2;
+				else if (n.Pollution == 0) score += 1;
+			}
 
 			return score;
 		}
@@ -5474,18 +5488,14 @@ namespace CivOne
 		internal City? TrySouthPoleCurse(Player builder, City wonderCity)
 		{
 			if (!Settings.Instance.CursedWonders) return null;
-			int score = 0;
-			if (builder.Government is CivOne.Governments.Democracy)      score += 3;
-			else if (builder.Government is CivOne.Governments.Republic)  score += 2;
-			else if (builder.Government is CivOne.Governments.Monarchy)  score -= 1;
-			else                                                         score -= 2;
 
-			int wars = _players.Count(p => p != null && p != builder && !p.IsDestroyed()
-				&& !(p.Civilization is Civilizations.Barbarian) && builder.IsAtWar(p));
-			score -= Math.Min(wars, 3);
-
-			if (builder.Pollution >= 8)      score -= 2;
-			else if (builder.Pollution == 0) score += 1;
+			// Was an inline second copy of the visitor rubric, minus the temple and culture
+			// clauses. One definition now; CharacterClauses.Expedition names what is left out
+			// and why. The numbers are unchanged: the war field is this caller's own (anything
+			// not a barbarian), and avgCulture is irrelevant because Culture is not in the set.
+			Player[] warField = _players.Where(p => p != null && !p.IsDestroyed()
+				&& !(p.Civilization is Civilizations.Barbarian)).ToArray();
+			int score = AssessCharacter(builder, warField, 0, CharacterClauses.Expedition);
 
 			double pCurse = 0.35 - score * 0.07; // score +3 → 14%, score −5 → 70%
 			if (pCurse < 0.10) pCurse = 0.10;
