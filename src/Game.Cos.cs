@@ -54,7 +54,8 @@ namespace CivOne
 				var city = _cities[ci];
 
 				var tradeRoutes = city.TradeRoutes
-					.Select(r => new CosTradeRoute { PartnerX = r.Partner.X, PartnerY = r.Partner.Y, Commodity = r.Commodity })
+					.Select(r => new CosTradeRoute { PartnerX = r.Partner.X, PartnerY = r.Partner.Y,
+						Commodity = r.Commodity, Initiated = r.Initiated })
 					.ToList();
 
 				var wonders = Common.Wonders
@@ -903,7 +904,9 @@ namespace CivOne
 				foreach (var tr in cd.TradeRoutes)
 				{
 					var partner = _cities.FirstOrDefault(c => c.X == tr.PartnerX && c.Y == tr.PartnerY);
-					if (partner is not null) city.AddTradeRoute(partner, tr.Commodity);
+					if (partner is not null)
+						city.AddTradeRoute(partner, tr.Commodity,
+							tr.Initiated ?? City.LegacyInitiator(city, partner));
 				}
 			}
 

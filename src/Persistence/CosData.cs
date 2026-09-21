@@ -327,6 +327,11 @@ namespace CivOne.Persistence
 		public int PartnerX { get; set; }
 		public int PartnerY { get; set; }
 		public string Commodity { get; set; } = null!;
+		// Which end sent the caravan. NULLABLE on purpose: a save written before this
+		// existed has no answer, and null is how the loader knows to fall back to
+		// City.LegacyInitiator rather than believing a default. OmitNull keeps it out of
+		// saves where it would be noise.
+		public bool? Initiated { get; set; }
 	}
 
 	public class CosUnit

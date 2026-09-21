@@ -108,8 +108,28 @@ namespace CivOne
 			internal City Partner { get; }
 			internal string Commodity { get; }
 			internal int Value => _home.RouteBonus(Partner);
-			internal TradeRoute(City home, City partner, string commodity) { _home = home; Partner = partner; Commodity = commodity; }
+
+			// True on the end that SENT the caravan. Both cities hold a route and both are
+			// paid by it, but only the sender is credited on the Pax Mercatoria scoreboard —
+			// see ScoringRouteBonus for why.
+			internal bool Initiated { get; }
+
+			internal TradeRoute(City home, City partner, string commodity, bool initiated)
+			{ _home = home; Partner = partner; Commodity = commodity; Initiated = initiated; }
 		}
+
+		// Saves written before the initiator was recorded have no answer, so they keep the
+		// answer they had: BOTH ends score, exactly as that game has been scoring all along.
+		//
+		// The first attempt credited one end by map position — wrong per route, right in
+		// aggregate, and it seemed defensible until it was measured. On a real 1896 AD save
+		// it put the human on 8.2% instead of the 55.6% the true attribution gives, because
+		// their cities happened to lose the comparison. For a contest about WHO holds half
+		// the world's commerce, arbitrary attribution is far worse than a consistent
+		// over-count: the over-count is at least the same for everybody.
+		//
+		// So an old game is not re-scored on a guess. Routes built from here carry the truth.
+		internal static bool LegacyInitiator(City home, City partner) => true;
 
 		private readonly List<TradeRoute> _tradeRoutes = new();
 		internal IEnumerable<TradeRoute> TradeRoutes => _tradeRoutes;
@@ -162,11 +182,15 @@ namespace CivOne
 		// first. Under the cap that was worth at most three; uncapped it is an unbounded money
 		// printer — send caravans to one city forever. A repeat delivery now refreshes the
 		// commodity instead of duplicating the route.
-		internal void AddTradeRoute(City partner, string commodity)
+		// initiated defaults to TRUE — "this city established a route to partner", the
+		// natural reading. Production callers pass it explicitly at both ends
+		// (CaravanActions, Game.Cos); the default exists for fixtures that only model one
+		// side of a route.
+		internal void AddTradeRoute(City partner, string commodity, bool initiated = true)
 		{
 			if (partner is null) return;
 			_tradeRoutes.RemoveAll(r => r.Partner == partner);
-			_tradeRoutes.Add(new TradeRoute(this, partner, commodity));
+			_tradeRoutes.Add(new TradeRoute(this, partner, commodity, initiated));
 			InvalidateCache();
 		}
 
@@ -638,11 +662,14 @@ namespace CivOne
 		//
 		// Applies to BOTH sides. The money is the reported complaint; the scoreboard is
 		// what Pax Mercatoria reads.
-		private IEnumerable<int> DiminishedRoutes(bool externalOnly)
+		private IEnumerable<int> DiminishedRoutes(bool forScore)
 		{
 			foreach (TradeRoute r in _tradeRoutes)
 			{
-				if (externalOnly && r.Partner.Owner == Owner) continue;
+				// Internal routes pay but do not score, and neither does the receiving end of
+				// a foreign one. Both filters are SCOREBOARD ONLY: TradeRouteBonus passes
+				// false and still counts every route in full, so no city loses a coin.
+				if (forScore && (r.Partner.Owner == Owner || !r.Initiated)) continue;
 				int value = RouteBonus(r.Partner);
 				yield return value <= 0 ? 0 : value / SiblingRank(r.Partner, value);
 			}
@@ -692,6 +719,20 @@ namespace CivOne
 		//
 		//   1. Only EXTERNAL routes score. Internal ones still pay in full.
 		//   2. Only the best ScoringRoutes of them score, per city.
+		//   3. Only the SENDING end scores. The receiver is paid, not credited.
+		//
+		// Rule 3 was added after measuring a 1896 AD save: RouteBonus is symmetric and both
+		// cities hold the route, so every caravan lifted the numerator and the denominator
+		// together and a civ's share could only approach its multiplier ratio — about 53%
+		// there — asymptotically. The human's 119 caravans were the third-placed
+		// civilization's entire economy: strip the receiving end and Japan falls 16.0% to
+		// 3.0%, because it was the human's own deliveries. You cannot win a share-of-world
+		// contest by posting your rivals their score. Measured on that save, the human's
+		// share goes 27.8% -> 55.6%.
+		//
+		// Splitting each route's value between the two ends was tried and is a dead end: it
+		// lands at ~26%, slightly WORSE, because halving hits whoever holds the most routes
+		// hardest. Only asymmetry moves a share.
 		//
 		// The cap is a partial reinstatement of Civ 1's three-per-city, kept for the reason the
 		// original had it and not for the reason it was removed: the old cap made an arriving

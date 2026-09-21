@@ -65,9 +65,12 @@ namespace CivOne.Units
 			int revenue = TradeGoldBonus(unit, city);
 			if (revenue <= 0) revenue = 1;
 
-			unit.Home?.AddTradeRoute(city, ware);
+			// The caravan's home SENT it; the destination received it. Only the sender is
+			// credited on the Pax Mercatoria scoreboard (City.ScoringRouteBonus), though both
+			// ends are paid in full.
+			unit.Home?.AddTradeRoute(city, ware, initiated: true);
 			if (unit.Home is not null)
-				city.AddTradeRoute(unit.Home, ware);
+				city.AddTradeRoute(unit.Home, ware, initiated: false);
 
 			// Only when the human is actually a party to the trade — as the caravan's owner
 			// or as the destination. This was unconditional, so every AI-to-AI delivery

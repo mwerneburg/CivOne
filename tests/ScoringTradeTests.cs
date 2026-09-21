@@ -185,6 +185,91 @@ namespace CivOne.Tests
 				Assert.Equal(partnersBefore[i], domestic[i].EconomicOutput);
 		}
 
+		// ── rule 3: only the sender is credited ─────────────────────────────
+		//
+		// Measured on a 1896 AD save. RouteBonus is symmetric and both cities hold the route,
+		// so every caravan lifted the numerator and the denominator of "share of world
+		// output" together, and a civ could only approach its multiplier ratio — about 53%
+		// there — asymptotically. Worse, the human's 119 caravans WERE the third-placed
+		// civilization's economy: stripping the receiving end drops Japan from 16.0% to 3.0%.
+		// You cannot win a share-of-world contest by posting your rivals their score.
+
+		[Fact]
+		public void TheReceivingEndOfAForeignRouteDoesNotScore()
+		{
+			(Game g, City home, City[] foreign, City[] domestic) = ATradingHub();
+			City theirs = foreign[7];
+			int mineBefore = home.EconomicOutput, theirsBefore = theirs.EconomicOutput;
+
+			// Both ends, the way a delivered caravan builds it.
+			home.AddTradeRoute(theirs, "Silk", initiated: true);
+			theirs.AddTradeRoute(home, "Silk", initiated: false);
+
+			Assert.True(home.EconomicOutput > mineBefore, "the sender was not credited");
+			Assert.Equal(theirsBefore, theirs.EconomicOutput);
+		}
+
+		// ...but it is still PAID. This is the line the whole change rests on: the receiver
+		// keeps every coin, it simply stops being credited on a scoreboard measuring who has
+		// half the world's commerce.
+		[Fact]
+		public void TheReceivingEndIsStillPaidInFull()
+		{
+			(Game g, City home, City[] foreign, City[] domestic) = ATradingHub();
+			City theirs = foreign[7];
+			int theirsBefore = theirs.TradeTotal;
+
+			home.AddTradeRoute(theirs, "Silk", initiated: true);
+			theirs.AddTradeRoute(home, "Silk", initiated: false);
+
+			Assert.True(theirs.TradeTotal > theirsBefore,
+				"the receiving city lost income, not just credit");
+			// And the money is symmetric, which is what makes it money and not a score.
+			Assert.Equal(Bonus(home, theirs), Bonus(theirs, home));
+		}
+
+		// A save written before the initiator existed has no answer, so it keeps the answer
+		// it had: both ends score, exactly as that game has been scoring all along.
+		//
+		// The first attempt credited one end by map position — wrong per route, right in
+		// aggregate — and measuring it on a real 1896 AD save killed it: the human landed on
+		// 8.2% instead of the 55.6% true attribution gives, purely because their cities lost
+		// the comparison. An old game does not get re-scored on a guess.
+		[Fact]
+		public void ALegacySaveIsNotRescored()
+		{
+			(Game g, City home, City[] foreign, City[] domestic) = ATradingHub();
+			City theirs = foreign[7];
+
+			Assert.True(City.LegacyInitiator(home, theirs));
+			Assert.True(City.LegacyInitiator(theirs, home));
+		}
+
+		// ...while a route built since carries the truth through a save. Without this the
+		// rule holds only until the player saves, which is to say it does not hold.
+		[Fact]
+		public void TheInitiatorSurvivesASaveAndLoad()
+		{
+			(Game g, City home, City[] foreign, City[] domestic) = ATradingHub();
+			City theirs = foreign[7];
+			home.AddTradeRoute(theirs, "Silk", initiated: true);
+			theirs.AddTradeRoute(home, "Silk", initiated: false);
+			(int hx, int hy) = (home.X, home.Y);
+			(int tx, int ty) = (theirs.X, theirs.Y);
+
+			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "initiator.cos");
+			g.SaveCos(path);
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "load failed");
+
+			City sender   = Game.Instance.GetCity(hx, hy)!;
+			City receiver = Game.Instance.GetCity(tx, ty)!;
+			Assert.True(sender.TradeRoutes.Single(r => r.Partner == receiver).Initiated,
+				"the sender came back as a receiver");
+			Assert.False(receiver.TradeRoutes.Single(r => r.Partner == sender).Initiated,
+				"the receiver came back as a sender");
+		}
+
 		// One external route does move it, so the rule is "internal earns nothing", not
 		// "routes earn nothing".
 		[Fact]
