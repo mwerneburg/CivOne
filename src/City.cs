@@ -537,7 +537,29 @@ namespace CivOne
 		// large cities are worth more. That is the same effect one step removed.
 		private int SizeTradeBonus => Size / 5;
 
-		private int RawTrade => (int)(_cachedRawTrade ??= ResourceTiles.Sum(t => TradeValue(t)) + SizeTradeBonus);
+		// The intended Starlab, as opposed to the free port. Two halves, always asked
+		// together: the owner must hold the wonder, and the station must have come out the
+		// way its founders meant (Game.DrawStarlabQuality, drawn once at completion).
+		//
+		// Player.HasWonder rather than this city's, because the station is in orbit — it
+		// serves the whole empire, not the city that paid for it.
+		private bool HasIntendedStarlab =>
+			Game.Instance.StarlabQuality == Enums.StarlabQuality.Intended
+			&& Player.HasWonder<Wonders.Starlab>();
+
+		private int RawTrade
+		{
+			get
+			{
+				if (_cachedRawTrade.HasValue) return _cachedRawTrade.Value;
+				int trade = ResourceTiles.Sum(t => TradeValue(t)) + SizeTradeBonus;
+				// Orbital remote sensing: better charts, better markets. Before corruption,
+				// so a free port's graft bites the same money.
+				if (HasIntendedStarlab)
+					trade += (int)Math.Floor(trade * CivOne.Wonders.Starlab.TradeBonus);
+				return (_cachedRawTrade = trade).Value;
+			}
+		}
 
 		// Pre-corruption trade, for the AI's government comparison — it needs the
 		// denominator to judge what graft is actually costing the empire.
@@ -904,6 +926,8 @@ namespace CivOne
 				if (Player.HasWonder<HumanGenomeProject>()) science += (short)Math.Floor((double)science * 0.5);
 				// The Internet: every mind in the empire, one conversation.
 				if (Player.HasWonder<TheInternet>()) science += (short)Math.Floor((double)science * 0.25);
+				// Starlab, but only the station that was actually meant to be a telescope.
+				if (HasIntendedStarlab) science += (short)Math.Floor(science * CivOne.Wonders.Starlab.ScienceBonus);
 				science += (short)(_specialists.Count(c => c == Citizen.Scientist) * 2);
 				// Government research bias, applied last so it lifts the whole city's
 				// output — buildings, wonders and scientists alike.
@@ -3276,6 +3300,12 @@ namespace CivOne
 			}
 			bool wasCatastrophic = sev == 2;
 			if (seaPlatform && sev == 2) sev = 1;  // Sea Platform demotes Catastrophic to Major.
+			// Starlab does the same thing from orbit, and for every city the owner holds
+			// rather than the one that built the platform. Days of warning is the difference
+			// between a coast that evacuates and one that does not — so it blunts the worst
+			// storm, and leaves the ordinary ones alone.
+			bool starlabWarned = HasIntendedStarlab && sev == 2;
+			if (starlabWarned) sev = 1;
 
 			// 5. Apply damage.
 			string title;
@@ -3360,6 +3390,8 @@ namespace CivOne
 				msg.Add("Coastline eroded.");
 			if (seaPlatform && (wasCatastrophic || sev == 1))
 				msg.Add("Sea Platform reduced losses.");
+			else if (starlabWarned)
+				msg.Add("Starlab warned the coast.");
 			if (msg.Count > 0)
 				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false, msg.ToArray()));
 

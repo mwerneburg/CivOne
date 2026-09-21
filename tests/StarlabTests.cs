@@ -286,6 +286,165 @@ namespace CivOne.Tests
 			Assert.Equal(StarlabQuality.NotBuilt, g.StarlabQuality);
 		}
 
+		// ─── what the intended station is worth ──────────────────────────────
+		//
+		// Trade, science, and a warning that turns a super-typhoon into an ordinary
+		// hurricane. All three belong to the OWNER's whole empire, and all three belong to
+		// the intended station only: a free port is not running a telescope.
+
+		// Two equal cities on equal ground, one per civ, with roads so there is trade to
+		// multiply. Grassland yields no trade bare, and 15% of nothing is nothing — the
+		// mistake this fixture exists to avoid.
+		private static (Game g, Player owner, City home, Player rival, City theirs) TwoTradingCities()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			for (int y = 20; y <= 30; y++)
+			for (int x = 20; x <= 50; x++)
+			{
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+				Map.Instance[x, y].Road = true;
+			}
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player[] ps = g.Players.Where(p => p is not null && g.PlayerNumber(p) != 0).ToArray();
+			Player owner = ps[0], rival = ps[1];
+			// Explore, or the citizens work nothing and the whole fixture yields 2 raw trade
+			// — 15% of which rounds to zero, and the bonus tests pass on a deleted bonus.
+			// Monarchy for the same reason GreysTests uses it: Despotism docks rich tiles.
+			foreach (Player p in new[] { owner, rival })
+				p.Government = new CivOne.Governments.Monarchy();
+			owner.Explore(25, 25, range: 20);
+			rival.Explore(40, 25, range: 20);
+
+			City home   = g.AddCity(owner, 0, 25, 25)!;
+			City theirs = g.AddCity(rival, 1, 40, 25)!;
+			home.Size = 12; theirs.Size = 12;
+			Sim.ClearTasks();
+			return (g, owner, home, rival, theirs);
+		}
+
+		private static void GrantStarlab(Game g, City city, StarlabQuality quality)
+		{
+			// Quality FIRST: AddWonder invalidates the city's cached trade, and setting the
+			// quality afterwards would leave a stale number behind.
+			g.StarlabQuality = quality;
+			city.AddWonder(new Starlab());
+		}
+
+		[Fact]
+		public void TheIntendedStationLiftsTradeAcrossTheEmpire()
+		{
+			(Game g, _, City home, _, City theirs) = TwoTradingCities();
+			int before = home.RawTradeForAi, control = theirs.RawTradeForAi;
+			// 15% of nothing is nothing: without this the test passes on a broken bonus.
+			Assert.True(before >= 10, $"fixture has only {before} raw trade to multiply");
+
+			GrantStarlab(g, home, StarlabQuality.Intended);
+
+			Assert.Equal(before + (int)(before * CivOne.Wonders.Starlab.TradeBonus), home.RawTradeForAi);
+			Assert.Equal(control, theirs.RawTradeForAi);   // a rival's economy is untouched
+		}
+
+		[Fact]
+		public void TheIntendedStationLiftsScience()
+		{
+			(Game g, _, City home, _, City theirs) = TwoTradingCities();
+			int before = home.Science, control = theirs.Science;
+			Assert.True(before >= 4, $"fixture produces only {before} science to multiply");
+
+			GrantStarlab(g, home, StarlabQuality.Intended);
+
+			// MORE than the trade bonus alone would explain. Science is derived from trade,
+			// so a +15% trade bonus lifts science by +15% on its own — and "science went up"
+			// therefore passed with the science bonus deleted outright. A negative check
+			// caught it. The floor below is what separates 1.15x from 1.15 x 1.25.
+			Assert.True(home.Science > before * (1 + CivOne.Wonders.Starlab.TradeBonus),
+				$"science went {before} -> {home.Science}, which the trade bonus alone covers");
+			Assert.Equal(control, theirs.Science);
+		}
+
+		// The free port is the whole reason the quality is drawn at all. If it paid the same
+		// dividends, the verdict would be flavour text.
+		[Fact]
+		public void AFreePortPaysNoDividend()
+		{
+			(Game g, _, City home, _, _) = TwoTradingCities();
+			int trade = home.RawTradeForAi, science = home.Science;
+
+			GrantStarlab(g, home, StarlabQuality.FreePort);
+
+			Assert.Equal(trade, home.RawTradeForAi);
+			Assert.Equal(science, home.Science);
+		}
+
+		// ─── the storm warning ───────────────────────────────────────────────
+		//
+		// HurricaneCheck's thresholds are linear in warming, and a large enough value
+		// saturates all of them: strikePct reaches 100 so a storm always lands, and catThresh
+		// falls below zero so it is always Catastrophic. That turns a probabilistic rule into
+		// a deterministic one for the length of a test, with no seeding and no statistics —
+		// the severity demotion is what is under test, not the dice in front of it.
+		private const int StormCertain = 99;
+
+		private static (Game g, Player owner, City port) ACoastalCity()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			for (int y = 15; y <= 35; y++)
+			for (int x = 0;  x <= 19; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Ocean);
+			for (int y = 20; y <= 30; y++)
+			for (int x = 20; x <= 50; x++)
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player owner = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0);
+			// x=20 puts open sea in the next column; y=25 is the tropical band on a 50-high map.
+			City port = g.AddCity(owner, 0, 20, 25)!;
+			port.Size = 12;
+			Sim.ClearTasks();
+			return (g, owner, port);
+		}
+
+		[Fact]
+		public void WithoutTheStationASuperTyphoonLandsInFull()
+		{
+			(Game g, _, City port) = ACoastalCity();
+
+			Assert.True(port.HurricaneCheck(StormCertain), "fixture: no storm landed at all");
+
+			// Catastrophic takes half the city; Major takes a third.
+			Assert.Equal(6, port.Size);
+		}
+
+		[Fact]
+		public void TheIntendedStationDemotesASuperTyphoon()
+		{
+			(Game g, _, City port) = ACoastalCity();
+			GrantStarlab(g, port, StarlabQuality.Intended);
+
+			Assert.True(port.HurricaneCheck(StormCertain), "fixture: no storm landed at all");
+
+			Assert.Equal(8, port.Size);   // a third, not a half
+			// The advisor also says "Starlab warned the coast.", but that line is not
+			// asserted here: AdvisorMessage renders its text to bitmaps in the constructor
+			// and keeps no string field, so Sim.PendingMessageLines cannot see it. The size
+			// is the behaviour that matters and it is checked above.
+		}
+
+		// ...and the free port does not forecast the weather.
+		[Fact]
+		public void AFreePortDoesNotWarnTheCoast()
+		{
+			(Game g, _, City port) = ACoastalCity();
+			GrantStarlab(g, port, StarlabQuality.FreePort);
+
+			Assert.True(port.HurricaneCheck(StormCertain), "fixture: no storm landed at all");
+
+			Assert.Equal(6, port.Size);
+		}
+
 		// The draw happens ONCE. A station that re-rolled itself on load would let a player
 		// save-scum the verdict, which is exactly what the character rubric is there to stop.
 		[Fact]

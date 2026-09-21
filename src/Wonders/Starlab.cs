@@ -59,6 +59,16 @@ namespace CivOne.Wonders
 			"city it holds.",
 		};
 
+		// What the intended station is worth, empire-wide. Both are percentages rather than
+		// the Colossus's flat +1 a tile: that is a one-city wonder, and the same rule applied
+		// to every city a civilization holds would dwarf everything else on the board.
+		//
+		// Trade lands on RawTrade, BEFORE corruption, so the free port's graft eats into the
+		// same money the good station would have made. Science is the Internet's 25% — the
+		// station is a telescope before it is anything else.
+		internal const double TradeBonus   = 0.15;
+		internal const double ScienceBonus = 0.25;
+
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
 		public Starlab() : base(50)
