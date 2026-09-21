@@ -746,10 +746,28 @@ namespace CivOne.Units
 				foreach (ITile adjacent in Tile.GetBorderTiles())
 					foreach (IUnit sleeping in adjacent.Units.Where(u => u.Sentry && Human == u.Owner).ToList())
 					{
+						if (RidingAVesselUnderOrders(sleeping)) continue;
 						sleeping.Sentry = false;
 						sleeping.MovesLeft = sleeping.Move;
 					}
 			}
+		}
+
+		// A passenger cannot answer an alarm, and waking it does not merely fail to help —
+		// it throws the unit overboard. Sentry is how a passenger says it is aboard
+		// (Dirigible.Manifest, BaseUnitSea), so a woken one is dropped from the manifest and
+		// left standing wherever the enemy happened to pass, while the vessel carries on.
+		// Reported as units falling out of Dirigibles mid-journey.
+		//
+		// Only while the carrier is under GOTO orders. That is the narrower rule and the one
+		// asked for: a transport sitting in port still wants its garrison to notice a raider,
+		// and a vessel with no orders is not going anywhere the passenger would be stranded
+		// from. Hostiles adjacent to a MOVING vessel are the vessel's problem.
+		private static bool RidingAVesselUnderOrders(IUnit passenger)
+		{
+			if (passenger.Class != UnitClass.Land) return false;
+			return Map[passenger.X, passenger.Y].Units.Any(v => v != passenger
+				&& v is IBoardable && passenger.Owner == v.Owner && !v.Goto.IsEmpty);
 		}
 
 		protected void MovementTo(int relX, int relY)

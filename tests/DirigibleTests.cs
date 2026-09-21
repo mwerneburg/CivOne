@@ -238,6 +238,91 @@ namespace CivOne.Tests
 			Assert.Equal((42, 25), (caravan.X, caravan.Y));
 		}
 
+		// ─── passengers do not answer alarms ─────────────────────────────────
+		//
+		// An enemy moving next to a human sentry wakes it (BaseUnit.MoveEnd). A passenger
+		// shares its carrier's tile, so that rule reached into the hold — and waking a
+		// passenger does not merely fail to help, it throws the unit overboard: Sentry is how
+		// a passenger says it is aboard, so a woken one drops out of the manifest and is left
+		// standing wherever the enemy happened to pass while the vessel carries on.
+		//
+		// Reported from a game as units falling out of dirigibles in funny but unhelpful
+		// circumstances.
+		private static (Game g, Player human, Dirigible d, IUnit cargo, IUnit enemy) AFlightPastAnEnemy()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			// Dry ground either side: the enemy is a land unit and has to be able to step.
+			Map.Instance.ChangeTileType(41, 25, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(42, 25, Terrain.Grassland1);
+
+			IUnit cargo = g.CreateUnit(UnitType.Caravan, 40, 25, g.PlayerNumber(human))!;
+			cargo.Sentry = true;
+
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != human);
+			IUnit enemy = g.CreateUnit(UnitType.Legion, 42, 25, g.PlayerNumber(ai))!;
+			Assert.NotNull(enemy);
+			Sim.ClearTasks();
+			return (g, human, d, cargo, enemy);
+		}
+
+		[Fact]
+		public void APassengerStaysAboardWhenTheVesselIsUnderOrders()
+		{
+			(_, _, Dirigible d, IUnit cargo, IUnit enemy) = AFlightPastAnEnemy();
+			d.Goto = new System.Drawing.Point(20, 25);
+
+			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
+			Sim.Settle();
+
+			Assert.Equal((41, 25), (enemy.X, enemy.Y));   // it really did arrive alongside
+			Assert.True(cargo.Sentry, "the passenger was thrown overboard by a passing enemy");
+		}
+
+		// The control, and the reason the rule is narrow: a vessel with no orders is not going
+		// anywhere the passenger would be stranded from, so the alarm still rings. Without
+		// this the test above proves only that Sentry is a boolean nobody touched.
+		[Fact]
+		public void APassengerStillWakesWhenTheVesselHasNoOrders()
+		{
+			(_, _, Dirigible d, IUnit cargo, IUnit enemy) = AFlightPastAnEnemy();
+			Assert.True(d.Goto.IsEmpty, "fixture: the vessel is meant to be idle");
+
+			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
+			Sim.Settle();
+
+			Assert.False(cargo.Sentry, "an idle vessel's garrison slept through a raider");
+		}
+
+		// The rule lives on BaseUnit and keys off IBoardable, not off the airship: a sea
+		// transport's cargo is dropped into the water by exactly the same wake.
+		[Fact]
+		public void ASeaTransportsCargoIsCoveredToo()
+		{
+			(Game g, Player human, _) = ADirigible();
+			Map.Instance.ChangeTileType(41, 25, Terrain.Ocean);
+			Map.Instance.ChangeTileType(42, 25, Terrain.Grassland1);
+			Map.Instance.ChangeTileType(43, 25, Terrain.Grassland1);
+
+			IUnit ship = g.CreateUnit(UnitType.Transport, 41, 25, g.PlayerNumber(human))!;
+			Assert.True(ship is IBoardable, "fixture: the Transport is meant to carry");
+			IUnit cargo = g.CreateUnit(UnitType.Caravan, 41, 25, g.PlayerNumber(human))!;
+			cargo.Sentry = true;
+			ship.Goto = new System.Drawing.Point(20, 25);
+
+			Player ai = g.Players.First(p => p is not null && g.PlayerNumber(p) != 0 && p != human);
+			// Starts two tiles off and walks to 42,25, which borders the ship at 41,25. It has
+			// to actually ARRIVE alongside — an enemy whose move was refused wakes nobody, and
+			// a test that tolerates a refused move is a test of nothing.
+			IUnit enemy = g.CreateUnit(UnitType.Legion, 43, 25, g.PlayerNumber(ai))!;
+			Sim.ClearTasks();
+
+			Assert.True(enemy.MoveTo(-1, 0), "fixture: the enemy's move was refused");
+			Sim.Settle();
+
+			Assert.Equal((42, 25), (enemy.X, enemy.Y));
+			Assert.True(cargo.Sentry, "the passenger was tipped into the sea by a passing enemy");
+		}
+
 		// Unloading over open water would put a land unit where it cannot stand.
 		[Fact]
 		public void ItWillNotUnloadOverOpenWater()

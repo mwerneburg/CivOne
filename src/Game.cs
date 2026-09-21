@@ -3680,55 +3680,75 @@ namespace CivOne
 		//
 		// The human is in the average like anybody else, so their choices still tell —
 		// in proportion to how much of the world they are.
+		// The civilizations whose conduct is humanity's conduct. Story factions are not
+		// humanity and get no vote — the Registry, the Machines, the Thing and the Olvir are
+		// all things that HAPPENED to the species rather than choices it made.
+		internal Player[] HumanityNations() => _players.Where(p => p is not null && !p.IsDestroyed()
+			&& PlayerNumber(p) != 0
+			&& !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers
+			                    or Civilizations.TheThing or Civilizations.Skynet))
+			.ToArray();
+
+		// One civilization's character on a single scale: positive is enlightened, negative
+		// is harsh. Government, wars of its own making, temples, culture against the world,
+		// and the smoke over its cities.
+		//
+		// Lifted out of SelectVisitorArchetype, which still asks it of every civ and averages
+		// the answers to judge the SPECIES. Starlab asks it of ONE civ — its builder — because
+		// a great work reflects the state that raised it, not the state of the world: a
+		// confident republic lands a man on the moon and digs a canal, and the same country in
+		// its decline cannot re-roof its own palace. Two questions, one rubric, one definition,
+		// so a change to what counts as enlightened cannot mean two different things.
+		internal int AssessCharacter(Player n)
+		{
+			Player[] nations = HumanityNations();
+			double avgCulture = nations.Length > 0 ? nations.Average(p => (double)p.Culture) : 0;
+			return AssessCharacter(n, nations, avgCulture);
+		}
+
+		private static int AssessCharacter(Player n, Player[] nations, double avgCulture)
+		{
+			int score = 0;
+
+			// Government — the clearest read on a civilization's character.
+			if (n.Government is CivOne.Governments.Democracy)      score += 3;
+			else if (n.Government is CivOne.Governments.Republic)  score += 2;
+			else if (n.Government is CivOne.Governments.Monarchy)  score -= 1;
+			else                                                   score -= 2; // Despotism / Anarchy / Communism
+
+			// Wars — an aggressive, embattled civ leans Owners.
+			int wars = nations.Count(p => p != n && n.IsAtWar(p));
+			score -= Math.Min(wars, 3);
+
+			// Happiness / culture — Temple coverage across the empire leans Refugees.
+			if (n.Cities.Length > 0)
+			{
+				double temples = n.Cities.Count(c => c.HasBuilding<Temple>()) / (double)n.Cities.Length;
+				if (temples >= 0.6) score += 2;
+				else if (temples <= 0.2) score -= 1;
+			}
+
+			// Accumulated culture, against the world's average: a deep artistic and
+			// civic tradition reads as an enlightened people.
+			if (avgCulture > 0)
+			{
+				if (n.Culture > avgCulture * 2)      score += 2;
+				else if (n.Culture * 2 < avgCulture) score -= 1;
+			}
+
+			// Pollution — a smoke-choked land is loud and careless; leans Owners.
+			if (n.Pollution >= 8)      score -= 2;
+			else if (n.Pollution == 0) score += 1;
+
+			return score;
+		}
+
 		private VisitorArchetype SelectVisitorArchetype()
 		{
-			// Story factions are not humanity and get no vote.
-			Player[] nations = _players.Where(p => p is not null && !p.IsDestroyed()
-				&& PlayerNumber(p) != 0
-				&& !(p.Civilization is Civilizations.Olvir or Civilizations.TheOthers
-				                    or Civilizations.TheThing or Civilizations.Skynet))
-				.ToArray();
+			Player[] nations = HumanityNations();
 			if (nations.Length == 0) return VisitorArchetype.Owners;
 
 			double avgCulture = nations.Average(p => (double)p.Culture);
-
-			// positive = enlightened (Refugees), negative = harsh (Owners)
-			int Assess(Player n)
-			{
-				int score = 0;
-
-				// Government — the clearest read on a civilization's character.
-				if (n.Government is CivOne.Governments.Democracy)      score += 3;
-				else if (n.Government is CivOne.Governments.Republic)  score += 2;
-				else if (n.Government is CivOne.Governments.Monarchy)  score -= 1;
-				else                                                   score -= 2; // Despotism / Anarchy / Communism
-
-				// Wars — an aggressive, embattled civ leans Owners.
-				int wars = nations.Count(p => p != n && n.IsAtWar(p));
-				score -= Math.Min(wars, 3);
-
-				// Happiness / culture — Temple coverage across the empire leans Refugees.
-				if (n.Cities.Length > 0)
-				{
-					double temples = n.Cities.Count(c => c.HasBuilding<Temple>()) / (double)n.Cities.Length;
-					if (temples >= 0.6) score += 2;
-					else if (temples <= 0.2) score -= 1;
-				}
-
-				// Accumulated culture, against the world's average: a deep artistic and
-				// civic tradition reads as an enlightened people.
-				if (avgCulture > 0)
-				{
-					if (n.Culture > avgCulture * 2)      score += 2;
-					else if (n.Culture * 2 < avgCulture) score -= 1;
-				}
-
-				// Pollution — a smoke-choked land is loud and careless; leans Owners.
-				if (n.Pollution >= 8)      score -= 2;
-				else if (n.Pollution == 0) score += 1;
-
-				return score;
-			}
 
 			// Weighted by population: the visitors are judging a species, and a civ of
 			// forty cities is more of it than a civ of two. Population can be zero for a
@@ -3737,7 +3757,7 @@ namespace CivOne
 			foreach (Player n in nations)
 			{
 				double weight = Math.Max(1.0, n.Population);
-				weighted    += Assess(n) * weight;
+				weighted    += AssessCharacter(n, nations, avgCulture) * weight;
 				totalWeight += weight;
 			}
 			double character = totalWeight > 0 ? weighted / totalWeight : 0;
