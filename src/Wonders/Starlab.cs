@@ -69,6 +69,11 @@ namespace CivOne.Wonders
 		internal const double TradeBonus   = 0.15;
 		internal const double ScienceBonus = 0.25;
 
+		// And what the free port costs, in every city its owner holds. Half the Greys' rate
+		// (RawTrade / 5, one city) because this one is empire-wide and permanent: there is no
+		// evicting it, the station is yours for the rest of the game.
+		internal const int FreePortSkimDivisor = 10;
+
 		public override string[] GetPageText(byte pageNumber) => pageNumber == 1 ? _page1 : _page2;
 
 		public Starlab() : base(50)

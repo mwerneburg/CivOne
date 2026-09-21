@@ -547,6 +547,13 @@ namespace CivOne
 			Game.Instance.StarlabQuality == Enums.StarlabQuality.Intended
 			&& Player.HasWonder<Wonders.Starlab>();
 
+		// ...and the station that came out the other way. Same ownership rule: a lawless
+		// free port in orbit is a problem for the whole empire beneath it, not for the one
+		// city that paid to put it up.
+		private bool HasFreePortStarlab =>
+			Game.Instance.StarlabQuality == Enums.StarlabQuality.FreePort
+			&& Player.HasWonder<Wonders.Starlab>();
+
 		private int RawTrade
 		{
 			get
@@ -831,6 +838,11 @@ namespace CivOne
 				// but they do eat here (The Portal's cursed outcome, Game.GreyCities).
 				if (Game.Instance.GreyCities.Contains((X, Y)))
 					corruption += RawTrade / 5;
+				// The free port skims every city its owner holds: hotels, casinos and a
+				// customs house that has stopped asking questions. Unlike the Greys there is
+				// no evicting it — the station is theirs for the rest of the game.
+				if (HasFreePortStarlab)
+					corruption += RawTrade / CivOne.Wonders.Starlab.FreePortSkimDivisor;
 				return (_cachedCorruption = corruption).Value;
 			}
 		}

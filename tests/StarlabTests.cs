@@ -378,6 +378,87 @@ namespace CivOne.Tests
 			Assert.Equal(science, home.Science);
 		}
 
+		// ─── what the free port costs ────────────────────────────────────────
+
+		// An empire of two cities, and a rival to prove the skim is not simply global.
+		// Spaced 8 apart so their work radii never overlap and the two baselines are
+		// independent.
+		private static (Game g, Player owner, City a, City b, City theirs) AnEmpireAndARival()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			for (int y = 20; y <= 30; y++)
+			for (int x = 20; x <= 60; x++)
+			{
+				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);
+				Map.Instance[x, y].Road = true;
+			}
+			Map.Instance.RecalculateContinentsIfDirty();
+
+			Player[] ps = g.Players.Where(p => p is not null && g.PlayerNumber(p) != 0).ToArray();
+			Player owner = ps[0], rival = ps[1];
+			foreach (Player p in new[] { owner, rival })
+				p.Government = new CivOne.Governments.Monarchy();
+			owner.Explore(25, 25, range: 12);
+			owner.Explore(33, 25, range: 12);
+			rival.Explore(50, 25, range: 12);
+
+			City a      = g.AddCity(owner, 0, 25, 25)!;
+			City b      = g.AddCity(owner, 1, 33, 25)!;
+			City theirs = g.AddCity(rival, 2, 50, 25)!;
+			foreach (City c in new[] { a, b, theirs }) c.Size = 24;
+			Sim.ClearTasks();
+			return (g, owner, a, b, theirs);
+		}
+
+		// The page promises CORRUPTION "in every city it holds", and every city is the point:
+		// a skim that only bit the host city would be a tax on one town, not a verdict on an
+		// empire.
+		[Fact]
+		public void AFreePortSkimsEveryCityTheOwnerHolds()
+		{
+			(Game g, _, City a, City b, City theirs) = AnEmpireAndARival();
+			int baseA = a.Corruption, baseB = b.Corruption, baseRival = theirs.Corruption;
+			int tradeA = a.RawTradeForAi, tradeB = b.RawTradeForAi;
+			// INTEGER division: a fixture below 10 raw trade skims zero and the test passes
+			// on deleted code. This is the trap GreysTests fell into with RawTrade / 5.
+			Assert.True(tradeA >= 10 && tradeB >= 10,
+				$"fixture trade is {tradeA}/{tradeB}; the skim would round to nothing");
+
+			GrantStarlab(g, a, StarlabQuality.FreePort);
+			// AddWonder invalidates only ITS city. Every other city keeps a stale cache until
+			// something else clears it — the same shape as The Internet and the Human Genome
+			// Project, both of which are empire-wide and invalidate one city. Cleared here so
+			// this test is about the skim rather than about cache timing.
+			b.InvalidateCache();
+			theirs.InvalidateCache();
+
+			int skim = CivOne.Wonders.Starlab.FreePortSkimDivisor;
+			Assert.Equal(baseA + tradeA / skim, a.Corruption);
+			Assert.Equal(baseB + tradeB / skim, b.Corruption);   // the city that built nothing
+			Assert.Equal(baseRival, theirs.Corruption);          // and not the neighbours
+		}
+
+		// The other half of the verdict: the good station is not merely better, it is clean.
+		[Fact]
+		public void TheIntendedStationSkimsNothing()
+		{
+			(Game g, _, City a, City b, _) = AnEmpireAndARival();
+			int baseB = b.Corruption;
+
+			int skim = b.RawTradeForAi / CivOne.Wonders.Starlab.FreePortSkimDivisor;
+			// The skim has to be big enough to SEE. At size 12 this fixture skimmed 1 — which
+			// is exactly what the intended station's own +15% trade adds in ordinary graft, so
+			// the two outcomes came to the same number and the test could not tell them apart.
+			// A bigger city separates them: 4 either way here, against 6 for the free port.
+			Assert.True(skim >= 2, $"the free port would skim only {skim} here — too small to see");
+
+			GrantStarlab(g, a, StarlabQuality.Intended);
+			b.InvalidateCache();
+
+			Assert.Equal(baseB, b.Corruption);
+		}
+
 		// ─── the storm warning ───────────────────────────────────────────────
 		//
 		// HurricaneCheck's thresholds are linear in warming, and a large enough value
