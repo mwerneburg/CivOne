@@ -117,13 +117,18 @@ namespace CivOne
 				if (!byTurn.TryGetValue(c[0], out int[] q)) continue;   // no populace for this turn
 				var row = new int[c.Length];
 				row[0] = c[0];                                          // turn stamp
+				// The world's average civilization at THIS sample, blended into the divisor
+				// exactly as CulturalDensity does for the rule. Derived per row rather than
+				// stored, for the same one-definition reason as the peak pass above: a graph
+				// that ranks civs differently from the victory is worse than no graph.
+				long avg = CulturalWorldAverage(q.Skip(1).Select(v => (long)v));
 				for (int pi = 1; pi < c.Length && pi < q.Length; pi++)
 					// A civilization with no people has no culture per head. Max(1, 0) turned
 					// a city-less civ's ENTIRE accumulated culture into a per-head figure —
 					// Skynet, holding 726 culture and no cities, read as 726 per head and set
 					// the graph's axis to 800 while every civ actually playing sat under 65.
 					// The victory rule agrees: it requires a city with people to rank at all.
-					row[pi] = q[pi] > 0 ? c[pi] / q[pi] : 0;
+					row[pi] = q[pi] > 0 ? (int)(c[pi] / (double)(q[pi] + avg)) : 0;
 				rows.Add(row);
 			}
 			return rows;
@@ -2443,17 +2448,11 @@ namespace CivOne
 					// out — see CultureFloorShare — and a civ that has collapsed to nothing is
 					// exactly the relic it was written for, however many citizens it once had.
 					// Judging that clause on the peak would let a dead empire rank forever.
-					long claimantPop = Math.Max(1, claimant.PeakPopulace);
-					double cultPerHead = (double)claimant.Culture / claimantPop;
-
 					Player[] densityRivals = cultRivals.Where(p => p.Cities.Any(c => c.Size > 0)).ToArray();
-					long popFloor = CulturalPopulaceFloor(densityRivals
-						.Select(p => (long)p.Populace)
-						.Concat(new[] { (long)claimant.Populace }));
-
-					// Big enough to be a society rather than a relic. See CultureFloorShare for
-					// why this is measured against the median civilization and not the largest.
-					bool populous = claimant.Populace >= popFloor;
+					long worldAverage = CulturalWorldAverage(densityRivals
+						.Select(p => (long)p.PeakPopulace)
+						.Concat(new[] { (long)claimant.PeakPopulace }));
+					double cultPerHead = CulturalDensity(claimant, worldAverage);
 
 					// First in the world by a MARGIN, among civs that clear the same floor.
 					//
@@ -2472,17 +2471,11 @@ namespace CivOne
 					// Those are dominant cultures; the ones that fall away were winning on
 					// 1.02-1.09x.
 					bool foremost = claimant.Culture > 0 && densityRivals.All(p =>
-					{
-						if (p.Populace < popFloor) return true;                 // too small to rank
-						// Same divisor as the claimant's: a rival that bled its population must
-						// not be able to inflate its own standing either.
-						long rp = Math.Max(1, p.PeakPopulace);
-						return cultPerHead >= (double)p.Culture / rp * CultureLeadMargin;
-					});
+						cultPerHead >= CulturalDensity(p, worldAverage) * CultureLeadMargin);
 
-					bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;
+					bool modern = CultureGateOpen();
 
-					bool admired = populous && foremost && modern;
+					bool admired = foremost && modern;
 					bool reach   = true;   // geography no longer gates this path
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
@@ -4371,19 +4364,40 @@ namespace CivOne
 			return (null, 0, 0);
 		}
 
-		internal const int CultureFloorShare = 2;
-
-		// One definition, used by the victory rule and by the score screen that explains it, so
-		// the two cannot drift — the same reason CulturalReachAndShadow returns its bar.
-		internal static long CulturalPopulaceFloor(IEnumerable<long> populaces)
+		// The world's average civilization, as a population. One definition, used by the
+		// victory rule and by the score screen that explains it, so the two cannot drift.
+		//
+		// PEAK populace on both sides, matching the numerator's logic: culture is a cumulative
+		// stock, so a civ that shrinks must not shrink its own divisor and climb the table by
+		// dying. It also means a collapsed empire is damped by the size it used to be, which
+		// is what lets the old hard populace floor go — see CulturalDensity.
+		internal static long CulturalWorldAverage(IEnumerable<long> peaks)
 		{
-			long[] sorted = populaces.Where(p => p > 0).OrderBy(p => p).ToArray();
-			if (sorted.Length == 0) return 1;
-			long median = (sorted.Length % 2 == 1)
-				? sorted[sorted.Length / 2]
-				: (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
-			return Math.Max(1, median / CultureFloorShare);
+			long[] live = peaks.Where(p => p > 0).ToArray();
+			return live.Length == 0 ? 1 : Math.Max(1, (long)live.Average());
 		}
+
+		// Culture per head, with the world's average civilization blended into the divisor.
+		//
+		// It was a bare culture / peakPopulace, and that rewarded being SMALL without limit: a
+		// compact civ with a temple in every town beat a large one holding the same absolute
+		// culture, purely on the divisor. Measured at turn 251 of a 10-civ epic game — Russia
+		// on 8 cities read 4508/75 = 60.1 against the Mongols' 3740/242 = 15.5, a 3.9x lead
+		// on almost identical culture, and took the game at turn 274 of roughly 750.
+		//
+		// Adding the world average is additive smoothing: it puts a floor INSIDE the formula
+		// rather than beside it. A one-city civ no longer divides by one — it divides by
+		// roughly the world average, so a relic cannot spike, and the separate
+		// "at least half the median populace" gate it used to need is gone with it. On that
+		// same save the lead falls to 28.6 against 11.5: still Russia's age, but a contest.
+		internal static double CulturalDensity(Player p, long worldAverage)
+			=> CulturalDensity(p.Culture, p.PeakPopulace, worldAverage);
+
+		// The arithmetic on its own, so the rule can be tested as a function of three numbers
+		// rather than through a world of Players — the same reason CulturalPopulaceFloor,
+		// which this replaces, took a bare sequence.
+		internal static double CulturalDensity(long culture, long peakPopulace, long worldAverage)
+			=> (double)culture / Math.Max(1, peakPopulace + worldAverage);
 
 		// The clock cannot start before this year. Deliberately a DATE and not a culture
 		// threshold, which would be an unscaled constant of exactly the kind this codebase
@@ -4409,6 +4423,29 @@ namespace CivOne
 		// which the game writes as "0 AD" wherever YearString's zeroAd flag is set. So this is
 		// turn 200 of roughly 750. See CultureGateYearLabel for the spelling.
 		internal const int CultureGateYear = 1;
+
+		// The clock now opens on an ADVANCE, not a date.
+		//
+		// A date is an unscaled constant: it says nothing about how far the world has
+		// actually come, and the same turn number is a different era in a fast game than a
+		// slow one. An advance moves with the world's own pace, which is the property the
+		// year gate was reaching for and could not express.
+		//
+		// ELECTRONICS — broadcast. Culture stops being what your own citizens can walk to and
+		// becomes something a civilization projects, which is the moment a contest over whose
+		// culture the WORLD admires starts to mean anything. Invention (the printing press)
+		// was the other candidate and is the obvious romantic choice, but it lands in the
+		// medieval midgame — earlier than the year-1 gate it would replace — and the measured
+		// failure here was a coronation at turn 274 of roughly 750. If Electronics proves too
+		// late, this is one word.
+		//
+		// Held by ANYONE, not by the claimant: it is the world that has to have arrived, not
+		// the civilization being judged. A claimant gating on its own research would let the
+		// leader open its own window.
+		internal static bool CultureGateOpenForDisplay() => Instance.CultureGateOpen();
+
+		private bool CultureGateOpen() => _players.Any(p => p is not null && !p.IsDestroyed()
+			&& PlayerNumber(p) != 0 && p.HasAdvance<Advances.Electronics>());
 
 		// How the gate year is written for a player. Year 1 is the game's "0 AD" (there is no
 		// year zero in TurnToYear), and the score screen and the Civilopedia page both have to

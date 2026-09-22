@@ -262,11 +262,6 @@ namespace CivOne.Screens.Reports
 			// went.
 			if (_page == Page.Culture)
 			{
-				// Two head counts, exactly as the victory rule splits them: the floor asks who
-				// is a society TODAY, the ratio divides by the largest each civ has ever been.
-				long OwnPop(Player p) => Math.Max(1, p.Populace);
-				double PerHead(Player p) => (double)p.Culture / Math.Max(1, p.PeakPopulace);
-
 				Player[] ranked = Game.Players
 					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
 					         && !(p.Civilization is Barbarian)
@@ -274,15 +269,20 @@ namespace CivOne.Screens.Reports
 					                             or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir)
 					         && p.Cities.Any(c => c.Size > 0))
 					.ToArray();
-				// The same floor the victory uses, off the same helper, so the readout cannot
-				// tell a player they rank when the rule says otherwise.
-				long floor = Game.CulturalPopulaceFloor(ranked.Select(OwnPop));
-				Player[] eligible = ranked.Where(p => OwnPop(p) >= floor).ToArray();
-				Player[] order = eligible.OrderByDescending(PerHead).ToArray();
+				// The rule's own measure, off the rule's own helper, so the readout cannot
+				// rank a player differently from the victory. The hard populace floor is gone:
+				// the world average now sits INSIDE the divisor, so a relic is damped by the
+				// size it used to be rather than excluded by a gate beside the formula.
+				long worldAvg = Game.CulturalWorldAverage(ranked.Select(p => (long)p.PeakPopulace));
+				double PerHead(Player p) => Game.CulturalDensity(p, worldAvg);
+
+				Player[] order = ranked.OrderByDescending(PerHead).ToArray();
 
 				int myRank = Array.IndexOf(order, Human) + 1;
-				bool qualifies = OwnPop(Human) >= floor;
-				bool open = Common.TurnToYear(Game.GameTurn) >= Game.CultureGateYear;
+				// Everyone with a living city ranks now, so the only way not to qualify is to
+				// have no culture at all.
+				bool qualifies = Human.Culture > 0;
+				bool open = Game.CultureGateOpenForDisplay();
 
 				// The bar: the leader's culture per head. It used to be converted into "the
 				// total this player would need at their own population to match it", because
@@ -323,14 +323,14 @@ namespace CivOne.Screens.Reports
 				// numbers for one quantity, on the same screen, one line apart. The ranking
 				// still uses the full-precision PerHead; only the display is squared up.
 				int shown = (int)PerHead(Human);
-				string standing = !qualifies ? "TOO FEW PEOPLE TO RANK"
+				string standing = !qualifies ? "NO CULTURE TO RANK"
 					: myRank > 0 ? $"CULTURE PER HEAD {shown} - RANK {myRank}/{order.Length}"
 					           : $"CULTURE PER HEAD {shown}";
 				this.DrawText(standing, 0,
 					(qualifies && myRank == 1) ? CassetteTheme.OK : CassetteTheme.INK_LOW,
 					GraphRight - 4, BannerRow(1), TextAlign.Right);
 
-				this.DrawText(open ? "- - -  FIRST RANK" : $"SEALED UNTIL {Game.CultureGateYearLabel}", 0,
+				this.DrawText(open ? "- - -  FIRST RANK" : "SEALED UNTIL ELECTRONICS", 0,
 					open ? CassetteTheme.ALERT : CassetteTheme.INK_LOW,
 					GraphRight - 4, BannerRow(2), TextAlign.Right);
 				// No separate rival row here any more — the top line above already names the
@@ -396,19 +396,6 @@ namespace CivOne.Screens.Reports
 			// Story factions are excluded from CLAIMING either streak (Game.cs runs the same
 			// exclusion on both loops), so they are scenery on both pages. The Score page
 			// greys nobody: the 2100 ending ranks every civilization alive.
-			long cultureFloor = 0;
-			if (_page == Page.Culture)
-			{
-				Player[] forFloor = Game.Players
-					.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
-					         && !(p.Civilization is Barbarian)
-					         && !(p.Civilization is CivOne.Civilizations.TheOthers or CivOne.Civilizations.TheThing
-					                             or CivOne.Civilizations.Skynet or CivOne.Civilizations.Olvir)
-					         && p.Cities.Any(c => c.Size > 0))
-					.ToArray();
-				cultureFloor = Game.CulturalPopulaceFloor(forFloor.Select(p => (long)Math.Max(1, p.Populace)));
-			}
-
 			bool InTheRunning(Player p)
 			{
 				if (_page == Page.Score) return true;
@@ -417,7 +404,9 @@ namespace CivOne.Screens.Reports
 					return p.HasAdvance<Advances.Banking>();
 				// Culture: the path is not open without Philosophy, and a civilization under
 				// the populace floor cannot rank however high its per-head figure climbs.
-				return p.HasAdvance<Advances.Philosophy>() && p.Populace >= cultureFloor;
+				// No populace floor any more — the world average inside CulturalDensity does
+				// that work. Philosophy still opens the path at all.
+				return p.HasAdvance<Advances.Philosophy>();
 			}
 
 			byte TraceColour(Player p) => InTheRunning(p)

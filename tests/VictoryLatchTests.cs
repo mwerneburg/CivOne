@@ -67,13 +67,16 @@ namespace CivOne.Tests
 			human.SetCulture(900);
 			foreach (Player p in rivals) p.SetCulture(100);
 
-			// The victory is now: first in culture per HEAD, populous enough to rank, after
-			// the gate year, held for CultureHoldTurns. Staging a hundred turns of holding
-			// would be testing the clock rather than the latch, so the streak is driven to
-			// the brink and the rounds after it are what this test is actually about.
-			g.GameTurn = Sim.TurnPastCultureGate();
+			// The victory is now: first in culture per HEAD (blended against the world's
+			// average nation), after the gate, held for CultureHoldTurns. Staging a hundred
+			// turns of holding would be testing the clock rather than the latch, so the
+			// streak is driven to the brink and the rounds after it are the point.
+			//
+			// The gate is an ADVANCE now, not a year — granted to a rival, because it is the
+			// world that must have arrived, not the claimant.
+			rivals[0].AddAdvance(new CivOne.Advances.Electronics(), false);
 			g.Progress(g.PlayerNumber(human)).CultureStreak = Game.CultureHoldTurns - 1;
-			Assert.True(Common.TurnToYear(g.GameTurn) >= Game.CultureGateYear, "fixture is before the gate");
+			Assert.True(Game.CultureGateOpenForDisplay(), "fixture is before the gate");
 			int before = human.MilestoneScore;
 
 			// Past the target on purpose: the rounds after the win are where an unlatched

@@ -88,9 +88,15 @@ namespace CivOne.Tests
 
 			TheirOnlyCity(us).Size = 1;
 
-			long floor = Game.CulturalPopulaceFloor(new[] { (long)us.Populace, (long)rival.Populace });
-			Assert.True(us.Populace < floor, "a one-citizen rump still clears the floor");
+			// The hard floor is gone; the collapse is punished by the DIVISOR instead. A
+			// rump keeps the peak it used to hold, so shrinking buys it nothing — which is
+			// what made the separate floor redundant. See Game.CulturalDensity.
 			Assert.True(us.PeakPopulace >= 40, "the peak should remember what it was");
+
+			long worldAvg = Game.CulturalWorldAverage(new[] { (long)us.PeakPopulace, (long)rival.PeakPopulace });
+			double before = Game.CulturalDensity(1000, 40, worldAvg);
+			double afterCollapse = Game.CulturalDensity(1000, us.PeakPopulace, worldAvg);
+			Assert.Equal(before, afterCollapse, 6);
 		}
 
 		// ...and the same split, driven through the actual victory rule rather than the helper.

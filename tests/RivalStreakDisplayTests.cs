@@ -79,27 +79,30 @@ namespace CivOne.Tests
 			Assert.DoesNotContain("BEST NEIGHBOUR", src);    // the retired local bar
 		}
 
-		// A player under the populace floor cannot rank at all, and must be told that rather
-		// than shown a number they cannot move — the same reason reach used to be drawn.
+		// The populace floor is gone — folded into the divisor as the world's average nation
+		// (Game.CulturalDensity) — so the only way not to rank is to have made no culture at
+		// all, and that is what the screen must say.
 		[Fact]
-		public void APlayerTooSmallToRankIsToldSo()
+		public void APlayerWithNoCultureIsToldSo()
 		{
 			string src = ScreenSource();
 
-			Assert.Contains("TOO FEW PEOPLE TO RANK", src);
-			// Off the shared helper, so the readout and the rule cannot disagree about
-			// who is too small — they did not use to share anything at all.
-			Assert.Contains("CulturalPopulaceFloor", src);
+			Assert.Contains("NO CULTURE TO RANK", src);
+			// Off the shared helper, so the readout and the rule cannot disagree about who
+			// leads — they did not use to share anything at all.
+			Assert.Contains("CulturalDensity", src);
+			Assert.DoesNotContain("CulturalPopulaceFloor", src);
 		}
 
-		// ...and before the gate year the path is sealed, which the screen says outright.
+		// ...and while the gate is shut the path is sealed, which the screen says outright.
+		// The gate is an ADVANCE now, not a year.
 		[Fact]
-		public void TheGateYearIsShownWhileItIsShut()
+		public void TheGateIsShownWhileItIsShut()
 		{
 			string src = ScreenSource();
 
-			Assert.Contains("SEALED UNTIL", src);
-			Assert.Contains("CultureGateYear", src);
+			Assert.Contains("SEALED UNTIL ELECTRONICS", src);
+			Assert.Contains("CultureGateOpenForDisplay", src);
 		}
 
 		// Civilizations the rules have already excluded are drawn in grey, so a glance

@@ -164,8 +164,13 @@ namespace CivOne.Tests
 				Assert.True(culture.ContainsKey(row[0]) && populace.ContainsKey(row[0]),
 					$"plotted a turn ({row[0]}) that is not in both source series");
 				int[] c = culture[row[0]], q = populace[row[0]];
+				// The blended divisor the RULE uses: the civ's own peak plus the world's
+				// average civilization (Game.CulturalDensity). A graph that ranks civs
+				// differently from the victory is worse than no graph, so this reads the
+				// same helper rather than restating the arithmetic.
+				long avg = Game.CulturalWorldAverage(q.Skip(1).Select(v => (long)v));
 				for (int pi = 1; pi < row.Length; pi++)
-					Assert.Equal(c[pi] / System.Math.Max(1, q[pi]), row[pi]);
+					Assert.Equal(q[pi] > 0 ? (int)Game.CulturalDensity(c[pi], q[pi], avg) : 0, row[pi]);
 			}
 		}
 

@@ -81,14 +81,17 @@ namespace CivOne.Tests
 		{
 			string text = PageText("Cultural Ascendancy");
 
-			// The LABEL, not the raw number. With the gate at year 1 a bare "1" matches any
-			// digit anywhere on the page, so this assertion would have passed on text that
-			// still said 1850.
-			Assert.Contains(Game.CultureGateYearLabel, text);
+			// The gate is an ADVANCE now, not a year — a date says nothing about how far the
+			// world has come, and two coronations at turns 274 and 325 of roughly 750 were
+			// the measurement that moved it.
+			Assert.Contains("ELECTRONICS", text);
 			Assert.Contains(Game.CultureHoldTurns.ToString(), text);
 			// The two clauses a player most often misses, in the page's own words.
 			Assert.Contains("PER HEAD", text);
-			Assert.Contains("half the median", text);
+			// The populace floor is gone, folded into the divisor. The page has to say what
+			// replaced it, or a player reads a rule the game no longer runs.
+			Assert.Contains("average nation", text);
+			Assert.DoesNotContain("half the median", text);
 		}
 
 		[Fact]

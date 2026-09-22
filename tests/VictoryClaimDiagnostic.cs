@@ -39,25 +39,23 @@ namespace CivOne.Tests
 
 			Player[] live = g.Players.Where(p => p is not null && !p.IsDestroyed() && g.PlayerNumber(p) != 0).ToArray();
 			long Pop(Player p) => Math.Max(1, p.Cities.Sum(c => (int)c.Size));
-			long floor = Game.CulturalPopulaceFloor(live.Select(Pop));
+			// The world's average civilization, blended into the divisor exactly as the rule
+			// does. The old hard populace floor is gone — see Game.CulturalDensity.
+			long worldAvg = Game.CulturalWorldAverage(live.Select(p => (long)p.PeakPopulace));
 
 			_out.WriteLine($"{path}  turn {g.GameTurn} ({Common.YearString(g.GameTurn)})");
-			_out.WriteLine("civ                per-head   pop  phil  pplous  foremost  war(started)  streak");
+			_out.WriteLine("civ                per-head   pop  phil  foremost  war(started)  streak");
 
 			// The ratio divides by PEAK populace, as the rule does (Game.cs, `foremost`); the floor
 			// still reads the populace alive today. This used the live count for both, so a civ
 			// that had shrunk read higher per head here than the rule scores it.
-			double PerHead(Player p) => (double)p.Culture / Math.Max(1, p.PeakPopulace);
+			double PerHead(Player p) => Game.CulturalDensity(p, worldAvg);
 			foreach (Player p in live.OrderByDescending(PerHead))
 			{
 				long pop = Pop(p);
 				double per = PerHead(p);
-				bool populous = pop >= floor;
-				bool foremost = p.Culture > 0 && live.Where(q => q != p && q.Cities.Any(c => c.Size > 0)).All(q =>
-				{
-					if (Pop(q) < floor) return true;
-					return per >= PerHead(q) * Game.CultureLeadMargin;
-				});
+				bool foremost = p.Culture > 0 && live.Where(q => q != p && q.Cities.Any(c => c.Size > 0))
+					.All(q => per >= PerHead(q) * Game.CultureLeadMargin);
 
 				// The same aggression test the rule uses, and the name of whoever it caught —
 				// "at war" and "started it" are different findings and the fix differs.
@@ -68,12 +66,13 @@ namespace CivOne.Tests
 
 				uint streak = Streak(g, p);
 				_out.WriteLine($"{p.TribeNamePlural,-18} {per,8:F1} {pop,5}  "
-					+ $"{(p.HasAdvance<Philosophy>() ? "yes" : "NO "),-4}  {(populous ? "yes" : "NO "),-6}  "
+					+ $"{(p.HasAdvance<Philosophy>() ? "yes" : "NO "),-4}  "
 					+ $"{(foremost ? "yes" : "NO "),-8}  {warNote,-12}  {streak,6}");
 			}
 			_out.WriteLine("* = war of their own making (breaks the streak).  "
-				+ $"floor {floor} pop (1/{Game.CultureFloorShare} of the median), margin {Game.CultureLeadMargin}x, "
-				+ $"hold {Game.CultureHoldTurns}t from {Game.CultureGateYear} AD");
+				+ $"world-average divisor term {worldAvg}, margin {Game.CultureLeadMargin}x, "
+				+ $"hold {Game.CultureHoldTurns}t, gate ELECTRONICS "
+				+ $"(open: {Game.CultureGateOpenForDisplay()})");
 		}
 
 		// The same question for Pax Mercatoria. Worth asking of the same saves: two games in

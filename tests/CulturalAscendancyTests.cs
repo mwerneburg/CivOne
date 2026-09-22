@@ -307,7 +307,7 @@ namespace CivOne.Tests
 			// A rank with a modest margin, NOT a dominance ratio. The distinction is the whole
 			// design: late leads run 1.02-1.21x, so a 2x-style bar is unclearable, while rank
 			// alone froze into a coronation once the ordering settled.
-			Assert.Contains("cultPerHead >= (double)p.Culture / rp * CultureLeadMargin", src);
+			Assert.Contains("cultPerHead >= CulturalDensity(p, worldAverage) * CultureLeadMargin", src);
 			Assert.True(Game.CultureLeadMargin < Game.CultureLeadMultiple,
 				"the margin has grown into a dominance bar");
 			// the retired clauses
@@ -315,52 +315,61 @@ namespace CivOne.Tests
 			Assert.DoesNotContain("claimant.Culture >= bestNeighbour * CultureLeadMultiple", src);
 		}
 
-		// The populace floor. Culture is a cumulative stock and population is not, so a
-		// stunted civ's culture per head climbs forever: the frozen one-city Japanese of run
-		// 733f10ec led every density measure in that game. Relative to the field, so it scales
-		// with the map rather than needing a new number per world size.
+		// The populace floor is GONE, folded into the divisor. Culture is a cumulative stock
+		// and population is not, so a stunted civ's culture per head used to climb forever:
+		// the frozen one-city Japanese of run 733f10ec led every density measure in that game,
+		// and a separate "at least half the median populace" gate existed to refuse them.
 		//
-		// Driven through the real helper rather than pinned on the source: the old version of
-		// this test asserted a line of code, which said nothing about what the line computed.
+		// Adding the world's average civilization to the divisor does that job inside the
+		// formula — additive smoothing. A relic no longer divides by its own tiny population,
+		// it divides by roughly the world average, so it cannot spike at all.
 		[Fact]
-		public void AStuntedCivCannotRank()
+		public void ARelicCannotOutrankANationOnItsDivisor()
 		{
-			// One relic among ordinary nations.
-			long floor = Game.CulturalPopulaceFloor(new long[] { 3, 200, 250, 300, 400, 500 });
+			// A one-city relic beside ordinary nations, all peaks.
+			long avg = Game.CulturalWorldAverage(new long[] { 3, 200, 250, 300, 400, 500 });
 
-			Assert.True(3 < floor, $"the one-city relic ranks against a floor of {floor}");
-			Assert.True(200 >= floor, $"an ordinary nation is excluded by a floor of {floor}");
+			// Same culture in both. Under the bare ratio the relic read 66x the nation's
+			// figure purely for being small.
+			double relic  = Game.CulturalDensity(600, 3, avg);
+			double nation = Game.CulturalDensity(600, 200, avg);
+
+			Assert.True(relic / nation < 2.0,
+				$"a 3-population relic still reads {relic / nation:F1}x an ordinary nation");
+			// The old measure, stated as the thing this must no longer do.
+			Assert.True(600.0 / 3 / (600.0 / 200) > 60, "fixture: the bare ratio was not extreme");
 		}
 
-		// ...and the floor follows the MEDIAN, not the largest empire in the world. Run
-		// 6da02a4d is the measurement: the Lakota on 1,718 populace put a quarter-of-the-
-		// largest floor at 421, which refused Persia (297), the Khmer (244) and Japan (204) —
-		// every civilization on the Culture path in that game, all three buying artists, none
-		// of them able to rank. The Ascendancy went to a Conquest civ with no artists at all.
+		// ...and the measure still REWARDS efficiency, or the cultural path has no strategy in
+		// it. Smaller is better, just not unboundedly better.
 		[Fact]
-		public void OneVastEmpireDoesNotDisqualifyTheField()
+		public void BeingCompactStillPaysSomething()
 		{
-			// The final populations of run 6da02a4d, Aztec rump and Lakota giant included.
-			long[] world = { 3, 155, 204, 244, 277, 297, 333, 413, 430, 537, 568, 1072, 1317, 1718 };
-			long floor = Game.CulturalPopulaceFloor(world);
+			long avg = Game.CulturalWorldAverage(new long[] { 100, 200, 300, 400 });
 
-			Assert.True(204 >= floor, $"Japan, on 15 cities, cannot rank against a floor of {floor}");
-			Assert.True(244 >= floor, $"the Khmer, on 27 cities, cannot rank against {floor}");
-			Assert.True(297 >= floor, $"Persia, on 35 cities, cannot rank against {floor}");
-			Assert.True(3 < floor, $"the three-population Aztec rump ranks against {floor}");
+			double compact = Game.CulturalDensity(1000, 100, avg);
+			double sprawl  = Game.CulturalDensity(1000, 400, avg);
 
-			// The old rule, stated as the thing this must no longer do.
-			Assert.True(floor < 1718 / 4, "the floor is still being drawn from the largest empire");
+			Assert.True(compact > sprawl, "the compact civ gains nothing for its efficiency");
 		}
 
-		// A world of equals still has a floor — half of everyone is not a special case.
+		// The case that started this: Russia on 8 cities took the 1625 AD game at turn 274 of
+		// roughly 750, reading 3.9x the Mongols on almost identical absolute culture. The
+		// blend has to leave Russia ahead — they earned it on both measures — while making it
+		// a contest rather than a coronation.
 		[Fact]
-		public void TheFloorSurvivesAFlatField()
+		public void TheRunawayBecomesAContest()
 		{
-			long floor = Game.CulturalPopulaceFloor(new long[] { 400, 400, 400, 400 });
+			long avg = Game.CulturalWorldAverage(new long[] { 75, 242, 94, 143, 59, 88, 87, 31, 3, 8 });
 
-			Assert.True(floor > 0 && floor <= 400, $"floor {floor} is unusable in a flat field");
-			Assert.True(400 >= floor, "nobody can rank in a world where every civ is identical");
+			double russia  = Game.CulturalDensity(5709, 75, avg);
+			double mongols = Game.CulturalDensity(5459, 242, avg);
+
+			Assert.True(russia > mongols, "Russia led on both measures and should still lead");
+			double bare = (5709.0 / 75) / (5459.0 / 242);
+			Assert.True(bare > 3.0, $"fixture: the bare ratio was {bare:F1}x, not a runaway");
+			Assert.True(russia / mongols < bare / 1.5,
+				$"the lead is still {russia / mongols:F2}x against a bare {bare:F1}x");
 		}
 
 		// Who is allowed to claim a streak victory at all. The score screen greys out the
@@ -414,12 +423,17 @@ namespace CivOne.Tests
 			string src = System.IO.File.ReadAllText(
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
 
-			Assert.Contains("bool modern = Common.TurnToYear(_gameTurn) >= CultureGateYear;", src);
-			// A gate before the first AD turn would gate nothing at all: TurnToYear runs
-			// negative through the whole BCE stretch, so any year <= 0 is always satisfied.
-			Assert.True(Game.CultureGateYear >= 1, "a gate below year 1 is never shut");
-			Assert.True(Sim.TurnPastCultureGate(margin: 0) > 0,
-				"the gate must shut for at least the opening turn");
+			// The gate is an ADVANCE now, not a date: a year is an unscaled constant that says
+			// nothing about how far the world has actually come. Two coronations at turns 274
+			// and 325 of roughly 750 were the measurement that moved it.
+			Assert.Contains("bool modern = CultureGateOpen();", src);
+			// Held by ANYONE, not by the claimant — the world has to have arrived, or a leader
+			// could open its own window by researching alone.
+			Assert.Contains("private bool CultureGateOpen() => _players.Any", src);
+			// ...and it must actually be shut in a fresh world, or it gates nothing.
+			Sim.NewGame(width: 80, height: 50);
+			Assert.False(Game.CultureGateOpenForDisplay(),
+				"the gate is already open on turn one");
 		}
 
 		// The hold has to be long enough to be a contest. Leads changed hands a median of 12
@@ -447,7 +461,7 @@ namespace CivOne.Tests
 		{
 			string src = System.IO.File.ReadAllText(
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
-			int at = src.IndexOf("bool admired = populous && foremost && modern;");
+			int at = src.IndexOf("bool admired = foremost && modern;");
 			Assert.True(at > 0, "the cultural clause has moved or been rewritten");
 			string block = src.Substring(at, 200);
 
@@ -459,7 +473,7 @@ namespace CivOne.Tests
 		// The source assertions above pin the clause LINE; dropping any one clause from it
 		// killed the same single test, which is not coverage of a victory condition. These
 		// drive the rule and watch the streak.
-		private static (Game game, Player us) AWorldReadyForAscendancy()
+		private static (Game game, Player us) AWorldReadyForAscendancy(bool gateOpen = true)
 		{
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;
@@ -477,6 +491,11 @@ namespace CivOne.Tests
 				p.Explore(40, 25, range: 20);
 			}
 			us.AddAdvance(new Advances.Philosophy(), false);
+			// The clock opens on ELECTRONICS held by anyone, not on a date. Granted to a
+			// RIVAL rather than the claimant, so the fixture also demonstrates that the gate
+			// is the world's and not the leader's. There is no way to un-learn an advance,
+			// so a shut gate is expressed by never granting it.
+			if (gateOpen) rivals[0].AddAdvance(new Advances.Electronics(), false);
 
 			// Equal populations, so culture per head is decided by culture alone.
 			g.AddCity(us, 0, 40, 25)!.Size = 6;
@@ -528,26 +547,31 @@ namespace CivOne.Tests
 		[Fact]
 		public void NothingAccruesBeforeTheGateYear()
 		{
-			(Game g, Player us) = AWorldReadyForAscendancy();
-			// Derived, not the literal 300 this used to hold: that turn was comfortably before
-			// an 1850 gate and is comfortably AFTER a 0 AD one, so the fixture would have gone
-			// on passing while testing the opposite of its own name.
-			g.GameTurn = Sim.TurnBeforeCultureGate();
-			Assert.True(Common.TurnToYear(g.GameTurn) < Game.CultureGateYear, "fixture is past the gate");
+			(Game g, Player us) = AWorldReadyForAscendancy(gateOpen: false);
+			Assert.False(Game.CultureGateOpenForDisplay(), "fixture: the gate is still open");
 
 			Assert.Equal(0u, StreakAfterATurn(g, us));
 		}
 
-		// ...and a civ too small to rank earns nothing, however cultured per head. This is the
-		// stunted-civ case: culture accumulates, population does not.
+		// ...and a relic no longer wins by shrinking. There is no populace floor to fall
+		// below any more; the world average inside the divisor does that work, and the PEAK
+		// populace means collapsing to one citizen changes the denominator not at all.
+		//
+		// So the claim has moved: a relic with enormous culture DOES still rank — it earned
+		// that culture — but it gains nothing from the collapse itself.
 		[Fact]
-		public void ACivBelowThePopulaceFloorEarnsNothing()
+		public void CollapsingToARelicEarnsNoAdvantage()
 		{
 			(Game g, Player us) = AWorldReadyForAscendancy();
-			foreach (City c in us.Cities) c.Size = 1;   // a relic beside its neighbours
 			us.SetCulture(60000);
+			uint intact = StreakAfterATurn(g, us);
 
-			Assert.Equal(0u, StreakAfterATurn(g, us));
+			(g, us) = AWorldReadyForAscendancy();
+			us.SetCulture(60000);
+			foreach (City c in us.Cities) c.Size = 1;   // the same civ, collapsed
+			uint collapsed = StreakAfterATurn(g, us);
+
+			Assert.Equal(intact, collapsed);
 		}
 
 		// A lead of a nose must not run out a hundred-turn clock. Rank alone gave culture 6 of

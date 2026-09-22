@@ -63,7 +63,9 @@ namespace CivOne.Tests
 			us.SetCulture(6000);
 			foreach (Player r in rivals) r.SetCulture(600);
 
-			g.GameTurn = Sim.TurnPastCultureGate();
+			// The clock opens on ELECTRONICS held by anyone, not on a date. Granted to a
+			// RIVAL, because it is the world that must have arrived, not the claimant.
+			rivals[0].AddAdvance(new CivOne.Advances.Electronics(), false);
 			Sim.ClearTasks();
 			return (g, us, rivals);
 		}
