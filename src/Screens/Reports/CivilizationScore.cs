@@ -77,12 +77,27 @@ namespace CivOne.Screens.Reports
 			_            => Game.ScoreHistory,
 		};
 
+		// The world's average civilization, for the blended cultural divisor. Off the same
+		// living, non-barbarian set the graph plots, so the live end of a line is measured
+		// exactly as its history was.
+		private long CultureWorldAverage() => Game.CulturalWorldAverage(Game.Players
+			.Where(p => p is not null && !(p.Civilization is Barbarian) && !p.IsDestroyed())
+			.Select(p => (long)p.PeakPopulace));
+
 		private int LiveValue(Player p) => _page switch
 		{
-			// PeakPopulace, the divisor the victory rule uses — see Player.PeakPopulace. A
-			// live-populace readout would tell a player their standing had improved on a turn
-			// they lost citizens, which is the thing the rule stopped paying for.
-			Page.Culture => (int)(p.Culture / Math.Max(1, p.PeakPopulace)),
+			// Game.CulturalDensity, the rule's own measure — PeakPopulace blended with the
+			// world's average nation. A live-populace readout would tell a player their
+			// standing had improved on a turn they lost citizens, which is the thing the
+			// peak divisor stopped paying for.
+			//
+			// This was a bare p.Culture / p.PeakPopulace and it was the FOURTH place in the
+			// codebase computing culture per head. When the rule gained the blended divisor
+			// the plotted history moved and this did not, so every line ran to 27 and then
+			// jumped vertically to 45 at the live end — the "recent growth hidden in vertical
+			// lines" a player reported, and a standings list that disagreed with the header
+			// directly above it.
+			Page.Culture => (int)Game.CulturalDensity(p, CultureWorldAverage()),
 			Page.Output  => Game.GrossOutputOf(p),
 			_            => p.Score,
 		};

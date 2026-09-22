@@ -79,6 +79,25 @@ namespace CivOne.Tests
 			Assert.DoesNotContain("BEST NEIGHBOUR", src);    // the retired local bar
 		}
 
+		// Culture per head has ONE definition, and this screen is where that discipline
+		// actually failed.
+		//
+		// It computed per head in TWO places: the plotted history (Game.CulturePerHeadHistory)
+		// and LiveValue, which draws the live end of every line, the axis maximum and the
+		// standings list. When the rule gained the blended divisor only the history moved —
+		// so every line climbed to 27 and then jumped vertically to 45 at the right-hand
+		// edge, and the standings list disagreed with the header directly above it. Reported
+		// from a game as "the recent growth remains hidden in vertical lines".
+		[Fact]
+		public void TheScreenDoesNotComputeCulturePerHeadItself()
+		{
+			string src = ScreenSource();
+
+			Assert.DoesNotContain("p.Culture / Math.Max(1, p.PeakPopulace)", src);
+			// ...it asks the rule instead, for BOTH the live end and the ranking.
+			Assert.Contains("Game.CulturalDensity(p, CultureWorldAverage())", src);
+		}
+
 		// The populace floor is gone — folded into the divisor as the world's average nation
 		// (Game.CulturalDensity) — so the only way not to rank is to have made no culture at
 		// all, and that is what the screen must say.
