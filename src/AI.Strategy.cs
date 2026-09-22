@@ -623,6 +623,57 @@ namespace CivOne
 			return meanSize >= required;
 		}
 
+		// Cheap, per-turn-cached test: is there anywhere a caravan of ours could actually
+		// DELIVER? Mirrors the two rules the delivery path enforces, so the planner cannot
+		// commission a unit the mover will never be able to use:
+		//
+		//   1. AI.Strategy's caravan targeting only considers foreign cities on the same
+		//      NAMED continent (the "misc" bucket every small island shares is excluded).
+		//   2. Caravan.MoveTo refuses to trade with a city within 10 tiles of the caravan's
+		//      home, so a partner has to be at least that far from one of our cities.
+		//
+		// Without this the gate asked only "do I know Trade, am I under my cap", and an
+		// isolated civ kept a permanent standing population of caravans walking toward
+		// partners they could not reach. Measured on a 1625 AD save: the Zulus' nearest
+		// foreign city was 52 tiles away and they held three caravans continuously, forming
+		// 1.5 routes in 325 turns; the Aztecs had exactly one candidate partner city in the
+		// world and formed none. Twenty lines below, the random fallback already excludes
+		// ICaravan as "needs a destination" — only the deliberate path failed to ask.
+		//
+		// Deliberately NO pathfinding here. A caravan is non-combat, so every foreign unit
+		// blocks its tile and a single GotoStep on a peaceful epic map measured 40-53 ms;
+		// this runs in the production planner and must stay arithmetic.
+		private int _tradeReachTurn = -1;
+		private bool _tradeReachCached;
+		internal bool HasTradePartner()
+		{
+			if (_tradeReachTurn == (int)Game.GameTurn) return _tradeReachCached;
+			_tradeReachTurn = (int)Game.GameTurn;
+			_tradeReachCached = false;
+
+			byte me = Game.PlayerNumber(Player);
+			City[] mine = Player.Cities.Where(c => c.Size > 0 && c.Tile is not null
+				&& Map.NamedContinent(c.Tile.ContinentId)).ToArray();
+			if (mine.Length == 0) return false;
+
+			foreach (City f in Game.GetCities())
+			{
+				if (f.Owner == me || f.Size == 0 || f.Tile is null) continue;
+				foreach (City home in mine)
+				{
+					if (f.Tile.ContinentId != home.Tile!.ContinentId) continue;
+					if (Common.DistanceToTile(home.X, home.Y, f.X, f.Y) < CaravanMinRange) continue;
+					return _tradeReachCached = true;
+				}
+			}
+			return false;
+		}
+
+		// The radius Caravan.MoveTo refuses to trade inside. Stated once so the planner and
+		// the mover cannot drift apart — the recurring root cause of every settler shuttle
+		// this project has had.
+		internal const int CaravanMinRange = 10;
+
 		// Cheap, per-turn-cached test: is there a foundable unclaimed tile reachable by
 		// land near any of our cities? Land only (same continent), habitable, and at
 		// least 3 tiles clear of every existing city. Early-exits on the first hit; tiles
@@ -4940,7 +4991,9 @@ namespace CivOne
 			// units, not lifetime production. /6 keeps the queue flowing for a typical empire
 			// without crowding out science/military builds — see the Diplomat cap above for
 			// the same shape applied to a persistent unit.
-			if (Player.HasAdvance<Trade>())
+			// HasTradePartner: a caravan with nowhere to deliver is shields burned and a
+			// build slot held. See the predicate for what the two halves have to agree on.
+			if (Player.HasAdvance<Trade>() && HasTradePartner())
 			{
 				byte ownId3 = Game.PlayerNumber(Player);
 				int ownCaravans = Game.GetUnits().Count(u => u.Owner == ownId3 && u is Caravan);
