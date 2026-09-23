@@ -78,7 +78,7 @@ namespace CivOne.Screens.Reports
 
 		internal FinalScore(string victoryType) : base("FINAL SCORE", CassetteTheme.BG0, MouseCursor.Pointer)
 		{
-			_victoryType = victoryType;
+			_victoryType = Game.Instance.BankedVictory ?? victoryType;   // see EndSequence.SaveAndGetIndex
 			_score = Human.Score;
 			_year  = Common.YearString(Game.Instance.GameTurn);
 		}

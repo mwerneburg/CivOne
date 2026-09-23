@@ -113,6 +113,6 @@ namespace CivOne.Tests
 		private static string Render(VisitorArchetype archetype, bool probeDispatched) =>
 			string.Join("\n", (string[])typeof(TauCetiApproachWarning)
 				.GetMethod("BuildLines", BindingFlags.NonPublic | BindingFlags.Static)!
-				.Invoke(null, new object[] { "1635 AD", archetype, probeDispatched, 2 })!);
+				.Invoke(null, new object[] { "1635 AD", archetype, probeDispatched, 2, "1665 AD", false })!);
 	}
 }

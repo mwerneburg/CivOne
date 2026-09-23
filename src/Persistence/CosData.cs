@@ -65,6 +65,8 @@ namespace CivOne.Persistence
 		public bool ProbeDispatched { get; set; }
 		public uint ProbeDispatchTurn { get; set; }
 		public int ProbeInterimPhase { get; set; }
+		// A peaceful win kept while the player stays on for the visitors (Game.BankedVictory).
+		public string? BankedVictory { get; set; }
 		public int[] ProbeGrantedAdvanceIds { get; set; } = null!;
 		public int ProbeOutcomeTier { get; set; }
 		// Which Starlab was built: 0=none 1=Intended 2=FreePort (Enums.StarlabQuality)

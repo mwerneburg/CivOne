@@ -314,6 +314,7 @@ namespace CivOne
 					ProbeDispatched         = ProbeDispatched,
 					ProbeDispatchTurn       = ProbeDispatchTurn,
 					ProbeInterimPhase       = ProbeInterimPhase,
+					BankedVictory           = BankedVictory,
 					ProbeGrantedAdvanceIds  = ProbeGrantedAdvanceIds.Length > 0 ? ProbeGrantedAdvanceIds : null!,
 					ProbeOutcomeTier        = ProbeOutcomeTier,
 					StarlabQuality          = (int)StarlabQuality,
@@ -630,6 +631,7 @@ namespace CivOne
 			ProbeDispatched         = g.ProbeDispatched;
 			ProbeDispatchTurn       = g.ProbeDispatchTurn;
 			ProbeInterimPhase       = g.ProbeInterimPhase;
+			BankedVictory           = g.BankedVictory;
 			ProbeGrantedAdvanceIds  = g.ProbeGrantedAdvanceIds ?? System.Array.Empty<int>();
 			ProbeOutcomeTier        = g.ProbeOutcomeTier;
 			StarlabQuality          = (Enums.StarlabQuality)g.StarlabQuality;

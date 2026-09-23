@@ -203,7 +203,13 @@ namespace CivOne
 		// endgame rather than after it. A hull is 34-58 parts at 8/16/32 shields, and parts
 		// are city buildings that build in PARALLEL, so an industrial civ lays one in a
 		// handful of turns and then flies 22-44. That fits. UNMEASURED against a full run.
-		internal const int OlvirFuelGiftTurns = Units.BaseUnit.ReverseEngineerTurns;
+		//
+		// NOW ZERO (23 Sep 2026, the user's call): the fuel comes with the landfall. The
+		// approach was cut to ApproachTurns at the same time, and twenty turns of waiting on
+		// top of it put the first spaceship ~200 turns behind a cultural win. This drops the
+		// parity above on purpose — welcome is now faster than salvage, whose clock stays
+		// at BaseUnit.ReverseEngineerTurns.
+		internal const int OlvirFuelGiftTurns = 0;
 
 		// Archetype of the incoming visitors, seeded when the SETI signal fires
 		internal VisitorArchetype VisitorType;
@@ -264,6 +270,61 @@ namespace CivOne
 
 		// Turn on which the Olvir arrival scene fires (0 = not yet scheduled).
 		internal uint OlvirArrivalTurn;
+
+		// Approach warning to landfall. Was 80, sized for a source at Tau Ceti; the signal now
+		// comes from a vessel already in the outer Oort Cloud (23 Sep 2026), and at 80 a
+		// cultural win at ~turn 394 ended the game 32 turns before anyone met the Olvir.
+		// The Dome gets these same turns to be built — measure before shortening further.
+		internal const int ApproachTurns = 30;
+
+		// ── the encore ───────────────────────────────────────────────────────
+		// A peaceful win that comes while the visitors are still on their way can be played
+		// through to their arrival, and then on to Alpha Centauri or 2200 (the user's
+		// design, 23 Sep 2026). The win is BANKED here before the player chooses, and
+		// EndSequence records it for whatever ending finally comes — staying on can add
+		// points but never take the win away. Null = no win banked.
+		internal string? BankedVictory;
+		internal const int WitnessBonus = 100;
+
+		internal bool ArrivalPending => SETISignalReceived && !VisitorsArrived;
+
+		private void EndOrEncore(string victory)
+		{
+			if (BankedVictory is not null) return;   // a second win during the encore: points only
+			if (ArrivalPending && !Settings.Instance.Autopilot)
+			{
+				BankedVictory = victory;
+				uint landfall = OlvirArrivalTurn > 0 ? OlvirArrivalTurn : (uint)(_gameTurn + ApproachTurns);
+				GameTask.Enqueue(Show.Screen(new Screens.Dialogs.EncoreChoice("THE VISITORS ARE COMING", new[]
+				{
+					"The victory is yours, and it is kept.",
+					$"The visitors arrive about {Common.YearString((ushort)landfall)}.",
+					$"Stay to meet them? (+{WitnessBonus} points)",
+				}, () => FinishGame(victory))));
+				return;
+			}
+			FinishGame(victory);
+		}
+
+		private void FinishGame(string victory)
+		{
+			int fame = EndSequence.SaveAndGetIndex(HumanPlayer, victory);
+			GameTask ft;
+			GameTask.Enqueue(ft = Show.Screen(new Screens.Reports.FinalScore(victory)));
+			ft.Done += (s, a) => EndSequence.ChainAfterFinal(fame, () => Runtime.Quit());
+		}
+
+		// At landfall, for a player who stayed: the bonus, then the second question.
+		private void OfferPlayOn()
+		{
+			if (BankedVictory is null) return;
+			string banked = BankedVictory;
+			GameTask.Enqueue(Show.Screen(new Screens.Dialogs.EncoreChoice("YOU WERE THERE", new[]
+			{
+				$"Witness to first contact: +{WitnessBonus} points.",
+				"Play on to Alpha Centauri, or 2200?",
+			}, () => FinishGame(banked))));
+		}
 		internal uint OlvirProximityAlarmTurn; // turn of the last "Olvir settling near you" advisor message
 		internal uint OlvirBloomEndTurn;       // last turn of the post-landfall settlement bloom (0 = no bloom)
 
@@ -1960,10 +2021,15 @@ namespace CivOne
 					// need five turns of listening to agree on what they are hearing.
 					ArchetypeRevealTurn = (uint)(_gameTurn
 						+ (HoldsIntendedStarlab(HumanPlayer) ? 0 : ArchetypeRevealTurns));
-					SETISignalTransmission.EnsureConfigFile();
+					// No EnsureConfigFile here any more: writing the default text out to the data
+					// folder froze it there, and every later edit to the briefing was silently
+					// overridden by the old copy (found in play, 23 Sep 2026). A file the player
+					// writes deliberately is still honoured.
 					string gameDate = GameYear;
 					RecordTransmission("SETISignal", gameDate);
-					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate)));
+					bool broadcasting = _players.Any(p => p is not null && PlayerNumber(p) != 0
+						&& !p.IsDestroyed() && p.HasAdvance<Electronics>());
+					GameTask.Enqueue(Show.Screen(new SETISignalTransmission(gameDate, broadcasting)));
 				}
 
 				// The observatories name it. Placed after the signal block on purpose: with
@@ -1994,10 +2060,12 @@ namespace CivOne
 				{
 					TauCetiEscalationTurn = 0;
 					AssignDomeComponents();
-					OlvirArrivalTurn = (uint)(_gameTurn + 80);
+					OlvirArrivalTurn = (uint)(_gameTurn + ApproachTurns);
 					string gameDate = GameYear;
 					RecordTransmission("TauCetiApproach", gameDate);
-					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType, ProbeDispatched, ProbeInterimPhase)));
+					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType,
+						Common.YearString((ushort)OlvirArrivalTurn), HoldsIntendedStarlab(HumanPlayer),
+						ProbeDispatched, ProbeInterimPhase)));
 					var humanDomeComponents = GetDomeAssignments(HumanPlayer).ToList();
 					if (humanDomeComponents.Count > 0)
 					{
@@ -2062,6 +2130,7 @@ namespace CivOne
 					OlvirArrivalTurn = 0;
 					VisitorsArrived = true; // first contact — unlocks the post-contact tech tree
 					VisitorsArrivedTurn = _gameTurn;
+					if (BankedVictory is not null) HumanPlayer.AwardMilestone(WitnessBonus);
 
 					// The Owners ("The Others") arrive to reclaim humanity — a cinematic ending.
 					// A defended world (dome complete) becomes a disputed claim and humanity
@@ -2077,6 +2146,7 @@ namespace CivOne
 					if (VisitorType == VisitorArchetype.Scavengers)
 					{
 						ArriveScavengers();
+						OfferPlayOn();
 						return;
 					}
 
@@ -2099,6 +2169,7 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
 						EventArtScreen.FindPath("MeetTheOlvir")!, artCaption)));
 					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
+					OfferPlayOn();
 				}
 
 				// ── the exotic fuel ──────────────────────────────────────────────
@@ -2333,16 +2404,13 @@ namespace CivOne
 							}
 							HumanPlayer.AwardMilestone(150);
 							DecisionLogger.EndGame(HumanPlayer.Score, "Economic Dominance", humanWon: true, turns: _gameTurn, HumanPlayer);
-							int econFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Economic Dominance");
 							string? econArt = Screens.EventArtScreen.FindPath("PaxMercatoria");
 							if (econArt is not null)
 								GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(econArt,
 									"PAX MERCATORIA — THE WORLD BANKS WITH YOU")));
 							GameTask.Enqueue(Message.Newspaper(null!, "Pax Mercatoria!",
 								"The world's economy", "runs through you."));
-							GameTask econFt;
-							GameTask.Enqueue(econFt = Show.Screen(new Screens.Reports.FinalScore("Economic Dominance")));
-							econFt.Done += (s, a) => EndSequence.ChainAfterFinal(econFame, () => Runtime.Quit());
+							EndOrEncore("Economic Dominance");
 							return;
 						}
 					}
@@ -2526,16 +2594,13 @@ namespace CivOne
 							}
 							HumanPlayer.AwardMilestone(150);
 							DecisionLogger.EndGame(HumanPlayer.Score, "Cultural Ascendancy", humanWon: true, turns: _gameTurn, HumanPlayer);
-							int cultFame = EndSequence.SaveAndGetIndex(HumanPlayer, "Cultural Ascendancy");
 							string? cultArt = Screens.EventArtScreen.FindPath("CulturalAscendancy");
 							if (cultArt is not null)
 								GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(cultArt,
 									"CULTURAL ASCENDANCY — THE WORLD KEEPS YOUR CALENDAR")));
 							GameTask.Enqueue(Message.Newspaper(null!, "Cultural Ascendancy!",
 								"The world does not obey us.", "It imitates us."));
-							GameTask cultFt;
-							GameTask.Enqueue(cultFt = Show.Screen(new Screens.Reports.FinalScore("Cultural Ascendancy")));
-							cultFt.Done += (s, a) => EndSequence.ChainAfterFinal(cultFame, () => Runtime.Quit());
+							EndOrEncore("Cultural Ascendancy");
 							return;
 						}
 					}
@@ -3614,10 +3679,12 @@ namespace CivOne
 		{
 			if (DomeAssignments.Count > 0) return; // already assigned
 
-			Player[] eligible = _players
-				.Where(p => !p.IsDestroyed()
-				         && !(p.Civilization is Civilizations.Barbarian)
-				         && !(p.Civilization is Civilizations.Olvir))
+			// HumanityNations, not a hand-written list: that one excluded barbarians and the
+			// Olvir only, so an awake Skynet — every advance, so always sorted first — was
+			// handed a component it would never build, at war with everyone, and the Dome
+			// could not be finished. Seen in play 23 Sep 2026: the Power Core went to the
+			// Machines.
+			Player[] eligible = HumanityNations()
 				.OrderByDescending(p => p.Advances.Length)
 				.ToArray();
 			if (eligible.Length == 0) return;

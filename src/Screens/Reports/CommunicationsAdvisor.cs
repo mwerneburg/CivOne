@@ -37,15 +37,24 @@ namespace CivOne.Screens.Reports
 			_                    => type
 		};
 
+		// Landfall if it has happened, the scheduled turn if not.
+		private static string ArrivalYear()
+		{
+			Game g = Game.Instance;
+			uint t = g.VisitorsArrivedTurn > 0 ? g.VisitorsArrivedTurn : g.OlvirArrivalTurn;
+			return t > 0 ? Common.YearString((ushort)t) : "UNKNOWN";
+		}
+
 		private void Replay(int index)
 		{
 			var entry = _entries[index];
 			IScreen? screen = entry.Type switch
 			{
-				"SETISignal"          => new SETISignalTransmission(entry.Year),
+				"SETISignal"          => new SETISignalTransmission(entry.Year, broadcasting: false),   // not recorded; omit rather than invent
 				"SouthPoleIntel"      => new SouthPoleIntelReport(entry.Year),
 				"SouthPoleExpedition" => new SouthPoleExpeditionLog(entry.Year),
-				"TauCetiApproach"     => new TauCetiApproachWarning(entry.Year, Game.Instance.VisitorType),
+				"TauCetiApproach"     => new TauCetiApproachWarning(entry.Year, Game.Instance.VisitorType,
+					ArrivalYear(), Game.Instance.HoldsIntendedStarlab(Game.Instance.HumanPlayer)),
 				"ProbeResult"         => new ProbeResultTransmission(entry.Year, Game.Instance.VisitorType, Game.Instance.ProbeOutcomeTier),
 				_                    => null
 			};

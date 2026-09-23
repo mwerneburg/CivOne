@@ -161,7 +161,7 @@ namespace CivOne.Tests
 			string src = System.IO.File.ReadAllText(RepoPath("src", "Game.cs"));
 
 			Assert.Contains("_gameTurn - VisitorsArrivedTurn >= OlvirFuelGiftTurns", src);
-			Assert.True(Game.OlvirFuelGiftTurns > 0);
+			Assert.True(Game.OlvirFuelGiftTurns >= 0);
 		}
 
 		// The two fuel routes take the same time. The gift was 50 turns against the salvage
@@ -172,10 +172,14 @@ namespace CivOne.Tests
 		// Measured in game 3de868a5: landfall turn 470, has_fuel true on turn 520, and the
 		// two economic victories in that same world ended on turns 464 and 519. The first
 		// buildable spaceship part arrived one turn after the game was over.
+		//
+		// SUPERSEDED 23 Sep 2026: the gift now comes WITH the landfall (the user's call, made
+		// with the approach cut to 30 turns). Parity is gone on purpose; what stays is that
+		// the gift is never slower — PeaceIsNeverTheSlowerRoad below.
 		[Fact]
-		public void TheGiftAndTheSalvageTakeTheSameTime()
+		public void TheGiftComesWithTheLanding()
 		{
-			Assert.Equal(CivOne.Units.BaseUnit.ReverseEngineerTurns, Game.OlvirFuelGiftTurns);
+			Assert.Equal(0, Game.OlvirFuelGiftTurns);
 		}
 
 		// ...and the peaceful route is not made SLOWER than the violent one, which is the

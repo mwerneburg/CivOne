@@ -15,7 +15,8 @@ namespace CivOne.Screens
 {
 	internal class TauCetiApproachWarning : TerminalScreen
 	{
-		private static string[] BuildLines(string gameDate, VisitorArchetype archetype, bool probeDispatched, int probeInterimPhase)
+		private static string[] BuildLines(string gameDate, VisitorArchetype archetype, bool probeDispatched, int probeInterimPhase,
+			string arrivalYear, bool starlabWatching)
 		{
 			string[] archetypeLines = archetype switch
 			{
@@ -62,11 +63,11 @@ namespace CivOne.Screens
 				$"TRANSMISSION TIMESTAMP: {gameDate}",
 				"STATUS: EMERGENCY",
 				"",
-				"SUBJECT: TAU CETI — TRAJECTORY UPDATE",
+				"SUBJECT: TAU CETI SOURCE — TRAJECTORY UPDATE",
 				"",
 				"SOURCE HAS ADVANCED.",
-				"DISTANCE CLOSED: 20% OF ORIGINAL ESTIMATE.",
-				"ARRIVAL ESTIMATE: 80 YEARS.",
+				"POSITION: INNER OORT CLOUD. 0.4 LIGHT-YEARS FROM SOL AND CLOSING.",
+				$"ARRIVAL ESTIMATE: {arrivalYear}.",
 				"",
 				"IMPLICATION: THE SOURCE IS UNDER ACTIVE PROPULSION.",
 				"THIS IS NOT DRIFT. THIS IS APPROACH.",
@@ -82,6 +83,13 @@ namespace CivOne.Screens
 					"OPTION A: PROBE MISSION — ALREADY ACTIVE.",
 					$"  {probeInterimPhase} INTERIM TRANSMISSION(S) RECEIVED TO DATE.",
 					"  PROBE IS EN ROUTE. FURTHER TRANSMISSIONS EXPECTED.",
+				}
+				: starlabWatching
+				? new[]
+				{
+					"",
+					"OPTION A: STARLAB — ACTIVE.",
+					"  Source under continuous observation from orbit.",
 				}
 				: new[]
 				{
@@ -124,7 +132,8 @@ namespace CivOne.Screens
 			    text.StartsWith("STATUS"))                               return CassetteTheme.PHOS_DIM;
 			if (text.StartsWith("SUBJECT"))                              return CassetteTheme.PHOS_GLOW;
 			if (text.StartsWith("SOURCE HAS ADVANCED") ||
-			    text.StartsWith("DISTANCE CLOSED") ||
+			    text.StartsWith("POSITION:") ||
+			    text.StartsWith("ARRIVAL ESTIMATE") ||
 			    text.StartsWith("REVISED ARRIVAL"))                      return CassetteTheme.PHOS_GLOW;
 			if (text.StartsWith("IMPLICATION:") ||
 			    text.StartsWith("THIS IS NOT DRIFT"))                    return CassetteTheme.ALERT;
@@ -139,9 +148,10 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal TauCetiApproachWarning(string gameDate, VisitorArchetype archetype, bool probeDispatched = false, int probeInterimPhase = 0)
+		internal TauCetiApproachWarning(string gameDate, VisitorArchetype archetype, string arrivalYear,
+			bool starlabWatching = false, bool probeDispatched = false, int probeInterimPhase = 0)
 		{
-			_lines = BuildLines(gameDate, archetype, probeDispatched, probeInterimPhase);
+			_lines = BuildLines(gameDate, archetype, probeDispatched, probeInterimPhase, arrivalYear, starlabWatching);
 			InitTypewriter();
 		}
 	}

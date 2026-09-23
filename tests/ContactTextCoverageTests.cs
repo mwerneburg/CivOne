@@ -80,7 +80,7 @@ namespace CivOne.Tests
 		{
 			Sim.EnsureRuntime();
 			AssertAllDistinct("Tau Ceti approach", arch =>
-				Render(typeof(TauCetiApproachWarning), "BuildLines", "1635 AD", arch, true, 4),
+				Render(typeof(TauCetiApproachWarning), "BuildLines", "1635 AD", arch, true, 4, "1665 AD", false),
 				alsoDistinctFromNone: true);
 		}
 

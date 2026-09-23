@@ -23,10 +23,11 @@ namespace CivOne.Screens
 			"TRANSMISSION TIMESTAMP: 04 MAY {game date} / 14:30 UTC",
 			"STATUS: PRIORITY THETA",
 			"",
-			"SUBJECT: SETI SIGNAL ANALYSIS – TAU CETI SYSTEM",
+			"SUBJECT: SETI SIGNAL ANALYSIS – OUTER OORT CLOUD",
 			"",
 			"FINDINGS: Artificial origin confirmed.",
-			"Signal source: Tau Ceti (GJ 71, HD 10700).",
+			"Signal source: outer Oort Cloud, 1.1 light-years from Sol.",
+			"Proper motion: inbound. Back-traced origin: Tau Ceti (GJ 71, HD 10700).",
 			"Frequency: 1420.40575177 MHz (neutral hydrogen line).",
 			"Bandwidth: 1.2 kHz.",
 			"Modulation: Pulse-train with embedded data stream.",
@@ -52,12 +53,19 @@ namespace CivOne.Screens
 			"* Signal attenuation suggests source is in motion.",
 			"* INTERPRETATION: Origin is a vessel or fleet, not a planetary body.",
 			"",
+			"HOW IT FOUND US:",
+			"",
+			"* Earth's spectrum -- oxygen, ozone, methane -- has announced life",
+			"  to any competent telescope for two billion years.",
+			RadioLine,
+			"* The source did not search. It knew where to look.",
+			"",
 			"ASSESSMENTS CONFLICT. CONSENSUS NOT REACHED.",
 			"",
 			"RECOMMENDATIONS:",
 			"",
 			"* Containment: Signal isolated. No reply authorized at this time.",
-			"* Investigation: Raise an orbital laboratory. Listen from above the sky.",
+			"* Investigation: Raise an orbital laboratory. Watch it come.",
 			"* Contingency A: Colony at Alpha Centauri II per Directive 7. SUSPENDED.",
 			"  Reason: propulsion. Nothing in the inventory crosses that distance",
 			"  in useful time, and no candidate drive is under development.",
@@ -68,6 +76,11 @@ namespace CivOne.Screens
 			"",
 			"TRANSMISSION ENDS.",
 		};
+
+		// Only true once somebody has broadcast. The signal can come before anyone holds
+		// Electronics (Civ I has no Radio; Electronics is its radio era), and the briefing
+		// must not credit broadcasts that have not been made.
+		private const string RadioLine = "* Our own broadcasts have been leaving Earth for decades.";
 
 		internal static string ConfigPath => Path.Combine(Settings.Instance.DataDirectory, "seti_signal.txt");
 
@@ -92,25 +105,6 @@ namespace CivOne.Screens
 			return lines.Count > 0 ? lines.ToArray() : null;
 		}
 
-		internal static void EnsureConfigFile()
-		{
-			string path = ConfigPath;
-			if (File.Exists(path)) return;
-
-			try
-			{
-				Directory.CreateDirectory(Path.GetDirectoryName(path));
-				using var w = new StreamWriter(path);
-				w.WriteLine("# SETI Signal Transmission – editable text configuration");
-				w.WriteLine("# {game date} is replaced with the current game year.");
-				w.WriteLine();
-				w.WriteLine("[seti_signal]");
-				foreach (string line in _defaultTransmission)
-					w.WriteLine(line);
-			}
-			catch { /* non-fatal */ }
-		}
-
 		protected override byte ColorFor(int lineIndex, string text)
 		{
 			if (lineIndex == 0)                                    return CassetteTheme.ALERT;
@@ -118,6 +112,7 @@ namespace CivOne.Screens
 			    text.StartsWith("STATUS"))                         return CassetteTheme.PHOS_DIM;
 			if (text.StartsWith("SUBJECT"))                        return CassetteTheme.PHOS_GLOW;
 			if (text.StartsWith("FINDINGS") ||
+			    text.StartsWith("HOW IT FOUND US") ||
 			    text.StartsWith("DATA ANALYSIS") ||
 			    text.StartsWith("RECOMMENDATIONS") ||
 			    text.StartsWith("TRANSMISSION ENDS"))              return CassetteTheme.INK_HIGH;
@@ -128,10 +123,11 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		public SETISignalTransmission(string gameDate)
+		public SETISignalTransmission(string gameDate, bool broadcasting)
 		{
 			string[] raw = LoadTransmissionLines() ?? _defaultTransmission;
-			_lines = raw.Select(l => l.Replace("{game date}", gameDate)).ToArray();
+			_lines = raw.Where(l => broadcasting || l != RadioLine)
+			            .Select(l => l.Replace("{game date}", gameDate)).ToArray();
 			InitTypewriter();
 		}
 	}

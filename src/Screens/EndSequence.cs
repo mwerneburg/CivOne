@@ -16,8 +16,11 @@ namespace CivOne.Screens
 	internal static class EndSequence
 	{
 		// Saves the entry to the Hall of Fame and returns the 0-based rank index.
+		// A win banked before an encore (Game.BankedVictory) is what the Hall of Fame keeps,
+		// whatever ended the game afterwards.
 		internal static int SaveAndGetIndex(Player player, string victoryType)
 		{
+			victoryType = Game.Instance.BankedVictory ?? victoryType;
 			string year = Common.YearString(Game.Instance.GameTurn);
 			HallOfFame.AddAndSave(player, victoryType, year);
 			var entries = HallOfFame.Load();
