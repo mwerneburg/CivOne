@@ -61,7 +61,7 @@ namespace CivOne.Tasks
 			{
 				int n = _player.FutureTechs;
 				_player.CurrentResearch = null;
-				IScreen notice = new Newspaper(null, [$"{_player.TribeName} scientists", $"complete Future Tech #{n}!", "Research continues."], showGovernment: false);
+				IScreen notice = new Newspaper(null, [$"{_player.TribeName} scientists", $"complete Future Tech #{n}:", FutureTech.Breakthrough(n, DecisionLogger.GameId) + "!"], showGovernment: false);
 				notice.Closed += (s, a) => { GameTask.Insert(new TechSelect(_player)); EndTask(); };
 				Common.AddScreen(notice);
 				return;
