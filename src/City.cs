@@ -1733,6 +1733,57 @@ namespace CivOne
 		// types the specialists a city already has.
 		internal bool GovernorCommerce { get; set; }
 
+		// ── the production governor ──────────────────────────────────────────
+		// ORDER (and every mode that includes it) builds what keeps the city out of
+		// disorder; CULTURE then builds for culture. It only ever chooses when the city's
+		// order is SPENT — the building it was making now stands, or the wonder is built —
+		// and nothing is queued. It never switches away from something partly built, never
+		// replaces a unit in production, and the player's queue always comes first
+		// (the user's condition, Sep 2026).
+		//
+		// Applied then tested, like the citizen governor above: each candidate is added for
+		// a moment and the city measured, rather than restating what Temples and Cathedrals
+		// do here.
+		private bool ProductionSpent =>
+			CurrentProduction is IBuilding b && HasBuilding(b)
+			|| CurrentProduction is IWonder w && Game.WonderBuilt(w);
+
+		internal IBuilding? GovernorNextBuilding()
+		{
+			if (!GovernorOrder && !GovernorCulture) return null;
+
+			// Never the Neural Lab: its culture is real, but the fifth one in the world wakes
+			// Skynet, and that is a player's decision, not an automation's.
+			IBuilding[] candidates = AvailableProduction.OfType<IBuilding>()
+				.Where(b => b is not NeuralLab).ToArray();
+
+			int Gain(IBuilding b, Func<int> measure)
+			{
+				int before = measure();
+				_buildings.Add(b); InvalidateCache();
+				int after = measure();
+				_buildings.Remove(b); InvalidateCache();
+				return after - before;
+			}
+
+			IBuilding? Best(Func<IBuilding, int> gain) => candidates
+				.Select(b => (b, g: gain(b)))
+				.Where(x => x.g > 0)
+				.OrderByDescending(x => (double)x.g / Math.Max(1, (int)x.b.Price))
+				.ThenBy(x => x.b.Maintenance)
+				.Select(x => x.b).FirstOrDefault();
+
+			// Order first, only while it is needed — a city rioting, or held in order by
+			// entertainers. A rioting city produces no culture, which is the citizen
+			// governor's reason for CULTURE including ORDER, and it applies here too.
+			bool unsettled = IsInDisorder || _specialists.Any(c => c == Citizen.Entertainer);
+			if (GovernorOrder && unsettled
+			    && Best(b => -Gain(b, () => UnhappyCitizens - HappyCitizens)) is IBuilding calm)
+				return calm;
+
+			return GovernorCulture ? Best(b => Gain(b, () => CultureRate)) : null;
+		}
+
 		internal void AutoAssignCitizens() => AutoAssignCitizens(order: true, growth: true, culture: false);
 
 		internal void AutoAssignCitizens(bool order, bool growth)
@@ -3033,9 +3084,16 @@ namespace CivOne
 			// around turn 357 until the game ended at 617. The AI was never asked again. The
 			// civ finished on one city with a gross output of 1, and left no trace in the
 			// decision log, because a city that is never re-planned is never logged.
-			if ((Shields == 0 || ShieldIncome <= 0) && !DequeueProduction()
-			    && (Player != Human || Settings.Instance.Autopilot))
-				Player.AI?.CityProduction(this);
+			if ((Shields == 0 || ShieldIncome <= 0) && !DequeueProduction())
+			{
+				if (Player != Human || Settings.Instance.Autopilot)
+					Player.AI?.CityProduction(this);
+				else if (ProductionSpent && GovernorNextBuilding() is IBuilding next)
+				{
+					CurrentProduction = next;
+					DecisionLogger.LogCityProduction(this, next, "governor", isHuman: true);
+				}
+			}
 		}
 
 		public void Disaster()
