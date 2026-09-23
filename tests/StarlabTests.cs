@@ -252,6 +252,9 @@ namespace CivOne.Tests
 		// Finish the wonder the way the production loop does (MissionControlTests' pattern).
 		private static void Complete(City city, IWonder wonder)
 		{
+			// Its prerequisite too: a wonder now completes only for an owner allowed to
+			// build it (InheritedWonderTests).
+			if (wonder.RequiredTech is not null) city.Player.AddAdvance(wonder.RequiredTech, false);
 			city.SetProduction(wonder);
 			// ProductionCost, not Price * 10: a wonder whose strategic resource the owner
 			// lacks costs half again as much, and paying the sticker price silently leaves

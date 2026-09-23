@@ -2640,7 +2640,14 @@ namespace CivOne
 				}
 				if (CurrentProduction is IWonder wonder)
 				{
-					if (!Game.WonderBuilt(wonder))
+					// ...and only by an owner who may build it. A captured city keeps the old
+					// administration's order, and nothing re-checked it here: the Chinese took
+					// back a city from the Machines and finished THE REPROCESSOR for them (seen
+					// in play, Sep 2026) — the reverse of the Registry's Dome component noted
+					// in Player.WonderAvailable. It rolls over below, exactly as a wonder
+					// someone else finished first does.
+					bool ours = Player.ProductionAvailable(wonder);
+					if (!Game.WonderBuilt(wonder) && ours)
 					{
 						Shields = 0;
 						AddWonder(wonder);
@@ -3035,7 +3042,7 @@ namespace CivOne
 							CurrentProduction = next;
 							if (Player == Human)
 								GameTask.Enqueue(Message.Newspaper(this,
-								    $"{lostName} was", "built by another civ.",
+								    $"{lostName} was", ours ? "built by another civ." : "never ours to build.",
 								    $"Now building {(next as ICivilopedia).Name}."));
 						}
 						else
