@@ -57,7 +57,7 @@ namespace CivOne.Screens
 			"RECOMMENDATIONS:",
 			"",
 			"* Containment: Signal isolated. No reply authorized at this time.",
-			"* Investigation: Dispatch unmanned probe to Tau Ceti for direct analysis.",
+			"* Investigation: Raise an orbital laboratory. Listen from above the sky.",
 			"* Contingency A: Colony at Alpha Centauri II per Directive 7. SUSPENDED.",
 			"  Reason: propulsion. Nothing in the inventory crosses that distance",
 			"  in useful time, and no candidate drive is under development.",

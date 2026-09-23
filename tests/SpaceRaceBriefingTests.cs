@@ -50,6 +50,24 @@ namespace CivOne.Tests
 			Assert.Contains("Reason: propulsion.", s);
 		}
 
+		// ...and the player must actually SEE it. A shipped seti_signal.txt overrides the
+		// text above, and the one in Resources/defaults was a May draft: it still ordered the
+		// colony and the probe, while this test passed against the source. Found in play,
+		// 23 Sep 2026. Edit the built-in text, not a defaults file.
+		[Fact]
+		public void NoShippedFileOverridesTheSetiBriefing()
+		{
+			Assert.False(System.IO.File.Exists(System.IO.Path.Combine(Sim.RepoRoot(),
+				"runtime", "sdl", "Resources", "defaults", "data", "seti_signal.txt")));
+		}
+
+		// The probe is retired (Player.cs); the Starlab is the investigation now.
+		[Fact]
+		public void TheSetiBriefingDoesNotRecommendTheRetiredProbe()
+		{
+			Assert.DoesNotContain("probe", Seti.Substring(Seti.IndexOf("RECOMMENDATIONS")), System.StringComparison.OrdinalIgnoreCase);
+		}
+
 		// Same for the approach warning, which was the more misleading of the two: it read as
 		// an imperative with a deadline attached.
 		[Fact]
