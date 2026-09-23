@@ -132,6 +132,22 @@ namespace CivOne.Units
 				{
 					City target = moveTarget.City;
 
+					// An ambassador first. At peace and with no embassy yet, the mission is to
+					// open one — the human's first menu item, which the AI never had: in a
+					// won 2026-09 game not one foreign civ ever sent an ambassador. It comes
+					// before counter-espionage because an envoy is not a spy to be caught,
+					// and it matters now that embassies carry culture (Cultural Ascendancy's
+					// reach clause). Espionage resumes once the embassy exists.
+					if (target.Owner != 0 && target.Player is Player host
+					    && !Player.IsAtWar(host) && !Player.HasEmbassy(host))
+					{
+						Player.EstablishEmbassy(host);
+						Game.DisbandUnit(this);
+						if (host == Human)
+							GameTask.Insert(Message.Spy("Foreign envoys:", $"{Player.TribeName} embassy", $"opens in {target.Name}."));
+						return true;
+					}
+
 					// Counter-espionage: a resident Diplomat has a 50 % chance of catching the spy
 					if (target.Tile.Units.Any(u => u.Owner == target.Owner && u is Diplomat)
 					    && Common.Random.Next(2) == 0)

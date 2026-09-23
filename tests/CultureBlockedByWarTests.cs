@@ -62,6 +62,8 @@ namespace CivOne.Tests
 
 			us.SetCulture(6000);
 			foreach (Player r in rivals) r.SetCulture(600);
+			// Known to every rival: Cultural Ascendancy's reach clause wants half of them met.
+			foreach (Player r in rivals) us.EstablishEmbassy(r);
 
 			// The clock opens on ELECTRONICS held by anyone, not on a date. Granted to a
 			// RIVAL, because it is the world that must have arrived, not the claimant.

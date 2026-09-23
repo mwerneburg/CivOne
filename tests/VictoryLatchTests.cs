@@ -66,6 +66,8 @@ namespace CivOne.Tests
 			}
 			human.SetCulture(900);
 			foreach (Player p in rivals) p.SetCulture(100);
+			// Known to every rival: Cultural Ascendancy's reach clause wants half of them met.
+			foreach (Player p in rivals) human.EstablishEmbassy(p);
 
 			// The victory is now: first in culture per HEAD (blended against the world's
 			// average nation), after the gate, held for CultureHoldTurns. Staging a hundred

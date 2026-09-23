@@ -2476,7 +2476,21 @@ namespace CivOne
 					bool modern = CultureGateOpen();
 
 					bool admired = foremost && modern;
-					bool reach   = true;   // geography no longer gates this path
+					// REACH: half the surviving rivals must actually know us — a trade route in
+					// either direction, an embassy either way, or a defence pact. The same shape
+					// as Pax Mercatoria's Bound, minus tribute: tribute binds an economy, it does
+					// not carry a culture anywhere. An admired civilization nobody has met is
+					// not ascendant, merely remote. Added 23 Sep 2026 after a won game where no
+					// foreign civ had ever sent an ambassador and the win still fired.
+					bool Known(Player r)
+					{
+						byte rnum = PlayerNumber(r);
+						return claimant.HasEmbassy(r) || r.HasEmbassy(claimant) || r.HasDefensePact(claimant)
+							|| _cities.Any(c => c.Size > 0 &&
+								((c.Owner == cnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
+								|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == cnum))));
+					}
+					bool reach = cultRivals.Count(Known) * 2 >= cultRivals.Length;
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
 					// started is incompatible with being admired, but the Machines and the Registry
@@ -2528,7 +2542,7 @@ namespace CivOne
 					else if (Progress(cnum).CultureStreak > 0)
 					{
 						string why = !admired ? "Our arts no longer stand above the world's."
-							: !reach ? "Fewer nations live in our shadow."
+							: !reach ? "Too few nations know us."
 							: "Wars of our making tarnish our name.";
 						Progress(cnum).CultureStreak = 0;
 						if (isHuman)
@@ -2549,15 +2563,23 @@ namespace CivOne
 					//
 					// Latched so it says this once, and re-armed the moment the block clears, so
 					// making peace and then starting another war says it again.
-					if (isHuman && admired && reach && cultAggressing)
+					//
+					// Reach is the other invisible block, so it shares the latch: war is named
+					// first because it is the one the player must undo rather than build.
+					if (isHuman && admired && (cultAggressing || !reach))
 					{
 						if (!_cultBlockedNotified)
 						{
 							_cultBlockedNotified = true;
-							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-								"No people are more cultured.",
-								$"But we drew first blood on the {cultVictim!.TribeNamePlural}.",
-								"There is no ascendancy without peace."));
+							GameTask.Enqueue(cultAggressing
+								? Message.Advisor(Advisor.Domestic, false,
+									"No people are more cultured.",
+									$"But we drew first blood on the {cultVictim!.TribeNamePlural}.",
+									"There is no ascendancy without peace.")
+								: Message.Advisor(Advisor.Domestic, false,
+									"No people are more cultured.",
+									"But half the world has never met us.",
+									"Send embassies, or caravans."));
 						}
 					}
 					else if (isHuman)

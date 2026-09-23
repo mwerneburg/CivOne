@@ -456,6 +456,9 @@ namespace CivOne.Tests
 		// The whole point of the change: geography no longer decides who may compete. An
 		// isolated civ — the Maori reached ZERO foreign cities across a whole game, the
 		// Guarani one — is now judged on the same measure as everyone else.
+		//
+		// Reach came back in Sep 2026 as CONTACT (embassies, routes, pacts), which an
+		// island civ can make by ship. It must never go back to counting cities in range.
 		[Fact]
 		public void GeographyNoLongerGatesThePath()
 		{
@@ -463,9 +466,12 @@ namespace CivOne.Tests
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
 			int at = src.IndexOf("bool admired = foremost && modern;");
 			Assert.True(at > 0, "the cultural clause has moved or been rewritten");
-			string block = src.Substring(at, 200);
-
-			Assert.Contains("geography no longer gates this path", block);
+			int r = src.IndexOf("bool reach = ", at);
+			Assert.True(r > 0, "the reach clause has moved");
+			string reach = src.Substring(r, src.IndexOf(';', r) - r);
+			Assert.Contains("Known", reach);
+			Assert.DoesNotContain("inRange", reach);
+			Assert.DoesNotContain("shadow", reach);
 		}
 
 		// ── driven through EndTurn, not read off the source ──────────────────────
@@ -504,6 +510,8 @@ namespace CivOne.Tests
 
 			us.SetCulture(6000);
 			foreach (Player r in rivals) r.SetCulture(600);
+			// Known to every rival: Cultural Ascendancy's reach clause wants half of them met.
+			foreach (Player r in rivals) us.EstablishEmbassy(r);
 
 			g.GameTurn = Sim.TurnPastCultureGate();
 			Sim.ClearTasks();
