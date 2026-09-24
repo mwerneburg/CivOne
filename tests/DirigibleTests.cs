@@ -89,6 +89,53 @@ namespace CivOne.Tests
 			return steps.ToArray();
 		}
 
+		// ── two of our own airships ─────────────────────────────────────────────────
+
+		// Cargo rides by tile, so a vessel crossing another's tile flew off with its
+		// passengers: an Aztec-bound Diplomat went home to the Nile delta (Sep 2026). The
+		// route now steps round another of our carriers in the open.
+		[Fact]
+		public void ARouteStepsRoundAnotherOfOurAirships()
+		{
+			(Game g, Player human, _, Dirigible d) = AnOpenSky();
+			g.CreateUnit(UnitType.Dirigible, 38, 20, g.PlayerNumber(human));
+
+			var route = Route(d, 42, 20);
+
+			Assert.Equal((42, 20), route.Last());
+			Assert.DoesNotContain((38, 20), route);
+		}
+
+		// Control: the same route with nobody in the way goes straight through that tile.
+		[Fact]
+		public void AnEmptySkyStillFliesTheStraightLine()
+		{
+			(_, _, _, Dirigible d) = AnOpenSky();
+
+			Assert.Contains((38, 20), Route(d, 42, 20));
+		}
+
+		// Meeting another vessel is fine when that is where we were sent.
+		[Fact]
+		public void TheGoalIsStillReachedWhenAnotherAirshipIsThere()
+		{
+			(Game g, Player human, _, Dirigible d) = AnOpenSky();
+			g.CreateUnit(UnitType.Dirigible, 38, 20, g.PlayerNumber(human));
+
+			Assert.Equal((38, 20), Route(d, 38, 20).Last());
+		}
+
+		// ...and a city is where loading is deliberate, so stacking there is not avoided.
+		[Fact]
+		public void OurOwnCityIsNotAvoided()
+		{
+			(Game g, Player human, _, Dirigible d) = AnOpenSky();
+			g.AddCity(human, 0, 38, 20);
+			g.CreateUnit(UnitType.Dirigible, 38, 20, g.PlayerNumber(human));
+
+			Assert.Contains((38, 20), Route(d, 42, 20));
+		}
+
 		private static (Game g, Player human, Player ai, Dirigible d) AnOpenSky()
 		{
 			Sim.NewGame(width: 80, height: 50);

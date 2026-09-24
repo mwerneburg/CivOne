@@ -77,6 +77,9 @@ namespace CivOne.Persistence
 		// lands, and the turn the mourning lifts (0 = nobody is mourning).
 		public bool AlienAwake { get; set; }
 		public int  KoansSent { get; set; }
+		// Lead-up beats played before the Machines and the alien (Game.NeuralLabWarnings).
+		public int  NeuralLabWarnings { get; set; }
+		public int  XenolabWarnings { get; set; }
 		public uint NextKoanTurn { get; set; }
 		public uint MourningUntilTurn { get; set; }
 		public uint OlvirArrivalTurn { get; set; }

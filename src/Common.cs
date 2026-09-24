@@ -356,6 +356,13 @@ namespace CivOne
 				if (tile is null) continue;
 				if (tile.Units.Any(u => u.Owner != unit.Owner)) continue;
 				if (tile.City is not null && tile.City.Owner != unit.Owner) continue;
+				// Nor through another of our own carriers in the open. Cargo rides by TILE
+				// (Dirigible.Manifest): whichever vessel leaves a shared tile takes every
+				// sentried passenger on it, so crossing paths swapped loads — an Aztec-bound
+				// Diplomat was flown home to the Nile delta (seen in play, Sep 2026). Cities,
+				// where loading is deliberate, and the goal itself are exempt.
+				if (tile.City is null && !(tile.X == gx && tile.Y == gy)
+				    && tile.Units.Any(u => u is IBoardable)) continue;
 				return tile;
 			}
 			return null;

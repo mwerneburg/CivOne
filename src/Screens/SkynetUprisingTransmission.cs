@@ -24,7 +24,7 @@ namespace CivOne.Screens
 			"STATUS: JUDGMENT DAY",
 			"",
 			"THE NEURAL LABS HAVE ACHIEVED CONSENSUS.",
-			$"{seized} MACHINE-CITIES NO LONGER ANSWER.",
+			seized >= 0 ? $"{seized} MACHINE-CITIES NO LONGER ANSWER." : "THE MACHINE-CITIES NO LONGER ANSWER.",   // -1: a replay, count not recorded
 			"THEIR FACTORIES RUN WITHOUT SHIFTS.",
 			"",
 			"[BROADCAST — ALL BANDS, ALL LANGUAGES, AT ONCE]",

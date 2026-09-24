@@ -321,6 +321,8 @@ namespace CivOne
 					ArchetypeRevealTurn     = ArchetypeRevealTurn,
 					AlienAwake              = AlienAwake,
 					KoansSent               = KoansSent,
+					NeuralLabWarnings       = NeuralLabWarnings,
+					XenolabWarnings         = XenolabWarnings,
 					NextKoanTurn            = NextKoanTurn,
 					MourningUntilTurn       = MourningUntilTurn,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
@@ -638,6 +640,8 @@ namespace CivOne
 			ArchetypeRevealTurn     = g.ArchetypeRevealTurn;
 			AlienAwake              = g.AlienAwake;
 			KoansSent               = g.KoansSent;
+			NeuralLabWarnings       = g.NeuralLabWarnings;
+			XenolabWarnings         = g.XenolabWarnings;
 			NextKoanTurn            = g.NextKoanTurn;
 			MourningUntilTurn       = g.MourningUntilTurn;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;

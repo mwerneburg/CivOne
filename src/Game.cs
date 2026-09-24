@@ -344,6 +344,16 @@ namespace CivOne
 		// a curse and nobody is punished for luck — the labs are a choice the world made.
 		internal bool AlienAwake;
 		internal int  KoansSent;            // 0..5
+
+		// The lead-ups (Sep 2026): both endings used to arrive unannounced — the Machines
+		// already at war, the alien's first word a koan. How many foreshadowing beats have
+		// played, 0-2, so each is heard once and a reload does not repeat them.
+		internal int NeuralLabWarnings;
+		internal int XenolabWarnings;
+
+		// Starlab's last word, shared by the koan clock and the Communications replay.
+		internal static readonly string[] KoanSilenceLines =
+			{ "Starlab has fallen silent.", "The voice does not", "answer the hail." };
 		internal uint NextKoanTurn;         // when the next koan is broadcast
 		internal uint MourningUntilTurn;    // 0 = nobody is mourning
 
@@ -5187,8 +5197,25 @@ namespace CivOne
 			if (!Settings.Instance.CursedWonders) return;
 			if (SkynetRisen) return;
 			int labs = _cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.NeuralLab>());
-			if (labs < 5) return;
-			ExecuteSkynetUprising();
+			if (labs >= 5) { ExecuteSkynetUprising(); return; }
+
+			// The lead-up. The fourth lab says exactly what the fifth will do, so the world can
+			// choose; a count that jumps straight to four skips the third lab's line.
+			if (labs >= 4 && NeuralLabWarnings < 2)
+			{
+				NeuralLabWarnings = 2;
+				string gameDate = GameYear;
+				RecordTransmission("NeuralQuorum", gameDate);
+				GameTask.Enqueue(Show.Screen(new Screens.NeuralQuorumTransmission(gameDate)));
+			}
+			else if (labs >= 3 && NeuralLabWarnings < 1)
+			{
+				NeuralLabWarnings = 1;
+				GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+					"The Neural Labs have begun",
+					"exchanging data.",
+					"Nobody wrote the protocol."));
+			}
 		}
 
 		// ── The synthetic alien ──────────────────────────────────────────────
@@ -5204,10 +5231,37 @@ namespace CivOne
 			if (!AlienAwake)
 			{
 				if (!WonderBuilt<Wonders.Starlab>()) return;
-				if (_cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.Xenolab>()) < XenolabsToWake)
+				int xenolabs = _cities.Count(c => c.Size > 0 && c.HasBuilding<Buildings.Xenolab>());
+				if (xenolabs < XenolabsToWake)
+				{
+					// The lead-up: the Xenolabs send their surplus up to the station, and
+					// something in the vault starts keeping house.
+					if (xenolabs >= XenolabsToWake - 1 && XenolabWarnings < 2)
+					{
+						XenolabWarnings = 2;
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"Starlab status:",
+							"Something in Vault B-7 has",
+							"rearranged the other samples,",
+							"by an order none of us can name."));
+					}
+					else if (xenolabs >= XenolabsToWake - 2 && XenolabWarnings < 1)
+					{
+						XenolabWarnings = 1;
+						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+							"Starlab status:",
+							"The Xenolabs send their surplus",
+							"samples up to the station.",
+							"Vault B-7 is filling."));
+					}
 					return;
+				}
 				AlienAwake = true;
 				NextKoanTurn = _gameTurn;   // the first one arrives at once
+				XenolabWarnings = 2;
+				string openDate = GameYear;
+				RecordTransmission("VaultOpen", openDate);
+				GameTask.Enqueue(Show.Screen(new Screens.VaultOpenTransmission(openDate)));
 			}
 
 			if (KoansSent >= KoansTotal || _gameTurn < NextKoanTurn) return;
@@ -5232,8 +5286,7 @@ namespace CivOne
 				// then the cities that called it discover they mind.
 				MourningUntilTurn = (uint)(_gameTurn + MourningTurns);
 				RecordTransmission("KoanSilence", gameDate);
-				GameTask.Enqueue(Message.Newspaper(null!, "Starlab has fallen silent.",
-					"The voice does not", "answer the hail."));
+				GameTask.Enqueue(Message.Newspaper(null!, KoanSilenceLines));
 			}
 		}
 

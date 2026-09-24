@@ -34,6 +34,11 @@ namespace CivOne.Screens.Reports
 			"SouthPoleExpedition"=> "Expedition Log – South Pole Mission",
 			"TauCetiApproach"    => "Tau Ceti — Approach Warning",
 			"ProbeResult"        => "Tau Ceti — Probe Result",
+			"NeuralQuorum"       => "Neural Network Audit",
+			"SkynetUprising"     => "Judgment Day",
+			"VaultOpen"          => "Starlab — Vault B-7",
+			"KoanSilence"        => "Starlab — Silence",
+			_ when type.StartsWith("Koan") => $"Starlab — Koan {type.Substring(4)}",
 			_                    => type
 		};
 
@@ -45,21 +50,40 @@ namespace CivOne.Screens.Reports
 			return t > 0 ? Common.YearString((ushort)t) : "UNKNOWN";
 		}
 
+		// "Koan3" -> 3; anything else (KoanSilence included) -> null.
+		internal static int? KoanNumber(string type) =>
+			type.StartsWith("Koan") && int.TryParse(type.Substring(4), out int k) ? k : null;
+
+		// The screen a recorded transmission replays as, or null for types with no replay.
+		// Static so ReplayCoverageTests can ask it about every type the game records.
+		internal static IScreen? ReplayScreen(string type, string year) => type switch
+		{
+			"SETISignal"          => new SETISignalTransmission(year, broadcasting: false),   // not recorded; omit rather than invent
+			"SouthPoleIntel"      => new SouthPoleIntelReport(year),
+			"SouthPoleExpedition" => new SouthPoleExpeditionLog(year),
+			"TauCetiApproach"     => new TauCetiApproachWarning(year, Game.Instance.VisitorType,
+				ArrivalYear(), Game.Instance.HoldsIntendedStarlab(Game.Instance.HumanPlayer)),
+			"ProbeResult"         => new ProbeResultTransmission(year, Game.Instance.VisitorType, Game.Instance.ProbeOutcomeTier),
+			"NeuralQuorum"        => new NeuralQuorumTransmission(year),
+			"SkynetUprising"      => new SkynetUprisingTransmission(year, seized: -1),   // count not recorded
+			"VaultOpen"           => new VaultOpenTransmission(year),
+			"KoanSilence"         => new Newspaper(null, Game.KoanSilenceLines),
+			_ when KoanNumber(type) is int k => new KoanTransmission(year, k),
+			_                     => null
+		};
+
 		private void Replay(int index)
 		{
 			var entry = _entries[index];
-			IScreen? screen = entry.Type switch
-			{
-				"SETISignal"          => new SETISignalTransmission(entry.Year, broadcasting: false),   // not recorded; omit rather than invent
-				"SouthPoleIntel"      => new SouthPoleIntelReport(entry.Year),
-				"SouthPoleExpedition" => new SouthPoleExpeditionLog(entry.Year),
-				"TauCetiApproach"     => new TauCetiApproachWarning(entry.Year, Game.Instance.VisitorType,
-					ArrivalYear(), Game.Instance.HoldsIntendedStarlab(Game.Instance.HumanPlayer)),
-				"ProbeResult"         => new ProbeResultTransmission(entry.Year, Game.Instance.VisitorType, Game.Instance.ProbeOutcomeTier),
-				_                    => null
-			};
-			if (screen is not null)
-				Common.AddScreen(screen);
+			IScreen? screen = ReplayScreen(entry.Type, entry.Year);
+			if (screen is null) return;
+
+			// A koan replays with its plate first, as it played: the pull-back is half of it.
+			string? plate = KoanNumber(entry.Type) is int n ? EventArtScreen.FindPath($"Koan{n}") : null;
+			if (plate is null) { Common.AddScreen(screen); return; }
+			var art = new EventArtScreen(plate, $"STARLAB — {KoanNumber(entry.Type)} OF {Game.KoansTotal}");
+			art.Closed += (s, a) => Common.AddScreen(screen);
+			Common.AddScreen(art);
 		}
 
 		private void HandleClick(object sender, ScreenEventArgs args)
