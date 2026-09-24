@@ -173,6 +173,8 @@ namespace CivOne.Tests
 		// The Cultural Ascendancy fixture from VictoryLatchTests, one turn from the win.
 		private static Player OneTurnFromACulturalWin(Game g)
 		{
+			// The encore is never offered under Autopilot, which other tests leave on.
+			Settings.Instance.Autopilot = false;
 			for (int y = 20; y <= 30; y++)
 			for (int x = 30; x <= 50; x++)
 				Map.Instance.ChangeTileType(x, y, Terrain.Grassland1);

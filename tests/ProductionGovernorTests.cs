@@ -28,6 +28,9 @@ namespace CivOne.Tests
 		private static (Game g, City city) FinishingABarracks(int size, bool order, bool culture, params IAdvance[] advances)
 		{
 			Sim.NewGame(width: 80, height: 50);
+			// Explicitly off: under Autopilot the AI plans the human's cities and the governor
+			// is never asked, and many tests leave it on (Sim.NewGame does not reset it).
+			Settings.Instance.Autopilot = false;
 			Game g = Game.Instance;
 			for (int y = 20; y <= 30; y++)
 			for (int x = 30; x <= 50; x++)

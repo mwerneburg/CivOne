@@ -614,11 +614,21 @@ namespace CivOne
 		//
 		// The two old figures summed to this one, so nobody loses income by the change: the
 		// poorer end keeps what it had and the richer end stops subsidising it.
+		// Civ 1's formula was written for an 80-tile-wide world, where no two cities are much
+		// more than 40 apart. On a 320x200 epic map a Dirigible reaches cities ~80 away, and
+		// every such route paid about four times what the formula was ever tuned for.
+		// Measured on a finished 1876 AD save (CIVIL6): the human's 63 airship routes ran at a
+		// median distance of 82 and carried them to 46.0% of world output; at 40 it is 34.8%
+		// and still 2.6x the next civ. The AI's 214 routes (median 23, p90 44) barely move —
+		// the Romans went 2,823 -> 2,820. Capped rather than scaled to the map so every route
+		// within the old world's reach pays exactly what it did.
+		internal const int RouteDistanceCap = 40;
+
 		private int RouteBonus(City partner)
 		{
 			if (partner.X == 255) return 0;
 			if (Owner != partner.Owner && Game.GetPlayer(Owner).IsAtWar(Game.GetPlayer(partner.Owner))) return 0;
-			int distance = Common.DistanceToTile(X, Y, partner.X, partner.Y);
+			int distance = System.Math.Min(RouteDistanceCap, Common.DistanceToTile(X, Y, partner.X, partner.Y));
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
 			if (Owner == partner.Owner) multiplier *= 0.5f;
