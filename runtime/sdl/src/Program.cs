@@ -38,8 +38,30 @@ namespace CivOne
 Try 'civone-sdl --help' for more information.
 ";
 
+		// A Release build that dies on an unhandled exception leaves only "Abort trap: 6" —
+		// the trace scrolls past in the terminal and the macOS crash report cannot name a
+		// managed frame. Written next to the saves, same folder as Runtime.StorageDirectory,
+		// appended so a second crash does not erase the first. (Sep 2026: a crash attacking
+		// Sparta that would not reproduce, with nothing to go on.)
+		private static void RecordCrashes()
+		{
+			AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+			{
+				try
+				{
+					string dir = System.IO.Path.Combine(
+						Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CivOne");
+					System.IO.Directory.CreateDirectory(dir);
+					System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "crash.log"),
+						$"==== {DateTime.Now:yyyy-MM-dd HH:mm:ss} ====\n{e.ExceptionObject}\n\n");
+				}
+				catch { /* a failing crash log must not mask the crash */ }
+			};
+		}
+
 		private static void Main(string[] args)
 		{
+			RecordCrashes();
 			RegisterNativeResolver();
 			RuntimeSettings settings = new RuntimeSettings();
 			settings["software-render"] = false;

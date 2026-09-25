@@ -130,6 +130,42 @@ namespace CivOne.Tests
 			Assert.True(g.VisitorsArrived, "the fixture never reached landfall");
 		}
 
+		// The arrival transmission, off the queue the landfall left behind.
+		private static string ArrivalText()
+		{
+			var tasks = (System.Collections.IList)typeof(GameTask)
+				.GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+			object? screen = tasks.OfType<CivOne.Tasks.Show>().Select(t => (object)t.Displayed)
+				.FirstOrDefault(sc => sc is OlvirArrivalTransmission);
+			Assert.True(screen is not null, "no arrival transmission was queued");
+			return string.Join("\n", Lines(screen!));
+		}
+
+		// Starlab (or the observatories) named them, so orbit is a first contact, not a
+		// mystery. With the probe retired, every arrival read NO ADVANCE INTELLIGENCE.
+		[Fact]
+		public void OnceIdentifiedTheyArriveAsAFirstContact()
+		{
+			(Game g, Player _, Player _) = OnTheEveOfLandfall(banked: null);
+			Assert.True(g.VisitorsIdentified, "fixture: the reveal has not played");
+
+			PlayThroughLandfall(g);
+
+			Assert.Contains("FIRST TRANSMISSION (TRANSLATED):", ArrivalText());
+		}
+
+		// Control: arriving before anyone named them is still the unannounced contact.
+		[Fact]
+		public void UnidentifiedTheyStillArriveUnannounced()
+		{
+			(Game g, Player _, Player _) = OnTheEveOfLandfall(banked: null);
+			g.ArchetypeRevealTurn = (uint)(g.GameTurn + 100);   // the reveal still pending
+
+			PlayThroughLandfall(g);
+
+			Assert.Contains("NO ADVANCE INTELLIGENCE", ArrivalText());
+		}
+
 		[Fact]
 		public void TheOlvirShareTheirFuelOnLanding()
 		{

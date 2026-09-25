@@ -222,6 +222,14 @@ namespace CivOne
 		// Starlab, which is a telescope above the atmosphere, skips the wait entirely.
 		internal const int ArchetypeRevealTurns = 5;
 
+		// Whether Earth knows who is coming when they arrive. It used to be "a probe reached
+		// Tau Ceti", and with the probe retired every arrival read NO ADVANCE INTELLIGENCE —
+		// even after Starlab had shown the player the ship (seen in play, Sep 2026). The
+		// reveal is scheduled when the signal fires and zeroed once it has played, so a
+		// received signal with no reveal pending means they have been named.
+		internal bool VisitorsIdentified =>
+			ProbeInterimPhase == 4 || (SETISignalReceived && ArchetypeRevealTurn == 0);
+
 		// How many DIFFERENT civilizations must hold an Observatory before the Tau Ceti
 		// signal is detected: HALF the living field, never fewer than two.
 		//
@@ -550,7 +558,8 @@ namespace CivOne
 
 			string? contact = Screens.EventArtScreen.FindPath("ScavengerContact");
 			if (contact is not null)
-				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(contact, "UNANNOUNCED CONTACT")));
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(contact,
+					VisitorsIdentified ? "CONTACT — IT DOES NOT ANSWER" : "UNANNOUNCED CONTACT")));
 
 			GameTask.Enqueue(Message.Newspaper(null!, "The moon is coming apart.",
 				"Something is taking it", "for the mass."));
@@ -1455,22 +1464,9 @@ namespace CivOne
 				// two-Aztecs bug slipped past (it only checked whether the buddy was *destroyed*).
 				bool buddyAlive = _players.Any(p => p is not null && p.Civilization.Id == buddyId);
 				ICivilization buddyCiv = Common.Civilizations.FirstOrDefault(c => c.Id == buddyId);
-				if (!buddyDestroyed && !buddyAlive && buddyCiv is not null)
-				{
-					// A dead civilization's claims die with it. City.OriginalOwner is a player
-					// SLOT, not a civilization, and the buddy inherits the slot — so without
-					// this every city the dead civ ever lost reads as the newcomer's ancestral
-					// property. Frederick, freshly arrived in South America, opened his first
-					// conversation by demanding the return of Paris. Clearing the stamp also
-					// stops a recapture counting as liberation (BaseUnit.cs:375) and keeps the
-					// dome loss check (Game.cs:1227) honest.
-					foreach (City stale in _cities.Where(c => c.OriginalOwner == playerSlot && c.Owner != playerSlot))
-						stale.OriginalOwner = stale.Owner;
-
-					_players[playerSlot] = new Player(buddyCiv);
-					_players[playerSlot].Destroyed += PlayerDestroyed;
-					AddStartingUnits(playerSlot);
-				}
+				if (!buddyDestroyed && !buddyAlive && buddyCiv is not null
+				    && !_pendingRespawns.Any(r => r.Slot == playerSlot))
+					_pendingRespawns.Add((playerSlot, buddyCiv));
 			}
 
 			if (selfCollapse)
@@ -1479,6 +1475,35 @@ namespace CivOne
 				GameTask.Insert(Message.Advisor(Advisor.Defense, false, destroyed.Name, "civilization", "destroyed", $"by {destroyedBy.NamePlural}!"));
 		}
 		
+		// The buddy respawn above swaps a PLAYER SLOT, and PlayerDestroyed runs from inside
+		// Player.IsDestroyed — which about thirty loops over _players call, the sidebar's race
+		// strip and the top of EndTurn among them. Swapping mid-loop threw "Collection was
+		// modified" (a crash in play, Sep 2026: Sparta taken before 1 AD, and the next frame's
+		// StreakLeader died). So the swap is queued, and applied here where nothing iterates.
+		private readonly List<(byte Slot, ICivilization Civ)> _pendingRespawns = new();
+
+		private void FlushRespawns()
+		{
+			if (_pendingRespawns.Count == 0) return;
+			foreach ((byte playerSlot, ICivilization buddyCiv) in _pendingRespawns.ToArray())
+			{
+				// A dead civilization's claims die with it. City.OriginalOwner is a player
+				// SLOT, not a civilization, and the buddy inherits the slot — so without
+				// this every city the dead civ ever lost reads as the newcomer's ancestral
+				// property. Frederick, freshly arrived in South America, opened his first
+				// conversation by demanding the return of Paris. Clearing the stamp also
+				// stops a recapture counting as liberation (BaseUnit.cs:375) and keeps the
+				// dome loss check (Game.cs:1227) honest.
+				foreach (City stale in _cities.Where(c => c.OriginalOwner == playerSlot && c.Owner != playerSlot))
+					stale.OriginalOwner = stale.Owner;
+
+				_players[playerSlot] = new Player(buddyCiv);
+				_players[playerSlot].Destroyed += PlayerDestroyed;
+				AddStartingUnits(playerSlot);
+			}
+			_pendingRespawns.Clear();
+		}
+
 		// NOTE: 0 is the Barbarians (see the _players comment at the top of this file), and
 		// it is ALSO what this returns when the player is not in the game at all. Those two
 		// are indistinguishable here, so a stale Player reference silently reads as the
@@ -1920,6 +1945,7 @@ namespace CivOne
 			{
 				player.IsDestroyed();
 			}
+			FlushRespawns();
 
 			if (++_currentPlayer >= _players.Count)
 			{
@@ -2162,8 +2188,8 @@ namespace CivOne
 
 					// Refugees (Olvir) — and, until their own arcs are built, the other archetypes
 					// fall through to the peaceful-settlement path.
-					bool probeWasSent = (ProbeInterimPhase == 4);
-					string artCaption = probeWasSent
+					bool identified = VisitorsIdentified;
+					string artCaption = identified
 						? VisitorType switch
 						{
 							VisitorArchetype.Conquerors => "FIRST CONTACT — ULTIMATUM",
@@ -2178,7 +2204,7 @@ namespace CivOne
 					RecordTransmission("OlvirArrival", gameDate);
 					GameTask.Enqueue(Show.Screen(new EventArtScreen(
 						EventArtScreen.FindPath("MeetTheOlvir")!, artCaption)));
-					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, probeWasSent, landfallYear)));
+					GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorType, identified, landfallYear)));
 					OfferPlayOn();
 				}
 
@@ -3163,6 +3189,7 @@ namespace CivOne
 		
 		public void Update()
 		{
+			FlushRespawns();
 			IUnit? unit = ActiveUnit;
 			// In Autopilot we want the human's units handled by the AI just like a regular
 			// non-human player — fall through to the Turn.Move(unit) / Turn.End() branch

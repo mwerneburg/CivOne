@@ -114,7 +114,9 @@ namespace CivOne.Screens
 			return lines.ToArray();
 		}
 
-		// ── No-probe path: archetype is unknown ────────────────────────────
+		// ── Unidentified: nobody named them before orbit ───────────────────
+		// Only reachable from saves written before Game.VisitorsIdentified: the Starlab or
+		// observatory reveal now always precedes arrival.
 		private static string[] BuildUnannouncedLines(string gameDate, string landfallYear) => new[]
 		{
 			"PRIORITY ALERT — CLASSIFICATION: BEYOND OMEGA",
@@ -169,9 +171,9 @@ namespace CivOne.Screens
 			return CassetteTheme.INK_MID;
 		}
 
-		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype, bool probeWasSent, string landfallYear = "")
+		internal OlvirArrivalTransmission(string gameDate, VisitorArchetype archetype, bool identified, string landfallYear = "")
 		{
-			_lines = probeWasSent
+			_lines = identified
 				? BuildPreparedLines(gameDate, archetype, landfallYear)
 				: BuildUnannouncedLines(gameDate, landfallYear);
 			InitTypewriter();
