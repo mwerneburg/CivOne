@@ -94,8 +94,10 @@ namespace CivOne.Tests
 			string src = ScreenSource();
 
 			Assert.DoesNotContain("p.Culture / Math.Max(1, p.PeakPopulace)", src);
-			// ...it asks the rule instead, for BOTH the live end and the ranking.
-			Assert.Contains("Game.CulturalDensity(p, CultureWorldAverage())", src);
+			// ...it asks the rule instead, for BOTH the live end and the ranking — and the
+			// world average too (Game.CulturalWorldAverageNow), which it once also computed
+			// itself and got a different answer (CultureGraphLiveEndTests).
+			Assert.Contains("Game.CulturalDensity(p, Game.CulturalWorldAverageNow())", src);
 		}
 
 		// The populace floor is gone — folded into the divisor as the world's average nation

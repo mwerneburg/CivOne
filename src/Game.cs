@@ -109,7 +109,23 @@ namespace CivOne
 					peak[q[0]] = row;
 				}
 			}
+			var alive = byTurn;   // each sample's LIVE populace, before the peak pass
 			byTurn = peak;
+
+			// The same set CountsInCulturalAverage names, as far as a history can know it:
+			// never the barbarian column (slot 0), never a story faction (by who holds the slot
+			// now — they never respawn), and only civs with people AT THAT SAMPLE, so a dead
+			// civilization's peak stops counting when it dies.
+			bool[] storySlot = g._players.Select(p => p is not null
+				&& p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet).ToArray();
+			long WorldAverageAt(int turn, int[] peaks)
+			{
+				int[] now = alive[turn];
+				var counted = new List<long>();
+				for (int pi = 2; pi < peaks.Length && pi < now.Length; pi++)
+					if (now[pi] > 0 && !(pi - 1 < storySlot.Length && storySlot[pi - 1])) counted.Add(peaks[pi]);
+				return CulturalWorldAverage(counted);
+			}
 
 			var rows = new List<int[]>(byTurn.Count);
 			foreach (int[] c in culture)
@@ -121,7 +137,7 @@ namespace CivOne
 				// exactly as CulturalDensity does for the rule. Derived per row rather than
 				// stored, for the same one-definition reason as the peak pass above: a graph
 				// that ranks civs differently from the victory is worse than no graph.
-				long avg = CulturalWorldAverage(q.Skip(1).Select(v => (long)v));
+				long avg = WorldAverageAt(c[0], q);
 				for (int pi = 1; pi < c.Length && pi < q.Length; pi++)
 					// A civilization with no people has no culture per head. Max(1, 0) turned
 					// a city-less civ's ENTIRE accumulated culture into a per-head figure —
@@ -2553,9 +2569,7 @@ namespace CivOne
 					// exactly the relic it was written for, however many citizens it once had.
 					// Judging that clause on the peak would let a dead empire rank forever.
 					Player[] densityRivals = cultRivals.Where(p => p.Cities.Any(c => c.Size > 0)).ToArray();
-					long worldAverage = CulturalWorldAverage(densityRivals
-						.Select(p => (long)p.PeakPopulace)
-						.Concat(new[] { (long)claimant.PeakPopulace }));
+					long worldAverage = CulturalWorldAverageNow();
 					double cultPerHead = CulturalDensity(claimant, worldAverage);
 
 					// First in the world by a MARGIN, among civs that clear the same floor.
@@ -4497,6 +4511,20 @@ namespace CivOne
 		// stock, so a civ that shrinks must not shrink its own divisor and climb the table by
 		// dying. It also means a collapsed empire is damped by the size it used to be, which
 		// is what lets the old hard populace floor go — see CulturalDensity.
+		// WHO the world's average nation is made of — one definition for the victory rule, the
+		// graph's history and the graph's live end. Three versions of it drifted: the history
+		// counted barbarian towns and the lingering peaks of dead civs, both small, so every
+		// past point read higher than today's and each line dipped at its live end, then
+		// "healed" a turn later (reported Sep 2026). Living, not barbarian, not a story
+		// faction, and with people — the set the rule has always ranked.
+		internal bool CountsInCulturalAverage(Player? p) => p is not null && PlayerNumber(p) != 0
+			&& !p.IsDestroyed()
+			&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
+			&& p.Cities.Any(c => c.Size > 0);
+
+		internal long CulturalWorldAverageNow() => CulturalWorldAverage(
+			_players.Where(CountsInCulturalAverage).Select(p => (long)p.PeakPopulace));
+
 		internal static long CulturalWorldAverage(IEnumerable<long> peaks)
 		{
 			long[] live = peaks.Where(p => p > 0).ToArray();

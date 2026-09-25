@@ -77,13 +77,6 @@ namespace CivOne.Screens.Reports
 			_            => Game.ScoreHistory,
 		};
 
-		// The world's average civilization, for the blended cultural divisor. Off the same
-		// living, non-barbarian set the graph plots, so the live end of a line is measured
-		// exactly as its history was.
-		private long CultureWorldAverage() => Game.CulturalWorldAverage(Game.Players
-			.Where(p => p is not null && !(p.Civilization is Barbarian) && !p.IsDestroyed())
-			.Select(p => (long)p.PeakPopulace));
-
 		private int LiveValue(Player p) => _page switch
 		{
 			// Game.CulturalDensity, the rule's own measure — PeakPopulace blended with the
@@ -97,7 +90,7 @@ namespace CivOne.Screens.Reports
 			// jumped vertically to 45 at the live end — the "recent growth hidden in vertical
 			// lines" a player reported, and a standings list that disagreed with the header
 			// directly above it.
-			Page.Culture => (int)Game.CulturalDensity(p, CultureWorldAverage()),
+			Page.Culture => (int)Game.CulturalDensity(p, Game.CulturalWorldAverageNow()),
 			Page.Output  => Game.GrossOutputOf(p),
 			_            => p.Score,
 		};
@@ -288,7 +281,7 @@ namespace CivOne.Screens.Reports
 				// rank a player differently from the victory. The hard populace floor is gone:
 				// the world average now sits INSIDE the divisor, so a relic is damped by the
 				// size it used to be rather than excluded by a gate beside the formula.
-				long worldAvg = Game.CulturalWorldAverage(ranked.Select(p => (long)p.PeakPopulace));
+				long worldAvg = Game.CulturalWorldAverageNow();   // the rule's set, not `ranked`
 				double PerHead(Player p) => Game.CulturalDensity(p, worldAvg);
 
 				Player[] order = ranked.OrderByDescending(PerHead).ToArray();
