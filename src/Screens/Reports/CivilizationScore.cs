@@ -414,7 +414,12 @@ namespace CivOne.Screens.Reports
 				// the populace floor cannot rank however high its per-head figure climbs.
 				// No populace floor any more — the world average inside CulturalDensity does
 				// that work. Philosophy still opens the path at all.
-				return p.HasAdvance<Advances.Philosophy>();
+				//
+				// And REACH: a civ half the world has never met cannot ascend. It counts as a
+				// standing clause rather than a flicker — embassies never lapse and routes
+				// last — and without it the graph showed high-culture civs as contenders when
+				// the rule had already ruled them out (reported Sep 2026).
+				return p.HasAdvance<Advances.Philosophy>() && Game.KnownByHalfTheWorld(p);
 			}
 
 			byte TraceColour(Player p) => InTheRunning(p)

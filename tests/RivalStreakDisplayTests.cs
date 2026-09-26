@@ -145,6 +145,9 @@ namespace CivOne.Tests
 			// Both the curve and its legend row ask the same helper.
 			Assert.Contains("byte col  = TraceColour(players[pi]);", src);
 			Assert.Contains("byte col = TraceColour(p);", src);
+			// A civ half the world has never met cannot ascend, so it is greyed on the culture
+			// page — off the rule's own helper.
+			Assert.Contains("Game.KnownByHalfTheWorld(p)", src);
 			// The Score page ranks everyone alive, so it greys nobody.
 			Assert.Contains("if (_page == Page.Score) return true;", src);
 		}

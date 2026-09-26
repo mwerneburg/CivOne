@@ -105,6 +105,18 @@ namespace CivOne.Tests
 			Assert.Equal(0u, StreakAfterATurn(g, us));
 		}
 
+		// The helper the rule and the graph's grey traces share, asked directly.
+		[Fact]
+		public void TheSharedHelperAgreesWithTheRule()
+		{
+			(Game g, Player us, Player[] rivals) = AdmiredButUnmet();
+			Assert.False(g.KnownByHalfTheWorld(us));
+
+			for (int i = 0; i < Half(rivals); i++) rivals[i].EstablishEmbassy(us);
+
+			Assert.True(g.KnownByHalfTheWorld(us));
+		}
+
 		// The block is otherwise invisible — every readout on the score screen is green — so
 		// the player is told, once, on the same latch the war block uses.
 		[Fact]

@@ -2600,15 +2600,7 @@ namespace CivOne
 					// not carry a culture anywhere. An admired civilization nobody has met is
 					// not ascendant, merely remote. Added 23 Sep 2026 after a won game where no
 					// foreign civ had ever sent an ambassador and the win still fired.
-					bool Known(Player r)
-					{
-						byte rnum = PlayerNumber(r);
-						return claimant.HasEmbassy(r) || r.HasEmbassy(claimant) || r.HasDefensePact(claimant)
-							|| _cities.Any(c => c.Size > 0 &&
-								((c.Owner == cnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
-								|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == cnum))));
-					}
-					bool reach = cultRivals.Count(Known) * 2 >= cultRivals.Length;
+					bool reach = KnownByHalfTheWorld(claimant);
 
 					// Same clause and the same story-faction exclusion as Pax Mercatoria: a war you
 					// started is incompatible with being admired, but the Machines and the Registry
@@ -4521,6 +4513,27 @@ namespace CivOne
 			&& !p.IsDestroyed()
 			&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
 			&& p.Cities.Any(c => c.Size > 0);
+
+		// Cultural Ascendancy's REACH clause, shared by the rule and the score graph's grey
+		// traces (a civ nobody knows cannot win, so it is drawn as out of the running). Half
+		// the surviving rivals must know the claimant: a trade route either way, an embassy
+		// either way, or a defence pact. Story factions are neither rivals nor needed.
+		internal bool KnownByHalfTheWorld(Player claimant)
+		{
+			byte cnum = PlayerNumber(claimant);
+			Player[] rivals = _players.Where(p => p is not null && p != claimant && !p.IsDestroyed()
+				&& PlayerNumber(p) != 0
+				&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
+			bool Known(Player r)
+			{
+				byte rnum = PlayerNumber(r);
+				return claimant.HasEmbassy(r) || r.HasEmbassy(claimant) || r.HasDefensePact(claimant)
+					|| _cities.Any(c => c.Size > 0 &&
+						((c.Owner == cnum && c.TradeRoutes.Any(t => t.Partner.Owner == rnum))
+						|| (c.Owner == rnum && c.TradeRoutes.Any(t => t.Partner.Owner == cnum))));
+			}
+			return rivals.Count(Known) * 2 >= rivals.Length;
+		}
 
 		internal long CulturalWorldAverageNow() => CulturalWorldAverage(
 			_players.Where(CountsInCulturalAverage).Select(p => (long)p.PeakPopulace));
