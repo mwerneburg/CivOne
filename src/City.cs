@@ -59,7 +59,11 @@ namespace CivOne
 				//
 				// Destruction is the case that really does end a route, and it says so itself:
 				// see Game.DestroyCity, which used to get this cleanup by way of Owner = 0.
-				if (_owner != value && Game.Started) Game.Instance.BumpCityRoster();
+				if (_owner != value && Game.Started)
+				{
+					Game.Instance.BumpCityRoster();
+					RehomeAwayCaravans();   // catch-all; the capture paths call it earlier
+				}
 				_owner = value;
 				ResetResourceTiles();
 				InvalidateCache();
@@ -2057,6 +2061,26 @@ namespace CivOne
 		internal void RemoveHomeUnit(IUnit unit) => _homeUnits.Remove(unit);
 		public IUnit[] Units => _homeUnits.ToArray();
 
+		// A Caravan out on the road when its home city changes hands is not part of the
+		// city's garrison, and it used to go down with it: capture disbanded every unit the
+		// city supported, wherever it stood, and a seizure (the Machines, the Registry, the
+		// Thing) left it homeless — and a homeless Caravan can never open a route (the user,
+		// Sep 2026). So each one away from the city is handed to the nearest other city of the
+		// SAME owner before anything else happens to the city's units. Called first on every
+		// change-of-hands path, and from the Owner setter as a catch-all.
+		internal void RehomeAwayCaravans()
+		{
+			foreach (IUnit u in _homeUnits.ToArray())
+			{
+				if (u is not ICaravan || u.Owner != Owner || (u.X == X && u.Y == Y)) continue;
+				City? home = Game.Instance.GetCities()
+					.Where(c => !ReferenceEquals(c, this) && c.Owner == Owner && c.Size > 0)
+					.OrderBy(c => Common.DistanceToTile(c.X, c.Y, X, Y))
+					.FirstOrDefault();
+				if (home is not null) u.SetHome(home);
+			}
+		}
+
 		public ITile Tile => Map[X, Y];
 
 		public bool BuildingSold { get; private set; }
@@ -3348,6 +3372,7 @@ namespace CivOne
 							// does not, this loop would spin forever holding the whole game —
 							// inside a screen callback, where there is nothing to interrupt it.
 							// One pass per unit present, and stop if a pass changes nothing.
+							RehomeAwayCaravans();
 							for (int guard = this.Units.Length; guard > 0 && this.Units.Length > 0; guard--)
 							{
 								int before = this.Units.Length;

@@ -393,6 +393,7 @@ namespace CivOne.Units
 							capturedCity.RemoveBuilding<Palace>();
 						capturedCity.Food = 0;
 						capturedCity.Shields = 0;
+						capturedCity.RehomeAwayCaravans();
 						while (capturedCity.Units.Length > 0)
 							Game.DisbandUnit(capturedCity.Units[0]);
 						// Ghost-garrison sweep: pre-capture check at line 298 fires synchronously
@@ -408,6 +409,7 @@ namespace CivOne.Units
 						}
 						capturedCity.Owner = Owner;
 						capturedCity.TechStolen = false;
+						Game.Instance.RecordConquest(Game.GetPlayer(Owner), previousOwner);
 
 						// A story faction does not finish the previous administration's
 						// paperwork. Ordinary capture zeroes Shields but leaves the QUEUE

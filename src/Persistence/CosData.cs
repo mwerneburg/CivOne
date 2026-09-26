@@ -83,6 +83,17 @@ namespace CivOne.Persistence
 		public uint NextKoanTurn { get; set; }
 		public uint MourningUntilTurn { get; set; }
 		public uint OlvirArrivalTurn { get; set; }
+		// The Evaluators' observation window (Game.EvaluationStartTurn/EndTurn); 0 = none.
+		public uint EvaluationStartTurn { get; set; }
+		public uint EvaluationEndTurn { get; set; }
+		// Every nuclear detonation as [turn, player number] (Game.NuclearStrikes). Null in
+		// older saves, which the loader reads as none.
+		public List<int[]> NuclearStrikes { get; set; } = null!;
+		// Cities taken by force as [turn, taker, victim] (Game.Conquests); null = none.
+		public List<int[]> Conquests { get; set; } = null!;
+		// The Evaluators' verdict: Reset quarantines the system; Admission sends the Olvir.
+		public bool Quarantined { get; set; }
+		public uint LeagueRefugeesTurn { get; set; }
 		public uint OlvirProximityAlarmTurn { get; set; }
 		public uint OlvirBloomEndTurn { get; set; }
 		// Olvir improvements: list of [x, y, type] triples

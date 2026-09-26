@@ -38,6 +38,9 @@ namespace CivOne.Screens.Reports
 			"SkynetUprising"     => "Judgment Day",
 			"VaultOpen"          => "Starlab — Vault B-7",
 			"KoanSilence"        => "Starlab — Silence",
+			"EvaluatorArrival"   => "The Evaluators — Observation",
+			"EvaluatorAdmission" => "The Evaluators — Admitted",
+			"EvaluatorReset"     => "The Evaluators — Reset",
 			_ when type.StartsWith("Koan") => $"Starlab — Koan {type.Substring(4)}",
 			_                    => type
 		};
@@ -68,6 +71,10 @@ namespace CivOne.Screens.Reports
 			"SkynetUprising"      => new SkynetUprisingTransmission(year, seized: -1),   // count not recorded
 			"VaultOpen"           => new VaultOpenTransmission(year),
 			"KoanSilence"         => new Newspaper(null, Game.KoanSilenceLines),
+			// The verdict notices are not replayed: their figures are the world's at that turn,
+			// and a replay computed from today's world would misreport them.
+			"EvaluatorArrival"    => new OlvirArrivalTransmission(year, VisitorArchetype.Evaluators, identified: true,
+				Common.YearString((ushort)(Game.Instance.EvaluationStartTurn + Game.EvaluationTurns))),
 			_ when KoanNumber(type) is int k => new KoanTransmission(year, k),
 			_                     => null
 		};

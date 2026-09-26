@@ -44,6 +44,7 @@ namespace CivOne.Screens.Dialogs
 			captureCity.Done += (s1, a1) =>
 			{
 				byte oldOwner = _cityToIncite.Owner;
+				_cityToIncite.RehomeAwayCaravans();
 				IUnit[] toDisband = _cityToIncite.Units
 					.Concat(_cityToIncite.Tile.Units.Where(u => u.Owner == oldOwner))
 					.Distinct()

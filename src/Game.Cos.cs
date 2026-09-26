@@ -326,11 +326,17 @@ namespace CivOne
 					NextKoanTurn            = NextKoanTurn,
 					MourningUntilTurn       = MourningUntilTurn,
 					OlvirArrivalTurn        = OlvirArrivalTurn,
+					EvaluationStartTurn     = EvaluationStartTurn,
+					EvaluationEndTurn       = EvaluationEndTurn,
 					OlvirProximityAlarmTurn = OlvirProximityAlarmTurn,
 					OlvirBloomEndTurn       = OlvirBloomEndTurn,
 					OlvirImprovements       = OlvirImprovements.Count > 0
 					                          ? OlvirImprovements.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
+					NuclearStrikes          = NuclearStrikes.Count > 0 ? NuclearStrikes.ToList() : null!,
+					Conquests               = Conquests.Count > 0 ? Conquests.ToList() : null!,
+					Quarantined             = Quarantined,
+					LeagueRefugeesTurn      = LeagueRefugeesTurn,
 					ThingOutbreaks          = ThingOutbreaks.Count > 0
 					                          ? ThingOutbreaks.Select(kv => new[] { kv.Key.x, kv.Key.y, (int)kv.Value }).ToList()
 					                          : null!,
@@ -645,12 +651,20 @@ namespace CivOne
 			NextKoanTurn            = g.NextKoanTurn;
 			MourningUntilTurn       = g.MourningUntilTurn;
 			OlvirArrivalTurn        = g.OlvirArrivalTurn;
+			EvaluationStartTurn     = g.EvaluationStartTurn;
+			EvaluationEndTurn       = g.EvaluationEndTurn;
 			OlvirProximityAlarmTurn = g.OlvirProximityAlarmTurn;
 			OlvirBloomEndTurn       = g.OlvirBloomEndTurn;
 			if (g.OlvirImprovements is not null)
 				foreach (var triple in g.OlvirImprovements)
 					if (triple.Length == 3)
 						OlvirImprovements[(triple[0], triple[1])] = (Enums.OlvirImprovementType)triple[2];
+			if (g.NuclearStrikes is not null)
+				NuclearStrikes.AddRange(g.NuclearStrikes.Where(s => s.Length == 2));
+			if (g.Conquests is not null)
+				Conquests.AddRange(g.Conquests.Where(c => c.Length == 3));
+			Quarantined             = g.Quarantined;
+			LeagueRefugeesTurn      = g.LeagueRefugeesTurn;
 			if (g.ThingOutbreaks is not null)
 				foreach (var triple in g.ThingOutbreaks)
 					if (triple.Length == 3)

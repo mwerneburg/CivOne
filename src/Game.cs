@@ -312,6 +312,200 @@ namespace CivOne
 
 		internal bool ArrivalPending => SETISignalReceived && !VisitorsArrived;
 
+		// ── the Evaluators ───────────────────────────────────────────────────
+		// An instrument, not a crew (the user's art: dish arrays over Earth by night). They take
+		// orbit, land nothing, and watch HUMANITY — every civilization, not the player — for
+		// EvaluationTurns. The verdict is Admission to the league of worlds, or Reset.
+		internal const int EvaluationTurns = 50;
+		internal uint EvaluationStartTurn;   // 0 = no window has opened
+		internal uint EvaluationEndTurn;     // 0 = no window open (not started, or decided)
+
+		// Every nuclear detonation, as { turn, player number }. The game kept only the FIRST
+		// (for the Gozira), and the Evaluators judge them all. Saved.
+		internal readonly List<int[]> NuclearStrikes = new();
+
+		// Cities taken by force from anyone but barbarians and the story factions, as
+		// { turn, taker, victim } player numbers — the replay's CityCaptured keeps no victim,
+		// and liberating a city from the Machines is not what the Evaluators count. Saved.
+		internal readonly List<int[]> Conquests = new();
+
+		internal void RecordConquest(Player taker, Player victim)
+		{
+			if (PlayerNumber(taker) == 0 || taker.Civilization is Civilizations.TheOthers
+			        or Civilizations.TheThing or Civilizations.Skynet) return;
+			if (PlayerNumber(victim) == 0 || victim.Civilization is Civilizations.TheOthers
+			        or Civilizations.TheThing or Civilizations.Skynet) return;
+			Conquests.Add(new[] { (int)_gameTurn, PlayerNumber(taker), PlayerNumber(victim) });
+		}
+
+		// The verdict's two halves. COHESION: of every pair of human civilizations, the share
+		// at peace AND in contact (an embassy either way, a route either way, or a pact) — a
+		// species that cannot talk to itself cannot be trusted. INTENT: no nuclear strike and
+		// no city taken by force while they watch.
+		internal const double CohesionToPass = 0.5;
+		internal bool Quarantined;         // Reset: nothing leaves this system. Saved.
+		internal uint LeagueRefugeesTurn;  // Admission: the Olvir are sent to Earth. Saved.
+		internal const int LeagueRefugeesDelay = 20;
+
+		private Player[] EvaluatedNations() => _players.Where(p => p is not null && PlayerNumber(p) != 0
+			&& !p.IsDestroyed() && !(p.Civilization is Civilizations.TheOthers
+			                           or Civilizations.TheThing or Civilizations.Skynet)).ToArray();
+
+		private bool InContact(Player a, Player b)
+		{
+			byte an = PlayerNumber(a), bn = PlayerNumber(b);
+			return a.HasEmbassy(b) || b.HasEmbassy(a) || a.HasDefensePact(b)
+				|| _cities.Any(c => c.Size > 0 &&
+					((c.Owner == an && c.TradeRoutes.Any(t => t.Partner.Owner == bn))
+					|| (c.Owner == bn && c.TradeRoutes.Any(t => t.Partner.Owner == an))));
+		}
+
+		internal double Cohesion()
+		{
+			Player[] n = EvaluatedNations();
+			int pairs = 0, good = 0;
+			for (int i = 0; i < n.Length; i++)
+			for (int j = i + 1; j < n.Length; j++)
+			{
+				pairs++;
+				if (!n[i].IsAtWar(n[j]) && InContact(n[i], n[j])) good++;
+			}
+			return pairs == 0 ? 1.0 : (double)good / pairs;
+		}
+
+		internal bool IntentClean() =>
+			!NuclearStrikes.Any(s => s[0] >= EvaluationStartTurn)
+			&& !Conquests.Any(c => c[0] >= EvaluationStartTurn);
+
+		// HISTORY COUNTS (the user's call): "we have been observing for some time". A civ
+		// destroyed is 3, a nuclear strike 2, a city taken 1 — each doubled inside the window.
+		// Destructions are the replay's record, so they reach back to the first turn; strikes
+		// and conquests are recorded from Sep 2026 on.
+		internal int Offences(Player p)
+		{
+			byte num = PlayerNumber(p);
+			int W(int turn) => turn >= EvaluationStartTurn && EvaluationStartTurn > 0 ? 2 : 1;
+			int score = 0;
+			foreach (var d in GetReplayData<ReplayData.CivilizationDestroyed>())
+				if (d.DestroyedById == p.Civilization.Id && d.DestroyedId != d.DestroyedById)
+					score += 3 * W(d.Turn);
+			foreach (int[] s in NuclearStrikes) if (s[1] == num) score += 2 * W(s[0]);
+			foreach (int[] c in Conquests) if (c[1] == num) score += W(c[0]);
+			return score;
+		}
+
+		// Who answers for a failed species. The worst record; with nobody's hands dirty, the
+		// failure was cohesion, and the civ that talked to the fewest is the one held to it.
+		internal Player? WorstOffender()
+		{
+			Player[] n = EvaluatedNations().Where(p => !(p.Civilization is Civilizations.Olvir)).ToArray();
+			if (n.Length == 0) return null;
+			int worst = n.Max(Offences);
+			if (worst > 0) return n.Where(p => Offences(p) == worst).OrderByDescending(p => p.Cities.Length).First();
+			return n.OrderBy(p => n.Count(q => q != p && InContact(p, q))).ThenByDescending(p => p.Cities.Length).First();
+		}
+
+		private void ProcessEvaluation()
+		{
+			if (LeagueRefugeesTurn > 0 && _gameTurn >= LeagueRefugeesTurn)
+			{
+				LeagueRefugeesTurn = 0;
+				SendLeagueRefugees();
+			}
+
+			if (EvaluationEndTurn == 0) return;
+			bool domePass = DomeComplete;
+			if (!domePass && _gameTurn < EvaluationEndTurn) return;
+			EvaluationEndTurn = 0;
+
+			double cohesion = Cohesion();
+			bool pass = domePass || (cohesion >= CohesionToPass && IntentClean());
+			Log($"Evaluation verdict: {(pass ? "ADMISSION" : "RESET")} cohesion {cohesion:F2} intent {IntentClean()} dome {domePass}");
+			if (pass) AdmitHumanity(domePass, cohesion);
+			else ResetHumanity(cohesion);
+		}
+
+		private void AdmitHumanity(bool viaDome, double cohesion)
+		{
+			string gameDate = GameYear;
+			RecordTransmission("EvaluatorAdmission", gameDate);
+			string? art = Screens.EventArtScreen.FindPath("EvaluatorConstruct");
+			if (art is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art, "EVALUATION COMPLETE — ADMITTED")));
+			GameTask.Enqueue(Show.Screen(new Screens.EvaluatorVerdictTransmission(gameDate, pass: true,
+				viaDome, cohesion, IntentClean(), offender: null)));
+
+			// The League opens the door both ways: the drive is shared, and Earth becomes a
+			// place the League may send the displaced. Done now, before the choice, so a player
+			// who plays on finds both waiting.
+			foreach (Player p in EvaluatedNations()) Progress(PlayerNumber(p)).HasExoticFuel = true;
+			LeagueRefugeesTurn = (uint)(_gameTurn + LeagueRefugeesDelay);
+
+			HumanPlayer.AwardMilestone(150);
+			DecisionLogger.EndGame(HumanPlayer.Score, "Admission", humanWon: true, turns: _gameTurn, HumanPlayer);
+			if (Settings.Instance.Autopilot) { FinishGame("Admission"); return; }
+			if (BankedVictory is not null) return;   // already won and staying on: points only
+			BankedVictory = "Admission";
+			GameTask.Enqueue(Show.Screen(new Screens.Dialogs.EncoreChoice("ADMITTED", new[]
+			{
+				"Humanity is admitted to the League.",
+				"Play on: the drive is shared, and",
+				"others may now be sent to Earth.",
+			}, () => FinishGame("Admission"))));
+		}
+
+		private void ResetHumanity(double cohesion)
+		{
+			Quarantined = true;
+			Player? offender = WorstOffender();
+			string gameDate = GameYear;
+			RecordTransmission("EvaluatorReset", gameDate);
+			string? art = Screens.EventArtScreen.FindPath("EvaluatorConstruct");
+			if (art is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art, "EVALUATION COMPLETE — RESET")));
+			GameTask.Enqueue(Show.Screen(new Screens.EvaluatorVerdictTransmission(gameDate, pass: false,
+				viaDome: false, cohesion, IntentClean(), offender?.TribeNamePlural)));
+			if (offender is not null) ResetCivilization(offender);
+		}
+
+		// The reset: the newest quarter-or-at-least-three advances unlearned, and a quarter of
+		// every city's people gone. Not an extermination — a correction.
+		internal const int ResetAdvancesMin = 3;
+		internal void ResetCivilization(Player p)
+		{
+			IAdvance[] known = p.Advances.Where(a => a is not FutureTech).ToArray();
+			int lose = Math.Max(ResetAdvancesMin, known.Length / 4);
+			foreach (IAdvance a in known.Reverse().Take(lose).ToArray()) p.DeleteAdvance(a);
+			foreach (City c in p.Cities.Where(c => c.Size > 1).ToArray())
+				c.Size = (byte)Math.Max(1, c.Size - c.Size / 4);
+		}
+
+		private void SendLeagueRefugees()
+		{
+			if (_players.Any(p => p is not null && p.Civilization is Civilizations.Olvir && !p.IsDestroyed())) return;
+			SpawnOlvir();
+			string gameDate = GameYear;
+			RecordTransmission("OlvirArrival", gameDate);
+			string? meet = Screens.EventArtScreen.FindPath("MeetTheOlvir");
+			if (meet is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(meet, "SENT BY THE LEAGUE")));
+			GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorArchetype.Refugees,
+				identified: true, Common.YearString((ushort)_gameTurn))));
+		}
+
+		private void ArriveEvaluators()
+		{
+			EvaluationStartTurn = _gameTurn;
+			EvaluationEndTurn = (uint)(_gameTurn + EvaluationTurns);
+			string gameDate = GameYear;
+			RecordTransmission("EvaluatorArrival", gameDate);
+			string? art = Screens.EventArtScreen.FindPath("EvaluatorConstruct");
+			if (art is not null)
+				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art, "FIRST CONTACT — EVALUATION")));
+			GameTask.Enqueue(Show.Screen(new Screens.OlvirArrivalTransmission(gameDate, VisitorArchetype.Evaluators,
+				VisitorsIdentified, Common.YearString((ushort)EvaluationEndTurn))));
+		}
+
 		private void EndOrEncore(string victory)
 		{
 			if (BankedVictory is not null) return;   // a second win during the encore: points only
@@ -2202,6 +2396,13 @@ namespace CivOne
 						return;
 					}
 
+					if (VisitorType == VisitorArchetype.Evaluators)
+					{
+						ArriveEvaluators();
+						OfferPlayOn();
+						return;
+					}
+
 					// Refugees (Olvir) — and, until their own arcs are built, the other archetypes
 					// fall through to the peaceful-settlement path.
 					bool identified = VisitorsIdentified;
@@ -2739,7 +2940,7 @@ namespace CivOne
 				{
 					bool humanWins = Progress(PlayerNumber(HumanPlayer)).SpaceshipArrivalTurn == bestArrival;
 
-					if (SETISignalReceived && VisitorType == VisitorArchetype.Owners)
+					if (SETISignalReceived && (VisitorType == VisitorArchetype.Owners || Quarantined))
 					{
 						// Owners timeline: nothing leaves. The recovery fleet's pickets take
 						// every colony ship — launched before or after the arrival at Earth,
@@ -3074,6 +3275,7 @@ namespace CivOne
 
 				// The synthetic alien: the fifth Xenolab wakes something that only talks.
 				Tick("Koans", ProcessKoans);
+				Tick("Evaluation", ProcessEvaluation);
 
 				Tick("Disasters", () =>
 				{
@@ -4045,13 +4247,24 @@ namespace CivOne
 			VisitorArchetype chosen =
 				Common.Random.Next(100) < (int)System.Math.Round(pScavengers * 100)
 					? VisitorArchetype.Scavengers
-					: Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
-						? VisitorArchetype.Refugees
-						: VisitorArchetype.Owners;
+					: Common.Random.Next(100) < (int)System.Math.Round(EvaluatorOdds(character) * 100)
+						? VisitorArchetype.Evaluators
+						: Common.Random.Next(100) < (int)System.Math.Round(pRefugees * 100)
+							? VisitorArchetype.Refugees
+							: VisitorArchetype.Owners;
 
 			DecisionLogger.LogVisitorDraw(character, pRefugees, nations.Length, larder, pScavengers, chosen.ToString());
 			return chosen;
 		}
+
+		// The Evaluators come for a species they cannot yet classify. The Olvir and the Owners
+		// are verdicts already reached — worth joining, worth reclaiming — and they answer the
+		// clear cases; a world in the ambiguous middle is the one worth MEASURING. Rolled after
+		// the Scavengers (who judge nothing) and before the character draw. Never zero at the
+		// edges either: a draw a player can steer to impossible is a checklist.
+		internal const double EvaluatorMiddleBand = 2.0;
+		internal static double EvaluatorOdds(double character) =>
+			Math.Abs(character) <= EvaluatorMiddleBand ? 0.30 : 0.10;
 
 		// Never zero: something is always worth the trip, and a draw that a perfect player can
 		// drive to impossible stops being a threat and becomes a checklist.
@@ -4265,6 +4478,7 @@ namespace CivOne
 				// The defenders are deprecated; units homed here elsewhere fight on unsupported.
 				foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())
 					DisbandUnit(unit);
+				city.RehomeAwayCaravans();
 				foreach (IUnit unit in city.Units.ToArray())
 					unit.SetHome(null);
 
@@ -4813,6 +5027,7 @@ namespace CivOne
 			{
 				// Garrisons join the rebellion where they stand; units homed here
 				// elsewhere fight on unsupported.
+				city.RehomeAwayCaravans();
 				foreach (IUnit unit in city.Units.ToArray())
 					unit.SetHome(null);
 				foreach (IUnit unit in Map[city.X, city.Y].Units.Where(u => u.Owner == bnum).ToArray())
@@ -5202,6 +5417,7 @@ namespace CivOne
 				: "open ground."));
 
 			DecisionLogger.LogNuclearStrike(detonator, hit, struck, "detonated");
+			NuclearStrikes.Add(new[] { (int)_gameTurn, PlayerNumber(detonator) });
 			CondemnNuclearStrike(detonator, hit);
 
 			// A strike touching grey goo sterilizes the whole connected region.
@@ -5394,6 +5610,7 @@ namespace CivOne
 				}
 				foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())
 					DisbandUnit(unit);
+				city.RehomeAwayCaravans();
 				foreach (IUnit unit in city.Units.ToArray())
 					unit.SetHome(null);
 
@@ -5856,6 +6073,7 @@ namespace CivOne
 				// The garrison walks away; units homed here fight on unsupported.
 				foreach (IUnit u in Map[city.X, city.Y].Units.ToArray())
 					DisbandUnit(u);
+				city.RehomeAwayCaravans();
 				foreach (IUnit u in city.Units.ToArray())
 					u.SetHome(null);
 				_replayData.Add(new ReplayData.CityCaptured(_gameTurn, _cities.IndexOf(city), city.NameId, city.X, city.Y, mnum));
@@ -5955,6 +6173,7 @@ namespace CivOne
 
 			// Units homed here elsewhere fight on unsupported; the garrison is
 			// assimilated where it stands, plus the organism itself.
+			city.RehomeAwayCaravans();
 			foreach (IUnit unit in city.Units.ToArray())
 				unit.SetHome(null);
 			foreach (IUnit unit in Map[city.X, city.Y].Units.ToArray())

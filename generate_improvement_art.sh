@@ -191,6 +191,10 @@ resize_and_install_event "$SRC/Koan4.png"                 "Koan4.png"
 resize_and_install_event "$SRC/Koan5.png"                 "Koan5.png"
 resize_and_install_event "$SRC/OtherVoice.png"            "OtherVoice.png"
 
+# The Evaluators: an instrument, not a crew — dish arrays over Earth by night. Plays at
+# their arrival and through the observation window.
+resize_and_install_event "$SRC/EvaluatorConstruct.png"       "EvaluatorConstruct.png"
+
 resize_and_install_event "$SRC/ScavengerContact.png"         "ScavengerContact.png"
 resize_and_install_event "$SRC/ScavengerExtraction.png"      "ScavengerExtraction.png"
 

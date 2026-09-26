@@ -181,6 +181,7 @@ namespace CivOne.Units
 						Player oldOwnerPlayer = Game.GetPlayer(oldOwner);
 
 						// Disband resident units and a random ~half of the buildings.
+						target.RehomeAwayCaravans();
 						foreach (IUnit u in target.Units.Concat(target.Tile.Units.Where(u => u.Owner == oldOwner)).Distinct().ToArray())
 							Game.DisbandUnit(u);
 						foreach (IBuilding b in target.Buildings.Where(b => Common.Random.Next(0, 2) == 0).ToList())
