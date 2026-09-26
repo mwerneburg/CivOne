@@ -33,9 +33,13 @@ namespace CivOne.Graphics
 			BottomColour = shadowColour
 		};
 
-		public static TextSettings UnitText(byte playerNumber) => new TextSettings()
+		// One colour for every civ. Civ 1 drew player 1's letters dark because player 1's units
+		// were WHITE; every unit tile now sits on the cassette's dark BG0 (Sprites/Unit.GetUnit),
+		// so that exception drew the Romans' and Russians' G/M/F black on black (reported Sep
+		// 2026).
+		public static TextSettings UnitText() => new TextSettings()
 		{
-			Colour = (byte)(playerNumber == 1 ? 9 : 15),
+			Colour = 15,
 			BottomColour = 5,
 			Alignment = TextAlign.Center
 		};

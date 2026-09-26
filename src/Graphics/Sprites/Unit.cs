@@ -105,7 +105,7 @@ namespace CivOne.Graphics.Sprites
 		{
 			return new Picture(16, 16)
 				.AddLayer(BaseUnit[(unit.Type, unit.PlayerNumber)].Bitmap)
-				.DrawText($"{unit.Letter}", 8, 8, TextSettings.UnitText(unit.PlayerNumber))
+				.DrawText($"{unit.Letter}", 8, 8, TextSettings.UnitText())
 				.Bitmap;
 		}
 
