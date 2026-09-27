@@ -413,17 +413,33 @@ namespace CivOne
 				SendLeagueRefugees();
 			}
 
-			if (EvaluationEndTurn == 0) return;
-			bool domePass = DomeComplete;
-			if (!domePass && _gameTurn < EvaluationEndTurn) return;
+			if (EvaluationEndTurn == 0 || _gameTurn < EvaluationEndTurn) return;
 			EvaluationEndTurn = 0;
 
-			double cohesion = Cohesion();
-			bool pass = domePass || (cohesion >= CohesionToPass && IntentClean());
-			Log($"Evaluation verdict: {(pass ? "ADMISSION" : "RESET")} cohesion {cohesion:F2} intent {IntentClean()} dome {domePass}");
-			if (pass) AdmitHumanity(domePass, cohesion);
-			else ResetHumanity(cohesion);
+			bool unison = DomeInUnison;
+			double cohesion = JudgedCohesion();
+			bool pass = cohesion >= CohesionToPass && IntentClean();
+			Log($"Evaluation verdict: {(pass ? "ADMISSION" : "RESET")} cohesion {cohesion:F2} intent {IntentClean()} dome-in-unison {unison}");
+			if (pass) AdmitHumanity(unison, cohesion);
+			else ResetHumanity(unison, cohesion);
 		}
+
+		// The Dome is a BONUS to cohesion, not a pass (the user, Sep 2026). As a pass it
+		// pre-empted the whole test: in the first autoplay it was finished five turns before
+		// the construct arrived, and a world at 36% cohesion was admitted on the first turn.
+		// And only a Dome raised by TWO OR MORE civilizations counts — unison is the point,
+		// and one empire building all five parts is not humanity acting together. Builders
+		// are read from the replay, so a part counts for whoever laid it, not whoever holds
+		// the city now.
+		internal const double DomeCohesionBonus = 0.25;
+
+		internal int DomeBuilders() => DomeFiveComponents
+			.Select(w => GetReplayData<ReplayData.WonderBuilt>().FirstOrDefault(r => r.WonderName == w.Name))
+			.Where(r => r is not null).Select(r => r!.OwnerId).Distinct().Count();
+
+		internal bool DomeInUnison => DomeComplete && DomeBuilders() >= 2;
+
+		internal double JudgedCohesion() => Math.Min(1.0, Cohesion() + (DomeInUnison ? DomeCohesionBonus : 0));
 
 		private void AdmitHumanity(bool viaDome, double cohesion)
 		{
@@ -454,7 +470,7 @@ namespace CivOne
 			}, () => FinishGame("Admission"))));
 		}
 
-		private void ResetHumanity(double cohesion)
+		private void ResetHumanity(bool viaDome, double cohesion)
 		{
 			Quarantined = true;
 			Player? offender = WorstOffender();
@@ -464,7 +480,7 @@ namespace CivOne
 			if (art is not null)
 				GameTask.Enqueue(Show.Screen(new Screens.EventArtScreen(art, "EVALUATION COMPLETE — RESET")));
 			GameTask.Enqueue(Show.Screen(new Screens.EvaluatorVerdictTransmission(gameDate, pass: false,
-				viaDome: false, cohesion, IntentClean(), offender?.TribeNamePlural)));
+				viaDome, cohesion, IntentClean(), offender?.TribeNamePlural)));
 			if (offender is not null) ResetCivilization(offender);
 		}
 

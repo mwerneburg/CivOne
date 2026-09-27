@@ -5,7 +5,7 @@
 //
 //   COHESION  — the share of human civ pairs at peace AND in contact (embassy, route, pact)
 //   INTENT    — no nuclear strike and no city taken by force during the window
-//   The Dome finished is an immediate pass.
+//   The Dome adds Game.DomeCohesionBonus — but only if two or more civs built it.
 //
 //   ADMISSION — the drive is shared, the Olvir are sent later, the win banked with "play on"
 //   RESET     — quarantine (nothing leaves), and the worst offender over ALL of history is
@@ -185,17 +185,68 @@ namespace CivOne.Tests
 			Assert.True(g.Quarantined);
 		}
 
-		[Fact]
-		public void TheDomeIsAPass()
+		// Build the five Dome parts, each recorded as laid by one of `builders`, in turn.
+		private static void BuildDome(Game g, params Player[] builders)
+		{
+			int i = 0;
+			foreach (IWonder w in Game.DomeFiveComponents)
+			{
+				Player by = builders[i++ % builders.Length];
+				City c = by.Cities.First();
+				c.AddWonder(w);
+				g.AddReplayEvent(new ReplayData.WonderBuilt(g.GameTurn, g.PlayerNumber(by), w.Name, c.X, c.Y));
+			}
+			Assert.True(g.DomeComplete, "fixture: the Dome is not complete");
+		}
+
+		// A world at 2/6 cohesion fails the 0.5 bar alone; a Dome raised by two civs adds
+		// DomeCohesionBonus and carries it over.
+		private static (Game g, Player[] civs) AThirdConnected()
 		{
 			(Game g, Player[] civs) = FourCivs();
-			City c = civs[0].Cities.Single();
-			foreach (IWonder w in Game.DomeFiveComponents) c.AddWonder(w);
-			Assert.True(g.DomeComplete, "fixture: the Dome is not complete");
+			civs[0].EstablishEmbassy(civs[1]);
+			civs[2].EstablishEmbassy(civs[3]);
+			Assert.True(g.Cohesion() < Game.CohesionToPass, "fixture: already passes without the Dome");
+			return (g, civs);
+		}
+
+		[Fact]
+		public void ADomeRaisedTogetherTipsTheBalance()
+		{
+			(Game g, Player[] civs) = AThirdConnected();
+			BuildDome(g, civs[0], civs[1]);
 
 			VerdictNow(g);
 
 			Assert.Equal("Admission", g.BankedVictory);
+		}
+
+		// One empire building every part is not humanity acting together.
+		[Fact]
+		public void ADomeRaisedByOneCivCountsForNothing()
+		{
+			(Game g, Player[] civs) = AThirdConnected();
+			BuildDome(g, civs[0]);
+
+			VerdictNow(g);
+
+			Assert.True(g.Quarantined);
+		}
+
+		// No early pass: the first autoplay was admitted the turn after arrival.
+		[Fact]
+		public void TheDomeDoesNotEndTheWindowEarly()
+		{
+			(Game g, Player[] civs) = FourCivs();
+			ConnectAll(civs);
+			BuildDome(g, civs[0], civs[1]);
+			g.EvaluationStartTurn = g.GameTurn;
+			g.EvaluationEndTurn = (uint)(g.GameTurn + 10);
+
+			Call(g, "ProcessEvaluation");
+
+			Assert.Equal((uint)(g.GameTurn + 10), g.EvaluationEndTurn);
+			Assert.Null(g.BankedVictory);
 		}
 
 		// The League sends the Olvir some turns after admission.

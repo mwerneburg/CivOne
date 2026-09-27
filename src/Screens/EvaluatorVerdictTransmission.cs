@@ -32,12 +32,13 @@ namespace CivOne.Screens
 				"OBSERVATION PERIOD: CLOSED.",
 				"",
 			};
+			// viaDome: the Dome was raised by more than one polity, and is credited to cohesion
+			// (Game.DomeCohesionBonus) — already included in `cohesion`.
 			if (viaDome)
-				lines.Add("* UNISON: PLANETARY SHIELD RAISED IN CONCERT. CRITERION SATISFIED.");
-			else
-				lines.Add($"* COHESION: {pct}% OF POLITIES AT PEACE AND IN CONTACT. "
-				          + (cohesion >= Game.CohesionToPass ? "THRESHOLD MET." : "BELOW THRESHOLD."));
-			lines.Add(intentClean || viaDome
+				lines.Add("* UNISON: PLANETARY SHIELD RAISED BY SEVERAL POLITIES. CREDITED.");
+			lines.Add($"* COHESION: {pct}% OF POLITIES AT PEACE AND IN CONTACT. "
+			          + (cohesion >= Game.CohesionToPass ? "THRESHOLD MET." : "BELOW THRESHOLD."));
+			lines.Add(intentClean
 				? "* INTENT: NO PROSCRIBED ACTS RECORDED IN PERIOD."
 				: "* INTENT: PROSCRIBED ACTS RECORDED IN PERIOD.");
 			lines.Add("");
