@@ -1735,6 +1735,53 @@ namespace CivOne
 			partnerAi.MergeColonyRegister(this);
 		}
 
+		// ── ambassadors by treaty ─────────────────────────────────────────────
+		//
+		// The AI had no diplomacy with other AI civs at all, and its Diplomats only walk to
+		// cities on their own continent — so two AI civs across a sea could never come to know
+		// each other, and the reach clause (Cultural Ascendancy) and the Evaluators' cohesion
+		// were out of reach for everyone. Measured in an autoplay (Sep 2026): world contact
+		// 36%, and no culture streak ever started, for anybody.
+		//
+		// So a civ at peace with another whose city it has SEEN exchanges ambassadors now and
+		// then, carried by whatever ship is going. Abstracted rather than walked: teaching
+		// Diplomats to take ships would put them in the queue for transports the AI already
+		// struggles to run (the Maori stalled at eight cities on exactly that).
+		//
+		// With another AI civ the exchange is mutual. With the human it runs ONE way — their
+		// envoy arrives in our capital — so a player still earns their own embassies with
+		// their own Diplomats, and is told when one arrives.
+		// 1, not 5: measured on seeds 101/202/303 (80x50, 7 civs), world cohesion at turn 350
+		// went 0.19-0.29 with none, 1.00 on every seed at 5% (saturated by turn 250), and
+		// 0.62-0.86 at 1% — rising through the game, still dented by wars.
+		internal const int AmbassadorChance = 1;   // percent per partner per turn
+
+		internal void ConsiderAmbassadors()
+		{
+			if (Game.PlayerNumber(Player) == 0 || Player.IsDestroyed()) return;
+			if (Player.Civilization is Olvir or TheOthers or TheThing or Skynet) return;
+			if (Player.Government is Governments.Anarchy) return;
+
+			foreach (Player other in Game.Players.Where(p => p is not null && p != Player
+			         && Game.PlayerNumber(p) != 0 && !p.IsDestroyed()
+			         && !(p.Civilization is TheOthers or TheThing or Skynet)).ToArray())
+			{
+				bool toHuman = other == Game.HumanPlayer && !Settings.Instance.Autopilot;
+				if (Player.HasEmbassy(other) && (toHuman || other.HasEmbassy(Player))) continue;
+				if (Player.IsAtWar(other)) continue;
+				if (!other.Cities.Any(c => c.Size > 0 && Player.Visible(c.X, c.Y))) continue;
+				if (Common.Random.Next(100) >= AmbassadorChance) continue;
+
+				Player.EstablishEmbassy(other);
+				if (toHuman)
+					GameTask.Enqueue(Message.Advisor(Advisor.Foreign, false,
+						$"The {Player.TribeNamePlural} have opened",
+						"an embassy in our capital."));
+				else
+					other.EstablishEmbassy(Player);
+			}
+		}
+
 		// ── proactive war declaration ──────────────────────────────────────────
 
 		// A republic eyeing a weaker neighbour. Sets an appetite rather than acting: while it
