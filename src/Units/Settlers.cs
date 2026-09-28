@@ -108,6 +108,10 @@ namespace CivOne.Units
 
 		internal bool Automated => !RoadTo.IsEmpty || AutoClean || AutoImprove;
 
+		// The city site the AI sent this settler to, if it was sent to found one (AI.Move).
+		// Not saved: after a reload the settler simply re-asks, which is the old behaviour.
+		internal (int X, int Y)? SettleSite { get; set; }
+
 		internal bool IsTileClaimed(int tx, int ty) =>
 			Game.GetUnits().OfType<Settlers>().Any(s =>
 				s != this && s.Owner == Owner &&

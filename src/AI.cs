@@ -322,7 +322,14 @@ namespace CivOne
 				// The gate is now ground truth. It could not be before because the backlog
 				// was a full-map scan and this runs per settler per turn; PollutionBacklog
 				// makes it cheap enough to ask honestly.
-				if (unit is Settlers cleaner && !cleaner.AutoClean && PollutionBacklog() > 0)
+				// ...but never a settler on its way to found a city (SettleSite). The draft
+				// took whichever settler happened to be processed, so colonists riding out to
+				// the frontier were turned round mid-journey and sent back to the smog, while
+				// others rode out past them — the east-west figure-eight north of Chelyabinsk
+				// (the user, Sep 2026). A colonist stays a colonist; the crew fills from the
+				// settlers who are not going anywhere in particular.
+				if (unit is Settlers cleaner && !cleaner.AutoClean && cleaner.SettleSite is null
+				    && PollutionBacklog() > 0)
 				{
 					byte pollId = Game.PlayerNumber(Player);
 					Settlers[] crew = Game.GetUnits().OfType<Settlers>()
@@ -416,7 +423,16 @@ namespace CivOne
 					// final settler is choosing between a poor city and not existing, and the
 					// note above is explicit that the ordinary questions are the wrong ones to
 					// ask it. Everyone else has to found somewhere the city can eat.
-					if (validCity && (lastChance || (nearestCity > 3 && expanding && CentreCanFeed(tile))))
+					// A settler sent here to found a city may still found it, even if `expanding`
+					// has since flipped. MayFoundCities is a threshold on mean city size, and an
+					// empire sitting on it answers yes and no on alternate turns: settlers rode out
+					// to a site chosen on a "yes", arrived on a "no", and rode home — then out
+					// again. The figure-eight north of Chelyabinsk (the user, Sep 2026): 12 turns
+					// of replay showed settlers arriving on a legal site with every other clause
+					// true, and leaving 9 to 16 tiles for home. The commitment the en-route
+					// check above already honours now holds on arrival too.
+					bool committed = unit is Settlers sc && sc.SettleSite == (tile.X, tile.Y);
+					if (validCity && (lastChance || (nearestCity > 3 && (expanding || committed) && CentreCanFeed(tile))))
 					{
 						DecisionLogger.LogSettlerAction(unit, "found");
 						GameTask.Enqueue(Orders.FoundCity(unit as Settlers));
@@ -523,10 +539,22 @@ namespace CivOne
 					// game. See AI.Strategy.BestCampSite.
 					ITile? camp = BestCampSite(unit);
 
+					ITile? settle = null;
 					ITile? best = port
 						?? (expanding
-							? (BestSettleSite(unit) ?? camp ?? BestImproveSite(unit))
+							? ((settle = BestSettleSite(unit)) ?? camp ?? BestImproveSite(unit))
 							: (camp ?? BestImproveSite(unit)));
+					// Remember a city site it was SENT to, so arriving on a "no" turn does not
+					// turn it round (see `committed` above). Anything else clears it.
+					if (unit is Settlers ss)
+					{
+						ss.SettleSite = settle is not null && best == settle ? (settle.X, settle.Y) : null;
+						// ...and a colonist is released from pollution duty. The draft above runs
+						// BEFORE this, so a settler could be drafted and sent to a site in the same
+						// turn — then Settlers.NewTurn re-aimed it at the smog 16-19 tiles back the
+						// way it came. That was two of the three reversals in the replay.
+						if (ss.SettleSite is not null) ss.AutoClean = false;
+					}
 					if (best is not null && (best.X != unit.X || best.Y != unit.Y))
 					{
 						unit.Goto = new Point(best.X, best.Y);
