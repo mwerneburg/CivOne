@@ -2496,6 +2496,15 @@ namespace CivOne
 		internal ITile? BestSettleSite(IUnit settlers)
 			=> BestSettleSiteWithin(settlers, 8) ?? BestSettleSiteWithin(settlers, 16);
 
+		// Suitability points a city site loses per tile of distance from the settler. It had
+		// none: every site within the scan counted as equally near, so neighbouring colonists
+		// took each other's sides of the map and crossed on the rails — the to-and-fro near
+		// Riga and Novgorod (the user, Sep 2026). The overseas scan already subtracts distance.
+		// Measured on that save over 30 turns: mean trip 6.5 -> 4.6 tiles, and 12 cities
+		// founded against 9. Suitability runs to about a hundred, so 5 a tile prefers the
+		// nearer of two comparable sites without passing over a much better one.
+		internal const int SiteDistanceWeight = 5;
+
 		private ITile? BestSettleSiteWithin(IUnit settlers, int radius)
 		{
 			int mapWidth = Map.WIDTH, mapHeight = Map.HEIGHT;
@@ -2524,7 +2533,7 @@ namespace CivOne
 				if (!LandReachable(settlers, tile)) continue;
 				if (Game.GetCities().Any(c => Common.DistanceToTile(c.X, c.Y, tx, ty) < 4)) continue;
 				if (claimedGotos.Contains((tx, ty))) continue;
-				int score = SiteSuitability(tile);
+				int score = SiteSuitability(tile) - SiteDistanceWeight * Common.DistanceToTile(settlers.X, settlers.Y, tx, ty);
 				if (score > bestScore) { bestScore = score; best = tile; }
 			}
 			return best;

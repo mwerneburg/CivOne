@@ -84,6 +84,31 @@ namespace CivOne.Tests
 			Assert.DoesNotContain(g.GetCities(), c => c.X == 40 && c.Y == 25);
 		}
 
+		// ── the nearer site ──────────────────────────────────────────────────
+
+		// A single row of grassland through mountains, so every site in the middle of the row
+		// scores exactly the same and only distance can tell them apart. With no distance term
+		// the scan took the first of the ties it met — eight tiles off — and neighbouring
+		// colonists crossed each other on the rails (Riga, Novgorod — Sep 2026).
+		[Fact]
+		public void OfEqualSitesTheNearestIsChosen()
+		{
+			(Game g, Player p) = AWorld(wide: false);   // its city is at 48,25
+			for (int y = 12; y <= 38; y++)
+			for (int x = 14; x <= 44; x++)
+			{
+				Map.Instance.ChangeTileType(x, y, y == 25 && x >= 22 ? Terrain.Grassland1 : Terrain.Mountains);
+				((BaseTile)Map.Instance[x, y]).Special = false;
+			}
+			Map.Instance.RecalculateContinentsIfDirty();
+			Settlers s = ASettler(g, p, 31, 25);
+
+			ITile? site = AI.Instance(p).BestSettleSite(s);
+
+			Assert.NotNull(site);
+			Assert.Equal((31, 25), (site!.X, site.Y));
+		}
+
 		// ── 2. the draft leaves colonists alone ──────────────────────────────
 
 		private static void Pollute(Game g, Player p)

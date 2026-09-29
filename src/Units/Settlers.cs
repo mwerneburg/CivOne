@@ -895,6 +895,19 @@ namespace CivOne.Units
 					ITile? target = FindNearestCityPollution();
 					if (target is not null)
 						Goto = new Point(target.X, target.Y);
+					// The player's clean-up crew stays on duty and stands by. Units take their
+					// turn BEFORE cities (Game.EndTurn queues them first), so a settler that
+					// found the map clean stood down — and the cities then polluted again that
+					// same turn, often the very tile it had just cleaned. The player found it
+					// awake beside fresh smog, as if it had never worked, and had to press P
+					// every time (reported Sep 2026). Standing by spends its moves so it does
+					// not ask for orders; giving it any order still takes it off duty. The AI
+					// sizes its own crew to the backlog each turn, so it still stands down.
+					else if (Human == Owner && !Settings.Instance.Autopilot)
+					{
+						MovesLeft = 0;
+						PartMoves = 0;
+					}
 					else
 						AutoClean = false;
 				}
