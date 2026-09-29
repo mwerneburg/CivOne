@@ -914,8 +914,19 @@ namespace CivOne
 		// Republic or Democracy.
 		internal void ConsiderCitizens()
 		{
+			// Under Autopilot this is the human's civ, and a city the player put under a
+			// governor is run by that governor. It used to be ignored: every city got the AI
+			// default with culture switched off, so a player who set Culture on every city and
+			// let autoplay run saw no artists and no culture buildings (Sep 2026). Cities with
+			// no governor keep the AI's management.
+			bool human = Player == Game.HumanPlayer;
 			foreach (City city in Player.Cities)
-				city.AutoAssignCitizens();
+			{
+				if (human && (city.GovernorOrder || city.GovernorGrowth || city.GovernorCulture || city.GovernorCommerce))
+					city.AutoAssignCitizens(city.GovernorOrder, city.GovernorGrowth, city.GovernorCulture, city.GovernorCommerce);
+				else
+					city.AutoAssignCitizens();
+			}
 		}
 
 		internal void ConsiderSliders()

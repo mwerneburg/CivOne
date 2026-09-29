@@ -74,7 +74,9 @@ namespace CivOne.Tests
 			string src = CitySource();
 			int at = src.IndexOf("Player.AI?.CityProduction(this);");
 			Assert.True(at > 0, "the re-plan call has moved or been rewritten");
-			string block = src.Substring(System.Math.Max(0, at - 400), 400);
+			// 1200, not 400: the autopilot governor branch (Sep 2026) sits between the trigger
+			// and the call, and pushed the condition past the old window.
+			string block = src.Substring(System.Math.Max(0, at - 1200), 1200);
 
 			Assert.Contains("ShieldIncome <= 0", block);
 			Assert.DoesNotContain("if (Shields == 0 && !DequeueProduction()", block);

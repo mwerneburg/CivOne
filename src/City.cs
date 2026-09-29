@@ -3125,14 +3125,27 @@ namespace CivOne
 			// around turn 357 until the game ended at 617. The AI was never asked again. The
 			// civ finished on one city with a gross output of 1, and left no trace in the
 			// decision log, because a city that is never re-planned is never logged.
-			if ((Shields == 0 || ShieldIncome <= 0) && !DequeueProduction())
+			if (Shields == 0 || ShieldIncome <= 0)
 			{
-				if (Player != Human || Settings.Instance.Autopilot)
-					Player.AI?.CityProduction(this);
-				else if (ProductionSpent && GovernorNextBuilding() is IBuilding next)
+				// Under Autopilot a governed city of the player's is still governed: the
+				// governor picks after a finished building, ahead of the queue the AI planner
+				// keeps for it. Played by hand, the player's own queue comes first, as before.
+				IBuilding? governed = Player == Human && Settings.Instance.Autopilot && ProductionSpent
+					? GovernorNextBuilding() : null;
+				if (governed is not null)
 				{
-					CurrentProduction = next;
-					DecisionLogger.LogCityProduction(this, next, "governor", isHuman: true);
+					CurrentProduction = governed;
+					DecisionLogger.LogCityProduction(this, governed, "governor", isHuman: true);
+				}
+				else if (!DequeueProduction())
+				{
+					if (Player != Human || Settings.Instance.Autopilot)
+						Player.AI?.CityProduction(this);
+					else if (ProductionSpent && GovernorNextBuilding() is IBuilding next)
+					{
+						CurrentProduction = next;
+						DecisionLogger.LogCityProduction(this, next, "governor", isHuman: true);
+					}
 				}
 			}
 		}
