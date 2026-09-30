@@ -504,7 +504,30 @@ namespace CivOne.Graphics
 			byte sec = Common.BannerSecondary[city.Owner];
 			output.FillRectangle(0, 14, 8, 2, pri);   // left half
 			output.FillRectangle(8, 14, 8, 2, sec);   // right half
+			DrawRouteDots(output, city);
 			return output;
+		}
+
+		// A black dot on a FOREIGN city's banner for each of the player's cities that holds a
+		// trade route with it — so the player can see at a glance where their caravans have
+		// already been (the user, Oct 2026). Routes are unique per (home, partner), so this is
+		// also the number of routes. Eight fit across the 16-pixel banner; more read as eight.
+		internal const int MaxRouteDots = 8;
+
+		internal static int RouteDotCount(City city)
+		{
+			Player? human = Game.Instance?.HumanPlayer;
+			if (human is null || city.Owner == Game.Instance!.PlayerNumber(human)) return 0;
+			int n = System.Linq.Enumerable.Count(human.Cities,
+				c => System.Linq.Enumerable.Any(c.TradeRoutes, r => ReferenceEquals(r.Partner, city)));
+			return System.Math.Min(MaxRouteDots, n);
+		}
+
+		private static void DrawRouteDots(IBitmap output, City city)
+		{
+			int dots = RouteDotCount(city);
+			for (int i = 0; i < dots; i++)
+				output.FillRectangle(1 + i * 2, 14, 1, 2, CassetteTheme.BG0);
 		}
 
 		private static IBitmap OlvirCity(City city, bool smallFont)
@@ -544,6 +567,7 @@ namespace CivOne.Graphics
 			byte sec = Common.BannerSecondary[city.Owner];
 			output.FillRectangle(0, 14, 8, 2, pri);   // left half
 			output.FillRectangle(8, 14, 8, 2, sec);   // right half
+			DrawRouteDots(output, city);
 			return output;
 		}
 	}
