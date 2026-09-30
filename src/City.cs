@@ -264,6 +264,16 @@ namespace CivOne
 		public bool WasInDisorder { get => DisorderTurns > 0; set { if (value && DisorderTurns == 0) DisorderTurns = 1; else if (!value) DisorderTurns = 0; } }
 		public bool WasWeLoveKing {get; set;} = false;
 
+		// The turn this city's celebration last PAID its reward (a free size step, or a free
+		// Caravan when it cannot grow); null = never. The reward came on every celebration
+		// START, so flipping the luxury slider to end and restart celebrations spawned a free
+		// Caravan in every capped city each time (the user's own find, Oct 2026). Now at most
+		// once per CelebrationRewardInterval turns. Celebrating itself is unaffected.
+		internal int? CelebrationRewardTurn { get; set; }
+		internal const int CelebrationRewardInterval = 10;
+		private bool CelebrationRewardDue =>
+			CelebrationRewardTurn is not int last || Game.GameTurn - last >= CelebrationRewardInterval;
+
 		// What the map tile last showed for this city, so a change can be noticed.
 		//
 		// The city-size numeral on the map is drawn in three colours — red rioting, cream
@@ -2353,13 +2363,14 @@ namespace CivOne
 				{
 					WasWeLoveKing = true;
 					// First-time benefit: growth or caravan (only with positive food income)
-					if (Player.Government.CelebrationGrowsCity)
+					if (Player.Government.CelebrationGrowsCity && CelebrationRewardDue)
 					{
 						if (foodIncome > 0)
 						{
 							bool blockedByAqueduct = (Size >= 7  && !HasBuilding<Aqueduct>());
 							bool blockedBySewer    = (Size >= 12 && !HasBuilding<SewerSystem>());
 							bool blocked = blockedByAqueduct || blockedBySewer;
+							CelebrationRewardTurn = Game.GameTurn;
 							if (!blocked)
 							{
 								Size++;

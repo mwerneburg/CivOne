@@ -331,6 +331,8 @@ namespace CivOne.Persistence
 		public bool? WasInDisorder  { get; set; }  // legacy: kept for loading old saves
 		public int?  DisorderTurns  { get; set; }
 		public bool? WasWeLoveKing  { get; set; }
+		// The turn the celebration last paid its reward (City.CelebrationRewardTurn); null = never.
+		public int?  CelebrationRewardTurn { get; set; }
 		public bool? TechStolen     { get; set; }
 		// Citizen governors the player enrolled this city in: bit 0 = order, bit 1 = growth.
 		// Null (absent) in every save written before governors existed, and in every AI city,

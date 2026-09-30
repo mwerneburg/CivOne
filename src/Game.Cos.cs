@@ -82,6 +82,7 @@ namespace CivOne
 					TradeRoutes    = tradeRoutes,
 					DisorderTurns  = city.DisorderTurns  > 0 ? (int?)city.DisorderTurns : null,
 					WasWeLoveKing  = city.WasWeLoveKing  ? (bool?)true : null,
+					CelebrationRewardTurn = city.CelebrationRewardTurn,
 					TechStolen     = city.TechStolen     ? (bool?)true : null,
 					Governors      = GovernorBits(city) is int bits and not 0 ? bits : null
 				});
@@ -897,6 +898,7 @@ namespace CivOne
 
 				city.DisorderTurns = cd.DisorderTurns ?? ((cd.WasInDisorder ?? false) ? 1 : 0);
 				city.WasWeLoveKing = cd.WasWeLoveKing ?? false;
+				city.CelebrationRewardTurn = cd.CelebrationRewardTurn;
 				city.GovernorOrder  = ((cd.Governors ?? 0) & 1) != 0;
 				city.GovernorGrowth = ((cd.Governors ?? 0) & 2) != 0;
 				city.GovernorCulture = ((cd.Governors ?? 0) & 4) != 0;
