@@ -1499,12 +1499,19 @@ namespace CivOne
 
 		// True for a land unit sitting on a non-city tile with a boardable ship —
 		// it is effectively cargo and should not be prompted for orders.
+		//
+		// At sea any land unit there IS aboard. On LAND only a SENTRIED one is: that is how a
+		// passenger boards a Dirigible (Dirigible.Manifest takes the sentried units and leaves
+		// the rest). Counting every land unit made a unit on GoTo that stopped beside a parked
+		// airship into cargo — never offered a turn again, its order intact and unmoving (the
+		// user, Oct 2026: "they'd stopped where a Dirigible was parked").
 		private static bool IsAboard(IUnit unit)
 		{
 			if (unit.Class != UnitClass.Land) return false;
 			ITile tile = unit.Tile;
 			if (tile is null || tile.City is not null) return false;
-			return tile.Units.Any(u => u is IBoardable);
+			if (!tile.Units.Any(u => u is IBoardable)) return false;
+			return tile.IsOcean || unit.Sentry;
 		}
 
 		private ushort _anthologyTurn = 0;

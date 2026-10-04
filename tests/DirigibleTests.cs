@@ -89,6 +89,48 @@ namespace CivOne.Tests
 			return steps.ToArray();
 		}
 
+		// ── a parked airship is not a trap ───────────────────────────────────────────
+
+		// Units on GoTo "stopped where a Dirigible was parked" (Oct 2026): every land unit on
+		// a carrier's tile counted as cargo, and cargo is never offered a turn. On land only a
+		// SENTRIED unit has boarded.
+		private static IUnit AMarcherBesideAParkedAirship(Game g, Player human, Dirigible d, int x, int y)
+		{
+			foreach (IUnit u in g.GetUnits().Where(u => u.Owner == g.PlayerNumber(human)).ToArray())
+				g.DisbandUnit(u);
+			// A fresh airship where it is wanted: assigning X/Y does not move a unit between
+			// tiles' unit lists.
+			IUnit parked = g.CreateUnit(UnitType.Dirigible, x, y, g.PlayerNumber(human))!;
+			parked.MovesLeft = 0;   // parked: nothing left to do this turn
+			IUnit m = g.CreateUnit(UnitType.Militia, x, y, g.PlayerNumber(human))!;
+			m.MovesLeft = m.Move;
+			m.Goto = new System.Drawing.Point(x - 6, y);
+			// ActiveUnit only offers the CURRENT player's units, and a fresh test game starts
+			// on slot 0 (RailAnimationSpeedTests notes the same).
+			var cur = typeof(Game).GetField("_currentPlayer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+			cur.SetValue(g, System.Convert.ChangeType(g.PlayerNumber(human), cur.FieldType));
+			Sim.ClearTasks();
+			return m;
+		}
+
+		[Fact]
+		public void AUnitOnGoToBesideAParkedAirshipIsStillMoved()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			IUnit m = AMarcherBesideAParkedAirship(g, human, d, 40, 25);   // grassland
+
+			Assert.Same(m, g.ActiveUnit);
+		}
+
+		// Control: over the sea, a land unit with an airship IS aboard and is not offered a turn.
+		[Fact]
+		public void OverTheSeaItIsCargo()
+		{
+			(Game g, Player human, Dirigible d) = ADirigible();
+			IUnit m = AMarcherBesideAParkedAirship(g, human, d, 41, 25);   // ocean
+			Assert.NotSame(m, g.ActiveUnit);
+		}
+
 		// ── two of our own airships ─────────────────────────────────────────────────
 
 		// Cargo rides by tile, so a vessel crossing another's tile flew off with its
