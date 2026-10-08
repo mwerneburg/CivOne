@@ -240,6 +240,9 @@ namespace CivOne.Persistence
 		// than inventing one.
 		public uint EconStreak { get; set; }
 		public uint CultureStreak { get; set; }
+		// Turns on hold below the bar (Game.StreakGraceTurns); zero on older saves.
+		public uint EconSlip { get; set; }
+		public uint CultureSlip { get; set; }
 		public bool ColonyFounded { get; set; }
 		public uint DiasporaStreak { get; set; }
 		public int ColonyOrder { get; set; }

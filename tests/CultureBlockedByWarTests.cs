@@ -32,7 +32,7 @@ namespace CivOne.Tests
 		// A human who clears every VISIBLE clause: equal populations so culture per head is
 		// decided by culture alone, ten times the culture of any rival, and a date past the
 		// gate. Whether the streak runs is then down to the war clause and nothing else.
-		private static (Game game, Player us, Player[] rivals) AWorldWhereWeAreAdmired()
+		internal static (Game game, Player us, Player[] rivals) AWorldWhereWeAreAdmired()
 		{
 			Sim.NewGame(width: 80, height: 50);
 			Game g = Game.Instance;

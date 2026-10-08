@@ -2658,7 +2658,22 @@ namespace CivOne
 
 					if (share && !aggressing && boundHalf)
 					{
+						Progress(cnum).EconSlip = 0;
 						Progress(cnum).EconStreak++;
+						// One warning when the lead thins to within a point of the bar. A streak lost
+						// on turn 74 of 75 by 0.3% of world output, unannounced, was the user's find
+						// (Oct 2026). Re-armed once the share is back above 52%.
+						if (MarketsSlipping(claimOut, worldOut))
+						{
+							if (isHuman && !Progress(cnum).EconSlipWarned && Progress(cnum).EconStreak > 1)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"Our markets are slipping:",
+									$"{claimOut * 100.0 / worldOut:0.0}% of the world's trade.",
+									"Half is the least we can hold."));
+							Progress(cnum).EconSlipWarned = true;
+						}
+						else if (claimOut * 100L >= worldOut * 52L)
+							Progress(cnum).EconSlipWarned = false;
 						// Only the human gets told; the rest is somebody else's newspaper.
 						if (isHuman && Progress(cnum).EconStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
@@ -2695,10 +2710,24 @@ namespace CivOne
 						string why = !share ? "Our share of world trade slipped."
 							: aggressing ? "Wars of our making unsettle the markets."
 							: "Too few nations bank with us.";
-						Progress(cnum).EconStreak = 0;
-						if (isHuman)
-							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-								"The markets waver.", why, "The streak is broken."));
+						// A dip pauses the streak rather than breaking it; a war of our making
+						// is a decision, not a dip, and breaks it at once.
+						if (!aggressing && ++Progress(cnum).EconSlip <= StreakGraceTurns)
+						{
+							if (isHuman && Progress(cnum).EconSlip == 1)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"The markets waver.", why,
+									$"Recover within {StreakGraceTurns} turns or the streak is lost."));
+						}
+						else
+						{
+							Progress(cnum).EconStreak = 0;
+							Progress(cnum).EconSlip = 0;
+							Progress(cnum).EconSlipWarned = false;
+							if (isHuman)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"The markets waver.", why, "The streak is broken."));
+						}
 					}
 				}
 
@@ -2839,6 +2868,7 @@ namespace CivOne
 
 					if (admired && reach && !cultAggressing)
 					{
+						Progress(cnum).CultureSlip = 0;
 						Progress(cnum).CultureStreak++;
 						if (isHuman && Progress(cnum).CultureStreak == 1)
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
@@ -2875,10 +2905,22 @@ namespace CivOne
 						string why = !admired ? "Our arts no longer stand above the world's."
 							: !reach ? "Too few nations know us."
 							: "Wars of our making tarnish our name.";
-						Progress(cnum).CultureStreak = 0;
-						if (isHuman)
-							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
-								"Our influence wanes.", why, "The streak is broken."));
+						// The same grace as Pax Mercatoria's.
+						if (!cultAggressing && ++Progress(cnum).CultureSlip <= StreakGraceTurns)
+						{
+							if (isHuman && Progress(cnum).CultureSlip == 1)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"Our influence wanes.", why,
+									$"Recover within {StreakGraceTurns} turns or the streak is lost."));
+						}
+						else
+						{
+							Progress(cnum).CultureStreak = 0;
+							Progress(cnum).CultureSlip = 0;
+							if (isHuman)
+								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+									"Our influence wanes.", why, "The streak is broken."));
+						}
 					}
 
 					// Admired by every measure the rule takes, and stopped by the one clause a
@@ -4907,6 +4949,13 @@ namespace CivOne
 		// UNMEASURED. CultureHoldTurns earned its 75 across a six-game batch; this one is
 		// matched to it by argument, and the batch that would justify it has not been run.
 		internal const uint EconomicHoldTurns = 75;
+
+		// Turns a streak may sit below its bar, paused, before it breaks. The streak does not
+		// advance while paused, so the hold is still EconomicHoldTurns turns ABOVE the bar.
+		internal const uint StreakGraceTurns = 3;
+
+		// Within a point of half the world's output: the warning band.
+		internal static bool MarketsSlipping(int claimOut, int worldOut) => claimOut * 100L < worldOut * 51L;
 
 		private int GrossOutput(Player p)
 		{

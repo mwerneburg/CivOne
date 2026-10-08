@@ -180,6 +180,8 @@ namespace CivOne
 					CivilizationId   = player.Civilization.Id,
 					EconStreak       = Progress(p).EconStreak,
 					CultureStreak    = Progress(p).CultureStreak,
+					EconSlip         = Progress(p).EconSlip,
+					CultureSlip      = Progress(p).CultureSlip,
 					ColonyFounded    = Progress(p).ColonyFounded,
 					DiasporaStreak   = Progress(p).DiasporaStreak,
 					ColonyOrder      = Progress(p).ColonyOrder,
@@ -614,6 +616,8 @@ namespace CivOne
 						RecordWarStart((byte)i, (byte)n);
 				Progress(i).EconStreak     = cos.Players[i].EconStreak;
 				Progress(i).CultureStreak  = cos.Players[i].CultureStreak;
+				Progress(i).EconSlip       = cos.Players[i].EconSlip;
+				Progress(i).CultureSlip    = cos.Players[i].CultureSlip;
 				Progress(i).ColonyFounded  = cos.Players[i].ColonyFounded;
 				Progress(i).DiasporaStreak = cos.Players[i].DiasporaStreak;
 				Progress(i).ColonyOrder    = cos.Players[i].ColonyOrder;

@@ -28,9 +28,16 @@ namespace CivOne
 		// other clauses met. Broken by any turn that misses one.
 		public uint EconStreak;
 
+		// Consecutive turns the streak has been on hold below the bar (Game.StreakGraceTurns).
+		public uint EconSlip;
+
+		// The near-the-bar warning has been given this streak; re-armed once the share recovers.
+		public bool EconSlipWarned;
+
 		// ── Cultural Ascendancy ──────────────────────────────────────────────
 		// Consecutive turns holding the cultural shadow and the lead over the best rival.
 		public uint CultureStreak;
+		public uint CultureSlip;   // as EconSlip
 
 		// ── Diaspora ─────────────────────────────────────────────────────────
 		// A colony stands at Alpha Centauri II. Cleared if it is lost — to the organism,
