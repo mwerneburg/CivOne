@@ -822,7 +822,9 @@ namespace CivOne
 		// obsolete wonders still count 1 — old glory endures. Accumulated into
 		// Player.Culture each turn; read by diplomacy, the visitor-archetype draw,
 		// and the cultural-defection check.
-		internal int CultureRate =>
+		//
+		// Nothing at all under Fascism: a regime that burns books earns no admiration for them.
+		internal int CultureRate => Player.Government is Governments.Fascism ? 0 :
 			(HasBuilding<Buildings.Temple>() ? 1 : 0)
 			+ (HasBuilding<Buildings.Colosseum>() ? 1 : 0)
 			+ (HasBuilding<LibraryBuilding>() ? 1 : 0)

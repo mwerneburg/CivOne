@@ -773,6 +773,9 @@ namespace CivOne
 				bool allGovernments = !Game.WonderObsolete<Pyramids>() && HasWonder<Pyramids>();
 				foreach (IGovernment government in Reflect.GetGovernments().Where(g => g.Id > 0))
 				{
+					// Fascism is for warmongers, and never for the human — autopilot and the
+					// Pyramids included. See Governments.Fascism.
+					if (government is Fascism && (IsHuman || !AI.IsWarMinded(Civilization.Leader))) continue;
 					if (!allGovernments && !HasAdvance(government.RequiredTech)) continue;
 					yield return government; 
 				}

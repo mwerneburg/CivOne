@@ -31,6 +31,10 @@ namespace CivOne
 		public Player Player { get; }
 		public ILeader Leader => Player.Civilization.Leader;
 
+		// Militaristic or aggressive: the leaders war footing and Fascism are open to.
+		internal static bool IsWarMinded(ILeader leader) =>
+			leader.Militarism == MilitarismLevel.Militaristic || leader.Aggression == AggressionLevel.Aggressive;
+
 		// The city this civ is currently marshalling forces to attack.
 		private City? _attackTarget;
 

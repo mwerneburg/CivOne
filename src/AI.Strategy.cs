@@ -1327,7 +1327,53 @@ namespace CivOne
 				return war ? 6 : 3;
 			if (gov is Gov.Despotism)
 				return 1;
+			// Only for a warmonger that is losing, and only to fight: above every war
+			// government then, and below everything otherwise — so the same ambition that
+			// raised it lets it go when the war dies down.
+			if (gov is Gov.Fascism)
+				return war && WantsWarFooting && SensesDefeat() ? 8 : 0;
 			return 0;
+		}
+
+		// A warmonger senses he is losing when he is in the bottom half of the field by score,
+		// or when a rival is half way to a streak victory. The field is the civilizations
+		// that can win; the story factions and the Olvir are not in it.
+		internal bool SensesDefeat()
+		{
+			Player[] field = Game.Players.Where(p => p is not null && !p.IsDestroyed() && Game.PlayerNumber(p) != 0
+				&& !(p.Civilization is Olvir or TheOthers or TheThing or Skynet)).ToArray();
+			if (field.Length < 3) return false;
+			if (field.Count(p => p.Score > Player.Score) * 2 >= field.Length) return true;
+			return field.Any(p => p != Player
+				&& (Game.Progress(Game.PlayerNumber(p)).EconStreak >= Game.EconomicHoldTurns / 2
+				 || Game.Progress(Game.PlayerNumber(p)).CultureStreak >= Game.CultureHoldTurns / 2));
+		}
+
+		// The road to Fascism: a warmonger who is losing and could adopt it takes on the war
+		// ambition, and BestGovernment does the rest (see GovernmentScore). Whatever it governs
+		// now — a Democracy revolts out of its Senate, a Monarchy into something harder.
+		private const int FascismChance = 10;   // percent a turn, while losing
+
+		// A collapsed regime does not rise again at once. Not saved: a reload forgets it.
+		private const int FascismCooldownTurns = 50;
+		private int _fascismCollapsedTurn = -FascismCooldownTurns;
+		//
+		// A Fascist state still losing and still at war keeps the ambition topped up, so it
+		// stands down only when its war ends or it stops losing. Without that it churned: on
+		// the d721724c save the Lakota went Fascism -> Anarchy -> Communism -> Anarchy ->
+		// Fascism in eight turns, mid-war, each time the 25-turn ambition ran out.
+		private void ConsiderFascism(bool atWar)
+		{
+			if (Player.Government is Gov.Fascism)
+			{
+				if (atWar && SensesDefeat()) _warAmbition = Math.Max(_warAmbition, 25);
+				return;
+			}
+			if (_warAmbition > 0) return;
+			if (Game.GameTurn < _fascismCollapsedTurn + FascismCooldownTurns) return;
+			if (!Player.AvailableGovernments.Any(g => g is Gov.Fascism)) return;
+			if (!SensesDefeat()) return;
+			if (Common.Random.Next(100) < FascismChance) _warAmbition = 25;
 		}
 
 		// Test/diagnostic accessor.
@@ -1394,6 +1440,19 @@ namespace CivOne
 		internal void ChooseGovernment()
 		{
 			Player.Government = BestGovernment() ?? new Gov.Despotism();
+			if (Player.Government is Gov.Fascism) FascismRises();
+		}
+
+		// Every other nation holds a grudge against a Fascist state from the day it rises, and
+		// the world's newspapers say so.
+		private const int FascistGrudgeTurns = 50;
+		private void FascismRises()
+		{
+			Log($"{Player.TribeName}: Fascism");
+			foreach (Player p in Game.Players.Where(p => p is not null && p != Player && !p.IsDestroyed()
+			         && Game.PlayerNumber(p) != 0 && !(p.Civilization is TheOthers or TheThing or Skynet)))
+				p.AddGrudge(Player, FascistGrudgeTurns);
+			GameTask.Enqueue(Message.Newspaper(null, $"The {Player.TribeNamePlural} fall", "to FASCISM!", "The world is uneasy."));
 		}
 
 		// Called each turn: consider starting a revolution if conditions are good.
@@ -1816,6 +1875,9 @@ namespace CivOne
 		// TradeDeterrentTests pins the case.
 		private const int TradeDeterrentMax = 20;
 
+		// What Fascism adds to a war roll: it was raised to fight.
+		private const int FascistAggression = 20;
+
 		private void ConsiderWarFooting()
 		{
 			if (_warAmbition > 0) return;
@@ -2029,6 +2091,20 @@ namespace CivOne
 			// but a civ that wants one badly enough can trade the Senate for it, which is
 			// the escape a human player has always had. See ConsiderWarFooting.
 			if (_warAmbition > 0) _warAmbition--;
+
+			// A Fascist state that has lost a quarter of the cities it held in peace collapses.
+			if (Player.Government is Gov.Fascism && _peacetimeCities > 0
+			    && Player.Cities.Length * 4 <= _peacetimeCities * 3)
+			{
+				Log($"{Player.TribeName}: Fascism collapses ({Player.Cities.Length} of {_peacetimeCities} cities)");
+				_warAmbition = 0;
+				_fascismCollapsedTurn = Game.GameTurn;
+				Player.Revolt();
+				GameTask.Enqueue(Message.Newspaper(null, $"The {Player.TribeNamePlural}' regime", "collapses into anarchy!"));
+				return;
+			}
+
+			ConsiderFascism(atWar);
 			if (Player.RepublicDemocratic)
 			{
 				ConsiderWarFooting();
@@ -2069,7 +2145,8 @@ namespace CivOne
 				if (enemy == Player || enemy.IsDestroyed()) continue;
 				if (Player.IsAtWar(enemy)) continue;
 				if (!IsNeighbor(enemy)) continue;
-				if (enemy.HasWonder<UnitedNations>()) continue;
+				bool fascist = Player.Government is Gov.Fascism;
+				if (enemy.HasWonder<UnitedNations>() && !fascist) continue;   // the UN does not shield you from it
 
 				int their = MilitaryScore(enemy);
 
@@ -2111,7 +2188,8 @@ namespace CivOne
 				    .SelectMany(c => c.TradeRoutes)
 				    .Where(r => r.Partner.Owner == ownNum)
 				    .Sum(r => r.Value);
-				if (tradeValue > 0) chance -= Math.Min(TradeDeterrentMax, tradeValue / 2);
+				if (tradeValue > 0 && !fascist) chance -= Math.Min(TradeDeterrentMax, tradeValue / 2);
+				if (fascist) chance += FascistAggression;
 
 				// Goodwill deters aggression: a gift or aid package buys real safety
 				// for its duration, not just trade acceptance and quiet borders. A grievance

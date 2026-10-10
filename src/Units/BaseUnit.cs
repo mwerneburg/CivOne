@@ -410,6 +410,9 @@ namespace CivOne.Units
 						capturedCity.Owner = Owner;
 						capturedCity.TechStolen = false;
 						Game.Instance.RecordConquest(Game.GetPlayer(Owner), previousOwner);
+						// Fascism takes no prisoners: half the city's people are lost with it.
+						if (Player.Government is Governments.Fascism && capturedCity.Size > 1)
+							capturedCity.Size = (byte)Math.Max(1, capturedCity.Size / 2);
 
 						// A story faction does not finish the previous administration's
 						// paperwork. Ordinary capture zeroes Shields but leaves the QUEUE
