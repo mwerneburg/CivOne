@@ -105,9 +105,7 @@ namespace CivOne.Screens.Reports
 			// rows on the economic page were not struggling empires, they were corpses, and
 			// they made a standings list read as though a dozen rivals were still in play.
 			// The chronicle and the decision log still hold their history.
-			var players = Game.Players
-				.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
-				.ToArray();
+			var players = Plotted(culturePage: _page == Page.Culture);
 
 			// ── layout ──────────────────────────────────────────────────────
 
@@ -581,6 +579,17 @@ namespace CivOne.Screens.Reports
 
 			_dirty = false;
 		}
+
+		// Who gets a trace. The culture page leaves out the story factions — the Machines, the
+		// Owners, the Thing — which can never claim Cultural Ascendancy and are already left out
+		// of the world average the page divides by (Game.CountsInCulturalAverage). The Machines
+		// arrived mid-game as a vertical stroke up from zero and redrew it every turn (the
+		// user, Oct 2026). They stay on the score and output pages: they are scored, and an
+		// occupier's economy is one Pax Mercatoria must out-earn.
+		internal static Player[] Plotted(bool culturePage) => Game.Instance.Players
+			.Where(p => !(p.Civilization is Barbarian) && !p.IsDestroyed())
+			.Where(p => !culturePage || !(p.Civilization is TheOthers or TheThing or Skynet))
+			.ToArray();
 
 		// History snapshots are [turn, player 0 (barbarians), player 1, ...].
 		private int HumanSlot => Game.PlayerNumber(Human) + 1;

@@ -127,7 +127,7 @@ namespace CivOne.Tests
 		{
 			string src = System.IO.File.ReadAllText(
 				System.IO.Path.Combine(RepoRoot(), "src", "Screens", "Reports", "CivilizationScore.cs"));
-			int at = src.IndexOf("var players = Game.Players");
+			int at = src.IndexOf("internal static Player[] Plotted(");
 			Assert.True(at > 0, "the player filter has moved or been rewritten");
 			string block = src.Substring(at, src.IndexOf(';', at) - at);
 

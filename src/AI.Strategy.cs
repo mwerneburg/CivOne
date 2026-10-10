@@ -1618,7 +1618,14 @@ namespace CivOne
 			// The narrower guard stands: with an enemy at the gates, underThreat returns
 			// above and no revolt happens.
 			if (Common.Random.Next(100) < 25)
+			{
+				// Standing down is news as much as the rising was: without it a player who
+				// missed one headline had to send diplomats round the world to find out who
+				// was still Fascist (the user, Oct 2026). The collapse has its own headline.
+				if (Player.Government is Gov.Fascism)
+					GameTask.Enqueue(Message.Newspaper(null, $"The {Player.TribeNamePlural}", "renounce FASCISM!", "The world breathes easier."));
 				Player.Revolt();
+			}
 		}
 
 		// ── proactive diplomacy ───────────────────────────────────────────────────

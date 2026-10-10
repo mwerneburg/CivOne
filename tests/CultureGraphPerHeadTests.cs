@@ -285,5 +285,23 @@ namespace CivOne.Tests
 			Assert.Equal(before, Game.Instance.PopulaceHistory.Count);
 			Assert.Equal(lastBefore, Game.Instance.PopulaceHistory[^1]);
 		}
+
+		// The Machines are no contender for culture, and are left off its page — but stay on
+		// the score page, where they are scored.
+		[Fact]
+		public void TheMachinesAreNotPlottedOnTheCulturePage()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			var skynet = new Player(Common.Civilizations.First(c => c is CivOne.Civilizations.Skynet), "Skynet");
+			g.AddPlayer(skynet);
+			Map.Instance.ChangeTileType(41, 25, Terrain.Grassland1);
+			Assert.NotNull(g.AddCity(skynet, 9, 41, 25));
+			Assert.False(skynet.IsDestroyed(), "fixture: the Machines must be alive to be left out");
+
+			Assert.DoesNotContain(skynet, CivOne.Screens.Reports.CivilizationScore.Plotted(culturePage: true));
+			Assert.Contains(skynet, CivOne.Screens.Reports.CivilizationScore.Plotted(culturePage: false));
+			Assert.Contains(g.HumanPlayer, CivOne.Screens.Reports.CivilizationScore.Plotted(culturePage: true));
+		}
 	}
 }

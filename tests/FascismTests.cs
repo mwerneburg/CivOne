@@ -263,6 +263,22 @@ namespace CivOne.Tests
 			Assert.Contains("Message:Newspaper", Probes());
 		}
 
+		// Standing down is announced, as the rising was.
+		[Fact]
+		public void StandingDownIsNews()
+		{
+			(Game _, Player w, Player[] _) = AWorld();
+			w.Government = new Fascism();
+			w.AddAdvance(new CivOne.Advances.Monarchy(), false);
+			CivOne.AI ai = CivOne.AI.Instance(w)!;
+			Assert.NotNull(ai.BestGovernmentName());   // fixture: with no ambition it wants out
+
+			for (int t = 0; t < 100 && !(w.Government is Anarchy); t++) { Sim.ClearTasks(); ai.ConsiderGovernment(); }
+
+			Assert.IsType<Anarchy>(w.Government);
+			Assert.Contains("Message:Newspaper", Probes());
+		}
+
 		// A Fascist state that loses a quarter of its peacetime cities collapses into anarchy.
 		[Fact]
 		public void LosingAQuarterOfItsCitiesCollapsesIt()
