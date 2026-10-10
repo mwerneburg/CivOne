@@ -3,15 +3,15 @@
 // The Pax Mercatoria target belongs on the axis.
 //
 // The economic-output graph scaled its y-axis to the CIVILIZATIONS only, then clamped the
-// half-of-world-output line to the graph edge. So once half the world passed the leader, the
-// line pinned itself to the ceiling and stayed there, reading as a fixed target rather than the
-// live series it is. Observed at 2200 AD: leader on 4,237, threshold 9,328, flat at the top
-// since about 1962. It would have come back into view only at the moment a civ reached it —
-// which is precisely too late to be worth showing.
+// threshold line to the graph edge. So once the threshold passed the leader, the line pinned
+// itself to the ceiling and stayed there, reading as a fixed target rather than the live series
+// it is. Observed at 2200 AD: leader on 4,237, threshold 9,328, flat at the top since about
+// 1962. It would have come back into view only at the moment a civ reached it — which is
+// precisely too late to be worth showing.
 //
-// Half of world output is a SERIES, not a constant: it climbs as the world industrialises. So
-// the axis has to fit its PEAK across the plotted history, not its value today, or the line
-// still leaves the chart partway along.
+// The threshold is a SERIES, not a constant. It was half the world's output until Oct 2026 and
+// is now Game.EconomicLeadMargin times the next-largest economy; either way it climbs, so the
+// axis has to fit its PEAK across the plotted history, not its value today.
 
 using CivOne.Screens.Reports;
 
@@ -19,60 +19,54 @@ namespace CivOne.Tests
 {
 	public class EconomicThresholdAxisTests
 	{
-		// Snapshots are per-player arrays; index 0 is the barbarian slot.
-		private static int[] Snap(params int[] perPlayer)
+		// Snapshots are [turn, barbarians, player 1, player 2, ...]. The human is player 1 here.
+		private const int Human = 2;
+		private static int[] Snap(params int[] civs)
 		{
-			var snap = new int[perPlayer.Length + 1];
-			for (int i = 0; i < perPlayer.Length; i++) snap[i + 1] = perPlayer[i];
+			var snap = new int[civs.Length + 2];
+			for (int i = 0; i < civs.Length; i++) snap[i + 2] = civs[i];
 			return snap;
 		}
 
+		// The bar is the best RIVAL's output times the margin: not the human's own, not the world's.
 		[Fact]
-		public void ThePeakIsHalfTheWorldAtItsLargest()
+		public void TheBarIsTheMarginTimesTheBestRival()
 		{
-			var history = new[]
-			{
-				Snap(100, 100),     // world 200 -> 100
-				Snap(400, 600),     // world 1000 -> 500   <- the peak
-				Snap(300, 300),     // world 600 -> 300
-			};
-
-			Assert.Equal(500, CivilizationScore.PeakHalfWorld(history, liveWorldTotal: 0));
+			Assert.Equal((int)(400 * Game.EconomicLeadMargin), CivilizationScore.ThresholdAt(Snap(9000, 400, 300), Human));
 		}
 
-		// Today counts too — the last point of the line is drawn from the live total, not from
-		// the history.
+		// The barbarians are no economy, and the turn number is not an output.
+		[Fact]
+		public void TheTurnAndTheBarbariansAreNotRivals()
+		{
+			int[] snap = { 5000, 7000, 9000, 100, 100 };
+			Assert.Equal((int)(100 * Game.EconomicLeadMargin), CivilizationScore.ThresholdAt(snap, Human));
+		}
+
+		[Fact]
+		public void ThePeakIsTheTallestBarInTheHistory()
+		{
+			var history = new[] { Snap(100, 100), Snap(400, 600), Snap(300, 300) };
+			Assert.Equal((int)(600 * Game.EconomicLeadMargin), CivilizationScore.PeakThreshold(history, 0, Human));
+		}
+
+		// Today counts too — the last point of the line is drawn from the live value.
 		[Fact]
 		public void TodayCountsAsWellAsTheHistory()
 		{
-			var history = new[] { Snap(100, 100) };
-
-			Assert.Equal(1500, CivilizationScore.PeakHalfWorld(history, liveWorldTotal: 3000));
-		}
-
-		// The barbarian slot is not part of world output. The threshold line's own loop starts
-		// at index 1, and these two must agree or the axis and the line disagree about where
-		// the target is.
-		[Fact]
-		public void TheBarbarianSlotIsExcluded()
-		{
-			var withBarbarians = new[] { new[] { 10_000, 200, 200 } };
-
-			Assert.Equal(200, CivilizationScore.PeakHalfWorld(withBarbarians, liveWorldTotal: 0));
+			Assert.Equal(3000, CivilizationScore.PeakThreshold(new[] { Snap(100, 100) }, 3000, Human));
 		}
 
 		// A fresh game has no history at all, and the page is reachable immediately.
 		[Fact]
 		public void AnEmptyHistoryFallsBackToToday()
 		{
-			Assert.Equal(50, CivilizationScore.PeakHalfWorld(System.Array.Empty<int[]>(), liveWorldTotal: 100));
-			Assert.Equal(50, CivilizationScore.PeakHalfWorld(null!, liveWorldTotal: 100));
+			Assert.Equal(50, CivilizationScore.PeakThreshold(System.Array.Empty<int[]>(), 50, Human));
+			Assert.Equal(50, CivilizationScore.PeakThreshold(null!, 50, Human));
 		}
 
-		// PeakHalfWorld is worthless unless the axis actually consults it, and deleting that
-		// one line broke nothing above — the classic "correct predicate wired to nothing".
-		// Draw() paints a bitmap and cannot be staged headless, so the wiring is pinned on the
-		// source instead.
+		// PeakThreshold is worthless unless the axis actually consults it. Draw() paints a bitmap
+		// and cannot be staged headless, so the wiring is pinned on the source instead.
 		[Fact]
 		public void TheAxisActuallyConsultsIt()
 		{
@@ -83,23 +77,9 @@ namespace CivOne.Tests
 			string src = System.IO.File.ReadAllText(System.IO.Path.Combine(
 				dir!.FullName, "src", "Screens", "Reports", "CivilizationScore.cs"));
 
-			Assert.Contains("maxScore = Math.Max(maxScore, PeakHalfWorld(", src);
-			// ...and only on the page the threshold belongs to.
-			int at = src.IndexOf("maxScore = Math.Max(maxScore, PeakHalfWorld(");
+			Assert.Contains("maxScore = Math.Max(maxScore, PeakThreshold(", src);
+			int at = src.IndexOf("maxScore = Math.Max(maxScore, PeakThreshold(");
 			Assert.Contains("_page == Page.Output", src.Substring(System.Math.Max(0, at - 200), 200));
-		}
-
-		// The case that motivated the change, in its own numbers: a threshold well above the
-		// best civ must dominate the axis, or it cannot be drawn where it belongs.
-		[Fact]
-		public void AThresholdAboveTheLeaderDrivesTheAxis()
-		{
-			// Leader 4237, world 18656 -> threshold 9328. The real 2200 AD figures.
-			var history = new[] { Snap(4237, 2156, 2063, 1694, 1672, 1534, 1145, 895, 842, 675, 501, 417, 355, 338, 132) };
-			int worldHalf = CivilizationScore.PeakHalfWorld(history, liveWorldTotal: 0);
-
-			Assert.True(worldHalf > 4237,
-				$"the threshold ({worldHalf}) should sit above the leader, or the axis need not change");
 		}
 	}
 }

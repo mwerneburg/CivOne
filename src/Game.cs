@@ -2596,8 +2596,8 @@ namespace CivOne
 				}
 
 				// ── Economic dominance: Pax Mercatoria ───────────────────────────────
-				// The merchant's finish line: hold more than half the world's gross economic
-				// output for EconomicHoldTurns consecutive turns, with Banking known, at least
+				// The merchant's finish line: hold EconomicLeadMargin times the gross economic
+				// output of the next-largest economy for EconomicHoldTurns consecutive turns, with Banking known, at least
 				// 3 rivals still standing, no war of your own making, and half the surviving
 				// rivals economically bound to you (tribute, defense pact, or an active trade
 				// route). Defensive wars don't break the streak: dominance by commerce,
@@ -2609,7 +2609,7 @@ namespace CivOne
 				// of the best rival, and could win by neither.
 				// Story factions cannot CLAIM this, the same exclusion Cultural Ascendancy
 				// applies. The Registry empties cities rather than running them, and the
-				// worldOut comment below rests on exactly that: their economy counts toward
+				// nextEconomy comment below rests on exactly that: their economy counts toward
 				// the total you must out-earn precisely because an occupied world has no
 				// commercial hegemon. Letting the occupier be the hegemon contradicts it.
 				foreach (Player claimant in _players
@@ -2633,23 +2633,30 @@ namespace CivOne
 					int claimOut = GrossOutput(claimant);
 					// Deliberate asymmetry with econRivals above: the story factions are NOT rivals
 					// you must bind by tribute or trade, but whatever economic value sits under the
-					// Registry IS part of the world you must out-earn. An occupied world has no
+					// Registry IS an economy you must out-earn. An occupied world has no
 					// commercial hegemon. This is not an oversight — do not propagate the
 					// TheOthers/TheThing/Skynet exclusion down here.
 					//
 					// It resolves itself: the Owners empty cities rather than run them, so once
 					// humanity throws them off they hit Cities.Length == 0, count as destroyed, and
-					// drop out of this sum. The streak resets on every break, so a liberated world
-					// can start a fresh EconomicHoldTurns turns and win properly.
-					int worldOut = _players.Where(p => p is not null && !p.IsDestroyed() && PlayerNumber(p) != 0)
-						.Sum(GrossOutput);
-					bool share = claimOut > 0 && claimOut * 2 > worldOut;
+					// drop out of this comparison. The streak resets on every break, so a liberated
+					// world can start a fresh EconomicHoldTurns turns and win properly.
+					//
+					// Measured against the next-largest economy, not the world's total, since Oct
+					// 2026. "More than half the world" outweighs a coalition of every rival at
+					// once, which gets harder with every civ in the game — the user lost a run at
+					// 49.7% while 3.7x the next economy, and is about to play with 12+ civs. It
+					// also rose under the leader as the whole world got richer; a lead does not.
+					Player? nextEconomy = _players.Where(p => p is not null && p != claimant && !p.IsDestroyed() && PlayerNumber(p) != 0)
+						.OrderByDescending(GrossOutput).FirstOrDefault();
+					int nextOut = nextEconomy is null ? 0 : GrossOutput(nextEconomy);
+					bool leads = claimOut > 0 && LeadsTheMarkets(claimOut, nextOut);
 
 					// Wars of this civ's own making break its streak — but not wars against the
 					// story factions. Skynet is at war with everyone the moment it wakes, the
 					// Registry arrives to repossess the planet, and the Thing does not negotiate:
 					// there is no version of those conflicts a merchant could have declined. Same
-					// exclusion econRivals uses; deliberately NOT the one worldOut uses.
+					// exclusion econRivals uses; deliberately NOT the one nextEconomy uses.
 					bool aggressing = _players.Any(p => p is not null && !p.IsDestroyed()
 						&& !(p.Civilization is Civilizations.TheOthers or Civilizations.TheThing or Civilizations.Skynet)
 						&& claimant.IsAtWar(p) && StartedWarWith(cnum, PlayerNumber(p)));
@@ -2664,23 +2671,23 @@ namespace CivOne
 					}
 					bool boundHalf = econRivals.Count(Bound) * 2 >= econRivals.Length;
 
-					if (share && !aggressing && boundHalf)
+					if (leads && !aggressing && boundHalf)
 					{
 						Progress(cnum).EconSlip = 0;
 						Progress(cnum).EconStreak++;
-						// One warning when the lead thins to within a point of the bar. A streak lost
-						// on turn 74 of 75 by 0.3% of world output, unannounced, was the user's find
-						// (Oct 2026). Re-armed once the share is back above 52%.
-						if (MarketsSlipping(claimOut, worldOut))
+						// One warning when the lead thins to near the bar. A streak lost on turn 74
+						// of 75 by a hair, unannounced, was the user's find (Oct 2026). Re-armed once
+						// the lead is clear of the band again.
+						if (MarketsSlipping(claimOut, nextOut))
 						{
 							if (isHuman && !Progress(cnum).EconSlipWarned && Progress(cnum).EconStreak > 1)
 								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 									"Our markets are slipping:",
-									$"{claimOut * 100.0 / worldOut:0.0}% of world trade.",
-									"Half is the least we need."));
+									$"{claimOut / (double)nextOut:0.00}x the {nextEconomy!.TribeNamePlural}.",
+									$"We need {EconomicLeadMargin:0.0}x."));
 							Progress(cnum).EconSlipWarned = true;
 						}
-						else if (claimOut * 100L >= worldOut * 52L)
+						else if (claimOut >= nextOut * (EconomicLeadMargin + 2 * SlippingBand))
 							Progress(cnum).EconSlipWarned = false;
 						// Only the human gets told; the rest is somebody else's newspaper.
 						if (isHuman && Progress(cnum).EconStreak == 1)
@@ -2715,7 +2722,7 @@ namespace CivOne
 					}
 					else if (Progress(cnum).EconStreak > 0)
 					{
-						string why = !share ? "Our share of world trade slipped."
+						string why = !leads ? "Our lead in world trade slipped."
 							: aggressing ? "Wars of our making unsettle the markets."
 							: "Too few nations bank with us.";
 						// A dip pauses the streak rather than breaking it; a war of our making
@@ -4962,8 +4969,13 @@ namespace CivOne
 		// advance while paused, so the hold is still EconomicHoldTurns turns ABOVE the bar.
 		internal const uint StreakGraceTurns = 3;
 
-		// Within a point of half the world's output: the warning band.
-		internal static bool MarketsSlipping(int claimOut, int worldOut) => claimOut * 100L < worldOut * 51L;
+		// Pax Mercatoria's bar: this many times the output of the next-largest economy.
+		internal const double EconomicLeadMargin = 2.5;
+		internal static bool LeadsTheMarkets(int claimOut, int nextOut) => claimOut >= nextOut * EconomicLeadMargin;
+
+		// The warning band, just above the bar.
+		private const double SlippingBand = 0.1;
+		internal static bool MarketsSlipping(int claimOut, int nextOut) => claimOut < nextOut * (EconomicLeadMargin + SlippingBand);
 
 		private int GrossOutput(Player p)
 		{

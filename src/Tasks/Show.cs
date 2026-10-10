@@ -241,6 +241,7 @@ namespace CivOne.Tasks
 		public static Show IncitedCityResponse(City city, Player inciter) => new Show(new IncitedCityResponse(city, inciter));
 
 		public static Show SenateGrievanceResponse(Player culprit) => new Show(new SenateGrievanceResponse(culprit));
+		public static Show OlvirPleaResponse(Player aggressor) => new Show(new OlvirPleaResponse(aggressor));
 
 		public static Show SelectAdvanceAfterCityCapture(Player player, IList<IAdvance> advances) => new Show(new SelectAdvanceAfterCityCapture(player, advances));
 

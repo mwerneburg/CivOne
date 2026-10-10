@@ -74,7 +74,7 @@ namespace CivOne.Tests
 		// ── Pax Mercatoria ────────────────────────────────────────────────────────
 
 		// Three rivals on river land, each paying us tribute: the tribute both binds them and
-		// counts in our output, so the share is set by `tribute` alone.
+		// counts in our output, so our lead is set by `tribute` alone.
 		private static (Game g, Player us, Player[] rivals) AMerchantWorld()
 		{
 			Sim.NewGame(width: 80, height: 50);
@@ -177,17 +177,42 @@ namespace CivOne.Tests
 			Assert.Equal(0u, EconStreak(g, us));
 		}
 
-				// The warning band: within a point of half, not at it or over it.
+				// The bar itself: EconomicLeadMargin (2.5x) the next economy. The user's lost run, at
+		// 3.7x China with 49.7% of the world, wins under it.
 		[Theory]
-		[InlineData(5050, 10000, true)]
-		[InlineData(5099, 10000, true)]
-		[InlineData(5100, 10000, false)]
-		[InlineData(6000, 10000, false)]
-		public void TheWarningBandIsTheLastPoint(int ours, int world, bool slipping) =>
-			Assert.Equal(slipping, Game.MarketsSlipping(ours, world));
+		[InlineData(250, 100, true)]
+		[InlineData(249, 100, false)]
+		[InlineData(11717, 3145, true)]
+		public void TheBarIsTwoAndAHalfTimesTheNextEconomy(int ours, int next, bool leads) =>
+			Assert.Equal(leads, Game.LeadsTheMarkets(ours, next));
 
-		// ...and the merchant is told (latched: EconSlipWarned). The share is tuned with the tribute to just over
-		// half of whatever the rivals' cities produce.
+		// Wired: under half the world's output, but 2.7x the next economy, and the streak runs.
+		// The rivals pay each other in a ring so each holds about 1100 and together they
+		// outweigh us; under the old rule this world had no hegemon.
+		[Fact]
+		public void ALeadOverTheNextEconomyCountsWithoutHalfTheWorld()
+		{
+			(Game g, Player us, Player[] rivals) = AMerchantWorld();
+			Tribute(us, rivals, 3000);
+			for (int i = 0; i < rivals.Length; i++) rivals[i].EstablishTribute(rivals[(i + 1) % rivals.Length], 1100);
+			int ours = g.GrossOutputOf(us), world = ours + rivals.Sum(r => g.GrossOutputOf(r));
+			Assert.True(ours * 2 < world, $"fixture: {ours} of {world} is already half");
+
+			ATurn(g);
+
+			Assert.True(EconStreak(g, us) > 0, "a 2.7x lead with under half the world did not count");
+		}
+
+		// The warning band: just above the bar, not at a comfortable lead.
+		[Theory]
+		[InlineData(255, 100, true)]
+		[InlineData(260, 100, false)]
+		[InlineData(400, 100, false)]
+		public void TheWarningBandSitsJustAboveTheBar(int ours, int next, bool slipping) =>
+			Assert.Equal(slipping, Game.MarketsSlipping(ours, next));
+
+		// ...and the merchant is told (latched: EconSlipWarned). The lead is tuned with the
+		// tribute to 2.55x the next economy.
 		[Fact]
 		public void TheMerchantIsWarnedNearTheBar()
 		{
@@ -197,17 +222,17 @@ namespace CivOne.Tests
 			PlayerProgress pr = g.Progress(g.PlayerNumber(us));
 			Assert.False(pr.EconSlipWarned, "warned while holding 3000 in tribute");
 
-			// The rivals' cities produce too little to tune against, so one rival pays another:
-			// tribute counts in the world's output. Then just over half: A = R + R/50 + 1.
+			// The rivals' cities produce too little to tune against, so one rival is paid a
+			// tribute by another: that makes it the next economy, at about 1000.
 			rivals[1].EstablishTribute(rivals[2], 1000);
-			int R = rivals.Sum(r => g.GrossOutputOf(r));
+			int next = rivals.Max(r => g.GrossOutputOf(r));
 			int ownCities = g.GrossOutputOf(us) - 3000;
-			Tribute(us, rivals, R + R / 50 + 1 - ownCities);
+			Tribute(us, rivals, (int)(next * 2.55) - ownCities);
 			ATurn(g);
 
-			int worldNow = g.GrossOutputOf(us) + rivals.Sum(r => g.GrossOutputOf(r));
-			Assert.True(Game.MarketsSlipping(g.GrossOutputOf(us), worldNow) && g.GrossOutputOf(us) * 2 > worldNow,
-				$"fixture: tuned share drifted to {g.GrossOutputOf(us)} of {worldNow}");
+			int ours = g.GrossOutputOf(us), nextNow = rivals.Max(r => g.GrossOutputOf(r));
+			Assert.True(Game.MarketsSlipping(ours, nextNow) && Game.LeadsTheMarkets(ours, nextNow),
+				$"fixture: tuned lead drifted to {ours} against {nextNow}");
 			Assert.True(pr.EconStreak > 1, "fixture: the streak broke");
 			Assert.True(pr.EconSlipWarned, "not warned at the edge of the bar");
 		}

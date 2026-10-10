@@ -24,13 +24,15 @@ namespace CivOne.Tests
 		// The ruling: story factions are excluded from the rival set but not from the world.
 		// Asserted on the source of truth rather than by reaching into a private method, so
 		// the test fails if someone propagates the exclusion downward.
+		// Since Oct 2026 the bar is a multiple of the next-largest economy rather than half the
+		// world's sum; the ruling carries over — an occupier's economy is one you must out-earn.
 		[Fact]
 		public void TheWorldOutputSum_DoesNotExcludeTheStoryFactions()
 		{
 			string src = System.IO.File.ReadAllText(
 				System.IO.Path.Combine(RepoRoot(), "src", "Game.cs"));
-			int at = src.IndexOf("int worldOut = _players.Where(");
-			Assert.True(at > 0, "the Pax Mercatoria world-output sum has moved or been rewritten");
+			int at = src.IndexOf("Player? nextEconomy = _players.Where(");
+			Assert.True(at > 0, "the Pax Mercatoria next-economy search has moved or been rewritten");
 			string line = src.Substring(at, src.IndexOf(';', at) - at);
 
 			Assert.DoesNotContain("TheOthers", line);

@@ -24,7 +24,7 @@ namespace CivOne
 	internal sealed class PlayerProgress
 	{
 		// ── Pax Mercatoria ───────────────────────────────────────────────────
-		// Consecutive turns holding more than half the world's gross output, with the
+		// Consecutive turns holding Game.EconomicLeadMargin times the next economy's output, with the
 		// other clauses met. Broken by any turn that misses one.
 		public uint EconStreak;
 

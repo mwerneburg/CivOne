@@ -688,6 +688,25 @@ namespace CivOne
 				}
 				finally { _honoringPacts = false; }
 			}
+
+			// The Olvir do not fight back by choice; they ask the human for help (the user,
+			// Oct 2026). Only when the human could answer: not already at war with the
+			// aggressor, not bound by a treaty to it, and somebody at the controls.
+			Player? human = Game.HumanPlayer;
+			if (enemy.Civilization is Civilizations.Olvir && this != human && human is not null
+			    && !human.IsDestroyed() && !human.IsAtWar(this) && !human.HasPeaceTreaty(this)
+			    && !Settings.Instance.Autopilot)
+				GameTask.Enqueue(Show.OlvirPleaResponse(this));
+		}
+
+		// A war declared for somebody else: honouring a pact, or answering the Olvir. Recorded
+		// as no war of our making (Game.RecordWarStart is skipped), and it pulls in no further
+		// pacts.
+		internal void DeclareWarOnBehalfOf(Player aggressor)
+		{
+			_honoringPacts = true;
+			try { DeclareWar(aggressor); }
+			finally { _honoringPacts = false; }
 		}
 
 		// Reentrancy guard for pact honoring (single-threaded game loop): while an
