@@ -268,6 +268,36 @@ namespace CivOne.Tests
 			Assert.Equal(famed + 1, HallOfFame.Load().Count);
 		}
 
+		// A second win during the encore is points only, and says so. It used to return in
+		// silence after the art and the headline, which read as a broken prompt.
+		[Fact]
+		public void ASecondWinDuringTheEncoreSaysTheGameGoesOn()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			OneTurnFromACulturalWin(g);
+			g.BankedVictory = "Admission";
+			int famed = HallOfFame.Load().Count;
+
+			bool advised = false;
+			uint target = g.GameTurn + 3u;
+			while (g.GameTurn < target)
+			{
+				Sim.ClearTasks();
+				g.EndTurn();
+				advised |= QueuedProbes().Contains("Message:AdvisorMessage");
+			}
+
+			Assert.True(g.Progress(g.PlayerNumber(g.HumanPlayer)).CultureStreak >= Game.CultureHoldTurns, "fixture: the win never fired");
+			Assert.Equal("Admission", g.BankedVictory);
+			Assert.Equal(famed, HallOfFame.Load().Count);   // the game did not end
+			Assert.True(advised, "the second win was not announced");
+		}
+
+		private static string[] QueuedProbes() =>
+			((System.Collections.IList)typeof(GameTask).GetField("_tasks", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!)
+				.Cast<GameTask>().Select(t => t.ProbeName).ToArray();
+
 		// Whatever ends the encore — defeat included — the Hall of Fame keeps the win.
 		[Fact]
 		public void TheBankedWinIsWhatTheHallOfFameKeeps()

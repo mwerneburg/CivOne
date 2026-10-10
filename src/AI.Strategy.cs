@@ -1809,7 +1809,12 @@ namespace CivOne
 		// it replaced: with the three-route cap gone, a genuine trading partnership can now
 		// accumulate enough value to matter, and it should — but a war every other factor
 		// favours must still be reachable. Compare: a gift buys -15, being notably weaker -20.
-		private const int TradeDeterrentMax = 40;
+		//
+		// 20 since Oct 2026. At 40 it was NOT reachable: late in game d721724c every pair of
+		// civs had saturated it, and an aggressive leader six times stronger with a grudge
+		// summed 6 + 8 + 10 + 15 = 39. No AI started a war in that game's last 320 turns.
+		// TradeDeterrentTests pins the case.
+		private const int TradeDeterrentMax = 20;
 
 		private void ConsiderWarFooting()
 		{

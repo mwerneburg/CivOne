@@ -524,7 +524,15 @@ namespace CivOne
 
 		private void EndOrEncore(string victory)
 		{
-			if (BankedVictory is not null) return;   // a second win during the encore: points only
+			// A second win during the encore: points only. Said so, because the art and the
+			// headline with no ending after them read as a broken prompt (the user, Oct 2026).
+			if (BankedVictory is not null)
+			{
+				GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
+					victory + ":", "a second victory. The points",
+					"are ours; the game goes on."));
+				return;
+			}
 			if (ArrivalPending && !Settings.Instance.Autopilot)
 			{
 				BankedVictory = victory;
@@ -2668,8 +2676,8 @@ namespace CivOne
 							if (isHuman && !Progress(cnum).EconSlipWarned && Progress(cnum).EconStreak > 1)
 								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 									"Our markets are slipping:",
-									$"{claimOut * 100.0 / worldOut:0.0}% of the world's trade.",
-									"Half is the least we can hold."));
+									$"{claimOut * 100.0 / worldOut:0.0}% of world trade.",
+									"Half is the least we need."));
 							Progress(cnum).EconSlipWarned = true;
 						}
 						else if (claimOut * 100L >= worldOut * 52L)
@@ -2717,7 +2725,7 @@ namespace CivOne
 							if (isHuman && Progress(cnum).EconSlip == 1)
 								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 									"The markets waver.", why,
-									$"Recover within {StreakGraceTurns} turns or the streak is lost."));
+									$"{StreakGraceTurns} turns to recover,", "or the streak is lost."));
 						}
 						else
 						{
@@ -2911,7 +2919,7 @@ namespace CivOne
 							if (isHuman && Progress(cnum).CultureSlip == 1)
 								GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 									"Our influence wanes.", why,
-									$"Recover within {StreakGraceTurns} turns or the streak is lost."));
+									$"{StreakGraceTurns} turns to recover,", "or the streak is lost."));
 						}
 						else
 						{
