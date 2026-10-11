@@ -204,6 +204,48 @@ namespace CivOne.Tests
 			Assert.False(g.DomeAssignments.ContainsKey(g.PlayerNumber(skynet)), "the Machines were handed a Dome component");
 		}
 
+		// Five pieces, more than five nations: the most advanced five took them all, and a human
+		// tied for sixth was given no part in the Dome (seen in play 11 Oct 2026).
+		private static Game ACrowdedWorldWithABackwardHuman()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			Game g = Game.Instance;
+			IAdvance[] some = Common.Advances.Take(20).ToArray();
+			foreach (Player p in g.HumanityNations().Where(p => p != g.HumanPlayer))
+				foreach (IAdvance a in some) p.AddAdvance(a, false);
+			Assert.True(g.HumanityNations().Length > 5, $"fixture: only {g.HumanityNations().Length} nations");
+			return g;
+		}
+
+		[Fact]
+		public void TheHumanAlwaysGetsADomePiece()
+		{
+			Game g = ACrowdedWorldWithABackwardHuman();
+
+			typeof(Game).GetMethod("AssignDomeComponents", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(g, null);
+
+			Assert.Single(g.GetDomeAssignments(g.HumanPlayer));
+			Assert.Equal(5, g.DomeAssignments.Values.Sum(l => l.Count));
+		}
+
+		// A save assigned under the old ordering is repaired on load: one piece moves to the
+		// human from the least advanced holder.
+		[Fact]
+		public void ASaveThatLeftTheHumanOutIsRepaired()
+		{
+			Game g = ACrowdedWorldWithABackwardHuman();
+			Player[] ais = g.HumanityNations().Where(p => p != g.HumanPlayer).Take(5).ToArray();
+			ais[4].AddAdvance(Common.Advances.Skip(30).First(), false);   // not the least advanced
+			Wonder[] pieces = { Wonder.DomePowerCore, Wonder.DomeSensorNet, Wonder.DomeCommandHub, Wonder.DomeKineticRing, Wonder.DomeEmitterArray };
+			for (int i = 0; i < 5; i++) g.DomeAssignments[g.PlayerNumber(ais[i])] = new() { pieces[i] };
+
+			g.GiveTheHumanADomePieceIfNeeded();
+
+			Assert.Single(g.GetDomeAssignments(g.HumanPlayer));
+			Assert.Equal(5, g.DomeAssignments.Values.Sum(l => l.Count));
+			Assert.NotEmpty(g.GetDomeAssignments(ais[4]));
+		}
+
 		// ── the encore ───────────────────────────────────────────────────────
 
 		// The Cultural Ascendancy fixture from VictoryLatchTests, one turn from the win.

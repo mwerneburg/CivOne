@@ -230,6 +230,23 @@ namespace CivOne.Tests
 			Assert.Equal(new[] { (36, 25), (37, 25), (38, 24), (39, 25), (40, 25), (41, 25), (42, 25) }, route);
 		}
 
+		// A goal dead on the diagonal, blocked one step ahead, has no neighbour that closes the
+		// distance, and every step was required to. The airship stopped there for good, and our
+		// carriers queued behind it: four Japanese airships wedged in a line short of
+		// Hiroshima (Oct 2026). It now slides along at the same distance and closes from there.
+		[Fact]
+		public void ADiagonalBlockedDeadAheadIsFlownRound()
+		{
+			(Game g, _, Player ai, Dirigible d) = AnOpenSky();
+			d.X = 35; d.Y = 20;
+			g.CreateUnit(UnitType.Militia, 36, 21, g.PlayerNumber(ai));
+
+			var route = Route(d, 38, 23);
+
+			Assert.Equal((38, 23), route.LastOrDefault());
+			Assert.DoesNotContain((36, 21), route);
+		}
+
 		// Unarmed. BaseUnit.Confront refused only unarmed LAND units, so a Dirigible moved by
 		// hand onto a foreign unit fought it at strength 0 and lost its cargo with it.
 		[Fact]

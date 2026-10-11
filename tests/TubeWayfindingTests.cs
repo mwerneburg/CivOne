@@ -370,6 +370,27 @@ namespace CivOne.Tests
 			Assert.NotNull(Common.GotoStep(unit, 45, 20));
 		}
 
+		// The same under Autopilot, where the planner remembers a failed search for the turn
+		// (DeadEndMemoTests): the last tile has to clear that memory too.
+		[Fact]
+		public void LayingTheLastTileOpensTheRouteAtOnceUnderAutopilot()
+		{
+			bool auto = Settings.Instance.Autopilot;
+			try
+			{
+				Settings.Instance.Autopilot = true;
+				(Game g, byte num) = TwoShores(laytube: false);
+				for (int x = 21; x <= 38; x++) Map.Instance[x, 20].TransportTube = true;
+				IUnit unit = g.CreateUnit(UnitType.Musketeers, 20, 20, num, false)!;
+				Assert.Null(Common.GotoStep(unit, 45, 20));
+
+				Map.Instance[39, 20].TransportTube = true;
+
+				Assert.NotNull(Common.GotoStep(unit, 45, 20));
+			}
+			finally { Settings.Instance.Autopilot = auto; }
+		}
+
 		// A floating city is a stepping stone like any tube tile — the Hydro Engineer's own
 		// pedia page says the two form one corridor — so founding one in a gap completes the
 		// crossing, and the cache has to notice that too.

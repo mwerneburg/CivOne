@@ -2344,17 +2344,7 @@ namespace CivOne
 					GameTask.Enqueue(Show.Screen(new TauCetiApproachWarning(gameDate, VisitorType,
 						Common.YearString((ushort)OlvirArrivalTurn), HoldsIntendedStarlab(HumanPlayer),
 						ProbeDispatched, ProbeInterimPhase)));
-					var humanDomeComponents = GetDomeAssignments(HumanPlayer).ToList();
-					if (humanDomeComponents.Count > 0)
-					{
-						string nameList = string.Join(" + ", humanDomeComponents
-							.Select(w => DomeFiveComponents.First(c => (Enums.Wonder)c.Id == w).Name.ToUpper()));
-						GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
-							"Science brief: our role",
-							"in the Dome project is",
-							$"to build: {nameList}.",
-							"Open World menu to track."));
-					}
+					BriefDomeRole();
 				}
 
 				// Probe interim reports and final result
@@ -4010,8 +4000,11 @@ namespace CivOne
 			// handed a component it would never build, at war with everyone, and the Dome
 			// could not be finished. Seen in play 23 Sep 2026: the Power Core went to the
 			// Machines.
+			// The human first: with more than five nations the most advanced five took them all,
+			// and a human tied for sixth was left out of the Dome entirely (seen in play 11 Oct 2026).
 			Player[] eligible = HumanityNations()
-				.OrderByDescending(p => p.Advances.Length)
+				.OrderByDescending(p => p == HumanPlayer)
+				.ThenByDescending(p => p.Advances.Length)
 				.ToArray();
 			if (eligible.Length == 0) return;
 
@@ -4090,6 +4083,40 @@ namespace CivOne
 					DomeAssignments[pid] = list = new List<Enums.Wonder>();
 				list.Add(orphaned[i]);
 			}
+		}
+
+		private void BriefDomeRole()
+		{
+			var humanDomeComponents = GetDomeAssignments(HumanPlayer).ToList();
+			if (humanDomeComponents.Count == 0) return;
+			string nameList = string.Join(" + ", humanDomeComponents
+				.Select(w => DomeFiveComponents.First(c => (Enums.Wonder)c.Id == w).Name.ToUpper()));
+			GameTask.Enqueue(Message.Advisor(Advisor.Science, false,
+				"Science brief: our role",
+				"in the Dome project is",
+				$"to build: {nameList}.",
+				"Open World menu to track."));
+		}
+
+		// Saves assigned before the human came first: hand the human one unbuilt piece, taken
+		// from the least advanced holder, and brief them as the approach warning would have.
+		internal void GiveTheHumanADomePieceIfNeeded()
+		{
+			if (DomeAssignments.Count == 0 || GetDomeAssignments(HumanPlayer).Any()) return;
+			if (!HumanityNations().Contains(HumanPlayer)) return;
+			bool Unbuilt(Enums.Wonder w) => !WonderBuilt(DomeFiveComponents.First(c => (Enums.Wonder)c.Id == w))
+				&& !_players.Any(p => p is not null && p.Cities.Any(c => c.CurrentProduction is Wonders.IWonder cw && cw.Id == (byte)w));
+			byte? donor = DomeAssignments
+				.Where(kv => kv.Value.Any(Unbuilt))
+				.OrderBy(kv => _players[kv.Key].Advances.Length)
+				.Select(kv => (byte?)kv.Key)
+				.FirstOrDefault();
+			if (donor is null) return;
+			Enums.Wonder piece = DomeAssignments[donor.Value].First(Unbuilt);
+			DomeAssignments[donor.Value].Remove(piece);
+			if (DomeAssignments[donor.Value].Count == 0) DomeAssignments.Remove(donor.Value);
+			DomeAssignments[PlayerNumber(HumanPlayer)] = new List<Enums.Wonder> { piece };
+			BriefDomeRole();
 		}
 
 		// Returns the dome components assigned to this player (empty if none / not yet assigned).

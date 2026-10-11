@@ -424,7 +424,7 @@ namespace CivOne
 		private static bool _tubeLinksDirty = true;
 		private byte[]? _tubeLink;
 
-		internal static void InvalidateTubeLinks() => _tubeLinksDirty = true;
+		internal static void InvalidateTubeLinks() { _tubeLinksDirty = true; Common.ForgetDeadEnds(); }
 
 		// Do two named continents belong to one walkable network? Only if tubes and floating
 		// cities actually join them.

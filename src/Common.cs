@@ -311,14 +311,37 @@ namespace CivOne
 					TurnMetrics.AddBucket("path:Hit", __p);
 					return reused;
 				}
+				int turn = Game.Instance.GameTurn;
+				if (turn != _deadEndTurn || !ReferenceEquals(Game.Instance, _deadEndGame))
+				{
+					_deadEnds.Clear(); _deadEndTurn = turn; _deadEndGame = Game.Instance;
+				}
+				long key = ((long)unit.Owner << 48) | ((long)unit.Type << 40)
+				         | ((long)(unit.Y * Map.WIDTH + unit.X) << 20) | (long)(gy * Map.WIDTH + gx);
+				// Not the human's own orders: move a blocker, re-issue the GoTo, and it must work.
+				bool memo = unit.Owner != Game.Instance.PlayerNumber(Game.Instance.HumanPlayer) || Settings.Instance.Autopilot;
+				if (memo && _deadEnds.Contains(key)) return null;
 				long __m = TurnMetrics.Now;
 				ITile? r = GotoStepInner(unit, gx, gy);
 				TurnMetrics.AddBucket("path:Miss", __m);
 				__found = r is not null;
+				if (r is null && memo) _deadEnds.Add(key);
 				return r;
 			}
 			finally { TurnMetrics.AddPathfind(__p, __found); }
 		}
+
+		// A search that failed is not run again this turn for the same owner, unit type, start
+		// and goal. A failed search explores everything it can reach before giving up, and a
+		// stack shares its start and goal: nineteen English units in Indian country ran the
+		// same futile search every turn once trespass made their routes honest (Oct 2026).
+		// ponytail: per-turn, not invalidated mid-turn — a path opened by a unit moving away is
+		// found next turn.
+		private static readonly HashSet<long> _deadEnds = new();
+		// A tube tile or a floating city can open a crossing mid-turn (Map.InvalidateTubeLinks).
+		internal static void ForgetDeadEnds() => _deadEnds.Clear();
+		private static int _deadEndTurn = -1;
+		private static Game? _deadEndGame;
 
 		// A Dirigible does not search. It flies diagonally until it is level with its goal on
 		// one axis, then straight along the other, so the player can see the route before it
@@ -349,21 +372,34 @@ namespace CivOne
 			else { steps.Add((-1, sy)); steps.Add((1, sy)); }
 
 			int distance = Math.Max(Math.Abs(dx), Math.Abs(dy));
-			foreach (var (ox, oy) in steps)
+			ITile? Open(int ox, int oy)
 			{
-				if (Math.Max(Math.Abs(dx - ox), Math.Abs(dy - oy)) >= distance) continue;
 				ITile tile = Map.Instance[(unit.X + ox + w) % w, unit.Y + oy];
-				if (tile is null) continue;
-				if (tile.Units.Any(u => u.Owner != unit.Owner)) continue;
-				if (tile.City is not null && tile.City.Owner != unit.Owner) continue;
+				if (tile is null) return null;
+				if (tile.Units.Any(u => u.Owner != unit.Owner)) return null;
+				if (tile.City is not null && tile.City.Owner != unit.Owner) return null;
 				// Nor through another of our own carriers in the open. Cargo rides by TILE
 				// (Dirigible.Manifest): whichever vessel leaves a shared tile takes every
 				// sentried passenger on it, so crossing paths swapped loads — an Aztec-bound
 				// Diplomat was flown home to the Nile delta (seen in play, Sep 2026). Cities,
 				// where loading is deliberate, and the goal itself are exempt.
 				if (tile.City is null && !(tile.X == gx && tile.Y == gy)
-				    && tile.Units.Any(u => u is IBoardable)) continue;
+				    && tile.Units.Any(u => u is IBoardable)) return null;
 				return tile;
+			}
+			foreach (var (ox, oy) in steps)
+			{
+				if (Math.Max(Math.Abs(dx - ox), Math.Abs(dy - oy)) >= distance) continue;
+				if (Open(ox, oy) is ITile tile) return tile;
+			}
+			// Nothing closes the distance: a goal dead on the diagonal, blocked one step ahead,
+			// has no closing sidestep at all, and four airships wedged in a line short of
+			// Hiroshima for good (Oct 2026). Slide along at the same distance; the next step
+			// closes again. ponytail: can dither a turn round a wide obstacle; search if seen.
+			foreach (var (ox, oy) in new[] { (sx, 0), (0, sy), (-sy, sx), (sy, -sx) })
+			{
+				if ((ox, oy) == (0, 0) || Math.Max(Math.Abs(dx - ox), Math.Abs(dy - oy)) != distance) continue;
+				if (Open(ox, oy) is ITile tile) return tile;
 			}
 			return null;
 		}
@@ -419,9 +455,21 @@ namespace CivOne
 			// a non-combat unit refuses to enter it, so the step is one the unit will not take.
 			// Mirrors the `blocked` test in GotoStepInner, goal-tile exemption included.
 			if (!(nx == gx && ny == gy) && tile.City is null && StepBlocked(unit, tile)) return null;
+			if (Trespass(unit, Game.Instance.GetPlayer(unit.Owner), nx, ny)) return null;
 
 			return tile;
 		}
+
+		// BaseUnitLand.ValidMoveTarget's trespass rule, for the planner: a combat unit may not
+		// enter land a foreign city works unless at war with its owner. The planner did not
+		// know it, so it routed armies through a neutral's fields, MoveTo refused the step, and
+		// the unit kept its order and asked again every turn: nineteen English Chariots and
+		// Knights parked in Indian country on the d721724c save (Oct 2026). Not goal-exempt —
+		// a final step the unit will refuse is no more use than any other.
+		private static bool Trespass(IUnit unit, Player mover, int x, int y) =>
+			unit.Class == UnitClass.Land && unit.Owner != 0
+			&& !(unit is Settlers || unit is Caravan || unit is Diplomat)
+			&& Game.Instance.GetWorkerOfTile(x, y, unit.Owner) is Player worker && !mover.IsAtWar(worker);
 
 		// The `blocked` predicate of GotoStepInner, for a single tile. Kept beside the two
 		// clauses it mirrors — if the blocking rule there changes, this must change with it.
@@ -613,6 +661,27 @@ namespace CivOne
 				return result;
 			}
 
+			// Trespass (see Trespass below), gathered once per search: every tile worked by a
+			// city whose owner we are at peace with. Asking per tile scanned every city in the
+			// game for each node and made the search 2.2x slower on the d721724c save.
+			HashSet<int>? trespass = null;
+			if (unit.Class == UnitClass.Land && unit.Owner != 0 && !(unit is Settlers || unit is Caravan || unit is Diplomat))
+			{
+				trespass = new HashSet<int>();
+				foreach (City c in Game.Instance.GetCities())
+				{
+					if (c.Owner == unit.Owner || moverPlayer.IsAtWar(Game.Instance.GetPlayer(c.Owner))) continue;
+					for (int ddy = -2; ddy <= 2; ddy++)
+					for (int ddx = -2; ddx <= 2; ddx++)
+					{
+						int tx = (c.X + ddx + w) % w, ty = c.Y + ddy;
+						if ((ddx == 0 && ddy == 0) || ty < 0 || ty >= h) continue;
+						if (c.WorksTile(tx, ty)) trespass.Add(ty * w + tx);
+					}
+				}
+			}
+			bool Trespassing(int x, int y) => trespass is not null && trespass.Contains(y * w + x);
+
 			int Encode(int x, int y) => y * w + x;
 			int EuclidSq(int x1, int y1, int x2, int y2)
 			{
@@ -739,6 +808,7 @@ namespace CivOne
 
 					// Always allow the goal tile (enemy cities handled by MoveTo/Confront)
 					if ((!passable || blocked || zocBlocked) && !(nx == gx && ny == gy)) continue;
+					if (Trespassing(nx, ny)) continue;
 
 					// Boarding and leaving the undersea line. NOT goal-exempt, unlike the tests
 					// above: the exemption exists so a route may END on an enemy city, and a

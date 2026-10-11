@@ -3144,6 +3144,7 @@ namespace CivOne
 		{
 			bool targetOffContinent = _attackTarget is not null
 			    && _attackTarget.Tile is not null
+			    && !Player.HasAdvance<Flight>()
 			    && !Player.Cities.Any(oc => oc.Tile is not null
 			                              && oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
 			                              && Map.NamedContinent(oc.Tile.ContinentId));
@@ -3181,21 +3182,98 @@ namespace CivOne
 
 			byte own = Game.PlayerNumber(Player);
 			byte front = target.Tile.ContinentId;
-			IUnit[] reach = Game.GetUnits().Where(u => u.Owner == own && u.Role == UnitRole.LandAttack
-				&& u.Tile is not null && u.Tile.ContinentId == front).ToArray();
+			// Overseas, the group gathers in the muster city instead and goes by air.
+			City? muster = Airlift(target) ? Muster(target) : null;
+			byte home = muster?.Tile.ContinentId ?? front;
+			// Land units only: Bombers, missiles and drones read as LandAttack too (BaseUnit.Role's
+			// default), and Japan's "group aboard" at Hiroshima was four aircraft (Oct 2026).
+			IUnit[] reach = Game.GetUnits().Where(u => u.Owner == own && u.Role == UnitRole.LandAttack && u.Class == UnitClass.Land
+				&& u.Tile is not null && (u.Tile.ContinentId == front || u.Tile.ContinentId == home)).ToArray();
 			foreach (IUnit u in reach.Where(u => u.Fortify || u.Sentry))
+			{
 				u.Busy = false;
+				if (muster is not null && u.X == muster.X && u.Y == muster.Y) u.Sentry = true;   // aboard
+			}
+
+			// The airships too: an AI unit put to sleep never wakes, and older ones were.
+			if (muster is not null)
+				foreach (IUnit d in Game.GetUnits().Where(u => u.Owner == own && u is Dirigible && (u.Sentry || u.Fortify)))
+					d.Busy = false;
 
 			if (Player.RepublicDemocratic) return;   // the Senate's armies are not raised for this
-			int short_ = StrikeThreshold(target) - reach.Length;
+			if (muster is not null)
+			{
+				if (!Game.GetUnits().Any(u => u.Owner == own && u is Dirigible) && !Raising<Dirigible>(muster))
+					muster.PrependProduction(new Dirigible());
+				if (!Game.GetUnits().Any(u => u.Owner == own && u is Diplomat && u.Tile?.ContinentId == home) && !Raising<Diplomat>(muster)
+				    && Player.HasAdvance<Writing>())
+					muster.PrependProduction(new Diplomat());
+			}
+			int short_ = (muster is null ? StrikeThreshold(target) : StrikeGroupSize)
+				- reach.Count(u => u.Tile.ContinentId == home);
 			if (short_ <= 0) return;
-			foreach (City c in Player.Cities.Where(c => c.Tile?.ContinentId == front)
+			foreach (City c in Player.Cities.Where(c => c.Tile?.ContinentId == home)
 				.OrderBy(c => Common.DistanceToTile(c.X, c.Y, target.X, target.Y)).Take(Math.Min(short_, StrikeGroupSize)))
 			{
 				bool raising = c.CurrentProduction is IUnit { Role: UnitRole.LandAttack }
 					|| c.ProductionQueue.FirstOrDefault() is IUnit { Role: UnitRole.LandAttack };
 				if (!raising) c.PrependProduction(BestAttacker());
 			}
+		}
+
+		// ── air assault ──────────────────────────────────────────────────────
+		//
+		// A target on a landmass where we hold no city is out of walking reach. With Flight it
+		// is not out of reach: the group gathers in our city nearest the target, boards a
+		// Dirigible (cargo is what is sentried on its tile, Dirigible.Manifest), and is set down
+		// on the staging tile beside the walls. Island civs had no war at all without this —
+		// Fascist Japan was at war for a century and never picked a target (Oct 2026).
+		// Four turns' flight. Farther, and the group is at sea level for a war's worth of turns.
+		internal const int AirReach = 64;
+
+		private bool Airlift(City target) => Player.HasAdvance<Flight>() && target.Tile is not null
+			&& !Player.Cities.Any(c => c.Tile?.ContinentId == target.Tile.ContinentId);
+
+		private City? Muster(City target) => Player.Cities.Where(c => c.Tile is not null)
+			.OrderBy(c => Common.DistanceToTile(c.X, c.Y, target.X, target.Y)).FirstOrDefault();
+
+		private static bool Raising<T>(City c) => c.CurrentProduction is T || c.ProductionQueue.Any(p => p is T);
+
+		// Wait at the muster city for a full group, fly it to the staging tile, set it down, return.
+		private void FlyAirlift(IUnit unit)
+		{
+			City? target = _attackTarget;
+			City? muster = target is not null && Airlift(target) ? Muster(target) : null;
+			City? home = muster ?? Player.Cities.OrderBy(c => Common.DistanceToTile(unit.X, unit.Y, c.X, c.Y)).FirstOrDefault();
+			if (muster is not null)
+			{
+				// Every tile beside the walls held by the enemy: one ring out instead. The Lakota
+				// flew three loads at Mirethkai and turned for home with them (Oct 2026).
+				ITile? landing = StagingTile(target!) ?? Enumerable.Range(-2, 5)
+					.SelectMany(dy => Enumerable.Range(-2, 5).Select(dx => Map[target!.X + dx, target.Y + dy]))
+					.Where(t => t is not null && !t.IsOcean && t.City is null && !t.Units.Any(u => u.Owner != unit.Owner))
+					.OrderBy(t => Common.DistanceToTile(unit.X, unit.Y, t.X, t.Y))
+					.FirstOrDefault();
+				// Anywhere dry beside the walls: the staging tile can fill with defenders while
+				// the airship is in the air, and one that hovers short of it loses its cargo there.
+				bool landed = landing is not null && unit.X == landing.X && unit.Y == landing.Y;
+				if (landed || (Common.DistanceToTile(unit.X, unit.Y, target!.X, target.Y) <= 1 && !unit.Tile.IsOcean))
+				{
+					((Dirigible)unit).Unload();
+					unit.Goto = new Point(muster.X, muster.Y);
+					return;
+				}
+				byte own = Game.PlayerNumber(Player);
+				int aboard = unit.Tile.Units.Count(u => u.Owner == own && u.Role == UnitRole.LandAttack && u.Class == UnitClass.Land && u.Sentry);
+				// A full group leaves the muster; once away, any cargo flies on rather than home.
+				bool atMuster = unit.X == muster.X && unit.Y == muster.Y;
+				if (landing is not null && aboard >= (atMuster ? StrikeGroupSize : 1))
+				{
+					unit.Goto = new Point(landing.X, landing.Y);
+					return;
+				}
+			}
+			if (home is not null && (home.X != unit.X || home.Y != unit.Y)) unit.Goto = new Point(home.X, home.Y);
 		}
 
 		private City PickAttackTarget()
@@ -3215,11 +3293,17 @@ namespace CivOne
 			        && Map.NamedContinent(c.Tile.ContinentId)
 			        && ownContinents.Contains(c.Tile.ContinentId));
 
+			// ...unless we can fly there (see Airlift). A walkable target still comes first.
+			bool flight = Player.HasAdvance<Flight>();
 			var candidates = Game.GetCities()
 			    .Where(c => c.Player != Player
 			             && (Player.IsAtWar(c.Player) || c.Owner == 0)
 			             && Player.Visible(c.X, c.Y)
-			             && reachable(c));
+			             && (reachable(c) || (flight && c.Tile is not null
+			                 && Player.Cities.Any(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y) <= AirReach)
+			                 // Somewhere dry to set them down. An Olvir city on open water has
+			                 // none, and the Lakota sat 29 aboard at Tours waiting on one.
+			                 && c.Tile.GetBorderTiles().Any(t => t is not null && !t.IsOcean))));
 
 			// When the human is dominant and we're at war with them, hit their cities first.
 			Player? human = HumanOpponent;
@@ -3227,14 +3311,16 @@ namespace CivOne
 			{
 				City humanCity = candidates
 				    .Where(c => c.Player == human)
-				    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
+				    .OrderBy(c => reachable(c) ? 0 : 1)
+				    .ThenBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 				    .ThenBy(c => Player.Cities.Min(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
 				    .FirstOrDefault();
 				if (humanCity is not null) return humanCity;
 			}
 
 			return candidates
-			    .OrderBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
+			    .OrderBy(c => reachable(c) ? 0 : 1)
+			    .ThenBy(c => c.Tile.Units.Count(u => u.Role == UnitRole.Defense))
 			    .ThenBy(c => Player.Cities.Min(oc => Common.DistanceToTile(oc.X, oc.Y, c.X, c.Y)))
 			    .FirstOrDefault();
 		}
@@ -3502,6 +3588,8 @@ namespace CivOne
 		{
 			StrategyStance stance = GetStance();
 
+			if (unit is Dirigible) { FlyAirlift(unit); return; }
+
 			// Naval units
 			if (unit.Class == UnitClass.Water)
 			{
@@ -3643,6 +3731,22 @@ namespace CivOne
 					    && pc.Civilization is not CivOne.Civilizations.Barbarian
 					    && !Player.IsAtWar(pc)) return false;
 					return true;
+				}
+
+				// ...and overseas it boards at the muster city, to be set down with them.
+				if (_attackTarget is not null && !sameContinent(_attackTarget) && Airlift(_attackTarget)
+				    && Muster(_attackTarget) is City dock && dock.Tile.ContinentId == myContinent)
+				{
+					Point at = new Point(dock.X, dock.Y);
+					byte ownM = Game.PlayerNumber(Player);
+					bool manned = Game.GetUnits().Any(u => u != unit && u.Owner == ownM && u is Diplomat
+						&& (u.Goto == at || (u.X == dock.X && u.Y == dock.Y && u.Sentry)));
+					if (!manned)
+					{
+						if (unit.X == dock.X && unit.Y == dock.Y) unit.Sentry = true;
+						else unit.Goto = at;
+						return;
+					}
 				}
 
 				// The strike group's vanguard: one Diplomat goes to the attack target ahead of the
@@ -3844,6 +3948,40 @@ namespace CivOne
 					// fix (or picked when our continents shifted) needs invalidating so the
 					// strategy code re-picks a reachable target.
 					RefreshAttackTarget();
+
+					if (_attackTarget is not null && unit.Class == UnitClass.Land && Airlift(_attackTarget)
+					    && unit.Tile?.ContinentId != _attackTarget.Tile.ContinentId && Muster(_attackTarget) is City muster)
+					{
+						if (unit.X == muster.X && unit.Y == muster.Y) unit.Sentry = true;   // aboard
+						else unit.Goto = new Point(muster.X, muster.Y);
+						return;
+					}
+
+					// Too few to take it, even with every attacker we have on that ground: raid its
+					// fields while the group is raised (the user, Oct 2026: "try to take the town
+					// or sabotage its surroundings"). Never land our own cities work.
+					if (_attackTarget?.Tile is not null && unit.Class == UnitClass.Land)
+					{
+						City t = _attackTarget;
+						byte ownR = Game.PlayerNumber(Player);
+						int army = Game.GetUnits().Count(u => u.Owner == ownR && u.Role == UnitRole.LandAttack
+							&& u.Class == UnitClass.Land && u.Tile?.ContinentId == t.Tile.ContinentId);
+						bool Raidable(ITile? r) => r is not null && r.City is null && !r.IsOcean
+							&& (r.Irrigation || r.Mine || r.Road || r.RailRoad)
+							&& Common.DistanceToTile(r.X, r.Y, t.X, t.Y) <= 2
+							&& !r.Units.Any(u => u.Owner != unit.Owner)
+							&& !Player.Cities.Any(c => Common.DistanceToTile(c.X, c.Y, r.X, r.Y) <= 2);
+						if (army < StrikeThreshold(t) && unit.Tile?.ContinentId == t.Tile.ContinentId)
+						{
+							if (Raidable(unit.Tile)) { unit.Pillage(); return; }
+							ITile? raid = Enumerable.Range(-2, 5)
+								.SelectMany(dy => Enumerable.Range(-2, 5).Select(dx => Map[t.X + dx, t.Y + dy]))
+								.Where(Raidable)
+								.OrderBy(r => Common.DistanceToTile(unit.X, unit.Y, r!.X, r.Y))
+								.FirstOrDefault();
+							if (raid is not null) { unit.Goto = new Point(raid.X, raid.Y); return; }
+						}
+					}
 
 					if (_attackTarget is not null)
 					{

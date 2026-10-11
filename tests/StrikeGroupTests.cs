@@ -155,6 +155,70 @@ namespace CivOne.Tests
 			Assert.Equal(new Point(50, 25), a.Goto);
 		}
 
+		// ── the raid ─────────────────────────────────────────────────────────
+
+		// Two attackers cannot take it, and no more are on the way yet: they burn its fields
+		// rather than stand about (the user, Oct 2026: "sabotage its surroundings").
+		[Fact]
+		public void TooFewToTakeItRaidItsFields()
+		{
+			(Game g, Player us, Player _, City target, AI ai) = AWar();
+			Map.Instance[49, 24].Irrigation = true;
+			IUnit a = Armor(g, us, 49, 24);
+			Armor(g, us, 49, 25);
+			SetTarget(ai, target);
+
+			Assign(ai, a);
+
+			Assert.False(Map.Instance[49, 24].Irrigation, "the field beside the walls was left standing");
+		}
+
+		// ...walking to the nearest improved tile in its radius when not standing on one...
+		[Fact]
+		public void ARaiderWalksToTheNearestImprovedField()
+		{
+			(Game g, Player us, Player _, City target, AI ai) = AWar();
+			Map.Instance[51, 27].Mine = true;
+			IUnit a = Armor(g, us, 49, 25);
+			SetTarget(ai, target);
+
+			Assign(ai, a);
+
+			Assert.Equal(new Point(51, 27), a.Goto);
+		}
+
+		// ...but never our own land.
+		[Fact]
+		public void ARaiderSparesOurOwnFields()
+		{
+			(Game g, Player us, Player _, City target, AI ai) = AWar();
+			g.AddCity(us, 7, 47, 27);
+			Map.Instance[48, 26].Irrigation = true;   // within 2 of the target AND of our new city
+			IUnit a = Armor(g, us, 48, 26);
+			SetTarget(ai, target);
+
+			Assign(ai, a);
+
+			Assert.True(Map.Instance[48, 26].Irrigation, "pillaged our own city's land");
+		}
+
+		// Enough to take it: no raiding, the group goes in.
+		[Fact]
+		public void AFullGroupDoesNotStopToRaid()
+		{
+			(Game g, Player us, Player _, City target, AI ai) = AWar();
+			Map.Instance[49, 25].Irrigation = true;
+			IUnit a = Armor(g, us, 49, 25);
+			Armor(g, us, 49, 25);
+			Armor(g, us, 49, 25);
+			SetTarget(ai, target);
+
+			Assign(ai, a);
+
+			Assert.True(Map.Instance[49, 25].Irrigation);
+			Assert.Equal(new Point(50, 25), a.Goto);
+		}
+
 		// ── measured ─────────────────────────────────────────────────────────
 
 		// Captures reach the decisions log, so a run can say whether an army ever took anything.

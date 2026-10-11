@@ -438,6 +438,7 @@ namespace CivOne
 				AI.ResetInstances();   // see AI._instances: keyed by a slot index, not identity
 				_instance = new Game(cos);
 				_instance.FixDomeAssignmentsIfNeeded();
+				_instance.GiveTheHumanADomePieceIfNeeded();
 				_instance.RepickAiCityTiles();
 				_instance.ClearGhostWars();
 				WLTKNotifications.Clear();
