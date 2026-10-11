@@ -385,6 +385,10 @@ namespace CivOne.Persistence
 		public int? BuildingPlantJungle { get; set; }
 		public int? BuildingThawTundra { get; set; }
 		public int? BuildingAddRiver { get; set; }
+		// Pollution clean-up progress and the auto-clean standing order. Unsaved, a reload
+		// left the crew standing idle on the smog it had been cleaning or walking to.
+		public int? BuildingCleanPollution { get; set; }
+		public bool? AutoClean { get; set; }
 		// Settler "build road to" destination (null = no road-to order)
 		public int? RoadToX { get; set; }
 		public int? RoadToY { get; set; }

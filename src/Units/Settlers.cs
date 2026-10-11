@@ -61,7 +61,7 @@ namespace CivOne.Units
 		public int BuildingIrrigation { get; private set; }
 		public int BuildingMine { get; private set; }
 		public int BuildingFortress { get; private set; }
-		public int BuildingCleanPollution { get; private set; }
+		public int BuildingCleanPollution { get; internal set; }
 		public int BuildingLowerTerrain { get; internal set; }
 		public int BuildingRaiseTerrain { get; internal set; }
 		public int BuildingPlantForest { get; internal set; }

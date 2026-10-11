@@ -15,6 +15,8 @@ using CivOne.Enums;
 using CivOne.Events;
 using CivOne.Graphics;
 using CivOne.Graphics.Sprites;
+using CivOne.IO;
+using CivOne.Screens.GamePlayPanels;
 using CivOne.Tiles;
 using CivOne.Units;
 
@@ -45,7 +47,7 @@ namespace CivOne.Screens
 		private bool _interfaceHelp = false;
 		private bool _showTerrain = false;
 
-		private int _x, _y;
+		private int _x, _y, _tilePx = 16;
 
 		private bool _closing = false;
 
@@ -133,10 +135,13 @@ namespace CivOne.Screens
 				{
 					int cx = Settings.RightSideBar ? 0 : 80;
 					int cy = 8;
-					int tilesX = (int)Math.Ceiling((double)(Width - 80) / 16);
-					int tilesY = (int)Math.Ceiling((double)(Height - cy) / 16);
+					// At the map's zoom, or the overlay shows a different stretch of world.
+					int tilesX = (int)Math.Ceiling((double)(Width - 80) / _tilePx);
+					int tilesY = (int)Math.Ceiling((double)(Height - cy) / _tilePx);
 
-					this.AddLayer(Map[_x, _y, tilesX, tilesY].ToBitmap(TileSettings.Terrain, Human), cx, cy, dispose: true);
+					using IBitmap terrain = Map[_x, _y, tilesX, tilesY].ToBitmap(TileSettings.Terrain, Human);
+					using Bytemap scaled = GameMap.ScaleBitmap(terrain.Bitmap, tilesX * _tilePx, tilesY * _tilePx);
+					this.AddLayer(scaled, cx, cy);
 				}
 
 				_update = false;
@@ -186,13 +191,14 @@ namespace CivOne.Screens
 			}
 		}
 
-		public static Overlay TerrainView(int x, int y)
+		public static Overlay TerrainView(int x, int y, int tilePx = 16)
 		{
 			return new Overlay()
 			{
 				_showTerrain = true,
 				_x = x,
-				_y = y
+				_y = y,
+				_tilePx = Math.Max(1, tilePx)
 			};
 		}
 

@@ -102,8 +102,11 @@ namespace CivOne
 				int? buildCanopy = null, buildAqua = null, buildTube = null, buildReclaim = null;
 				int? buildLower = null, buildRaise = null, buildForest = null, buildJungle = null, buildThaw = null, buildRiver = null;
 				int? roadToX = null, roadToY = null;
+				int? buildClean = null; bool? autoClean = null;
 				if (unit is Settlers settlers)
 				{
+					if (settlers.BuildingCleanPollution > 0) buildClean = settlers.BuildingCleanPollution;
+					if (settlers.AutoClean)                 autoClean  = true;
 					if (settlers.BuildingRoad > 0)          buildRoad   = settlers.BuildingRoad;
 					if (settlers.BuildingIrrigation > 0)    buildIrr    = settlers.BuildingIrrigation;
 					if (settlers.BuildingMine > 0)          buildMine   = settlers.BuildingMine;
@@ -154,6 +157,8 @@ namespace CivOne
 					BuildingPlantJungle  = buildJungle,
 					BuildingThawTundra   = buildThaw,
 					BuildingAddRiver     = buildRiver,
+					BuildingCleanPollution = buildClean,
+					AutoClean          = autoClean,
 					RoadToX            = roadToX,
 					RoadToY            = roadToY,
 					FuelLeft           = fuelLeft,
@@ -962,6 +967,8 @@ namespace CivOne
 					if (ud.BuildingThawTundra > 0)    s.BuildingThawTundra    = ud.BuildingThawTundra.Value;
 					if (ud.BuildingAddRiver > 0)      s.BuildingAddRiver      = ud.BuildingAddRiver.Value;
 					if (ud.RoadToX.HasValue) s.RoadTo = new Point(ud.RoadToX.Value, ud.RoadToY ?? 0);
+					if (ud.BuildingCleanPollution > 0) s.BuildingCleanPollution = ud.BuildingCleanPollution.Value;
+					if (ud.AutoClean == true) s.AutoClean = true;
 				}
 				else if (unit is HydroEngineer h)
 				{

@@ -62,7 +62,7 @@ namespace CivOne.Tasks
 			get
 			{
 				GamePlay gamePlay = (GamePlay)Common.Screens.First(s => (s is GamePlay));
-				return new Show(Overlay.TerrainView(gamePlay.X, gamePlay.Y));
+				return new Show(Overlay.TerrainView(gamePlay.X, gamePlay.Y, gamePlay.TilePixelSize));
 			}
 		}
 

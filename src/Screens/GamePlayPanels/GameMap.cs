@@ -69,10 +69,11 @@ namespace CivOne.Screens.GamePlayPanels
 		internal int TilePixelSize => _tilePixelSize;
 		internal int ZoomBasisPoints => _zoomBasisPoints;
 
-		// Live zoom level for the player whose turn it is. CurrentPlayer may be null
-		// briefly during load; fall back to default during that window.
-		private int CurrentZoomBasisPoints => Game.Started && Game.CurrentPlayer is not null
-			? MapZoomSettings.NormalizeBasisPoints(Game.CurrentPlayer.MapZoomBasisPoints)
+		// The human's zoom, whoever's turn it is. Reading CurrentPlayer snapped the view to the
+		// AI's default zoom on every AI turn (anchored at the top-left tile, so the map seemed
+		// to jump elsewhere while events played) and back again when the human's turn began.
+		private int CurrentZoomBasisPoints => Game.Started && Game.HumanPlayer is not null
+			? MapZoomSettings.NormalizeBasisPoints(Game.HumanPlayer.MapZoomBasisPoints)
 			: MapZoomSettings.DefaultBasisPoints;
 
 		private static int TilePixelSizeFromBasisPoints(int basisPoints)
@@ -80,7 +81,7 @@ namespace CivOne.Screens.GamePlayPanels
 
 		// Nearest-neighbour downscale into a destination Bytemap. Used to render the
 		// 16-pixel-per-tile bitmap returned by Tiles.ToBitmap() at the active zoom.
-		private static Bytemap ScaleBitmap(Bytemap source, int targetWidth, int targetHeight)
+		internal static Bytemap ScaleBitmap(Bytemap source, int targetWidth, int targetHeight)
 		{
 			Bytemap output = new Bytemap(Math.Max(1, targetWidth), Math.Max(1, targetHeight));
 			if (source is null) return output;
@@ -846,7 +847,7 @@ namespace CivOne.Screens.GamePlayPanels
 			int nextBp = MapZoomSettings.Presets[nextIdx];
 			if (nextBp == CurrentZoomBasisPoints) return true;
 
-			if (Game.CurrentPlayer is not null) Game.CurrentPlayer.MapZoomBasisPoints = nextBp;
+			if (Game.HumanPlayer is not null) Game.HumanPlayer.MapZoomBasisPoints = nextBp;
 			SyncZoomState(keepFocus: true, focusPixel: args.Location);
 			return true;
 		}

@@ -76,5 +76,27 @@ namespace CivOne.Tests
 
 			Assert.False(s.AutoClean);
 		}
+
+		// Neither the clean-up countdown nor the standing order was saved. After a reload the
+		// crew stood idle on the smog it had been cleaning, or arrived at it and did nothing;
+		// and an idle settler doesn't claim its tile, so a second crew was sent to it.
+		[Fact]
+		public void ACrewMidCleanSurvivesASaveAndLoad()
+		{
+			(Game g, Settlers s) = ACrew();
+			Map.Instance[41, 25].Pollution = true;
+			Assert.True(s.CleanPollution());
+			// An idle unit, or the load-time recovery for "no human unit can move" wakes the crew.
+			g.CreateUnit(UnitType.Militia, 40, 25, g.PlayerNumber(g.HumanPlayer));
+			string path = System.IO.Path.Combine(Settings.Instance.SavesDirectory, "crew.cos");
+			g.SaveCos(path);
+
+			Sim.ResetState();
+			Assert.True(Game.LoadCos(path), "LoadCos should succeed");
+
+			Settlers back = Game.Instance.GetUnits().OfType<Settlers>().Single(u => u.X == 41 && u.Y == 25);
+			Assert.Equal(2, back.BuildingCleanPollution);
+			Assert.True(back.AutoClean, "the clean-up order was dropped by the save");
+		}
 	}
 }
