@@ -331,6 +331,7 @@ namespace CivOne
 
 		internal void RecordConquest(Player taker, Player victim)
 		{
+			DecisionLogger.LogConquest(taker, victim);   // every capture, barbarians included
 			if (PlayerNumber(taker) == 0 || taker.Civilization is Civilizations.TheOthers
 			        or Civilizations.TheThing or Civilizations.Skynet) return;
 			if (PlayerNumber(victim) == 0 || victim.Civilization is Civilizations.TheOthers

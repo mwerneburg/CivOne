@@ -1352,6 +1352,10 @@ namespace CivOne
 
 		internal void ClearProductionQueue() => _productionQueue.Clear();
 
+		// Next after the current item: how a war jumps the queue without forfeiting the shields
+		// the current item has already been given.
+		internal void PrependProduction(IProduction item) => _productionQueue.Insert(0, item);
+
 		// Advance to the next queued item without a shield penalty. Returns true if
 		// something was dequeued; CurrentProduction is updated but Shields untouched.
 		private bool DequeueProduction()

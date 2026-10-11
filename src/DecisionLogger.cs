@@ -69,6 +69,11 @@ using CivOne.Units;
 //   held_turns    int      0 at capture, the full clock at payout
 //   advance       string   what it taught, "" at capture
 //
+//   --- conquest fields (type="conquest", every city taken by force) ---
+//   taker         string   the civ that took it (barbarians included)
+//   victim        string   the civ that lost it
+//   is_human      bool     the human took it
+//
 //   --- victory_standings fields, selected ---
 //   populace      int      total city size, live
 //   peak_populace int      the largest populace ever held — the DENOMINATOR of culture per
@@ -373,6 +378,22 @@ namespace CivOne
 				KV("against_human",  defender is not null && defender.IsHuman),
 				KV("honouring_pact", honouringPact),
 				KV("routes_cut",     RoutesBetween(aggressor, defender)),
+			}));
+		}
+
+		// A city taken by force. Nothing recorded captures: `war` is the declaration, and
+		// victory_standings only shows city counts every five turns, so whether an army ever
+		// took anything could not be read off the log (Oct 2026, measuring strike groups).
+		internal static void LogConquest(Player? taker, Player? victim)
+		{
+			if (!_active) return;
+			Enqueue(Fmt(new[] {
+				KV("type",     "conquest"),
+				KV("game_id",  _gameId),
+				KV("turn",     Game.Instance?.GameTurn ?? 0),
+				KV("taker",    taker?.Civilization?.NamePlural ?? "?"),
+				KV("victim",   victim?.Civilization?.NamePlural ?? "?"),
+				KV("is_human", taker is not null && taker.IsHuman),
 			}));
 		}
 

@@ -1935,6 +1935,7 @@ namespace CivOne
 				_turnsAtWar      = 0;
 				_peacetimeCities = Player.Cities.Length;
 			}
+			if (atWar) MarshalStrikeGroup();
 
 			// ── Tribute pact (Layer 1) ───────────────────────────────────────────
 			// A militarily outclassed AI civ at war with an AI neighbour it has an embassy
@@ -3128,6 +3129,75 @@ namespace CivOne
 				&& u.X == unit.X && u.Y == unit.Y && u.Class == UnitClass.Land && u.Defense > 0);
 		}
 
+		// ── strike groups ────────────────────────────────────────────────────
+
+		// The smallest group that goes in, and one more than the defenders when they are many.
+		internal const int StrikeGroupSize = 3;
+		private static int StrikeThreshold(City target) =>
+			Math.Max(StrikeGroupSize, target.Tile.Units.Count(u => u.Role == UnitRole.Defense) + 1);
+
+		// Keep the civ-wide attack target valid, picking a new one when it has gone stale.
+		// Tile can be null when a city is mid-capture / in transient sentinel state (X==Y==255).
+		// Guard both the cached target and each iterated own-city so a ghost reference doesn't
+		// NRE the strategy and stall the turn.
+		private void RefreshAttackTarget()
+		{
+			bool targetOffContinent = _attackTarget is not null
+			    && _attackTarget.Tile is not null
+			    && !Player.Cities.Any(oc => oc.Tile is not null
+			                              && oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
+			                              && Map.NamedContinent(oc.Tile.ContinentId));
+			bool targetStale = _attackTarget is null
+			    || _attackTarget.Tile is null
+			    || _attackTarget.Size <= 0
+			    || !Game.GetCities().Contains(_attackTarget)
+			    || _attackTarget.Player == Player
+			    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player))
+			    || targetOffContinent;
+			if (targetStale)
+				_attackTarget = PickAttackTarget();
+		}
+
+		// Once a turn at war: assemble a strike group against the target.
+		//
+		// WAKE the attackers that can reach it. A fortified unit never gets a turn again — the
+		// unit queue skips it (Game.ActiveUnit), exactly the trap AI Sentry was — and every
+		// attacker that ever ran out of things to do was told to fortify. Measured on the
+		// d721724c save: the Fascist Lakota had 38 attackers at war and one ever reached the
+		// target; the rest stood fortified 28 tiles away, on the same continent, for thirty
+		// turns. Busy = false, not Fortify = false: the setter leaves an ACTIVE fortify standing.
+		//
+		// BUILD what the group lacks, in the cities nearest the target, at the front of the
+		// queue. A city replans only when its queue runs dry, so a war declared mid-queue was
+		// fought with whatever peacetime had queued — the same Lakota built Granaries and
+		// spaceship parts for thirty turns of war. Queued ahead rather than switched to,
+		// because switching production type forfeits the shields already spent.
+		internal void MarshalStrikeGroup()
+		{
+			if (GetStance() != StrategyStance.Militarize) return;
+			RefreshAttackTarget();
+			City? target = _attackTarget;
+			if (target?.Tile is null) return;
+
+			byte own = Game.PlayerNumber(Player);
+			byte front = target.Tile.ContinentId;
+			IUnit[] reach = Game.GetUnits().Where(u => u.Owner == own && u.Role == UnitRole.LandAttack
+				&& u.Tile is not null && u.Tile.ContinentId == front).ToArray();
+			foreach (IUnit u in reach.Where(u => u.Fortify || u.Sentry))
+				u.Busy = false;
+
+			if (Player.RepublicDemocratic) return;   // the Senate's armies are not raised for this
+			int short_ = StrikeThreshold(target) - reach.Length;
+			if (short_ <= 0) return;
+			foreach (City c in Player.Cities.Where(c => c.Tile?.ContinentId == front)
+				.OrderBy(c => Common.DistanceToTile(c.X, c.Y, target.X, target.Y)).Take(Math.Min(short_, StrikeGroupSize)))
+			{
+				bool raising = c.CurrentProduction is IUnit { Role: UnitRole.LandAttack }
+					|| c.ProductionQueue.FirstOrDefault() is IUnit { Role: UnitRole.LandAttack };
+				if (!raising) c.PrependProduction(BestAttacker());
+			}
+		}
+
 		private City PickAttackTarget()
 		{
 			// Prefer the weakest (fewest defenders) visible enemy city closest to our empire.
@@ -3554,7 +3624,6 @@ namespace CivOne
 			// AI loop's same-unit circuit breaker turn after turn.
 			if (unit is Diplomat)
 			{
-				if (IdleRetryTurn(unit)) { unit.SkipTurn(); return; }
 				byte myContinent = unit.Tile?.ContinentId ?? MISC_CONTINENT;
 				bool sameContinent(City c) => Map.NamedContinent(myContinent) && c.Tile is not null && c.Tile.ContinentId == myContinent;
 
@@ -3575,6 +3644,24 @@ namespace CivOne
 					    && !Player.IsAtWar(pc)) return false;
 					return true;
 				}
+
+				// The strike group's vanguard: one Diplomat goes to the attack target ahead of the
+				// attackers, to steal or sabotage before they arrive (the user, Oct 2026).
+				if (_attackTarget?.Tile is not null && sameContinent(_attackTarget))
+				{
+					Point aim = new Point(_attackTarget.X, _attackTarget.Y);
+					byte ownD = Game.PlayerNumber(Player);
+					bool covered = Game.GetUnits().Any(u => u != unit && u.Owner == ownD && u is Diplomat && u.Goto == aim);
+					if (!covered && FirstStepReachable(_attackTarget))
+					{
+						unit.Goto = aim;
+						return;
+					}
+				}
+
+				// After the vanguard, not before: a Diplomat with a war to run ahead of must not
+				// sit out seven turns in eight waiting for its idle probe.
+				if (IdleRetryTurn(unit)) { unit.SkipTurn(); return; }
 
 				// HumanOpponent, not Human: with nobody at the controls this clause yields
 				// nothing and the search falls straight through to the nearest foreign city,
@@ -3756,24 +3843,7 @@ namespace CivOne
 					// continent can't path there. Cached _attackTarget held over from before the
 					// fix (or picked when our continents shifted) needs invalidating so the
 					// strategy code re-picks a reachable target.
-					byte ownPN = Game.PlayerNumber(Player);
-					// Tile can be null when a city is mid-capture / in transient sentinel state
-					// (X==Y==255). Guard both the cached target and each iterated own-city so a
-					// ghost reference doesn't NRE the strategy and stall the turn.
-					bool targetOffContinent = _attackTarget is not null
-					    && _attackTarget.Tile is not null
-					    && !Player.Cities.Any(oc => oc.Tile is not null
-					                              && oc.Tile.ContinentId == _attackTarget.Tile.ContinentId
-					                              && Map.NamedContinent(oc.Tile.ContinentId));
-					bool targetStale = _attackTarget is null
-					    || _attackTarget.Tile is null
-					    || _attackTarget.Size <= 0
-					    || !Game.GetCities().Contains(_attackTarget)
-					    || _attackTarget.Player == Player
-					    || (_attackTarget.Owner != 0 && !Player.IsAtWar(_attackTarget.Player))
-					    || targetOffContinent;
-					if (targetStale)
-						_attackTarget = PickAttackTarget();
+					RefreshAttackTarget();
 
 					if (_attackTarget is not null)
 					{
@@ -3784,13 +3854,16 @@ namespace CivOne
 						int staged = staging?.Units.Count(u =>
 						    u.Owner == own && u.Role == UnitRole.LandAttack) ?? 0;
 
-						// Commit when we have enough force; be generous if we outbuilt the defense
-						int defenders = _attackTarget!.Tile!.Units.Count(u => u.Role == UnitRole.Defense);
-						int threshold = Math.Max(2, defenders + 1);
-
-						Point dest = (staged >= threshold || staging is null)
+						// Commit TOGETHER. Only the attackers standing on the staging tile go in,
+						// and only once there are enough of them; everyone else gathers there
+						// first. It used to send every attacker in the empire straight at the city
+						// the moment the count was reached, including ones still days away, so the
+						// assault arrived as a trickle (the user, Oct 2026: "I never see an NPC
+						// put three of them in a little group and target a city").
+						bool onStaging = staging is not null && unit.X == staging.X && unit.Y == staging.Y;
+						Point dest = staging is null || (onStaging && staged >= StrikeThreshold(_attackTarget))
 						    ? new Point(_attackTarget.X, _attackTarget.Y)
-						    : new Point(staging!.X, staging!.Y);
+						    : new Point(staging.X, staging.Y);
 						unit.Goto = dest;
 						return;
 					}
