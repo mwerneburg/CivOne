@@ -389,6 +389,9 @@ namespace CivOne.Persistence
 		// left the crew standing idle on the smog it had been cleaning or walking to.
 		public int? BuildingCleanPollution { get; set; }
 		public bool? AutoClean { get; set; }
+		public int? BuildingCamp { get; set; }
+		public int? BuildingTerrace { get; set; }
+		public int? BuildingMoistureFarm { get; set; }
 		// Settler "build road to" destination (null = no road-to order)
 		public int? RoadToX { get; set; }
 		public int? RoadToY { get; set; }
