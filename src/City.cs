@@ -642,7 +642,7 @@ namespace CivOne
 		{
 			if (partner.X == 255) return 0;
 			if (Owner != partner.Owner && Game.GetPlayer(Owner).IsAtWar(Game.GetPlayer(partner.Owner))) return 0;
-			int distance = System.Math.Min(RouteDistanceCap, Common.DistanceToTile(X, Y, partner.X, partner.Y));
+			int distance = System.Math.Min(RouteDistanceCap, Common.TradeDistance(X, Y, partner.X, partner.Y));
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
 			if (Owner == partner.Owner) multiplier *= 0.5f;
@@ -946,8 +946,8 @@ namespace CivOne
 						var owner = Game.GetPlayer(Owner);
 						City capital2 = owner.Cities.FirstOrDefault(x => x.HasBuilding<Palace>());
 						City audit = owner.Cities.FirstOrDefault(x => x.HasWonder<Wonders.AuditAuthority>());
-						int dCapital = capital2 is not null ? Common.DistanceToTile(X, Y, capital2.X, capital2.Y) : 32;
-						int dAudit   = audit   is not null ? Common.DistanceToTile(X, Y, audit.X,   audit.Y)   : int.MaxValue;
+						int dCapital = capital2 is not null ? Common.TradeDistance(X, Y, capital2.X, capital2.Y) : 32;
+						int dAudit   = audit   is not null ? Common.TradeDistance(X, Y, audit.X,   audit.Y)   : int.MaxValue;
 						distance = System.Math.Min(dCapital, dAudit);
 						break;
 				}

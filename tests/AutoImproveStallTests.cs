@@ -127,5 +127,27 @@ namespace CivOne.Tests
 			Assert.False(settler.Goto.IsEmpty, "there is work left — it should be on its way to it");
 			Assert.True(Common.DistanceToTile(40, 25, settler.Goto.X, settler.Goto.Y) <= 2);
 		}
+			// A railroad reads Road == false (BaseTile.Road), and the needs-work rule tested "no
+		// road" first, so every finished railroad looked unimproved. On railroaded land the
+		// settler picked the nearest one, found nothing to build, and auto-improve switched
+		// off with real work still waiting a tile away.
+		[Fact]
+		public void FinishedRailroadIsNotMistakenForWork()
+		{
+			var (g, human, settler) = AFinishedLandscape();
+			human.AddAdvance(new CivOne.Advances.RailRoad(), false);
+			human.Government = new CivOne.Governments.Monarchy();   // Despotism only builds roads
+			g.GetCities().Single(c => c.Owner == g.PlayerNumber(human)).Size = 8;
+			for (int y = 20; y <= 30; y++)
+			for (int x = 35; x <= 45; x++)
+				if (Map.Instance[x, y]?.City is null) Map.Instance[x, y].RailRoad = true;
+			Map.Instance[41, 26].Irrigation = false;   // the one real job, last of the inner ring
+			settler.TestEnableAutoImprove();
+
+			settler.NewTurn();
+
+			Assert.True(settler.AutoImprove, "auto-improve gave up on a finished railroad");
+			Assert.Equal(new Point(41, 26), settler.Goto);
+		}
 	}
 }

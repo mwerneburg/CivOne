@@ -662,7 +662,7 @@ namespace CivOne
 				foreach (City home in mine)
 				{
 					if (f.Tile.ContinentId != home.Tile!.ContinentId) continue;
-					if (Common.DistanceToTile(home.X, home.Y, f.X, f.Y) < CaravanMinRange) continue;
+					if (Common.TradeDistance(home.X, home.Y, f.X, f.Y) < CaravanMinRange) continue;
 					return _tradeReachCached = true;
 				}
 			}

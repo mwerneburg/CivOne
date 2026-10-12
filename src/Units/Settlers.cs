@@ -170,8 +170,11 @@ namespace CivOne.Units
 			bool roadOk = !tile.IsOcean && tile.City is null && (!isRiver || Player.HasAdvance<BridgeBuilding>());
 			if (roadOk)
 			{
-				if (!tile.Road) return true;
-				if (tile.Road && !tile.RailRoad && Player.HasAdvance<RailRoad>()) return true;
+				// Road reads false on a railroad (BaseTile.Road), so "no road" alone called every
+				// finished railroad unimproved: the settler walked to it, found nothing to do,
+				// and auto-improve switched itself off.
+				if (!tile.Road && !tile.RailRoad) return true;
+				if (tile.Road && Player.HasAdvance<RailRoad>()) return true;
 				// Rail is the end of the chain on land. Tubes are sea-only (BuildRoad), and
 				// claiming one here would send an auto-improving settler to a railroad to do
 				// work BuildRoad refuses — it would stand on the tile every turn.

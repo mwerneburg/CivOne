@@ -242,6 +242,16 @@ namespace CivOne
 		
 		public static int DistanceToTile(int x1, int y1, int x2, int y2) => Math.Max(Math.Min(Math.Abs(x2 - x1), Map.WIDTH - Math.Abs(x2 - x1)), Math.Abs(y2 - y1));
 
+		// Civ 1's own distance: a diagonal step counts one and a half. Closer to a caravan's
+		// real travel time than DistanceToTile, and what Civ 1 fed trade value and corruption.
+		// Only those read it; radius checks, pathing and the AI keep DistanceToTile.
+		public static int TradeDistance(int x1, int y1, int x2, int y2)
+		{
+			int dx = Math.Min(Math.Abs(x2 - x1), Map.WIDTH - Math.Abs(x2 - x1));
+			int dy = Math.Abs(y2 - y1);
+			return Math.Max(dx, dy) + Math.Min(dx, dy) / 2;
+		}
+
 		// A* pathfinder for GoTo orders. Returns the next tile to move into, or null if unreachable.
 		// Cost units: railroad=1, road=3, terrain=Movement*9 (max 18 for hills/forest).
 		// Somebody else's sea tube. First come, first claim: the civ that laid it owns the

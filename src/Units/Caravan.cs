@@ -33,7 +33,7 @@ namespace CivOne.Units
 			{
 				if (city.Owner == Owner)
 				{
-					bool tooClose = Home is not null && moveTarget.DistanceTo(Home) < 10;
+					bool tooClose = Home is not null && Common.TradeDistance(moveTarget.X, moveTarget.Y, Home.X, Home.Y) < AI.CaravanMinRange;
 					bool buildingWonder = city.CurrentProduction is IWonder;
 					if (!tooClose || buildingWonder)
 					{

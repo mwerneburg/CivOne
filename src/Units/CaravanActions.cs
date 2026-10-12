@@ -29,12 +29,12 @@ namespace CivOne.Units
 			if (targetCity is null) return 0; // this should not happen
 
 			// set default values if home city is NONE
-			int distance = Common.DistanceToTile(-1, -1, targetCity.X, targetCity.Y);
+			int distance = Common.TradeDistance(-1, -1, targetCity.X, targetCity.Y);
 			int tradeHome = 12;
 
 			if (unit.Home is not null)
 			{
-				distance = unit.Home.Tile.DistanceTo(targetCity);
+				distance = Common.TradeDistance(unit.Home.X, unit.Home.Y, targetCity.X, targetCity.Y);
 				tradeHome = unit.Home.TradeTotal;
 			}
 
