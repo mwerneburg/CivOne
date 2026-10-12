@@ -2701,7 +2701,9 @@ namespace CivOne
 			// Kamakura worked 6 swamp tiles out of 13 and Kagoshima sat at -1 food — and no
 			// settler would ever touch one. Swamp yields 1 food; drained it is grassland at
 			// 2, and can then be irrigated again for 3.
-			bool conversion = tile is Swamp || tile is Jungle || tile is Forest;
+			// Not Forest: converting it to Plains trades 2 shields for 1 food, and settlers
+			// reached every forest first (ForestKeepsItsShieldsTests).
+			bool conversion = tile is Swamp || tile is Jungle;
 			// `x.City is null` — the missing clause, and the third time this file's own
 			// warning has come true: the rule was stated here independently of the order
 			// that enforces it (Settlers.BuildIrrigation:476) and drifted.
