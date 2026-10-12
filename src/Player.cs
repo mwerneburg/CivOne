@@ -1356,7 +1356,6 @@ namespace CivOne
 			AI?.ConsiderSliders();
 			AI?.ConsiderGarrisonUpkeep();
 			AI?.ConsiderDivestment();
-			AI?.ConsiderWorkers();
 			AI?.ConsiderRushBuy();
 			AI?.ConsiderWar();
 			AI?.ConsiderDiplomacy();
