@@ -4352,6 +4352,43 @@ namespace CivOne
 		// produces keeps drawing food from it forever. Requiring size 3 leaves the
 		// city at 2 after the build; requiring FoodIncome >= upkeep means it can still
 		// feed itself afterwards.
+		// How many settlers the civ wants in the field, or 0 where the stance forbids work
+		// settlers. The reasoning lives at the planner's work-settler rule.
+		private const int LargeEmpire = 16;
+		private int WorkerQuota(StrategyStance stance)
+		{
+			int ownCities = Player.Cities.Length;
+			bool stanceAllows = ownCities >= LargeEmpire
+			                 || stance == StrategyStance.Develop
+			                 || stance == StrategyStance.Consolidate;
+			if (!stanceAllows) return 0;
+			return Math.Max(1, ownCities >= LargeEmpire ? ownCities / 2 : ownCities / 4);
+		}
+
+		// The planner's work-settler rule only runs when a city's queue runs dry, and in a
+		// late game that is rare: measured on a turn-393 save, cities held about three items
+		// at 5-7 shields a turn, so each one re-planned every 50-90 turns and a settler it
+		// did plan sat behind a Sewer System. The Lakota wanted 24 workers, had 5, and built
+		// 2 in fifteen turns with 49 cities. So, once a turn, top up the shortfall at the
+		// head of the queues that will reach it soonest. Large empires only: below
+		// LargeEmpire the planner's cadence was never the problem.
+		internal void ConsiderWorkers()
+		{
+			if (Player.IsDestroyed() || Player.Cities.Length < LargeEmpire) return;
+			if (Player.Civilization is TheOthers or TheThing or Skynet or Olvir or Barbarian) return;
+			byte own = Game.PlayerNumber(Player);
+			bool Raising(City c) => c.CurrentProduction is Settlers || c.ProductionQueue.Any(p => p is Settlers);
+			int short_ = WorkerQuota(GetStance())
+			           - Game.GetUnits().Count(u => u.Owner == own && u is Settlers)
+			           - Player.Cities.Count(Raising);
+			if (short_ <= 0) return;
+			foreach (City c in Player.Cities
+				.Where(c => !Raising(c) && c.ShieldIncome > 0 && CanAffordSettler(c, 3))
+				.OrderBy(c => (c.CurrentProduction.Price * 10 - c.Shields) / (double)c.ShieldIncome)
+				.Take(short_))
+				c.PrependProduction(new Settlers());
+		}
+
 		private bool CanAffordSettler(City city, int minSize)
 		{
 			int upkeep = (Player.Government is Gov.Anarchy || Player.Government is Gov.Despotism) ? 1 : 2;
@@ -5144,16 +5181,11 @@ namespace CivOne
 			// The remaining limits still bind in both regimes: the empire-wide settlerBudget
 			// (2 per 3 cities), the quota below, CanAffordSettler's size floor, and one settler
 			// in build per city at a time.
-			const int LargeEmpire = 16;
-			bool stanceAllows = ownCities >= LargeEmpire
-			                 || stance == StrategyStance.Develop
-			                 || stance == StrategyStance.Consolidate;
-			if (stanceAllows && settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
+			if (settlerBudget && CanAffordSettler(city, 3) && !city.Units.Any(x => x is Settlers))
 			{
 				byte wsId = Game.PlayerNumber(Player);
 				int workers = Game.GetUnits().Count(u => u.Owner == wsId && u is Settlers);
-				int quota = ownCities >= LargeEmpire ? ownCities / 2 : ownCities / 4;
-				if (workers < Math.Max(1, quota))
+				if (workers < WorkerQuota(stance))
 					Consider(new Settlers());
 			}
 
