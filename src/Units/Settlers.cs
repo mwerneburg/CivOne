@@ -126,7 +126,7 @@ namespace CivOne.Units
 		//   Budget: Size+1 tiles per owned city, ordered by distance from city centre.
 		//   Hills    → road, rail, mine
 		//   Forest+deer / Jungle → road, rail, canopy (never converted)
-		//   Forest-no-deer → road, rail, then converted to plains
+		//   Forest-no-deer → road, rail (never converted: plains would trade 2 shields for 1 food)
 		//   Swamp/Mountain/Tundra/Arctic/Ocean → skipped entirely
 		//   Grassland/Plains/Desert/River → road, rail, irrigation
 
@@ -186,7 +186,7 @@ namespace CivOne.Units
 			{
 				if (tile.Special)
 					return Player.HasAdvance<CanopyCultivation>() && !HasCanopyHere(tile);
-				return true; // convert non-deer forest
+				return false;
 			}
 			if (tile is Jungle)
 				return Player.HasAdvance<CanopyCultivation>() && !HasCanopyHere(tile);
@@ -216,12 +216,6 @@ namespace CivOne.Units
 
 			if (tile is Hills && !tile.Mine)
 				if (BuildMines()) return true;
-
-			if (tile is Forest && !tile.Special)
-			{
-				// BuildIrrigation on Forest converts to Plains (City.cs:386-392 / NewTurn loop)
-				if (BuildIrrigation()) return true;
-			}
 
 			if ((tile is Grassland || tile is Plains || tile is Desert || tile is River) &&
 				!tile.Irrigation && AutoImproveCanIrrigate(tile))

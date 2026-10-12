@@ -149,5 +149,28 @@ namespace CivOne.Tests
 			Assert.True(settler.AutoImprove, "auto-improve gave up on a finished railroad");
 			Assert.Equal(new Point(41, 26), settler.Goto);
 		}
+
+		// Converting a forest to plains trades 2 shields for 1 food, so auto-improve stops
+		// doing it (the AI's settlers stopped first: ForestKeepsItsShieldsTests). A railed
+		// forest is finished, and the settler walks past it to the real job.
+		[Fact]
+		public void ARailedForestIsLeftStanding()
+		{
+			var (g, human, settler) = AFinishedLandscape();
+			human.AddAdvance(new CivOne.Advances.RailRoad(), false);
+			human.Government = new CivOne.Governments.Monarchy();
+			g.GetCities().Single(c => c.Owner == g.PlayerNumber(human)).Size = 8;
+			Map.Instance.ChangeTileType(40, 24, Terrain.Forest);
+			for (int y = 20; y <= 30; y++)
+			for (int x = 35; x <= 45; x++)
+				if (Map.Instance[x, y]?.City is null) Map.Instance[x, y].RailRoad = true;
+			Assert.False(Map.Instance[40, 24].Special);
+			Map.Instance[41, 26].Irrigation = false;
+			settler.TestEnableAutoImprove();
+
+			settler.NewTurn();
+
+			Assert.Equal(new Point(41, 26), settler.Goto);
+		}
 	}
 }
