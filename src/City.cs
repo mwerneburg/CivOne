@@ -59,7 +59,8 @@ namespace CivOne
 				//
 				// Destruction is the case that really does end a route, and it says so itself:
 				// see Game.DestroyCity, which used to get this cleanup by way of Owner = 0.
-				if (_owner != value && Game.Started)
+				bool changedHands = _owner != value && Game.Started;
+				if (changedHands)
 				{
 					Game.Instance.BumpCityRoster();
 					RehomeAwayCaravans();   // catch-all; the capture paths call it earlier
@@ -67,7 +68,23 @@ namespace CivOne
 				_owner = value;
 				ResetResourceTiles();
 				InvalidateCache();
+				if (changedHands) DropInheritedPalace();
 			}
+		}
+
+		// An AI civ that already has a capital does not finish a Palace it inherited. The
+		// planner never picks one while a capital stands (AI.Strategy, `hasCapital`), but a
+		// queue that arrives with the city was never re-planned: the user handed the Japanese
+		// a new town building a Palace, and it moved their capital outside their own
+		// territory, with corruption measured from there (Oct 2026).
+		private void DropInheritedPalace()
+		{
+			Player owner = Game.GetPlayer(_owner);
+			if (owner is null || owner == Human || owner.AI is not AI ai) return;
+			if (!Game.GetCities().Any(c => c != this && c.Owner == _owner && c.HasBuilding<Palace>())) return;
+			_productionQueue.RemoveAll(p => p is Palace);
+			if (CurrentProduction is Palace && !DequeueProduction())
+				CurrentProduction = ai.ProductionPlan(this)[0];
 		}
 		internal string Name => Game.CityNames[NameId];
 		private byte _size;
