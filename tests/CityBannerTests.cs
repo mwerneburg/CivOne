@@ -60,5 +60,17 @@ namespace CivOne.Tests
 			Assert.False(row13.Take(8).All(c => c == primary) && row13.Skip(8).All(c => c == accent),
 				"row 13 is still banner, so the banner is still three rows");
 		}
+		// The capital wears a gold centre merlon (the user, Oct 2026); every other city's is plain.
+		[Fact]
+		public void TheCapitalHasAGoldCentreMerlon()
+		{
+			City city = ACity(olvir: false);
+			if (!city.HasBuilding<CivOne.Buildings.Palace>()) city.AddBuilding(new CivOne.Buildings.Palace());
+			byte Centre() => Icons.City(city).Bitmap[8, 1];
+
+			Assert.Equal(CassetteTheme.PHOS_GLOW, Centre());
+			city.RemoveBuilding<CivOne.Buildings.Palace>();
+			Assert.Equal(CassetteTheme.INK_MID, Centre());
+		}
 	}
 }

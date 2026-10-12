@@ -486,7 +486,7 @@ namespace CivOne.Graphics
 			// Heraldic three-merlon crenellation
 			output
 				.FillRectangle(3, 1, 3, 2, CassetteTheme.INK_MID)   // left merlon
-				.FillRectangle(7, 1, 3, 2, CassetteTheme.INK_MID)   // centre merlon
+				.FillRectangle(7, 1, 3, 2, city.HasBuilding<Palace>() ? CassetteTheme.PHOS_GLOW : CassetteTheme.INK_MID)   // centre merlon, gold in a capital
 				.FillRectangle(11, 1, 3, 2, CassetteTheme.INK_MID)  // right merlon
 				.FillRectangle(3, 3, 11, 1, CassetteTheme.INK_MID); // base wall
 
