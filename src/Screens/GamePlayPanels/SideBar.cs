@@ -28,6 +28,15 @@ namespace CivOne.Screens.GamePlayPanels
 		private readonly Picture _miniMap, _demographics;
 		private Picture _gameInfo;
 		
+		// The game's name above the minimap. Font 6: "SCIFILIZATION" measures 67x9 in the
+		// shipped FONTS.CV, so it fits the 80-pixel column with room to spare.
+		private const int TitleH = 11;
+		internal const string Title = "SCIFILIZATION";
+
+		private void DrawTitle() =>
+			this.FillRectangle(0, 0, 80, TitleH, CassetteTheme.BG0)
+				.DrawText(Title, 6, CassetteTheme.PHOS_GLOW, 40, 1, TextAlign.Center);
+
 		private void DrawMiniMap(uint gameTick = 0)
 		{
 			_miniMap.Clear(CassetteTheme.BG0);
@@ -440,9 +449,10 @@ namespace CivOne.Screens.GamePlayPanels
 				DrawNotifications();
 				DrawRaceStrip();
 
-				this.AddLayer(_miniMap, 0, 0)
-					.AddLayer(_demographics, 0, 50)
-					.AddLayer(_gameInfo, 0, 97);
+				DrawTitle();
+				this.AddLayer(_miniMap, 0, TitleH)
+					.AddLayer(_demographics, 0, TitleH + 50)
+					.AddLayer(_gameInfo, 0, TitleH + 97);
 
 				_update = false;
 				return true;
@@ -452,6 +462,8 @@ namespace CivOne.Screens.GamePlayPanels
 		
 		public override bool MouseDown(ScreenEventArgs args)
 		{
+			if (args.Y < TitleH) return true;
+			args = new ScreenEventArgs(args.X, args.Y - TitleH, args.Buttons);
 			if (args.Y <= 50)
 			{
 				if (args.X < 1 || args.Y < 1 || args.X > 79 || args.Y > 49) return true;
@@ -486,7 +498,7 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			Bitmap = new Bytemap(80, height);
 			_gameInfo?.Dispose();
-			_gameInfo = new Picture(80, (height - 97), Palette);
+			_gameInfo = new Picture(80, (height - TitleH - 97), Palette);
 			_update = true;
 		}
 
@@ -494,16 +506,17 @@ namespace CivOne.Screens.GamePlayPanels
 		{
 			_miniMap = new Picture(80, 50, palette);
 			_demographics = new Picture(80, 47, palette);
-			_gameInfo = new Picture(80, 95, palette);
+			_gameInfo = new Picture(80, 95 - TitleH, palette);
 			
 			DrawMiniMap();
 			DrawDemographics();
 			DrawGameInfo();
 			
 			Palette = palette;
-			this.AddLayer(_miniMap, 0, 0)
-				.AddLayer(_demographics, 0, 50)
-				.AddLayer(_gameInfo, 0, 97);
+			DrawTitle();
+			this.AddLayer(_miniMap, 0, TitleH)
+				.AddLayer(_demographics, 0, TitleH + 50)
+				.AddLayer(_gameInfo, 0, TitleH + 97);
 		}
 
 		public override void Dispose()

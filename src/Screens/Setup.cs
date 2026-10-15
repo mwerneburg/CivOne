@@ -107,7 +107,7 @@ namespace CivOne.Screens
 			SettingsMenu(0);
 		}
 		
-		private void MainMenu(int activeItem = 0) => CreateMenu("CivOne Setup", activeItem,
+		private void MainMenu(int activeItem = 0) => CreateMenu("Scifilization Setup", activeItem,
 			MenuItem.Create("Settings").OnSelect(GotoMenu(SettingsMenu)),
 			MenuItem.Create("Patches").OnSelect(GotoMenu(PatchesMenu)),
 			MenuItem.Create("Plugins").OnSelect(GotoMenu(PluginsMenu)),

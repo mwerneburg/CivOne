@@ -22,6 +22,32 @@ namespace CivOne.Tests
 		// 47 tall whose bottom border row is y=46.
 		private const int ScoreX = 2, ScoreY = 39, PanelHeight = 47, SideBarHeight = 192;
 
+		// The game's name sits in a strip above the minimap (SideBar.DrawTitle).
+		private static readonly int TitleH = (int)typeof(SideBar)
+			.GetField("TitleH", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+
+		// A click on the minimap still lands where it was aimed, now the minimap sits TitleH
+		// lower: 10 right of and 5 below the view's minimap anchor (30,18) centres there.
+		[Fact]
+		public void AMinimapClickUnderTheTitleCentresWhereItWasAimed()
+		{
+			Sim.NewGame(width: 80, height: 50);
+			CivOne.Screens.GamePlay screen = new CivOne.Screens.GamePlay();
+			Common.AddScreen(screen);
+			try
+			{
+				screen.CenterOnPoint(40, 25);
+				int x0 = screen.X, y0 = screen.Y;
+				// Screen y: 8 for the menu bar, then the title, then minimap row 24 (1 + 18 + 5).
+				screen.MouseDown(new CivOne.Events.ScreenEventArgs(41, 8 + TitleH + 24, CivOne.Enums.MouseButton.Left));
+
+				CivOne.Screens.GamePlay expected = new CivOne.Screens.GamePlay();
+				expected.CenterOnPoint(x0 + 10, y0 + 5);
+				Assert.Equal((expected.X, expected.Y), (screen.X, screen.Y));
+			}
+			finally { Common.DestroyScreen(screen); }
+		}
+
 		private static Picture PanelOf(SideBar bar, string field)
 			=> (Picture)typeof(SideBar).GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(bar)!;
 
@@ -36,7 +62,8 @@ namespace CivOne.Tests
 			{
 				SideBar bar = new SideBar(palette);
 
-				int total = PanelOf(bar, "_miniMap").Height
+				int total = TitleH
+				          + PanelOf(bar, "_miniMap").Height
 				          + PanelOf(bar, "_demographics").Height
 				          + PanelOf(bar, "_gameInfo").Height;
 

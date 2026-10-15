@@ -10,6 +10,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyProduct("CivOne")]
+[assembly: AssemblyProduct("Scifilization")]
 
 [assembly:InternalsVisibleTo("CivOne.UnitTests")]

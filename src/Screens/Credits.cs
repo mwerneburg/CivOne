@@ -344,8 +344,8 @@ namespace CivOne.Screens
 				p.MergePalette(cassette, 1, 17);
 			Picture pic = new Picture(320, 200, p);
 			pic.FillRectangle(0, 0, 320, 200, CassetteTheme.BG0)
-			   .DrawText("CivOne", 4, CassetteTheme.PHOS_GLOW, 160, 80, TextAlign.Center)
-			   .DrawText("A Civilization remake", 0, CassetteTheme.INK_MID, 160, 110, TextAlign.Center);
+			   .DrawText("Scifilization", 4, CassetteTheme.PHOS_GLOW, 160, 80, TextAlign.Center)
+			   .DrawText("Civilization in the Dark Forest", 0, CassetteTheme.INK_MID, 160, 110, TextAlign.Center);
 			return pic;
 		}
 

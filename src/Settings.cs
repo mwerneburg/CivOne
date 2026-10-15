@@ -29,7 +29,7 @@ namespace CivOne
 		public const int AutoExpandMaxHeight =  720;
 
 		// Set default settings
-		private string _windowTitle = "CivOne";
+		private string _windowTitle = "Scifilization";
 		private GraphicsMode _graphicsMode = GraphicsMode.Graphics256;
 		private bool _fullScreen = false;
 		private bool _rightSideBar = false;

@@ -184,7 +184,7 @@ namespace CivOne
 			_runtime.InvokeMouseWheel(args);
 		}
 
-		public GameWindow(Runtime runtime, bool softwareRender) : base("CivOne", InitialWidth, InitialHeight, Settings.FullScreen, softwareRender)
+		public GameWindow(Runtime runtime, bool softwareRender) : base("Scifilization", InitialWidth, InitialHeight, Settings.FullScreen, softwareRender)
 		{
 			Icon = Resources.GetWindowIcon();
 
