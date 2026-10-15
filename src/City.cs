@@ -631,9 +631,10 @@ namespace CivOne
 		internal int BaseTrade => (int)(_cachedBaseTrade ??= Math.Max(0, RawTrade - Corruption));
 
 		// Civ 1's rule: (distance + 10) x (trade of BOTH cities) / 24, halved for a partner on
-		// the same continent and halved again for a partner of the same civilization. Both ends
-		// of a route are worth the same, because both read the same figure — now twice the
-		// geometric mean of the two cities' trade rather than their sum (see RouteBonus).
+		// the same continent and halved again for a partner of the same civilization (here,
+		// only when no road joins them). Both ends of a route are worth the same, because both
+		// read the same figure — now twice the geometric mean of the two cities' trade rather
+		// than their sum (see RouteBonus).
 		//
 		// This used to multiply the PARTNER's trade alone. Distance and both halvings are
 		// symmetric, so that one substitution was the whole difference between the ends of a
@@ -663,7 +664,10 @@ namespace CivOne
 			int distance = System.Math.Min(RouteDistanceCap, Common.TradeDistance(X, Y, partner.X, partner.Y));
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
-			if (Owner == partner.Owner) multiplier *= 0.5f;
+			// A domestic route is halved again unless a road, rail or tube network joins the
+			// two cities: Civ 1's 0.25 made home trade not worth a caravan, and a connected
+			// pair is the one that has earned the traffic.
+			if (Owner == partner.Owner && !Game.GetPlayer(Owner).RoadLinked(this, partner)) multiplier *= 0.5f;
 			// 2 x geometric mean of the two cities' trade, where Civ 1 summed them. Equal cities
 			// pay exactly what they did; a village tied to a metropolis no longer lives on it.
 			// The sum still made the poor end's income almost all the partner's: measured on a
@@ -721,9 +725,14 @@ namespace CivOne
 				// a foreign one. Both filters are SCOREBOARD ONLY: TradeRouteBonus passes
 				// false and counts every route (its own size cap aside).
 				if (forScore && (r.Partner.Owner == Owner || !r.Initiated)) continue;
-				int value = RouteBonus(r.Partner);
-				yield return value <= 0 ? 0 : value / SiblingRank(r.Partner, value);
+				yield return Diminished(r);
 			}
+		}
+
+		private int Diminished(TradeRoute r)
+		{
+			int value = RouteBonus(r.Partner);
+			return value <= 0 ? 0 : value / SiblingRank(r.Partner, value);
 		}
 
 		// How many of this civilization's other routes to `partner` outrank this one, plus
@@ -768,6 +777,13 @@ namespace CivOne
 			.OrderByDescending(v => v)
 			.Take(PaidRoutes)
 			.Sum());
+
+		// The routes TradeRouteBonus is paid by, for the city screen to tell apart from the
+		// ones held but not paying. Ties pay the same, so which tied route is named is moot.
+		internal TradeRoute[] PaidTradeRoutes => _tradeRoutes
+			.OrderByDescending(Diminished)
+			.Take(PaidRoutes)
+			.ToArray();
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
 

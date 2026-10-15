@@ -237,6 +237,52 @@ namespace CivOne
 			}
 		}
 
+		// Which of this civ's cities share a road network: road, rail or transport tube,
+		// through its own cities but not foreign ones, eight-way and wrapping east-west.
+		// Read by City.RouteBonus, so a linked domestic route pays more than a bare one.
+		// ponytail: rebuilt once per turn (or when the roster changes); a road finished
+		// mid-turn counts from the next turn.
+		private Dictionary<City, int>? _roadNet;
+		private int _roadNetTurn = -1, _roadNetVersion = -1;
+
+		internal bool RoadLinked(City a, City b)
+		{
+			Game game = Game.Instance;
+			if (_roadNet is null || _roadNetTurn != game.GameTurn || _roadNetVersion != game.CityRosterVersion)
+			{
+				_roadNet = new Dictionary<City, int>();
+				var seen = new HashSet<int>();
+				int w = Map.WIDTH, label = 0;
+				foreach (City start in Cities)
+				{
+					if (_roadNet.ContainsKey(start)) continue;
+					label++;
+					var open = new Stack<(int x, int y)>();
+					open.Push((start.X, start.Y));
+					seen.Add(start.Y * w + start.X);
+					while (open.Count > 0)
+					{
+						(int x, int y) = open.Pop();
+						City? here = Map.Instance[x, y].City;
+						if (here is not null) _roadNet[here] = label;
+						for (int dy = -1; dy <= 1; dy++)
+						for (int dx = -1; dx <= 1; dx++)
+						{
+							int nx = (x + dx + w) % w, ny = y + dy;
+							if (ny < 0 || ny >= Map.HEIGHT || !seen.Add(ny * w + nx)) continue;
+							ITile t = Map.Instance[nx, ny];
+							bool own = t.City is not null && t.City.Owner == start.Owner;
+							if (own || (t.City is null && (t.Road || t.RailRoad || t.TransportTube)))
+								open.Push((nx, ny));
+						}
+					}
+				}
+				_roadNetTurn = game.GameTurn;
+				_roadNetVersion = game.CityRosterVersion;
+			}
+			return _roadNet.TryGetValue(a, out int la) && _roadNet.TryGetValue(b, out int lb) && la == lb;
+		}
+
 		public int Population => Cities.Sum(c => c.Population);
 
 		public int FutureTechs => _futureTechs;

@@ -50,11 +50,14 @@ namespace CivOne.Tests
 			// Size 2: one paid route, the best. The other two are kept.
 			Assert.Equal(values[0], hub.TradeRouteBonus);
 			Assert.Equal(3, hub.TradeRouteCount);
+			// The city screen dims the other two.
+			Assert.Equal(values[0], Assert.Single(hub.PaidTradeRoutes).Value);
 
 			// Size 5: two.
 			hub.Size = 5;
 			int[] grown = hub.TradeRoutes.Select(r => r.Value).OrderByDescending(v => v).ToArray();
 			Assert.Equal(grown[0] + grown[1], hub.TradeRouteBonus);
+			Assert.Equal(2, hub.PaidTradeRoutes.Length);
 		}
 	}
 }

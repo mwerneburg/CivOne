@@ -335,7 +335,10 @@ namespace CivOne.Screens
 			if (py + ph > BodyY + BodyH) return;
 			this.DrawCassettePanel(px, py, pw, ph, "TRADE");
 
-			var routes = _city.TradeRoutes.OrderByDescending(r => r.Value).ToArray();
+			// Paying routes first and bright; the ones held but not paying (City.PaidRoutes)
+			// after them, dim, so the "+N MORE" total counts only routes that pay.
+			var paid = _city.PaidTradeRoutes;
+			var routes = _city.TradeRoutes.OrderByDescending(r => paid.Contains(r)).ThenByDescending(r => r.Value).ToArray();
 			if (routes.Length == 0)
 			{
 				this.DrawText("NONE", 0, CassetteTheme.INK_LOW, px + 4, py + 8);
@@ -345,10 +348,10 @@ namespace CivOne.Screens
 			for (int i = 0; i < shown; i++)
 			{
 				string name = $"{routes[i].Partner.Name.ToUpper()} ({routes[i].Value})";
-				this.DrawText(name, 0, CassetteTheme.OK, px + 4, py + 8 + i * fh);
+				this.DrawText(name, 0, paid.Contains(routes[i]) ? CassetteTheme.OK : CassetteTheme.INK_LOW, px + 4, py + 8 + i * fh);
 			}
 			if (routes.Length > shown)
-				this.DrawText($"+{routes.Length - shown} MORE ({routes.Skip(shown).Sum(r => r.Value)})",
+				this.DrawText($"+{routes.Length - shown} MORE ({routes.Skip(shown).Where(paid.Contains).Sum(r => r.Value)})",
 					0, CassetteTheme.INK_LOW, px + 4, py + 8 + shown * fh);
 		}
 
