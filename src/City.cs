@@ -632,7 +632,8 @@ namespace CivOne
 
 		// Civ 1's rule: (distance + 10) x (trade of BOTH cities) / 24, halved for a partner on
 		// the same continent and halved again for a partner of the same civilization. Both ends
-		// of a route are worth the same, because both read the same sum.
+		// of a route are worth the same, because both read the same figure — now twice the
+		// geometric mean of the two cities' trade rather than their sum (see RouteBonus).
 		//
 		// This used to multiply the PARTNER's trade alone. Distance and both halvings are
 		// symmetric, so that one substitution was the whole difference between the ends of a
@@ -663,7 +664,16 @@ namespace CivOne
 			float multiplier = 1.0f;
 			if (X != 255 && Tile.ContinentId == partner.Tile.ContinentId) multiplier *= 0.5f;
 			if (Owner == partner.Owner) multiplier *= 0.5f;
-			return (int)(multiplier * (float)(distance + 10) * (BaseTrade + partner.BaseTrade) / 24);
+			// 2 x geometric mean of the two cities' trade, where Civ 1 summed them. Equal cities
+			// pay exactly what they did; a village tied to a metropolis no longer lives on it.
+			// The sum still made the poor end's income almost all the partner's: measured on a
+			// turn-393 save, the Aztecs' 7 cities made 101 trade of their own and 1,330 from
+			// routes, and banked 94,445 gold by the end, more than the player who built the
+			// partners (Oct 2026).
+			// Each end floored at 1: a route worth 0 is deleted for good (PruneWorthlessRoutes),
+			// and a city whose trade dips to nothing for a turn must not lose every route.
+			double pair = 2 * System.Math.Sqrt((double)System.Math.Max(1, BaseTrade) * System.Math.Max(1, partner.BaseTrade));
+			return (int)(multiplier * (distance + 10) * pair / 24);
 		}
 
 		// ── Diminishing returns on repeated routes to the SAME partner ───────
@@ -709,7 +719,7 @@ namespace CivOne
 			{
 				// Internal routes pay but do not score, and neither does the receiving end of
 				// a foreign one. Both filters are SCOREBOARD ONLY: TradeRouteBonus passes
-				// false and still counts every route in full, so no city loses a coin.
+				// false and counts every route (its own size cap aside).
 				if (forScore && (r.Partner.Owner == Owner || !r.Initiated)) continue;
 				int value = RouteBonus(r.Partner);
 				yield return value <= 0 ? 0 : value / SiblingRank(r.Partner, value);
@@ -742,14 +752,29 @@ namespace CivOne
 			return better + 1;
 		}
 
-		internal int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= DiminishedRoutes(false).Sum());
+		// Only a city's best ceil(Size / CitizensPerPaidRoute) routes pay; the rest are kept,
+		// not evicted, and start paying again as the city grows or a better route lapses.
+		// Routes were uncapped so a foreign caravan could never evict one of yours, and that
+		// left a small hub city collecting from every caravan the world sent it. Measured on
+		// the turn-393 save (Oct 2026): Aztec Ayontzinco, size 5, was paid by 19 routes (479
+		// trade) and the 7-city Aztecs drew ~13x their own trade from routes — still so with
+		// the geometric mean in RouteBonus, which only trimmed 10-20%. Size, not a flat
+		// number, because a metropolis is the city that can actually carry the traffic.
+		internal const int CitizensPerPaidRoute = 4;
+
+		private int PaidRoutes => (Size + CitizensPerPaidRoute - 1) / CitizensPerPaidRoute;
+
+		internal int TradeRouteBonus => (int)(_cachedTradeRouteBonus ??= DiminishedRoutes(false)
+			.OrderByDescending(v => v)
+			.Take(PaidRoutes)
+			.Sum());
 
 		internal int TradeTotal => (int)(_cachedTradeTotal ??= BaseTrade + TradeRouteBonus);
 
 		// ── Money and points are different questions ─────────────────────────
 		//
-		// Every route above still PAYS: TradeTotal is the gold, luxuries and science the city
-		// actually collects, and nothing here touches it. What follows is only what counts
+		// Every route that TradeRouteBonus pays still pays: TradeTotal is the gold, luxuries
+		// and science the city actually collects, and nothing here touches it. What follows is only what counts
 		// toward Pax Mercatoria and the Economic Output graph.
 		//
 		// Two rules, both aimed at the same hole. Routes are unbounded and worth more the more

@@ -153,6 +153,7 @@ namespace CivOne.Tests
 		public void AWorsePartnerPastTheCapPaysButDoesNotScore()
 		{
 			(Game g, City home, City[] foreign, City[] domestic) = ATradingHub();
+			home.Size = 24;   // six paid routes (City.CitizensPerPaidRoute), so the sixth can pay
 			City[] ranked = foreign.OrderByDescending(c => Bonus(home, c)).ToArray();
 			foreach (City c in ranked.Take(5)) home.AddTradeRoute(c, "Silk");   // the five best
 			int score = home.ScoringTrade;

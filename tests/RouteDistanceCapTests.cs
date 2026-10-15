@@ -38,7 +38,7 @@ namespace CivOne.Tests
 
 		// The formula at a given distance, same continent, different owners.
 		private static int Expected(City home, City partner, int distance) =>
-			(int)(0.5f * (distance + 10) * (home.BaseTrade + partner.BaseTrade) / 24);
+			(int)(0.5f * (distance + 10) * 2 * System.Math.Sqrt((double)System.Math.Max(1, home.BaseTrade) * System.Math.Max(1, partner.BaseTrade)) / 24);
 
 		[Fact]
 		public void ALongRoutePaysForFortyTilesAndNoMore()

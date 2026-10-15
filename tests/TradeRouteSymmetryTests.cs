@@ -14,6 +14,10 @@
 //
 // Civ 1's rule is (distance + 10) x (trade of BOTH cities) / 24, so both ends read the same
 // sum and are worth the same. The two old figures added up to the new one.
+//
+// Oct 2026: the sum became twice the GEOMETRIC MEAN. Still symmetric, and equal cities pay
+// exactly what they did, but the sum let a village earn almost entirely from a metropolis:
+// the Aztecs' 7 cities made 101 trade of their own and 1,330 from routes.
 
 using System.Linq;
 using System.Reflection;
@@ -89,14 +93,16 @@ namespace CivOne.Tests
 			Assert.Equal(Bonus(poor, rich), Bonus(rich, poor));
 		}
 
-		// ...and it is the SUM, not the poorer end or an average of convenience. Both of those
-		// are symmetric too, and both would leave the rich city subsidising nobody but itself.
+		// Twice the geometric mean of the two economies, each floored at 1.
+		private static int Pair(City a, City b, int distance, float multiplier = 1f) =>
+			(int)(multiplier * (distance + 10) * 2 * System.Math.Sqrt((double)System.Math.Max(1, BaseTrade(a)) * System.Math.Max(1, BaseTrade(b))) / 24);
+
 		[Fact]
-		public void TheRouteIsWorthTheSumOfBothEconomies()
+		public void TheRouteIsWorthTheGeometricMeanOfBothEconomies()
 		{
 			(Game g, City rich, City poor) = RichAndPoor();
-			int distance = Common.DistanceToTile(rich.X, rich.Y, poor.X, poor.Y);
-			int expected = (int)((float)(distance + 10) * (BaseTrade(rich) + BaseTrade(poor)) / 24);
+			int distance = Common.TradeDistance(rich.X, rich.Y, poor.X, poor.Y);
+			int expected = Pair(rich, poor, distance);
 
 			Assert.Equal(expected, Bonus(rich, poor));
 		}
@@ -114,17 +120,16 @@ namespace CivOne.Tests
 				$"the rich end is still earning the partner's trade alone ({partnerOnly})");
 		}
 
-		// Nobody loses income: the poorer end keeps what the old rule gave it, because what it
-		// used to be paid — the richer partner's trade — is one of the two terms in the sum.
+		// The point of the mean: the poor end no longer earns the sum of both economies.
 		[Fact]
-		public void ThePoorEndKeepsWhatItHad()
+		public void ThePoorEndNoLongerLivesOnItsPartner()
 		{
 			(Game g, City rich, City poor) = RichAndPoor();
-			int distance = Common.DistanceToTile(rich.X, rich.Y, poor.X, poor.Y);
-			int oldPoorEnd = (int)((float)(distance + 10) * BaseTrade(rich) / 24);
+			int distance = Common.TradeDistance(rich.X, rich.Y, poor.X, poor.Y);
+			int oldSum = (int)((float)(distance + 10) * (BaseTrade(rich) + BaseTrade(poor)) / 24);
 
-			Assert.True(Bonus(poor, rich) >= oldPoorEnd,
-				$"the poor end lost income: {Bonus(poor, rich)} against {oldPoorEnd}");
+			Assert.True(Bonus(poor, rich) < oldSum * 3 / 4,
+				$"the poor end still earns {Bonus(poor, rich)} of the old sum's {oldSum}");
 		}
 
 		// Both halvings survive, and they are what keeps a domestic route from being the best
@@ -134,10 +139,9 @@ namespace CivOne.Tests
 		{
 			(Game g, City rich, City poor) = RichAndPoor(sameOwner: true);
 
-			int distance = Common.DistanceToTile(rich.X, rich.Y, poor.X, poor.Y);
-			int full = (int)((float)(distance + 10) * (BaseTrade(rich) + BaseTrade(poor)) / 24);
+			int distance = Common.TradeDistance(rich.X, rich.Y, poor.X, poor.Y);
 
-			Assert.Equal(full / 2, Bonus(rich, poor));
+			Assert.Equal(Pair(rich, poor, distance, 0.5f), Bonus(rich, poor));
 		}
 
 		// War still pays nothing, from either side.
