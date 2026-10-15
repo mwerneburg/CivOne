@@ -31,7 +31,7 @@ namespace CivOne.Screens.Dialogs
 
 		private void LuxuriesChoice(object sender, MenuItemEventArgs<int> args)
 		{
-			Human.LuxuriesRate = args.Value;
+			Human.SetLuxuriesKeepingScience(args.Value);
 			Cancel();
 		}
 
@@ -96,10 +96,10 @@ namespace CivOne.Screens.Dialogs
 		{
 			if (luxuries)
 			{
-				for (int i = 0; i <= (10 - Human.TaxesRate); i++)
+				for (int i = 0; i <= (10 - Human.ScienceRate); i++)
 				{
-					int science = 10 - Human.TaxesRate - i;
-					yield return $"{i * 10}% Luxuries, ({science * 10}% Science)";
+					int tax = 10 - Human.ScienceRate - i;
+					yield return $"{i * 10}% Luxuries, ({tax * 10}% Tax)";
 				}
 				yield break;
 			}

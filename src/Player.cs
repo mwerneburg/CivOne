@@ -156,6 +156,18 @@ namespace CivOne
 		}
 		public int ScienceRate => _scienceRate;
 
+		// The Luxuries Rate dialog: luxuries trade against TAX and science stays put, since
+		// the Science Rate dialog already trades tax against science. The setters above keep
+		// science as the remainder, so luxuries go to 0 first to make room for the new tax.
+		internal void SetLuxuriesKeepingScience(int luxuries)
+		{
+			int science = _scienceRate;
+			luxuries = Math.Max(0, Math.Min(luxuries, 10 - science));
+			LuxuriesRate = 0;
+			TaxesRate = 10 - science - luxuries;
+			LuxuriesRate = luxuries;
+		}
+
 		internal void InvalidateCityCaches()
 		{
 			if (!Game.Started) return;
