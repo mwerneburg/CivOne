@@ -1923,7 +1923,11 @@ namespace CivOne
 			if (Player.Civilization is Olvir) return; // refugees do not declare war
 			// The Others and the Thing arrive at war with everyone and stay there:
 			// no tribute, no peace initiatives, no fresh declarations needed.
-			if (Player.Civilization is TheOthers or TheThing or Skynet) return;
+			// The network still marshals its armies: returning before MarshalStrikeGroup left
+			// every Armor that ever fortified asleep for good — 25 of 45 in a 20-turn replay of
+			// the user's turn-398 save (Oct 2026).
+			if (Player.Civilization is Skynet) { MarshalStrikeGroup(); return; }
+			if (Player.Civilization is TheOthers or TheThing) return;
 			if (Player.Government is Governments.Anarchy) return;
 
 			// ── Track war duration and peacetime city baseline ───────────────────
@@ -3157,7 +3161,8 @@ namespace CivOne
 
 		// The smallest group that goes in, and one more than the defenders when they are many.
 		internal const int StrikeGroupSize = 3;
-		private static int StrikeThreshold(City target) =>
+		// An empty city needs no group: one attacker walks in.
+		private static int StrikeThreshold(City target) => !target.Tile.Units.Any() ? 1 :
 			Math.Max(StrikeGroupSize, target.Tile.Units.Count(u => u.Role == UnitRole.Defense) + 1);
 
 		// Keep the civ-wide attack target valid, picking a new one when it has gone stale.

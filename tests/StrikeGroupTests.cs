@@ -155,6 +155,72 @@ namespace CivOne.Tests
 			Assert.Equal(new Point(50, 25), a.Goto);
 		}
 
+		// An empty city needs no group: one attacker beside it goes straight in.
+		[Fact]
+		public void OneGoesIntoAnEmptyCity()
+		{
+			(Game g, Player us, Player _, City target, AI ai) = AWar();
+			foreach (IUnit d in target.Tile.Units) g.DisbandUnit(d);
+			IUnit a = Armor(g, us, 49, 25);
+			SetTarget(ai, target);
+
+			Assign(ai, a);
+
+			Assert.Equal(new Point(50, 25), a.Goto);
+		}
+
+		// An empty enemy city beside an attacker is taken in passing, though it is not the target
+		// (the user, Oct 2026: the Machines' Armor "drift right past undefended cities").
+		[Fact]
+		public void AnEmptyCityAlongTheWayIsTakenInPassing()
+		{
+			(Game g, Player us, Player them, City target, AI ai) = AWar();
+			City empty = g.AddCity(them, 8, 42, 30)!;
+			empty.Size = 3;
+			IUnit a = Armor(g, us, 41, 30);
+			SetTarget(ai, target);
+			Sim.ClearTasks();
+
+			ai.Move(a);
+			Sim.Settle();
+
+			Assert.Equal(g.PlayerNumber(us), empty.Owner);
+		}
+
+		// An enemy in the open that it outguns two to one is struck in passing. One Settlers'
+		// zone of control held ten Skynet Armor fortified two tiles from Carthage (Oct 2026).
+		[Fact]
+		public void AWeakEnemyInTheOpenIsStruckInPassing()
+		{
+			(Game g, Player us, Player them, City target, AI ai) = AWar();
+			IUnit settlers = g.CreateUnit(UnitType.Settlers, 40, 31, g.PlayerNumber(them))!;   // behind it: off the march east
+			IUnit a = Armor(g, us, 41, 30);
+			SetTarget(ai, target);
+			Sim.ClearTasks();
+
+			ai.Move(a);
+			Sim.Settle();
+
+			Assert.DoesNotContain(settlers, g.GetUnits());
+		}
+
+		// ...but not one it does not.
+		[Fact]
+		public void AStrongEnemyInTheOpenIsLeftAlone()
+		{
+			(Game g, Player us, Player them, City target, AI ai) = AWar();
+			IUnit mech = g.CreateUnit(UnitType.MechInf, 42, 30, g.PlayerNumber(them))!;
+			IUnit a = Armor(g, us, 41, 30);
+			SetTarget(ai, target);
+			Sim.ClearTasks();
+
+			ai.Move(a);
+			Sim.Settle();
+
+			Assert.Contains(mech, g.GetUnits());
+			Assert.Contains(a, g.GetUnits());
+		}
+
 		// ── the raid ─────────────────────────────────────────────────────────
 
 		// Two attackers cannot take it, and no more are on the way yet: they burn its fields

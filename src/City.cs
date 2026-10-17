@@ -1687,7 +1687,11 @@ namespace CivOne
 				unhappyCount++;
 			// The King in Yellow: an afflicted stage loses the Theatre's charm entirely.
 			bool maskUponUs = Game.Instance.YellowCities.Contains((X, Y));
-			if (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>() && !maskUponUs)
+			// The network has nobody to displease. Its seized towns rioted like anyone's, and two
+			// in disorder held its AI in Consolidate — no attack target, every Armor sent home to
+			// garrison (the user, Oct 2026: "drift right past undefended cities").
+			bool network = Player.Civilization is Civilizations.Skynet;
+			if (network || (HasWonder<ShakespearesTheatre>() && !Game.WonderObsolete<ShakespearesTheatre>() && !maskUponUs))
 			{
 				unhappyCount = 0;
 			}

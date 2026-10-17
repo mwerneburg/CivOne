@@ -845,6 +845,28 @@ namespace CivOne
 					return;
 				}
 
+				// Taken in passing, whatever the civ-wide target: an empty enemy city beside an
+				// attacker, or an enemy stack in the open it outguns two to one. Every attacker
+				// marched on the one target, so Skynet Armor walked past an empty Addis Ababa next
+				// door (the user, Oct 2026) — and ten of them stood fortified two tiles from
+				// Carthage, because one enemy Settlers' zone of control blocked the step in and a
+				// failed step fortifies. ITile.Units scans every unit in the game, so it is asked
+				// only of a city tile or one the occupancy pass says holds an enemy.
+				if (unit.Role == UnitRole.LandAttack && unit.Class == UnitClass.Land)
+				{
+					byte own = unit.Owner;
+					bool Enemy(byte o) => o != own && (o == 0 || Player.IsAtWar(Game.GetPlayer(o)));
+					var hostile = new HashSet<(int, int)>(Game.GetUnits()
+						.Where(u => u.Tile is not null && Common.DistanceToTile(u.X, u.Y, unit.X, unit.Y) == 1 && Enemy(u.Owner))
+						.Select(u => (u.X, u.Y)));
+					ITile? prize = unit.Tile.GetBorderTiles().FirstOrDefault(t => t is not null && (
+						(t.City is City c && Enemy(c.Owner) && !hostile.Contains((t.X, t.Y)))
+						|| (t.City is null && !t.IsOcean && hostile.Contains((t.X, t.Y))
+						    && unit.Attack >= 2 * t.Units.Max(u => u.Defense))));
+					if (prize is not null && unit.MoveTo(prize.X - unit.X, prize.Y - unit.Y))
+						return;
+				}
+
 				// Assign a mission if the unit is idle (sets unit.Goto)
 				if (unit.Goto.IsEmpty) AssignMission(unit);
 
