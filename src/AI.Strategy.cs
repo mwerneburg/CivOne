@@ -401,7 +401,13 @@ namespace CivOne
 			// scoreboard showed it plainly: civs with 54 and 55 cities scoring less than
 			// half of the one civ that still reached Expand.
 			int disorderLimit = Math.Max(2, (int)(cities.Length * 0.15));
-			if (cities.Length > 0 && (
+			// A Fascist regime at war fights through its riots — it rose for this war, and
+			// Consolidate sent its armies home. Measured on the user's turn-398 save (Oct 2026):
+			// the Lakota and Haudenosaunee both Fascist, both at war, 20 cities in disorder each,
+			// both in Consolidate. The riots still cost it the production; that is the regime's price.
+			bool fascistAtWar = Player.Government is Governments.Fascism
+				&& Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p));
+			if (!fascistAtWar && cities.Length > 0 && (
 			        (Player.RepublicDemocratic && cities.Count(c => c.UnhappyCitizens > 0) > cities.Length * tolerance)
 			        || cities.Count(c => c.IsInDisorder) >= disorderLimit
 			        || Player.LuxuriesRate >= 4))
@@ -1516,6 +1522,13 @@ namespace CivOne
 			// production bug: a non-civilisation routed through civilisation machinery.
 			if (Player.Civilization is Civilizations.Barbarian) return;
 
+			// The war ambition is not saved, and this runs before ConsiderWar tops it up — so on
+			// the first turn after every load a Fascist state still at war and losing judged its
+			// regime with no ambition, rated it 0, and renounced at 25%. On the user's turn-398
+			// save both Fascist civs fell into Anarchy on the first turn (Oct 2026).
+			if (Player.Government is Gov.Fascism)
+				ConsiderFascism(Game.Players.Any(p => p != Player && !p.IsDestroyed() && Player.IsAtWar(p)));
+
 			// Research lock-in escape. This must live here, on the every-turn path —
 			// ChooseResearch only runs when the research slot is empty or a target just
 			// completed, never while one is in flight, so an escape placed there is dead
@@ -1923,11 +1936,12 @@ namespace CivOne
 			if (Player.Civilization is Olvir) return; // refugees do not declare war
 			// The Others and the Thing arrive at war with everyone and stay there:
 			// no tribute, no peace initiatives, no fresh declarations needed.
-			// The network still marshals its armies: returning before MarshalStrikeGroup left
-			// every Armor that ever fortified asleep for good — 25 of 45 in a 20-turn replay of
-			// the user's turn-398 save (Oct 2026).
-			if (Player.Civilization is Skynet) { MarshalStrikeGroup(); return; }
-			if (Player.Civilization is TheOthers or TheThing) return;
+			// The network and the Registry still marshal their armies: returning before
+			// MarshalStrikeGroup left every attacker that ever fortified asleep for good — 25 of
+			// Skynet's 45 in a 20-turn replay of the user's turn-398 save (Oct 2026). The Thing's
+			// threat is infection, not marching, so its units are left as they were.
+			if (Player.Civilization is Skynet or TheOthers) { MarshalStrikeGroup(); return; }
+			if (Player.Civilization is TheThing) return;
 			if (Player.Government is Governments.Anarchy) return;
 
 			// ── Track war duration and peacetime city baseline ───────────────────

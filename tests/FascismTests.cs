@@ -87,6 +87,32 @@ namespace CivOne.Tests
 			return c;
 		}
 
+		// At war it fights through its riots. On the user's turn-398 save the Fascist Lakota and
+		// Haudenosaunee sat in Consolidate with 20 cities in disorder each, armies sent home.
+		[Fact]
+		public void AtWarItFightsThroughItsRiots()
+		{
+			(Game g, Player w, Player[] others) = AWorld();
+			w.Explore(40, 25, range: 20);
+			for (int i = 0; i < 3; i++)
+			{
+				City c = g.AddCity(w, i, 25 + 10 * i, 25)!;
+				c.Size = 16;
+				c.ResetResourceTiles();
+			}
+			w.TaxesRate = 5; w.LuxuriesRate = 0;
+			w.DeclareWar(others.First(p => p != g.HumanPlayer));
+			w.Government = new Monarchy();
+			foreach (City c in w.Cities) c.InvalidateCache();
+			Assert.True(w.Cities.Count(c => c.IsInDisorder) >= 2, "fixture: not enough riots");
+			Assert.Equal("Consolidate", CivOne.AI.Instance(w).CurrentStanceName());   // fixture: any other regime stands down
+
+			w.Government = new Fascism();
+			foreach (City c in w.Cities) c.InvalidateCache();
+
+			Assert.Equal("Militarize", CivOne.AI.Instance(w).CurrentStanceName());
+		}
+
 		[Fact]
 		public void ItHalvesScience()
 		{
@@ -243,6 +269,27 @@ namespace CivOne.Tests
 			Assert.True(Ambition(ai) > 0, "the ambition lapsed mid-war");
 			// null is "already optimal": it stays as it is.
 			Assert.Equal(nameof(Fascism), ai.BestGovernmentName() ?? nameof(Fascism));
+		}
+
+		// ...including the first turn after a load. The ambition is not saved, and the regime is
+		// judged before ConsiderWar restores it: both Fascist civs on the user's turn-398 save
+		// renounced on the first turn back.
+		[Fact]
+		public void AReloadedFascistStateAtWarKeepsItsRegime()
+		{
+			(Game g, Player w, Player[] others) = AWorld();
+			w.Government = new Fascism();
+			w.AddAdvance(new CivOne.Advances.Monarchy(), false);
+			Player rival = others.First(p => p != g.HumanPlayer);
+			g.Progress(g.PlayerNumber(rival)).EconStreak = Game.EconomicHoldTurns / 2;
+			w.DeclareWar(rival);
+			CivOne.AI ai = CivOne.AI.Instance(w)!;
+			Assert.Equal(0, Ambition(ai));   // as loaded
+			Assert.True(ai.SensesDefeat(), "fixture: not losing");
+
+			for (int t = 0; t < 40 && w.Government is Fascism; t++) { Sim.ClearTasks(); ai.ConsiderGovernment(); }
+
+			Assert.IsType<Fascism>(w.Government);
 		}
 
 		// Rising: every other nation holds a grudge, and the world is told.
