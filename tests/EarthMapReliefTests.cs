@@ -22,7 +22,7 @@ namespace CivOne.Tests
 {
 	public class EarthMapReliefTests
 	{
-		private const byte Ocean = 0, Hills = 12, Mountains = 13;
+		private const byte Ocean = 0, Tundra = 7, Hills = 12, Mountains = 13, Desert = 14, Arctic = 15;
 
 		private sealed class EarthMap
 		{
@@ -58,6 +58,19 @@ namespace CivOne.Tests
 					if (t == terrain) hit++;
 				}
 				return land == 0 ? 0 : (double)hit / land;
+			}
+
+			// Share of ALL tiles in the box that are water — for lakes, which Share skips.
+			public double Water(double north, double south, double west, double east)
+			{
+				int water = 0, all = 0;
+				for (int y = Row(north); y <= Row(south); y++)
+				for (int x = (int)((west + 180.0) / 360.0 * Width); x <= (int)((east + 180.0) / 360.0 * Width); x++)
+				{
+					all++;
+					if (Tiles[y * Width + x] == Ocean) water++;
+				}
+				return (double)water / all;
 			}
 		}
 
@@ -128,6 +141,51 @@ namespace CivOne.Tests
 			EarthMap? m = Load("earth_epic.bin");
 			if (m is null) return;
 			Assert.Equal(0.0, m.Share(Mountains, n, s, w, e));
+		}
+
+		// ── Oct 2026 corrections (design/build_earth_map.py) ───────────────────────────
+
+		// The Tarim Basin took the 30-45N grassland default: one of the driest places on
+		// Earth was a meadow until a desert override covered it.
+		[Fact]
+		public void TheTaklaMakanIsDesert()
+		{
+			EarthMap? m = Load("earth_epic.bin");
+			if (m is null) return;
+			Assert.True(m.Share(Desert, 40.0, 38.0, 79.0, 87.0) > 0.5);
+		}
+
+		// The plateau rule made every tile averaging over ~3500 m a Mountain, which made
+		// Tibet an impassable wall. Its flat interior is Tundra now; the rims stay relief.
+		[Fact]
+		public void TibetIsAHighSteppeNotAWall()
+		{
+			EarthMap? m = Load("earth_epic.bin");
+			if (m is null) return;
+			Assert.True(m.Share(Tundra, 35.0, 31.0, 82.0, 95.0) > 0.4);
+			Assert.True(m.Share(Mountains, 35.0, 31.0, 82.0, 95.0) < 0.5);
+		}
+
+		// The same rule covers the Greenland ice cap, which must read as ice, not steppe.
+		[Fact]
+		public void TheGreenlandIceCapIsIce()
+		{
+			EarthMap? m = Load("earth_epic.bin");
+			if (m is null) return;
+			Assert.True(m.Share(Arctic, 76.0, 68.0, -45.0, -32.0) > 0.5);
+		}
+
+		// Great Slave and Great Bear were bounding boxes: two solid rectangles, each about
+		// five times the real lake. As traced outlines they fill only part of the old box.
+		[Theory]
+		[InlineData("GreatSlave", 63.0, 60.5, -117.0, -108.0)]
+		[InlineData("GreatBear",  67.0, 65.0, -125.0, -119.0)]
+		public void TheNorthernLakesAreNotRectangles(string _, double n, double s, double w, double e)
+		{
+			EarthMap? m = Load("earth_epic.bin");
+			if (m is null) return;
+			double water = m.Water(n, s, w, e);
+			Assert.InRange(water, 0.15, 0.75);
 		}
 
 		// Map.ResolveEarthBin walks FIVE directories up from the executable to reach the repo's

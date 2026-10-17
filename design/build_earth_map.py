@@ -22,8 +22,8 @@ Inputs:
                  is classified from relief and not from absolute height.
   --mtn-relief N   Same, for Mountains. Default 41 (~1380 m) — the Scandes top out
                  at 1378 m of relief, which is where that cut comes from.
-  --plateau-level N  Mean elevation that is Mountains whatever the relief, so high
-                 flat ground (Tibet) stays mountainous. Default 104 (~3500 m).
+  --plateau-level N  Mean elevation above which flat ground is Tundra (Arctic at
+                 60 deg+), so Tibet is high steppe, not grassland. Default 104 (~3500 m).
 
 Source data — any equirectangular elevation PNG works; recommended:
   - NASA Visible Earth "Topography 5400×2700"
@@ -36,8 +36,8 @@ None of these need an account; they're public domain / CC0.
 Terrain classification:
   pixel < sea-level                  → Ocean
   tile relief high                   → Hills
-  tile relief very high, or a very   → Mountains
-    high mean (a plateau)
+  tile relief very high              → Mountains
+  very high mean, flat (a plateau)   → Tundra (Arctic at 60 deg+)
   otherwise                          → biome by latitude band (see LAT_BANDS)
   Plus a hand-tuned moisture mask    → forces Sahara/Arabia → Desert, Amazon
                                        → Jungle, etc., for plausibility.
@@ -130,6 +130,11 @@ MOIST_OVERRIDES = [
     (41, 46,  92, 112, DESERT),
     # Central Asia steppe
     (40, 50,  55,  90, PLAINS),
+    # Takla Makan, filling the Tarim Basin. After the steppe so it wins the 40-41N
+    # overlap; without it the basin took the 30-45N GRASS default and one of the
+    # driest places on Earth was a meadow. The Tian Shan and Kunlun rims are relief,
+    # classified before any override, so the box can be generous.
+    (37, 41,  77,  89, DESERT),
     # Australia outback (huge dry interior)
     (-30, -18, 118, 145, DESERT),
     # Australia tropical north (Top End / Cape York)
@@ -266,8 +271,8 @@ MED_CHANNEL = [
 MAJOR_LAKES = [
     # North America — the Laurentian Great Lakes are now polygons (see below) so
     # their distinctive orientations read better than five rectangles.
-    ( 60.5, 63.0,-117.0,-108.0, "GreatSlave"),
-    ( 65.0, 67.0,-125.0,-119.0, "GreatBear"),
+    # Great Slave and Great Bear are polygons now, below; as boxes they were the two
+    # rectangles in the Northwest Territories.
     # Eurasia — Aral, Balkhash, Baikal and the Baltic lowland lakes (Ladoga,
     # Onega, Peipus, Saimaa) are all polygons now; see below. The old "Ladoga"
     # box (60-63N, 31.5-35.5E) was both square and ~1.5 deg too far north, and
@@ -293,6 +298,20 @@ MAJOR_LAKE_POLYGONS = [
         ( 47.0, 51.5), ( 46.0, 53.0), ( 43.0, 51.0), ( 40.0, 52.5),
         ( 37.5, 53.5), ( 36.5, 50.5), ( 39.0, 48.7), ( 42.0, 47.5),
         ( 45.5, 47.5),
+    ]),
+    # Great Slave: a south-west to north-east main basin, from Hay River up to
+    # Yellowknife, and the long East Arm reaching out toward Lutsel K'e.
+    ("GreatSlave", [
+        ( 61.1,-117.2), ( 61.7,-115.8), ( 62.4,-114.4), ( 62.3,-112.6),
+        ( 62.9,-110.6), ( 62.7,-108.9), ( 62.1,-110.4), ( 61.7,-112.4),
+        ( 61.1,-114.5), ( 60.8,-116.0),
+    ]),
+    # Great Bear: a body with five arms; at this scale, a broad lozenge with its
+    # long axis east-west and McVicar/Keith arms poking south.
+    ("GreatBear", [
+        ( 66.0,-126.0), ( 66.6,-124.8), ( 67.1,-123.2), ( 66.9,-121.0),
+        ( 66.6,-118.8), ( 65.9,-119.6), ( 65.2,-120.8), ( 65.0,-123.0),
+        ( 65.6,-124.4),
     ]),
     # Lake Chad: small irregular oval (the modern shoreline, not Mega-Chad).
     ("Chad", [
@@ -589,11 +608,12 @@ DEFAULT_SEA_LEVEL  = 1
 # are at 700 m surrounded by mountains. What makes ground rough to cross is how much
 # it goes up and down within sight, which is what these measure.
 #
-# PLATEAU_PIXEL keeps the genuinely-high flat ground mountainous anyway, so Tibet
-# does not become grassland on a technicality.
+# PLATEAU_PIXEL keeps the genuinely-high flat ground from becoming grassland on a
+# technicality. It was Mountains, which made Tibet an impassable sea of them; it is
+# Tundra now (Arctic at 60 deg and beyond, for the Greenland ice cap) — Oct 2026.
 DEFAULT_HILL_RELIEF   = 15    # ~500 m of relief inside one tile
 DEFAULT_MTN_RELIEF    = 41    # ~1380 m
-DEFAULT_PLATEAU_PIXEL = 104   # ~3500 m mean: high ground is mountains however flat
+DEFAULT_PLATEAU_PIXEL = 104   # ~3500 m mean: high flat ground is tundra, not grass
 
 # ...and those are defined at the 320x200 Epic board. Relief is measured inside one
 # tile, so it grows with the tile: an 80x50 tile covers sixteen times the ground and
@@ -960,8 +980,15 @@ def main() -> int:
             relief = float(rel[y, x])
             if elev < args.sea_level:
                 code = OCEAN
-            elif relief >= mtn_cut or elev >= args.plateau_level:
+            elif relief >= mtn_cut:
                 code = MTNS
+            elif elev >= args.plateau_level:
+                # High FLAT ground: the rims are relief and stayed MTNS above. Tundra is
+                # what the Tibetan, Pamir and Altiplano interiors are — cold high steppe
+                # a civilization can cross and sparsely settle — where Mountains made Tibet
+                # a wall and Plains would make it a breadbasket at 4.5 km. The Greenland
+                # ice cap is the same rule and reads as ice.
+                code = ARCTIC if abs(lat) >= 60 else TUNDRA
             elif relief >= hill_cut:
                 code = HILLS
             else:
