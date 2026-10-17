@@ -60,7 +60,7 @@ namespace CivOne.Concepts
 			"it and the count begins again.",
 			"",
 			"PAX MERCATORIA: 2.5 times the next",
-			"economy's output for 75 turns,",
+			"economy for 75 turns at Prince,",
 			"with Banking, three rivals standing,",
 			"no war of your starting, and half",
 			"the world bound to you.",

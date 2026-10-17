@@ -59,7 +59,7 @@ namespace CivOne.Tests
 			// The human is a candidate, which is the whole point of the second helper.
 			Assert.Contains("uint mine = of(Human);", src);
 			// ...and the line names the civ rather than the victory.
-			Assert.Contains("{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldTurns}", src);
+			Assert.Contains("{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldFor(cultHolder)}", src);
 			// The old pair is gone: no second culture row, and no standalone label.
 			Assert.DoesNotContain("CULTURAL ASCENDANCY {cultStreak}", src);
 		}

@@ -2685,12 +2685,12 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"Our merchants dominate",
 								"world trade. Hold the markets",
-								$"for {EconomicHoldTurns} turns."));
-						else if (isHuman && Progress(cnum).EconStreak == EconomicHoldTurns / 2)
+								$"for {EconomicHoldFor(claimant)} turns."));
+						else if (isHuman && Progress(cnum).EconStreak == EconomicHoldFor(claimant) / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to hegemony!",
 								"The world's markets", "answer to us."));
 
-						if (Progress(cnum).EconStreak >= EconomicHoldTurns && !_econVictoryFired)
+						if (Progress(cnum).EconStreak >= EconomicHoldFor(claimant) && !_econVictoryFired)
 						{
 							_econVictoryFired = true;
 							if (!isHuman)
@@ -2880,12 +2880,12 @@ namespace CivOne
 							GameTask.Enqueue(Message.Advisor(Advisor.Domestic, false,
 								"The world looks to us.",
 								"No people are more cultured.",
-								$"Hold the first rank {CultureHoldTurns} turns."));
-						else if (isHuman && Progress(cnum).CultureStreak == CultureHoldTurns / 2)
+								$"Hold the first rank {CultureHoldFor(claimant)} turns."));
+						else if (isHuman && Progress(cnum).CultureStreak == CultureHoldFor(claimant) / 2)
 							GameTask.Enqueue(Message.Newspaper(null!, "Half way to ascendancy!",
 								"Our arts and learning", "are the world's measure."));
 
-						if (Progress(cnum).CultureStreak >= CultureHoldTurns && !_cultVictoryFired)
+						if (Progress(cnum).CultureStreak >= CultureHoldFor(claimant) && !_cultVictoryFired)
 						{
 							_cultVictoryFired = true;
 							if (!isHuman)
@@ -4992,6 +4992,18 @@ namespace CivOne
 		// UNMEASURED. CultureHoldTurns earned its 75 across a six-game batch; this one is
 		// matched to it by argument, and the batch that would justify it has not been run.
 		internal const uint EconomicHoldTurns = 75;
+
+		// The HUMAN's hold, by difficulty (Chieftain .. Deity). The two constants above are
+		// the AI's, at every level: they were tuned on AI-only batches, and a longer hold for
+		// everyone at King would make the AI's own wins harder too — backwards for a harder
+		// level. What the length buys is time for the world to answer a leader
+		// (AI.SensesDefeat reacts at half the hold), so Prince keeps 75 and the rest scale
+		// around it (Oct 2026, unmeasured).
+		private static readonly uint[] HumanHoldTurns = { 50, 60, 75, 90, 100, 110 };
+
+		private uint HumanHold => HumanHoldTurns[Math.Min(Math.Max(Difficulty, 0), HumanHoldTurns.Length - 1)];
+		internal uint CultureHoldFor(Player p) => p.IsHuman ? HumanHold : CultureHoldTurns;
+		internal uint EconomicHoldFor(Player p) => p.IsHuman ? HumanHold : EconomicHoldTurns;
 
 		// Turns a streak may sit below its bar, paused, before it breaks. The streak does not
 		// advance while paused, so the hold is still EconomicHoldTurns turns ABOVE the bar.

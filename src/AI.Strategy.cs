@@ -1345,8 +1345,8 @@ namespace CivOne
 			if (field.Length < 3) return false;
 			if (field.Count(p => p.Score > Player.Score) * 2 >= field.Length) return true;
 			return field.Any(p => p != Player
-				&& (Game.Progress(Game.PlayerNumber(p)).EconStreak >= Game.EconomicHoldTurns / 2
-				 || Game.Progress(Game.PlayerNumber(p)).CultureStreak >= Game.CultureHoldTurns / 2));
+				&& (Game.Progress(Game.PlayerNumber(p)).EconStreak >= Game.EconomicHoldFor(p) / 2
+				 || Game.Progress(Game.PlayerNumber(p)).CultureStreak >= Game.CultureHoldFor(p) / 2));
 		}
 
 		// The road to Fascism: a warmonger who is losing and could adopt it takes on the war

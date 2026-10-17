@@ -254,8 +254,8 @@ namespace CivOne.Tests
 		{
 			string src = SideBarSource();
 
-			Assert.Contains("Game.StreakLeader(pr => pr.CultureStreak), Game.CultureHoldTurns", src);
-			Assert.Contains("Game.StreakLeader(pr => pr.EconStreak), Game.EconomicHoldTurns", src);
+			Assert.Contains("Game.StreakLeader(pr => pr.CultureStreak), Game.CultureHoldFor", src);
+			Assert.Contains("Game.StreakLeader(pr => pr.EconStreak), Game.EconomicHoldFor", src);
 			Assert.Contains("Game.SpaceLeader()", src);
 		}
 	}

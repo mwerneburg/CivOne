@@ -54,12 +54,12 @@ namespace CivOne.Tests
 			Assert.True(at > 0, "the economic streak block has moved");
 			string block = src.Substring(at, src.IndexOf("_econVictoryFired = true;", at) - at);
 
-			Assert.Contains("EconStreak >= EconomicHoldTurns", block);
-			Assert.Contains("EconomicHoldTurns / 2", block);        // the halfway newspaper
+			Assert.Contains("EconStreak >= EconomicHoldFor(claimant)", block);
+			Assert.Contains("EconomicHoldFor(claimant) / 2", block);        // the halfway newspaper
 			// The advisor's own words. TURNS, not years: the streak counts turns, and before
 			// 1850 a turn is two to twenty years (Common.TurnToYear), so "hold for 75 years"
 			// was wrong by centuries at the point a player is most likely to read it.
-			Assert.Contains("{EconomicHoldTurns} turns", block);
+			Assert.Contains("{EconomicHoldFor(claimant)} turns", block);
 			Assert.DoesNotContain(">= 20", block);
 			Assert.DoesNotContain("for 20 years", block);
 			Assert.DoesNotContain("years", block);
@@ -74,8 +74,8 @@ namespace CivOne.Tests
 			string src = File.ReadAllText(Path.Combine(Sim.RepoRoot(),
 				"src", "Screens", "Reports", "CivilizationScore.cs"));
 
-			Assert.Contains("{econStreak}/{Game.EconomicHoldTurns}", src);
-			Assert.Contains("{cultStreak}/{Game.CultureHoldTurns}", src);
+			Assert.Contains("{econStreak}/{Game.EconomicHoldFor(Human)}", src);
+			Assert.Contains("{cultStreak}/{Game.CultureHoldFor(cultHolder)}", src);
 
 			// The rival readout is drawn on BOTH pages from one helper, so it must be told
 			// which target applies rather than assuming one of them.

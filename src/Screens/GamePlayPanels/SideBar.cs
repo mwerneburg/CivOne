@@ -327,15 +327,16 @@ namespace CivOne.Screens.GamePlayPanels
 				: streak * 4 >= target * 3 ? CassetteTheme.ALERT
 				: CassetteTheme.PHOS;
 
-			void AddStreak(string label, (Player? Holder, uint Streak) lead, uint target)
+			void AddStreak(string label, (Player? Holder, uint Streak) lead, Func<Player, uint> holdFor)
 			{
 				if (lead.Holder is null || lead.Streak == 0) return;
+				uint target = holdFor(lead.Holder);
 				entries.Add((label, lead.Holder.TribeNamePlural.ToUpper(),
 					$"{lead.Streak}/{target}", Urgency(lead.Holder, lead.Streak, target)));
 			}
 
-			AddStreak("CULTURE", Game.StreakLeader(pr => pr.CultureStreak), Game.CultureHoldTurns);
-			AddStreak("OUTPUT", Game.StreakLeader(pr => pr.EconStreak), Game.EconomicHoldTurns);
+			AddStreak("CULTURE", Game.StreakLeader(pr => pr.CultureStreak), Game.CultureHoldFor);
+			AddStreak("OUTPUT", Game.StreakLeader(pr => pr.EconStreak), Game.EconomicHoldFor);
 
 			var space = Game.SpaceLeader();
 			if (space.Holder is not null)

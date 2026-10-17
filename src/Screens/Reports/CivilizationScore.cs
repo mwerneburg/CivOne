@@ -318,9 +318,9 @@ namespace CivOne.Screens.Reports
 					// holder closes on the target — a red line for our OWN near-win would read
 					// as a warning about the thing we are trying to do.
 					byte scol = cultHolder == Human ? CassetteTheme.OK
-					          : cultStreak * 4 >= Game.CultureHoldTurns * 3 ? CassetteTheme.ALERT
+					          : cultStreak * 4 >= Game.CultureHoldFor(cultHolder) * 3 ? CassetteTheme.ALERT
 					          : CassetteTheme.PHOS;
-					this.DrawText($"{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldTurns}",
+					this.DrawText($"{cultHolder.TribeNamePlural.ToUpper()} {cultStreak}/{Game.CultureHoldFor(cultHolder)}",
 						0, scol, GraphRight - 4, BannerRow(0), TextAlign.Right);
 				}
 
@@ -558,7 +558,7 @@ namespace CivOne.Screens.Reports
 			if (_page == Page.Output)
 			{
 				uint econStreak = Game.Progress(Game.PlayerNumber(Human)).EconStreak;
-				string streak = $"PAX MERCATORIA STREAK {econStreak}/{Game.EconomicHoldTurns}";
+				string streak = $"PAX MERCATORIA STREAK {econStreak}/{Game.EconomicHoldFor(Human)}";
 				byte col = econStreak > 0 ? CassetteTheme.OK : CassetteTheme.INK_LOW;
 				this.DrawText(streak, 0, col, GraphRight - 4, BannerRow(0), TextAlign.Right);
 				this.DrawText($"- - -  {Game.EconomicLeadMargin:0.0}X NEXT ECONOMY ({LiveThreshold()})", 0, CassetteTheme.ALERT,
