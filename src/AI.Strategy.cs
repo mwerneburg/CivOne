@@ -2229,6 +2229,7 @@ namespace CivOne
 			for (int dx = -2; dx <= 2; dx++)
 			{
 				if (Math.Abs(dx) == 2 && Math.Abs(dy) == 2) continue;
+				if (dx == 0 && dy == 0) continue;   // the centre is scored below, as founded
 				int tx = (center.X + dx + mapWidth) % mapWidth;
 				int ty = center.Y + dy;
 				if (ty < 0 || ty >= mapHeight) continue;
@@ -2255,11 +2256,12 @@ namespace CivOne
 				else if (tile is not null && tile.IsOcean) hasCoastNeighbor = true;
 			}
 
-			// The centre tile again, weighted.
+			// The centre tile, weighted.
 			//
-			// The radius loop above already counted it, as one of twenty-one — and that is a
-			// bad account of what it is. Every other tile in the ring is optional: a citizen
-			// works it or does not, and the governor reassigns them as the city grows. The
+			// The radius loop above skips it. Counted there as one of twenty-one, at its raw
+			// yield, it was a bad account of what it is, and handed Forested Hills back the
+			// edge FoundedCentreYield takes off it. Every other tile in the ring is optional:
+			// a citizen works it or does not, and the governor reassigns them as the city grows. The
 			// centre is worked from the first turn, for free, forever, and cannot be given
 			// up. A site whose ring is excellent and whose centre is barren is not the same
 			// proposition as one where the reverse is true, and scoring them alike is how
@@ -2269,7 +2271,8 @@ namespace CivOne
 			// with no floor: ShieldValue and TradeValue both guarantee the centre at least 1
 			// (City.cs), so a barren centre still yields a shield and a coin — it just never
 			// yields a bite.
-			score += center.Food * 6 + center.Shield * 2 + center.Trade * 2;
+			(int food, int shield, int trade) = FoundedCentreYield(center);
+			score += food * 6 + shield * 2 + trade * 2;
 
 			// A river-mouth site combines irrigation, river trade, and ocean trade.
 			if (hasCoastNeighbor && hasRiverNeighbor) score += 6;
@@ -2588,6 +2591,25 @@ namespace CivOne
 		// reports -2 there and irrigates perfectly well (Desert.cs:22 — Food becomes 1 once
 		// irrigated). The sign is a yield modifier on some terrain and a "never" flag on
 		// others, so it cannot carry this question. The type list is AllowIrrigation's.
+		// What the centre yields once the city stands, not what the bare tile yields today.
+		// Game.AddCity irrigates a Desert, Grassland, Hills, Plains or River centre for free,
+		// and clears an AI's Forest, Jungle or Swamp centre to Grassland first. Forested
+		// Hills gets neither, so it stays at 1 food for ever — yet scored on the raw tile it
+		// beat bare Hills (10 to 6), and on a turn-382 save 23 AI cities sat on it at a mean
+		// size of 4.0 against 7.9 on Grassland (Oct 2026). City.ShieldValue floors the centre
+		// at 1 shield. Despotism's tile penalty is left out: the city outlives the government.
+		// ponytail: mirrors AddCity's founding rules by hand; change both together.
+		internal static (int food, int shield, int trade) FoundedCentreYield(ITile tile)
+		{
+			bool cleared = tile is Forest or Jungle or Swamp;
+			bool irrigated = cleared || tile is Desert or Grassland or Hills or Plains or River;
+			// Hills, Plains and Desert count their own irrigation in Food; the rest get it
+			// from City.FoodValue, so an already-irrigated Hills must not be counted twice.
+			bool counted = tile.Irrigation && tile is Hills or Plains or Desert;
+			int food = (cleared ? 2 : tile.Food) + (irrigated && !counted ? 1 : 0);
+			return (food, Math.Max(1, cleared ? 0 : (int)tile.Shield), cleared ? 0 : tile.Trade);
+		}
+
 		internal static bool CentreCanFeed(ITile tile)
 		{
 			if (tile is null) return false;

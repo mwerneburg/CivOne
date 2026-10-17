@@ -184,6 +184,26 @@ namespace CivOne.Tests
 				$"a plains centre ({grass}) did not outscore a desert one ({desert}) in the same ring");
 		}
 
+		// Forested Hills gets no free irrigation at founding and the AI does not clear it, so
+		// its centre stays at 1 food; a bare Hills centre is irrigated to 2. Scored on the
+		// raw tile — and counted a second time, raw, in the ring — it won 15 to 7.
+		[Fact]
+		public void AForestedHillsCentreLosesToABareHillsOne()
+		{
+			(Game g, Player p) = AWorld(Terrain.Plains);
+			var method = typeof(AI).GetMethod("SiteSuitability",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+			Map.Instance.ChangeTileType(40, 25, Terrain.ForestedHills);
+			((BaseTile)Map.Instance[40, 25]).Special = false;
+			int wooded = (int)method.Invoke(AI.Instance(p), new object[] { Map.Instance[40, 25] })!;
+			Map.Instance.ChangeTileType(40, 25, Terrain.Hills);
+			((BaseTile)Map.Instance[40, 25]).Special = false;
+			int bare = (int)method.Invoke(AI.Instance(p), new object[] { Map.Instance[40, 25] })!;
+
+			Assert.True(bare > wooded, $"bare hills ({bare}) did not outscore forested hills ({wooded})");
+		}
+
 		// Food is weighted hardest because it is the only yield with no centre floor: the
 		// city always gets a shield and a coin from its own tile, never a guaranteed bite.
 		[Fact]
